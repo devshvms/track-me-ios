@@ -5,7 +5,7 @@ import FirebaseAuth
 struct DataExportResponse: Codable {
     let requestId: String?
     let userId: String?
-    let status: String // "QUEUED", "PROCESSING", "COMPLETED"
+    let status: String
     let requestedAt: String?
     let completedAt: String?
     let archiveSizeBytes: Int?
@@ -79,7 +79,7 @@ class DataExportService {
                         archiveSizeBytes: size,
                         downloadUrl: downloadUrl,
                         expiresAt: nil,
-                        message: status == "COMPLETED" ? "Your archive is ready for download." : "Your data export request is queued for off-peak batch processing."
+                        message: status == "COMPLETED" ? "Your archive is ready for download." : "Your archive request is not ready yet."
                     )
                     completion(.success(response))
                 }
@@ -134,27 +134,14 @@ class DataExportService {
                     return
                 }
                 
-                let fallbackReqId = UUID().uuidString
-                self?.mirrorRequestToFirestore(userId: user.uid, userEmail: user.email ?? "", requestId: fallbackReqId, status: "QUEUED") { err in
-                    DispatchQueue.main.async {
-                        if let err = err {
-                            completion(.failure(err))
-                        } else {
-                            let fallbackResponse = DataExportResponse(
-                                requestId: fallbackReqId,
-                                userId: user.uid,
-                                status: "QUEUED",
-                                requestedAt: nil,
-                                completedAt: nil,
-                                archiveSizeBytes: nil,
-                                downloadUrl: nil,
-                                expiresAt: nil,
-                                message: "Your data export request is queued for off-peak batch processing."
-                            )
-                            TelemetryManager.shared.trackDataDownloadRequested()
-                            completion(.success(fallbackResponse))
-                        }
-                    }
+                DispatchQueue.main.async {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    let error = NSError(
+                        domain: "DataExportService",
+                        code: statusCode,
+                        userInfo: [NSLocalizedDescriptionKey: "Could not request archive export. Please try again."]
+                    )
+                    completion(.failure(error))
                 }
             }.resume()
         }
