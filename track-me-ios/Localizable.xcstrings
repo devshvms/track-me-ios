@@ -1110,6 +1110,46 @@
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "サーバーステータス %@ によりアーカイブのダウンロードに失敗しました。" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "存档下载失败，服务器状态为 %@。" } }
       }
+    },
+    "Privacy Policy\n\nYour data is completely under your control. We only store data locally by default. If you enable Cloud Sync, your rides are securely stored on our servers. You can permanently delete your synced data or your entire account at any time using the options below. Deleted data cannot be recovered." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Datenschutzrichtlinie\n\nDeine Daten bleiben vollständig unter deiner Kontrolle. Standardmäßig speichern wir Daten nur lokal. Wenn du die Cloud-Synchronisierung aktivierst, werden deine Fahrten sicher auf unseren Servern gespeichert. Du kannst synchronisierte Daten oder dein gesamtes Konto jederzeit mit den folgenden Optionen dauerhaft löschen. Gelöschte Daten können nicht wiederhergestellt werden." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Política de privacidad\n\nTus datos están completamente bajo tu control. De forma predeterminada, solo almacenamos datos localmente. Si activas la sincronización en la nube, tus recorridos se guardan de forma segura en nuestros servidores. Puedes eliminar permanentemente tus datos sincronizados o toda tu cuenta en cualquier momento con las opciones siguientes. Los datos eliminados no se pueden recuperar." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Politique de confidentialité\n\nVous gardez le contrôle total de vos données. Par défaut, nous stockons les données uniquement en local. Si vous activez la synchronisation cloud, vos trajets sont stockés en toute sécurité sur nos serveurs. Vous pouvez supprimer définitivement vos données synchronisées ou votre compte entier à tout moment avec les options ci-dessous. Les données supprimées ne peuvent pas être récupérées." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "गोपनीयता नीति\n\nआपका डेटा पूरी तरह आपके नियंत्रण में है। डिफ़ॉल्ट रूप से हम डेटा केवल स्थानीय रूप से रखते हैं। यदि आप क्लाउड सिंक चालू करते हैं, तो आपकी राइड हमारे सर्वर पर सुरक्षित रूप से रखी जाती हैं। नीचे दिए विकल्पों से आप कभी भी अपना सिंक किया हुआ डेटा या पूरा खाता स्थायी रूप से हटा सकते हैं। हटाया गया डेटा वापस नहीं लाया जा सकता।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "プライバシーポリシー\n\nデータはすべてあなたが管理します。デフォルトではデータを端末内にのみ保存します。クラウド同期を有効にすると、ライドはサーバーに安全に保存されます。以下のオプションから、同期済みデータまたはアカウント全体をいつでも完全に削除できます。削除したデータは復元できません。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "隐私政策\n\n您的数据完全由您控制。默认情况下，我们只在本地存储数据。如果您启用云同步，您的骑行记录会安全地存储在我们的服务器上。您可以随时使用下面的选项永久删除已同步的数据或整个账户。删除的数据无法恢复。" } }
+      }
+    },
+    "This feature uses advanced algorithms to clean up your raw GPS data immediately after a ride finishes.\n\n• Filters out GPS 'teleportation' glitches.\n• Smooths out noisy altitude and speed readings.\n• Detects when you were stopped and retroactively pauses the ride.\n• Compresses the total amount of data to save storage space." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Diese Funktion bereinigt deine Roh-GPS-Daten direkt nach dem Ende einer Fahrt mit fortschrittlichen Algorithmen.\n\n• Filtert GPS-»Teleportations«-Fehler heraus.\n• Glättet verrauschte Höhen- und Geschwindigkeitswerte.\n• Erkennt Stopps und pausiert die Fahrt nachträglich.\n• Komprimiert die Datenmenge, um Speicherplatz zu sparen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esta función usa algoritmos avanzados para limpiar tus datos GPS sin procesar justo después de terminar un recorrido.\n\n• Filtra los errores de «teletransporte» del GPS.\n• Suaviza las lecturas ruidosas de altitud y velocidad.\n• Detecta cuándo estabas detenido y pausa el recorrido retroactivamente.\n• Comprime la cantidad total de datos para ahorrar espacio." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Cette fonction utilise des algorithmes avancés pour nettoyer vos données GPS brutes dès la fin d’un trajet.\n\n• Filtre les anomalies de « téléportation » GPS.\n• Lisse les mesures bruitées d’altitude et de vitesse.\n• Détecte les arrêts et met le trajet en pause rétroactivement.\n• Compresse la quantité totale de données pour économiser de l’espace." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यह सुविधा राइड पूरी होने के तुरंत बाद आपके कच्चे GPS डेटा को साफ़ करने के लिए उन्नत एल्गोरिदम का उपयोग करती है।\n\n• GPS की 'टेलीपोर्टेशन' गड़बड़ियां हटाती है।\n• शोर वाले ऊंचाई और गति रीडिंग को सुचारू बनाती है।\n• रुकने का पता लगाकर राइड को पीछे से रोकती है।\n• स्टोरेज बचाने के लिए कुल डेटा को संपीड़ित करती है।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "この機能は高度なアルゴリズムを使い、ライド終了直後に生のGPSデータを整理します。\n\n• GPSの「テレポート」異常を除去します。\n• ノイズの多い高度と速度の値を滑らかにします。\n• 停止を検出してライドをさかのぼって一時停止します。\n• データ量を圧縮して保存容量を節約します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此功能会在骑行结束后立即使用高级算法清理原始 GPS 数据。\n\n• 过滤 GPS 的“瞬移”异常。\n• 平滑嘈杂的海拔和速度读数。\n• 检测停车并回溯暂停骑行。\n• 压缩数据总量以节省存储空间。" } }
+      }
+    },
+    "When active, your location, speed, and battery level are shared securely.\n\n• Coordinates are pushed every %@.\n• Max concurrent viewers is determined by server capability (default: 100+ viewers).\n• Sharing automatically stops when the timer expires or you end your ride." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wenn aktiv, werden dein Standort, deine Geschwindigkeit und dein Akkustand sicher geteilt.\n\n• Koordinaten werden alle %@ übertragen.\n• Die maximale Zahl gleichzeitiger Zuschauer hängt von der Serverkapazität ab (Standard: über 100 Zuschauer).\n• Die Freigabe endet automatisch, wenn der Timer abläuft oder du die Fahrt beendest." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cuando está activa, tu ubicación, velocidad y nivel de batería se comparten de forma segura.\n\n• Las coordenadas se envían cada %@.\n• El máximo de espectadores simultáneos depende de la capacidad del servidor (predeterminado: más de 100 espectadores).\n• El uso compartido se detiene automáticamente cuando termina el temporizador o finalizas el recorrido." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lorsqu’il est activé, votre position, votre vitesse et votre niveau de batterie sont partagés en toute sécurité.\n\n• Les coordonnées sont envoyées toutes les %@.\n• Le nombre maximal de spectateurs simultanés dépend de la capacité du serveur (par défaut : plus de 100 spectateurs).\n• Le partage s’arrête automatiquement à l’expiration du minuteur ou lorsque vous terminez votre trajet." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "चालू होने पर आपका स्थान, गति और बैटरी स्तर सुरक्षित रूप से शेयर किए जाते हैं।\n\n• निर्देशांक हर %@ पर भेजे जाते हैं।\n• एक साथ दर्शकों की अधिकतम संख्या सर्वर क्षमता पर निर्भर है (डिफ़ॉल्ट: 100+ दर्शक)।\n• टाइमर समाप्त होने या राइड खत्म करने पर शेयरिंग अपने आप बंद हो जाती है।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "有効にすると、位置情報、速度、バッテリー残量が安全に共有されます。\n\n• 座標は %@ ごとに送信されます。\n• 同時閲覧者数の上限はサーバーの性能によって決まります（デフォルト：100人以上）。\n• タイマーの終了時またはライド終了時に共有は自動停止します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用后，您的位置、速度和电池电量会安全共享。\n\n• 坐标每 %@ 推送一次。\n• 最大同时查看人数取决于服务器能力（默认：100+ 人）。\n• 计时器到期或您结束骑行后，共享会自动停止。" } }
+      }
+    },
+    "Cancel (%@)" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abbrechen (%@)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cancelar (%@)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Annuler (%@)" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "रद्द करें (%@)" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "キャンセル (%@)" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消 (%@)" } }
+      }
     }
   },
   "version" : "1.0"

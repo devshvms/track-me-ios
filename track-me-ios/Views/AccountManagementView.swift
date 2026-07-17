@@ -200,7 +200,7 @@ struct AccountManagementView: View {
                     
                     if isPrivacyExpanded {
                         VStack(alignment: .leading, spacing: 20) {
-                            Text("Privacy Policy\n\nYour data is completely under your control. We only store data locally by default. If you enable Cloud Sync, your rides are securely stored on our servers. You can permanently delete your synced data or your entire account at any time using the options below. Deleted data cannot be recovered.")
+                            Text(LocalizationHelper.localized("Privacy Policy\n\nYour data is completely under your control. We only store data locally by default. If you enable Cloud Sync, your rides are securely stored on our servers. You can permanently delete your synced data or your entire account at any time using the options below. Deleted data cannot be recovered."))
                                 .font(.caption)
                                 .foregroundColor(.gray)
                             

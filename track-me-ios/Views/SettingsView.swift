@@ -347,13 +347,13 @@ struct SettingsView: View {
             .alert("GPS Post-Processing", isPresented: $showGpsInfo) {
                 Button("Got it", role: .cancel) { }
             } message: {
-                Text("This feature uses advanced algorithms to clean up your raw GPS data immediately after a ride finishes.\n\n• Filters out GPS 'teleportation' glitches.\n• Smooths out noisy altitude and speed readings.\n• Detects when you were stopped and retroactively pauses the ride.\n• Compresses the total amount of data to save storage space.")
+                Text(LocalizationHelper.localized("This feature uses advanced algorithms to clean up your raw GPS data immediately after a ride finishes.\n\n• Filters out GPS 'teleportation' glitches.\n• Smooths out noisy altitude and speed readings.\n• Detects when you were stopped and retroactively pauses the ride.\n• Compresses the total amount of data to save storage space."))
             }
             .alert("Live Location Sharing", isPresented: $showLiveShareInfo) {
                 Button("Got it", role: .cancel) { }
             } message: {
                 let freqText = liveShareFrequency >= 60 ? "\(liveShareFrequency / 60) min" : "\(liveShareFrequency) sec"
-                Text("When active, your location, speed, and battery level are shared securely.\n\n• Coordinates are pushed every \(freqText).\n• Max concurrent viewers is determined by server capability (default: 100+ viewers).\n• Sharing automatically stops when the timer expires or you end your ride.")
+                Text(LocalizationHelper.formatted("When active, your location, speed, and battery level are shared securely.\n\n• Coordinates are pushed every %@.\n• Max concurrent viewers is determined by server capability (default: 100+ viewers).\n• Sharing automatically stops when the timer expires or you end your ride.", freqText))
             }
             .onAppear {
                 Auth.auth().addStateDidChangeListener { _, user in

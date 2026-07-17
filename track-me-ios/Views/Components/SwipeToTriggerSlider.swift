@@ -63,7 +63,7 @@ struct SwipeToTriggerSlider: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
                             .foregroundColor(.white)
-                        Text("Cancel (\(countdown))")
+                        Text(LocalizationHelper.formatted("Cancel (%@)", String(countdown)))
                             .font(.headline)
                             .foregroundColor(.white)
                     }
