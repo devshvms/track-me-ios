@@ -1,0 +1,11 @@
+{
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Track Me",
+        "supportEmail": "support@example.com"
+      }
+    }
+  }
+}
