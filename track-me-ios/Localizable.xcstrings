@@ -1251,6 +1251,106 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%@ 小时" } }
       }
     },
+    "Sign Out Warning" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abmeldewarnung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Advertencia de cierre de sesión" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Avertissement de déconnexion" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "साइन आउट चेतावनी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サインアウトの警告" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出登录警告" } }
+      }
+    },
+    "Delete Account" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Konto löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar cuenta" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer le compte" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "खाता हटाएं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アカウントを削除" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除帐户" } }
+      }
+    },
+    "Delete Everything" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alles löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar todo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout supprimer" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सब कुछ हटाएं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "すべて削除" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部删除" } }
+      }
+    },
+    "Data Archive Requested 📦" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Datenarchiv angefordert 📦" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivo de datos solicitado 📦" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Archive de données demandé 📦" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "डेटा आर्काइव का अनुरोध किया गया 📦" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "データアーカイブをリクエストしました 📦" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已请求数据存档 📦" } }
+      }
+    },
+    "Got it" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verstanden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Entendido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Compris" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "समझ गया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "了解" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "知道了" } }
+      }
+    },
+    "Export Request Failed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Exportanfrage fehlgeschlagen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Error en la solicitud de exportación" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Échec de la demande d’exportation" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "एक्सपोर्ट अनुरोध विफल हुआ" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "エクスポートのリクエストに失敗しました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导出请求失败" } }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aceptar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "ठीक है" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "确定" } }
+      }
+    },
+    "Why are you leaving? (Optional)" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Warum gehst du? (Optional)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Por qué te vas? (Opcional)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pourquoi partez-vous ? (Facultatif)" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आप क्यों जा रहे हैं? (वैकल्पिक)" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "退会する理由（任意）" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为什么要离开？（可选）" } }
+      }
+    },
+    "Type DELETE to confirm" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gib DELETE zur Bestätigung ein" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Escribe DELETE para confirmar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Saisissez DELETE pour confirmer" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पुष्टि करने के लिए DELETE टाइप करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "確認するにはDELETEと入力" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "输入 DELETE 以确认" } }
+      }
+    },
+    "Could not queue archive request. Please check your network connection." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Archiv konnte nicht angefordert werden. Prüfe deine Netzwerkverbindung." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudo solicitar el archivo. Comprueba tu conexión de red." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de demander l’archive. Vérifiez votre connexion réseau." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आर्काइव अनुरोध नहीं भेजा जा सका। अपना नेटवर्क कनेक्शन जांचें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アーカイブをリクエストできませんでした。ネットワーク接続を確認してください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法提交存档请求。请检查网络连接。" } }
+      }
+    },
     "%@ m" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ Min." } },
