@@ -81,7 +81,7 @@ struct AccountManagementView: View {
                         )
                 }
                 
-                // Asynchronous Data Archive Export Card
+                // On-demand Data Archive Export Card
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "archivebox.fill")
@@ -101,7 +101,7 @@ struct AccountManagementView: View {
                         }
                     }
                     
-                    Text("Request a comprehensive archive of your complete ride history (GPX files & JSON metadata). To protect server resources, data exports are paced during low-traffic off-peak windows (at most 1 export every 4 hours).")
+                    Text("Request a comprehensive archive of your synchronized ride history (GPX files & JSON metadata). The ZIP is assembled when you open the secure download link and expires six hours after retrieval, or after 48 hours if untouched.")
                         .font(.caption)
                         .foregroundColor(.gray)
                     
@@ -260,7 +260,7 @@ struct AccountManagementView: View {
         .alert("Data Archive Requested 📦", isPresented: $showExportConfirmationModal) {
             Button("Got it", role: .cancel) { }
         } message: {
-            Text("Your request to download all historical rides (GPX traces & JSON archive) has been queued.\n\nOur servers process data archives asynchronously during low-traffic batch windows. Once ready, a secure 7-day download link will be emailed to your registered email address.")
+            Text("Your archive is ready. Use the secure download link shown in Account Management to download the ZIP. The link expires six hours after retrieval, or after 48 hours if untouched.")
         }
         .alert("Export Request Failed", isPresented: $showExportErrorAlert) {
             Button("OK", role: .cancel) { }

@@ -8,7 +8,6 @@ struct DataExportResponse: Codable {
     let status: String
     let requestedAt: String?
     let completedAt: String?
-    let archiveSizeBytes: Int?
     let downloadUrl: String?
     let expiresAt: String?
     let message: String?
@@ -34,7 +33,7 @@ class DataExportService {
         request.httpMethod = "GET"
         request.timeoutInterval = 10
         
-        user.getIDToken { [weak self] token, _ in
+        user.getIDTokenForcingRefresh(true) { [weak self] token, _ in
             if let token = token {
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             }
@@ -68,15 +67,12 @@ class DataExportService {
                     let status = data["status"] as? String ?? "QUEUED"
                     let downloadUrl = data["downloadUrl"] as? String
                     let reqId = data["requestId"] as? String ?? doc.documentID
-                    let size = data["archiveSizeBytes"] as? Int
-                    
                     let response = DataExportResponse(
                         requestId: reqId,
                         userId: userId,
                         status: status,
                         requestedAt: nil,
                         completedAt: nil,
-                        archiveSizeBytes: size,
                         downloadUrl: downloadUrl,
                         expiresAt: nil,
                         message: status == "COMPLETED" ? "Your archive is ready for download." : "Your archive request is not ready yet."
@@ -116,7 +112,7 @@ class DataExportService {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        user.getIDToken { [weak self] token, _ in
+        user.getIDTokenForcingRefresh(true) { [weak self] token, _ in
             if let token = token {
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             }
