@@ -990,6 +990,126 @@
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "分" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分钟" } }
       }
+    },
+    "Request a comprehensive archive of your synchronized ride history (GPX files & JSON metadata). The ZIP is assembled when you download it and expires six hours after retrieval, or after 48 hours if untouched." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fordere ein vollständiges Archiv deines synchronisierten Fahrtverlaufs an (GPX-Dateien und JSON-Metadaten). Die ZIP-Datei wird beim Download erstellt und läuft sechs Stunden danach oder nach 48 Stunden ohne Zugriff ab." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Solicita un archivo completo de tu historial sincronizado (archivos GPX y metadatos JSON). El ZIP se prepara al descargarlo y caduca seis horas después o tras 48 horas sin acceso." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Demandez une archive complète de votre historique synchronisé (fichiers GPX et métadonnées JSON). Le ZIP est créé lors du téléchargement et expire six heures après, ou après 48 heures sans accès." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अपने सिंक किए गए राइड इतिहास का पूरा आर्काइव मांगें (GPX फ़ाइलें और JSON मेटाडेटा)। ZIP डाउनलोड करते समय तैयार होती है और प्राप्ति के छह घंटे बाद या 48 घंटे तक बिना उपयोग के समाप्त हो जाती है।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "同期済みのライド履歴全体のアーカイブ（GPXファイルとJSONメタデータ）をリクエストできます。ZIPはダウンロード時に作成され、取得から6時間後、または未取得のまま48時間後に期限切れになります。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请求同步骑行记录的完整存档（GPX 文件和 JSON 元数据）。ZIP 会在下载时生成，获取后六小时或未使用 48 小时后过期。" } }
+      }
+    },
+    "Help us improve by securely sharing anonymous app usage data (e.g., ride durations, crashes). No identifiable personal data is ever shared." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hilf uns, die App zu verbessern, indem du anonymisierte Nutzungsdaten sicher teilst (z. B. Fahrtdauer und Abstürze). Es werden niemals personenbezogene Daten geteilt." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ayúdanos a mejorar compartiendo de forma segura datos anónimos de uso (por ejemplo, duración de recorridos y fallos). Nunca se comparten datos personales identificables." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aidez-nous à améliorer l’app en partageant de manière sécurisée des données d’utilisation anonymes (par exemple la durée des trajets et les plantages). Aucune donnée personnelle identifiable n’est partagée." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अनाम ऐप उपयोग डेटा सुरक्षित रूप से साझा करके हमें सुधारने में मदद करें (जैसे राइड अवधि और क्रैश)। पहचान योग्य व्यक्तिगत डेटा कभी साझा नहीं किया जाता।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "匿名のアプリ利用データ（ライド時間やクラッシュなど）を安全に共有して改善にご協力ください。個人を特定できるデータは共有されません。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "安全地分享匿名应用使用数据（例如骑行时长和崩溃信息），帮助我们改进。我们不会分享任何可识别个人身份的数据。" } }
+      }
+    },
+    "Turn on to save raw, uncompressed data. Skipping processing increases storage and keeps glitches." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktiviere diese Option, um rohe, unkomprimierte Daten zu speichern. Ohne Verarbeitung wird mehr Speicher benötigt und Störungen bleiben erhalten." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Actívalo para guardar datos sin procesar y sin comprimir. Omitir el procesamiento usa más almacenamiento y conserva los errores." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activez cette option pour conserver les données brutes et non compressées. Ignorer le traitement augmente le stockage nécessaire et conserve les anomalies." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कच्चा, बिना कंप्रेस किया डेटा सेव करने के लिए चालू करें। प्रोसेसिंग छोड़ने से अधिक स्टोरेज लगेगा और गड़बड़ियां बनी रहेंगी।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "未圧縮の生データを保存するにはオンにします。処理を省くとストレージ使用量が増え、異常値が残ります。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开启后会保存原始的未压缩数据。跳过处理会增加存储用量并保留异常数据。" } }
+      }
+    },
+    "Signing out will clear all your synced rides from this phone's local history. They will remain safely in the cloud, and any new rides will be saved locally. Are you sure you want to sign out?" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beim Abmelden werden alle synchronisierten Fahrten aus dem Verlauf dieses iPhones entfernt. Sie bleiben sicher in der Cloud, neue Fahrten werden lokal gespeichert. Möchtest du dich wirklich abmelden?" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Al cerrar sesión se eliminarán del historial local de este teléfono todos tus recorridos sincronizados. Seguirán seguros en la nube y los nuevos se guardarán localmente. ¿Quieres cerrar sesión?" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "La déconnexion supprimera tous vos trajets synchronisés de l’historique local de cet iPhone. Ils resteront dans le cloud et les nouveaux trajets seront enregistrés localement. Voulez-vous vous déconnecter ?" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "साइन आउट करने से इस फोन के स्थानीय इतिहास से आपकी सभी सिंक राइड हट जाएंगी। वे क्लाउड में सुरक्षित रहेंगी और नई राइड स्थानीय रूप से सेव होंगी। क्या आप साइन आउट करना चाहते हैं?" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サインアウトすると、このiPhoneのローカル履歴から同期済みのライドがすべて削除されます。ライドはクラウドに安全に残り、新しいライドは端末に保存されます。サインアウトしますか？" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出登录会从此手机的本地记录中清除所有已同步的骑行。它们仍会安全保存在云端，新骑行会保存在本地。确定要退出登录吗？" } }
+      }
+    },
+    "Are you sure you want to delete all your synced rides from the cloud? This action cannot be undone." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Möchtest du wirklich alle synchronisierten Fahrten aus der Cloud löschen? Diese Aktion kann nicht rückgängig gemacht werden." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Seguro que quieres eliminar de la nube todos tus recorridos sincronizados? Esta acción no se puede deshacer." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Voulez-vous vraiment supprimer de l’app tous vos trajets synchronisés dans le cloud ? Cette action est irréversible." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "क्या आप क्लाउड से अपनी सभी सिंक राइड हटाना चाहते हैं? यह कार्रवाई वापस नहीं की जा सकती।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "同期済みのライドをすべてクラウドから削除しますか？この操作は取り消せません。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "确定要从云端删除所有已同步的骑行吗？此操作无法撤销。" } }
+      }
+    },
+    "This is a permanent action. Your account and all cloud data will be deleted forever." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dies ist dauerhaft. Dein Konto und alle Cloud-Daten werden endgültig gelöscht." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esta acción es permanente. Tu cuenta y todos los datos de la nube se eliminarán para siempre." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Cette action est définitive. Votre compte et toutes vos données cloud seront supprimés pour toujours." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यह स्थायी कार्रवाई है। आपका खाता और क्लाउड का सारा डेटा हमेशा के लिए हटा दिया जाएगा।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "この操作は取り消せません。アカウントとすべてのクラウドデータが完全に削除されます。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此操作永久有效。您的账户和所有云数据将被永久删除。" } }
+      }
+    },
+    "Your archive is ready. Download it from Account Management when you are ready to share or save it. The link expires six hours after retrieval, or after 48 hours if untouched." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Archiv ist bereit. Lade es in der Kontoverwaltung herunter, wenn du es teilen oder speichern möchtest. Der Link läuft sechs Stunden nach Abruf oder nach 48 Stunden ohne Zugriff ab." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tu archivo está listo. Descárgalo desde Administración de la cuenta cuando quieras compartirlo o guardarlo. El enlace caduca seis horas después de obtenerlo o tras 48 horas sin usarlo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Votre archive est prête. Téléchargez-la depuis Gestion du compte lorsque vous souhaitez la partager ou l’enregistrer. Le lien expire six heures après son obtention ou après 48 heures sans accès." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपका आर्काइव तैयार है। शेयर या सेव करने के लिए तैयार होने पर इसे खाता प्रबंधन से डाउनलोड करें। लिंक प्राप्ति के छह घंटे बाद या 48 घंटे तक बिना उपयोग के समाप्त हो जाता है।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アーカイブの準備ができました。共有または保存する準備ができたら、アカウント管理からダウンロードしてください。リンクは取得から6時間後、または未取得のまま48時間後に期限切れになります。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "您的存档已准备就绪。准备好分享或保存时，请从账户管理中下载。链接在获取后六小时或未使用 48 小时后过期。" } }
+      }
+    },
+    "Sign in before downloading your archive." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Melde dich vor dem Herunterladen deines Archivs an." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Inicia sesión antes de descargar tu archivo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Connectez-vous avant de télécharger votre archive." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आर्काइव डाउनलोड करने से पहले साइन इन करें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アーカイブをダウンロードする前にサインインしてください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "下载存档前请先登录。" } }
+      }
+    },
+    "The export did not include a secure download link. Request a new archive." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Export enthält keinen sicheren Download-Link. Fordere ein neues Archiv an." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "La exportación no incluyó un enlace de descarga seguro. Solicita un archivo nuevo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "L’exportation ne contient pas de lien de téléchargement sécurisé. Demandez une nouvelle archive." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "एक्सपोर्ट में सुरक्षित डाउनलोड लिंक नहीं था। नया आर्काइव मांगें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "エクスポートに安全なダウンロードリンクがありません。新しいアーカイブをリクエストしてください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导出中没有安全的下载链接。请重新请求存档。" } }
+      }
+    },
+    "The archive download returned an unexpected response." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Archiv-Download hat eine unerwartete Antwort zurückgegeben." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "La descarga del archivo devolvió una respuesta inesperada." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le téléchargement de l’archive a renvoyé une réponse inattendue." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आर्काइव डाउनलोड से अनपेक्षित प्रतिक्रिया मिली।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アーカイブのダウンロードで予期しない応答が返されました。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "存档下载返回了意外响应。" } }
+      }
+    },
+    "The archive downloaded, but could not be prepared for sharing." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Archiv wurde heruntergeladen, konnte aber nicht zum Teilen vorbereitet werden." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El archivo se descargó, pero no pudo prepararse para compartirlo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "L’archive a été téléchargée, mais n’a pas pu être préparée pour le partage." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आर्काइव डाउनलोड हुआ, लेकिन शेयर करने के लिए तैयार नहीं किया जा सका।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アーカイブはダウンロードされましたが、共有用に準備できませんでした。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "存档已下载，但无法准备共享。" } }
+      }
+    },
+    "Archive download failed with server status %@." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Archiv-Download ist mit dem Serverstatus %@ fehlgeschlagen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "La descarga del archivo falló con el estado del servidor %@." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le téléchargement de l’archive a échoué avec le statut serveur %@." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सर्वर स्टेटस %@ के कारण आर्काइव डाउनलोड विफल हुआ।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サーバーステータス %@ によりアーカイブのダウンロードに失敗しました。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "存档下载失败，服务器状态为 %@。" } }
+      }
     }
   },
   "version" : "1.0"

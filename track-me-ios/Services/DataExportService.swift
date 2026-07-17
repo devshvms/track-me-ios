@@ -29,7 +29,7 @@ enum DataExportError: LocalizedError {
         case .invalidResponse:
             return LocalizationHelper.localized("The archive download returned an unexpected response.")
         case .server(let statusCode):
-            return LocalizationHelper.localized("Archive download failed with server status \(statusCode).")
+            return LocalizationHelper.formatted("Archive download failed with server status %@.", String(statusCode))
         case .fileMoveFailed:
             return LocalizationHelper.localized("The archive downloaded, but could not be prepared for sharing.")
         }
