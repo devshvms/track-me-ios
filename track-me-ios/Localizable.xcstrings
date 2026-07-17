@@ -1091,6 +1091,16 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "存档下载返回了意外响应。" } }
       }
     },
+    "The archive is incomplete. Please request a new export." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Archiv ist unvollständig. Fordere einen neuen Export an." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El archivo está incompleto. Solicita una nueva exportación." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "L’archive est incomplète. Demandez un nouvel export." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आर्काइव अधूरा है। कृपया नया एक्सपोर्ट मांगें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アーカイブが不完全です。新しいエクスポートをリクエストしてください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "存档不完整。请重新请求导出。" } }
+      }
+    },
     "The archive downloaded, but could not be prepared for sharing." : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Archiv wurde heruntergeladen, konnte aber nicht zum Teilen vorbereitet werden." } },

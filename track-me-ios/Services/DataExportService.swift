@@ -19,6 +19,7 @@ enum DataExportError: LocalizedError {
     case invalidResponse
     case server(statusCode: Int)
     case fileMoveFailed
+    case incompleteArchive
 
     var errorDescription: String? {
         switch self {
@@ -32,6 +33,8 @@ enum DataExportError: LocalizedError {
             return LocalizationHelper.formatted("Archive download failed with server status %@.", String(statusCode))
         case .fileMoveFailed:
             return LocalizationHelper.localized("The archive downloaded, but could not be prepared for sharing.")
+        case .incompleteArchive:
+            return LocalizationHelper.localized("The archive is incomplete. Please request a new export.")
         }
     }
 }
@@ -210,6 +213,11 @@ class DataExportService {
 
                 do {
                     try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
+                    if ExportArchiveValidator.containsFailureMarker(at: destinationURL) {
+                        try? FileManager.default.removeItem(at: destinationURL)
+                        DispatchQueue.main.async { completion(.failure(DataExportError.incompleteArchive)) }
+                        return
+                    }
                     DispatchQueue.main.async { completion(.success(destinationURL)) }
                 } catch {
                     DispatchQueue.main.async { completion(.failure(DataExportError.fileMoveFailed)) }
