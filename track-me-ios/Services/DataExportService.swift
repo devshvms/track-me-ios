@@ -13,6 +13,29 @@ struct DataExportResponse: Codable {
     let message: String?
 }
 
+enum DataExportError: LocalizedError {
+    case notAuthenticated
+    case missingDownloadURL
+    case invalidResponse
+    case server(statusCode: Int)
+    case fileMoveFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .notAuthenticated:
+            return "Sign in before downloading your archive."
+        case .missingDownloadURL:
+            return "The export did not include a secure download link. Request a new archive."
+        case .invalidResponse:
+            return "The archive download returned an unexpected response."
+        case .server(let statusCode):
+            return "Archive download failed with server status (statusCode)."
+        case .fileMoveFailed:
+            return "The archive downloaded, but could not be prepared for sharing."
+        }
+    }
+}
+
 class DataExportService {
     static let shared = DataExportService()
     private let db = Firestore.firestore()
@@ -138,6 +161,58 @@ class DataExportService {
                         userInfo: [NSLocalizedDescriptionKey: "Could not request archive export. Please try again."]
                     )
                     completion(.failure(error))
+                }
+            }.resume()
+        }
+    }
+
+    /// Downloads the tokenized URL with a fresh bearer token as an additional
+    /// ownership check, then returns a temporary file for the native share sheet.
+    func downloadArchive(from url: URL, completion: @escaping (Result<URL, Error>) -> Void) {
+        guard let user = Auth.auth().currentUser else {
+            DispatchQueue.main.async { completion(.failure(DataExportError.notAuthenticated)) }
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 60
+
+        user.getIDTokenForcingRefresh(true) { token, error in
+            guard let token else {
+                DispatchQueue.main.async {
+                    completion(.failure(error ?? DataExportError.invalidResponse))
+                }
+                return
+            }
+
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+            URLSession.shared.downloadTask(with: request) { temporaryURL, response, error in
+                if let error {
+                    DispatchQueue.main.async { completion(.failure(error)) }
+                    return
+                }
+
+                guard let httpResponse = response as? HTTPURLResponse,
+                      let temporaryURL,
+                      (200...299).contains(httpResponse.statusCode) else {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    DispatchQueue.main.async {
+                        completion(.failure(statusCode == 0 ? DataExportError.invalidResponse : DataExportError.server(statusCode: statusCode)))
+                    }
+                    return
+                }
+
+                let filename = httpResponse.suggestedFilename ?? "TrackMe_Archive.zip"
+                let destinationURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("TrackMe-\(UUID().uuidString)-\(filename)")
+
+                do {
+                    try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
+                    DispatchQueue.main.async { completion(.success(destinationURL)) }
+                } catch {
+                    DispatchQueue.main.async { completion(.failure(DataExportError.fileMoveFailed)) }
                 }
             }.resume()
         }

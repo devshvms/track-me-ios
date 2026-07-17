@@ -25,8 +25,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var durationInMillis: TimeInterval = 0
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
+    var showLocationPermissionExplanation = false
     
     private var timer: Timer?
+    private var pendingTrackingStart = false
     
     override init() {
         super.init()
@@ -38,7 +40,57 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
     
     func startTracking() {
-        locationManager.requestAlwaysAuthorization()
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            pendingTrackingStart = true
+            showLocationPermissionExplanation = true
+            return
+        case .authorizedWhenInUse:
+            pendingTrackingStart = true
+            locationManager.requestAlwaysAuthorization()
+            return
+        case .authorizedAlways:
+            beginTracking()
+        default:
+            ToastManager.shared.show(message: "Enable location access in Settings to start tracking.", style: .error)
+        }
+    }
+
+    func continueAfterLocationExplanation() {
+        pendingTrackingStart = true
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse:
+            locationManager.requestAlwaysAuthorization()
+        case .authorizedAlways:
+            beginTracking()
+        default:
+            ToastManager.shared.show(message: "Enable location access in Settings to start tracking.", style: .error)
+        }
+    }
+
+    func cancelPendingTrackingStart() {
+        pendingTrackingStart = false
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        guard pendingTrackingStart else { return }
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse:
+            manager.requestAlwaysAuthorization()
+        case .authorizedAlways:
+            beginTracking()
+        case .denied, .restricted:
+            pendingTrackingStart = false
+            ToastManager.shared.show(message: "Location permission is required for offline and background tracking.", style: .error)
+        default:
+            break
+        }
+    }
+
+    private func beginTracking() {
+        pendingTrackingStart = false
         locationManager.startUpdatingLocation()
         
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in

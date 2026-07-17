@@ -17,6 +17,8 @@ struct AccountManagementView: View {
     @State private var exportErrorMessage: String? = nil
     @State private var showExportErrorAlert = false
     @State private var currentExportResponse: DataExportResponse? = nil
+    @State private var isDownloadingArchive = false
+    @State private var downloadedArchiveURL: URL? = nil
     
     @Environment(\.dismiss) private var dismiss
     
@@ -101,17 +103,33 @@ struct AccountManagementView: View {
                         }
                     }
                     
-                    Text("Request a comprehensive archive of your synchronized ride history (GPX files & JSON metadata). The ZIP is assembled when you open the secure download link and expires six hours after retrieval, or after 48 hours if untouched.")
+                    Text("Request a comprehensive archive of your synchronized ride history (GPX files & JSON metadata). The ZIP is assembled when you download it and expires six hours after retrieval, or after 48 hours if untouched.")
                         .font(.caption)
                         .foregroundColor(.gray)
                     
                     if currentExportResponse?.status == "COMPLETED", let downloadUrl = currentExportResponse?.downloadUrl, let url = URL(string: downloadUrl) {
                         Button(action: {
-                            UIApplication.shared.open(url)
+                            guard !isDownloadingArchive else { return }
+                            isDownloadingArchive = true
+                            DataExportService.shared.downloadArchive(from: url) { result in
+                                isDownloadingArchive = false
+                                switch result {
+                                case .success(let fileURL):
+                                    downloadedArchiveURL = fileURL
+                                case .failure(let error):
+                                    exportErrorMessage = error.localizedDescription
+                                    showExportErrorAlert = true
+                                }
+                            }
                         }) {
                             HStack {
-                                Image(systemName: "arrow.down.circle.fill")
-                                Text("Download Archive (.zip)")
+                                if isDownloadingArchive {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                }
+                                Text(isDownloadingArchive ? "Preparing Archive..." : "Download Archive (.zip)")
                                     .font(.subheadline).bold()
                             }
                             .frame(maxWidth: .infinity)
@@ -120,6 +138,7 @@ struct AccountManagementView: View {
                             .foregroundColor(.white)
                             .cornerRadius(24)
                         }
+                        .disabled(isDownloadingArchive)
                     } else {
                         Button(action: {
                             guard !isRequestingExport else { return }
@@ -260,12 +279,23 @@ struct AccountManagementView: View {
         .alert("Data Archive Requested 📦", isPresented: $showExportConfirmationModal) {
             Button("Got it", role: .cancel) { }
         } message: {
-            Text("Your archive is ready. Use the secure download link shown in Account Management to download the ZIP. The link expires six hours after retrieval, or after 48 hours if untouched.")
+            Text("Your archive is ready. Download it from Account Management when you are ready to share or save it. The link expires six hours after retrieval, or after 48 hours if untouched.")
         }
         .alert("Export Request Failed", isPresented: $showExportErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(exportErrorMessage ?? "Could not queue archive request. Please check your network connection.")
+        }
+        .sheet(isPresented: Binding(
+            get: { downloadedArchiveURL != nil },
+            set: { isPresented in
+                if !isPresented { downloadedArchiveURL = nil }
+            }
+        )) {
+            if let downloadedArchiveURL {
+                ActivityView(activityItems: [downloadedArchiveURL])
+                    .presentationDetents([.medium, .large])
+            }
         }
         .onAppear {
             DataExportService.shared.checkExportStatus { result in
