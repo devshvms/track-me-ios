@@ -40,6 +40,10 @@ enum LocalizationHelper {
         return String(localized: String.LocalizationValue(value), locale: locale)
     }
 
+    static func formatted(_ key: String, _ arguments: CVarArg...) -> String {
+        String(format: localized(key), locale: selectedLocale, arguments: arguments)
+    }
+
     static func bucket(for date: Date) -> DateBucket {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {

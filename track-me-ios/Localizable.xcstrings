@@ -850,6 +850,146 @@
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "有効期限まで" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "过期时间" } }
       }
+    },
+    "No GPS signal for %@" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kein GPS-Signal seit %@" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin señal GPS desde hace %@" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun signal GPS depuis %@" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "%@ से GPS सिग्नल नहीं है" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPS信号なし（%@）" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "GPS 信号中断 %@" } }
+      }
+    },
+    "🛡️ Offline Tracking Shield Active • Route Safely Recording" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ Offline-Aufzeichnung aktiv • Route wird sicher aufgezeichnet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ Protección sin conexión activa • Ruta grabándose de forma segura" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ Enregistrement hors ligne actif • Trajet enregistré en sécurité" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ ऑफ़लाइन ट्रैकिंग शील्ड सक्रिय • रूट सुरक्षित रूप से रिकॉर्ड हो रहा है" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ オフライン記録シールドが有効 • ルートを安全に記録中" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ 离线记录保护已启用 • 正在安全记录路线" } }
+      }
+    },
+    "🛡️ Offline Tracking Shield • Ready to Record Locally" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ Offline-Aufzeichnungsschutz • Bereit für lokale Aufzeichnung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ Protección de registro sin conexión • Listo para grabar localmente" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ Protection d’enregistrement hors ligne • Prêt à enregistrer localement" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ ऑफ़लाइन ट्रैकिंग शील्ड • स्थानीय रूप से रिकॉर्ड करने के लिए तैयार" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ オフライン記録シールド • ローカル記録の準備完了" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "🛡️ 离线记录保护 • 已准备好本地记录" } }
+      }
+    },
+    "TrackMe records your route locally first and needs location access while you are moving. Allowing Always access lets an active track continue when your phone is locked." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe zeichnet deine Route zuerst lokal auf und benötigt während der Bewegung Standortzugriff. Mit Immer kann eine aktive Aufzeichnung bei gesperrtem iPhone fortgesetzt werden." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe registra primero tu ruta localmente y necesita acceso a la ubicación mientras te mueves. Permitir Siempre mantiene el registro activo cuando el teléfono está bloqueado." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe enregistre d’abord votre trajet localement et a besoin de votre position pendant vos déplacements. L’accès Toujours permet de continuer un trajet actif lorsque l’iPhone est verrouillé." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe पहले आपका रूट स्थानीय रूप से रिकॉर्ड करता है और चलते समय स्थान एक्सेस चाहता है। Always अनुमति देने पर फोन लॉक होने पर भी सक्रिय ट्रैक जारी रहता है।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMeはまずルートを端末に記録し、移動中は位置情報へのアクセスを必要とします。「常に許可」すると、iPhoneがロック中でも記録を続けられます。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 会先在本地记录路线，移动时需要位置访问权限。允许始终访问后，即使手机锁定，正在进行的记录也会继续。" } }
+      }
+    },
+    "Last synced: %@" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zuletzt synchronisiert: %@" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Última sincronización: %@" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dernière synchronisation : %@" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अंतिम सिंक: %@" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "最終同期: %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "上次同步：%@" } }
+      }
+    },
+    "No rides match your selected filter criteria or no rides recorded yet." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Fahrt entspricht den Filtern oder es wurden noch keine Fahrten aufgezeichnet." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ningún recorrido coincide con los filtros o todavía no se ha grabado ninguno." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun trajet ne correspond aux filtres ou aucun trajet n’a encore été enregistré." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपके चुने फ़िल्टर से कोई राइड मेल नहीं खाती या अभी कोई राइड रिकॉर्ड नहीं हुई।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "選択したフィルターに一致するライドがないか、まだ記録されていません。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有符合所选筛选条件的骑行记录，或者尚未记录骑行。" } }
+      }
+    },
+    "TrackMe Ride" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe-Fahrt" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Recorrido de TrackMe" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Trajet TrackMe" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe राइड" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMeライド" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 骑行" } }
+      }
+    },
+    "Time: %@  |  Dist: %@ km" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zeit: %@  |  Strecke: %@ km" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tiempo: %@  |  Dist.: %@ km" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Temps : %@  |  Dist. : %@ km" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "समय: %@  |  दूरी: %@ किमी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "時間: %@  |  距離: %@ km" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "时间：%@  |  距离：%@ 公里" } }
+      }
+    },
+    "Sharing will automatically stop when you finish your ride." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Freigabe endet automatisch, wenn du die Fahrt beendest." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El uso compartido se detendrá automáticamente cuando termines el recorrido." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le partage s’arrêtera automatiquement lorsque vous terminerez le trajet." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "राइड समाप्त करने पर शेयरिंग अपने आप बंद हो जाएगी।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライドを終了すると共有は自動的に停止します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "结束骑行后，共享会自动停止。" } }
+      }
+    },
+    "Mode" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Modus" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Modo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mode" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "मोड" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "モード" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "模式" } }
+      }
+    },
+    "Hours" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Stunden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Horas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Heures" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "घंटे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "時間" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "小时" } }
+      }
+    },
+    "Minutes" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Minuten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Minutos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Minutes" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "मिनट" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "分" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分钟" } }
+      }
+    },
+    "h" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Std." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "h" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "h" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "घं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "時間" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "小时" } }
+      }
+    },
+    "m" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Min." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "min" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "min" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "मि" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "分" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分钟" } }
+      }
     }
   },
   "version" : "1.0"

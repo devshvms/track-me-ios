@@ -153,7 +153,7 @@ struct SettingsView: View {
                                     Text("Cloud Sync")
                                         .font(.headline)
                                         .foregroundColor(.primary)
-                                    Text("Last synced: \(lastSyncString)")
+                                    Text(LocalizationHelper.formatted("Last synced: %@", lastSyncString))
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                 }

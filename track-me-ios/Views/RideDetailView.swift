@@ -119,7 +119,11 @@ struct RideDetailView: View {
                         let elapsed = sortedPoints[index].timestamp.timeIntervalSince(ride.startTime)
                         let dist = cumulativeDistances[index] / 1000.0
                         
-                        Text("Time: \(formatDuration(elapsed))  |  Dist: \(String(format: "%.2f", dist)) km")
+                        Text(LocalizationHelper.formatted(
+                            "Time: %@  |  Dist: %@ km",
+                            formatDuration(elapsed),
+                            String(format: "%.2f", dist)
+                        ))
                             .font(.system(.subheadline, design: .default, weight: .bold))
                             .foregroundColor(.secondary)
                         

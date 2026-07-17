@@ -41,7 +41,7 @@ struct HomeView: View {
                 if trackingManager.state == .gpsLost || (trackingManager.state == .tracking && trackingManager.timeSinceLastGps > 10.0) {
                     let seconds = Int(trackingManager.timeSinceLastGps)
                     let timeString = seconds > 60 ? "\(seconds / 60)m \(seconds % 60)s" : "\(seconds)s"
-                    Text("No GPS signal for \(timeString)")
+                    Text(LocalizationHelper.formatted("No GPS signal for %@", timeString))
                         .font(.subheadline.bold())
                         .foregroundColor(.white)
                         .padding(.vertical, 8)
@@ -57,7 +57,7 @@ struct HomeView: View {
                         ? "🛡️ Offline Tracking Shield Active • Route Safely Recording"
                         : "🛡️ Offline Tracking Shield • Ready to Record Locally"
                     
-                    Text(shieldText)
+                    Text(LocalizationHelper.localized(shieldText))
                         .font(.caption.bold())
                         .foregroundColor(.white)
                         .padding(.vertical, 8)
