@@ -60,14 +60,14 @@ struct LiveShareDialog: View {
                     HStack {
                         Picker("Hours", selection: $hours) {
                             ForEach(0...23, id: \.self) { h in
-                                Text("\(h) h").tag(h)
+                                Text(LocalizationHelper.formatted("%@ h", String(h))).tag(h)
                             }
                         }
                         .pickerStyle(WheelPickerStyle())
                         
                         Picker("Minutes", selection: $minutes) {
                             ForEach(0...59, id: \.self) { m in
-                                Text("\(m) m").tag(m)
+                                Text(LocalizationHelper.formatted("%@ m", String(m))).tag(m)
                             }
                         }
                         .pickerStyle(WheelPickerStyle())
