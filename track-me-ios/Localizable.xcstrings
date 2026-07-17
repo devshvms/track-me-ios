@@ -1,0 +1,426 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "All" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Todos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tous" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सभी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "すべて" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部" } }
+      }
+    },
+    "Enable location access in Settings to start tracking." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktiviere den Standortzugriff in den Einstellungen, um die Aufzeichnung zu starten." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activa el acceso a la ubicación en Ajustes para empezar a registrar." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activez l’accès à la position dans Réglages pour commencer l’enregistrement." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "ट्रैकिंग शुरू करने के लिए सेटिंग्स में स्थान की अनुमति दें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "記録を開始するには「設定」で位置情報へのアクセスを許可してください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请在设置中启用位置访问权限以开始记录。" } }
+      }
+    },
+    "Failed to parse sharing session" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Freigabesitzung konnte nicht verarbeitet werden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudo analizar la sesión compartida" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible d’analyser la session de partage" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "शेयरिंग सत्र को पढ़ा नहीं जा सका" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "共有セッションを解析できませんでした" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法解析共享会话" } }
+      }
+    },
+    "Failed to start live share" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Live-Standortfreigabe konnte nicht gestartet werden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudo iniciar la ubicación en vivo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de démarrer le partage en direct" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लाइव शेयर शुरू नहीं हो सका" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライブ共有を開始できませんでした" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法开始实时共享" } }
+      }
+    },
+    "Invalid response from server" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ungültige Antwort vom Server" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Respuesta no válida del servidor" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réponse non valide du serveur" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सर्वर से अमान्य प्रतिक्रिया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サーバーから無効な応答が返されました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务器返回了无效响应" } }
+      }
+    },
+    "Link copied to clipboard" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Link in die Zwischenablage kopiert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Enlace copiado al portapapeles" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lien copié dans le presse-papiers" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लिंक क्लिपबोर्ड पर कॉपी किया गया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "リンクをクリップボードにコピーしました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "链接已复制到剪贴板" } }
+      }
+    },
+    "Live sharing expired" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Live-Freigabe abgelaufen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "La ubicación en vivo ha caducado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le partage en direct a expiré" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लाइव शेयर समाप्त हो गया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライブ共有の有効期限が切れました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "实时共享已过期" } }
+      }
+    },
+    "Live sharing started" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Live-Freigabe gestartet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Uso compartido en vivo iniciado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Partage en direct démarré" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लाइव शेयर शुरू हो गया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライブ共有を開始しました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "实时共享已开始" } }
+      }
+    },
+    "Location permission is required for offline and background tracking." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Für die Offline- und Hintergrundaufzeichnung ist der Standortzugriff erforderlich." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se necesita permiso de ubicación para registrar sin conexión y en segundo plano." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "L’autorisation de localisation est requise pour l’enregistrement hors ligne et en arrière-plan." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "ऑफ़लाइन और बैकग्राउंड ट्रैकिंग के लिए स्थान की अनुमति आवश्यक है।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "オフラインおよびバックグラウンドで記録するには位置情報の許可が必要です。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "离线和后台记录需要位置权限。" } }
+      }
+    },
+    "Ride saved successfully" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fahrt erfolgreich gespeichert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Recorrido guardado correctamente" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Trajet enregistré" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "राइड सफलतापूर्वक सेव हुई" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライドを保存しました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "骑行已成功保存" } }
+      }
+    },
+    "Ride updated" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fahrt aktualisiert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Recorrido actualizado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Trajet mis à jour" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "राइड अपडेट हुई" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライドを更新しました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "骑行已更新" } }
+      }
+    },
+    "Custom Duration" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benutzerdefinierte Dauer" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Duración personalizada" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Durée personnalisée" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कस्टम अवधि" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "カスタム時間" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自定义时长" } }
+      }
+    },
+    "Older" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Älter" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Anteriores" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Plus ancien" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पुराने" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "以前" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更早" } }
+      }
+    },
+    "Synced" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Synchronisiert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sincronizados" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Synchronisés" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सिंक किया गया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "同期済み" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已同步" } }
+      }
+    },
+    "This Month" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Diesen Monat" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Este mes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ce mois-ci" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "इस महीने" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今月" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本月" } }
+      }
+    },
+    "This Week" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Diese Woche" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esta semana" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Cette semaine" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "इस सप्ताह" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今週" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本周" } }
+      }
+    },
+    "Today" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Heute" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Hoy" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aujourd’hui" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आज" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今日" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "今天" } }
+      }
+    },
+    "Unsynced" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nicht synchronisiert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No sincronizado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Non synchronisé" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "असिंक" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "未同期" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "未同步" } }
+      }
+    },
+    "Until Ride Ends" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bis zum Ende der Fahrt" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Hasta que termine el recorrido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jusqu’à la fin du trajet" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "राइड समाप्त होने तक" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライド終了まで" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "直到骑行结束" } }
+      }
+    },
+    "Yesterday" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gestern" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ayer" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Hier" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कल" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "昨日" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "昨天" } }
+      }
+    },
+    "Account Management" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kontoverwaltung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Administración de la cuenta" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Gestion du compte" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "खाता प्रबंधन" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アカウント管理" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "账户管理" } }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abbrechen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cancelar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Annuler" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "रद्द करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "キャンセル" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schließen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cerrar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fermer" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "बंद करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "閉じる" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关闭" } }
+      }
+    },
+    "Configure Emergency Setup" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Notfall einrichten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Configurar emergencia" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Configurer les urgences" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपातकालीन सेटअप कॉन्फ़िगर करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "緊急設定を構成" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "配置紧急设置" } }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fortfahren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Continuar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Continuer" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जारी रखें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "続ける" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "继续" } }
+      }
+    },
+    "Data Archive & Export" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Datenarchiv und Export" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Archivo y exportación de datos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Archive et exportation des données" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "डेटा संग्रह और निर्यात" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "データアーカイブとエクスポート" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "数据存档与导出" } }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "हटाएं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "削除" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除" } }
+      }
+    },
+    "Delete Account & Data" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Konto und Daten löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar cuenta y datos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer le compte et les données" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "खाता और डेटा हटाएं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アカウントとデータを削除" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除账户和数据" } }
+      }
+    },
+    "Delete Cloud Data" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Cloud-Daten löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar datos en la nube" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer les données cloud" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "क्लाउड डेटा हटाएं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "クラウドデータを削除" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除云端数据" } }
+      }
+    },
+    "Emergency Contacts" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Notfallkontakte" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Contactos de emergencia" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Contacts d’urgence" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपातकालीन संपर्क" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "緊急連絡先" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "紧急联系人" } }
+      }
+    },
+    "Emergency Setup" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Notfalleinrichtung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Configuración de emergencia" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Configuration d’urgence" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपातकालीन सेटअप" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "緊急設定" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "紧急设置" } }
+      }
+    },
+    "History" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verlauf" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Historial" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Historique" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "इतिहास" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "履歴" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "历史" } }
+      }
+    },
+    "Home" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Startseite" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Inicio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Accueil" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "होम" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ホーム" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "首页" } }
+      }
+    },
+    "Live Location" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Live-Standort" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ubicación en vivo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Position en direct" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लाइव स्थान" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライブ位置情報" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "实时位置" } }
+      }
+    },
+    "Never" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nie" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nunca" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jamais" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कभी नहीं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "未設定" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "从未" } }
+      }
+    },
+    "Not now" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Jetzt nicht" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ahora no" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pas maintenant" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अभी नहीं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今はしない" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂时不要" } }
+      }
+    },
+    "Privacy and Security" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Datenschutz und Sicherheit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Privacidad y seguridad" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Confidentialité et sécurité" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "गोपनीयता और सुरक्षा" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "プライバシーとセキュリティ" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "隐私与安全" } }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ajustes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réglages" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सेटिंग्स" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
+      }
+    },
+    "Share your live location with friends and family. Your location will be updated even if you haven't started recording a ride yet." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Teile deinen Live-Standort mit Freunden und Familie. Dein Standort wird auch aktualisiert, wenn du noch keine Fahrt aufgezeichnet hast." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comparte tu ubicación en vivo con amigos y familiares. Tu ubicación se actualizará aunque todavía no hayas empezado a grabar un recorrido." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Partagez votre position en direct avec vos proches. Votre position sera mise à jour même si vous n’avez pas encore commencé à enregistrer un trajet." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "दोस्तों और परिवार के साथ अपना लाइव स्थान साझा करें। आपने अभी राइड रिकॉर्ड करना शुरू न किया हो, तब भी आपका स्थान अपडेट होगा।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "友人や家族と現在地を共有できます。ライドの記録を始めていなくても位置情報は更新されます。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "与亲友分享实时位置。即使尚未开始记录骑行，位置也会继续更新。" } }
+      }
+    },
+    "Sign Out" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abmelden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cerrar sesión" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Se déconnecter" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "साइन आउट" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サインアウト" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出登录" } }
+      }
+    },
+    "Start Sharing" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Teilen starten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Iniciar uso compartido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Commencer le partage" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "साझा करना शुरू करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "共有を開始" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开始共享" } }
+      }
+    },
+    "Stop Sharing" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Teilen beenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Detener uso compartido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Arrêter le partage" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "साझा करना बंद करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "共有を停止" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "停止共享" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

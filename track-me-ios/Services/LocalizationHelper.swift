@@ -12,65 +12,34 @@ enum DateBucket: Int, CaseIterable, Comparable {
     }
     
     func localizedTitle(localeCode: String? = nil) -> String {
-        let code = localeCode ?? Locale.current.language.languageCode?.identifier ?? "en"
-        let prefix = code.prefix(2).lowercased()
-        
         switch self {
         case .today:
-            switch prefix {
-            case "es": return "Hoy"
-            case "fr": return "Aujourd'hui"
-            case "de": return "Heute"
-            case "hi": return "आज"
-            case "ja": return "今日"
-            case "zh": return "今天"
-            default: return "Today"
-            }
+            return LocalizationHelper.localized("Today", localeCode: localeCode)
         case .yesterday:
-            switch prefix {
-            case "es": return "Ayer"
-            case "fr": return "Hier"
-            case "de": return "Gestern"
-            case "hi": return "कल"
-            case "ja": return "昨日"
-            case "zh": return "昨天"
-            default: return "Yesterday"
-            }
+            return LocalizationHelper.localized("Yesterday", localeCode: localeCode)
         case .thisWeek:
-            switch prefix {
-            case "es": return "Esta semana"
-            case "fr": return "Cette semaine"
-            case "de": return "Diese Woche"
-            case "hi": return "इस सप्ताह"
-            case "ja": return "今週"
-            case "zh": return "本周"
-            default: return "This Week"
-            }
+            return LocalizationHelper.localized("This Week", localeCode: localeCode)
         case .thisMonth:
-            switch prefix {
-            case "es": return "Este mes"
-            case "fr": return "Ce mois-ci"
-            case "de": return "Diesen Monat"
-            case "hi": return "इस महीने"
-            case "ja": return "今月"
-            case "zh": return "本月"
-            default: return "This Month"
-            }
+            return LocalizationHelper.localized("This Month", localeCode: localeCode)
         case .older:
-            switch prefix {
-            case "es": return "Anteriores"
-            case "fr": return "Plus ancien"
-            case "de": return "Älter"
-            case "hi": return "पुराने"
-            case "ja": return "以前"
-            case "zh": return "更早"
-            default: return "Older"
-            }
+            return LocalizationHelper.localized("Older", localeCode: localeCode)
         }
     }
 }
 
-class LocalizationHelper {
+enum LocalizationHelper {
+    /// The app stores the selected language in UserDefaults and applies the
+    /// same locale to Foundation messages raised outside SwiftUI views.
+    static var selectedLocale: Locale {
+        let code = UserDefaults.standard.string(forKey: "appLanguage") ?? "en"
+        return Locale(identifier: code)
+    }
+
+    static func localized(_ value: String, localeCode: String? = nil) -> String {
+        let locale = localeCode.map(Locale.init(identifier:)) ?? selectedLocale
+        return String(localized: String.LocalizationValue(value), locale: locale)
+    }
+
     static func bucket(for date: Date) -> DateBucket {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
@@ -87,38 +56,13 @@ class LocalizationHelper {
     }
     
     static func syncStatusTitle(_ status: String) -> String {
-        let code = Locale.current.language.languageCode?.identifier.prefix(2).lowercased() ?? "en"
         switch status {
         case "All":
-            switch code {
-            case "es": return "Todos"
-            case "fr": return "Tous"
-            case "de": return "Alle"
-            case "hi": return "सभी"
-            case "ja": return "すべて"
-            case "zh": return "全部"
-            default: return "All"
-            }
+            return localized("All")
         case "Synced":
-            switch code {
-            case "es": return "Sincronizados"
-            case "fr": return "Synchronisé"
-            case "de": return "Synchronisiert"
-            case "hi": return "सिंक किया गया"
-            case "ja": return "同期済み"
-            case "zh": return "已同步"
-            default: return "Synced"
-            }
+            return localized("Synced")
         case "Unsynced":
-            switch code {
-            case "es": return "No sincronizado"
-            case "fr": return "Non synchronisé"
-            case "de": return "Nicht synchronisiert"
-            case "hi": return "असिंक"
-            case "ja": return "未同期"
-            case "zh": return "未同步"
-            default: return "Unsynced"
-            }
+            return localized("Unsynced")
         default:
             return status
         }

@@ -76,14 +76,14 @@ class LiveSharingManager {
                 if let error = error {
                     print("Failed to start session: \(error)")
                     DispatchQueue.main.async {
-                        ToastManager.shared.show(message: "Failed to start live share", style: .error)
+                        ToastManager.shared.show(message: LocalizationHelper.localized("Failed to start live share"), style: .error)
                     }
                     return
                 }
                 
                 guard let data = data else {
                     DispatchQueue.main.async {
-                        ToastManager.shared.show(message: "Invalid response from server", style: .error)
+                        ToastManager.shared.show(message: LocalizationHelper.localized("Invalid response from server"), style: .error)
                     }
                     return
                 }
@@ -115,7 +115,7 @@ class LiveSharingManager {
                             
                             TelemetryManager.shared.trackLiveShareStarted(shareId: sessionId, recipientCount: 0)
                             
-                            ToastManager.shared.show(message: "Live sharing started", style: .success)
+                            ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing started"), style: .success)
                             
                             if let loc = self.latestLocation {
                                 self.pushLocation(loc)
@@ -127,13 +127,13 @@ class LiveSharingManager {
                         }
                     } else {
                         DispatchQueue.main.async {
-                            ToastManager.shared.show(message: "Failed to parse sharing session", style: .error)
+                            ToastManager.shared.show(message: LocalizationHelper.localized("Failed to parse sharing session"), style: .error)
                         }
                     }
                 } catch {
                     print("Failed to parse start session response: \(error)")
                     DispatchQueue.main.async {
-                        ToastManager.shared.show(message: "Failed to parse sharing session", style: .error)
+                        ToastManager.shared.show(message: LocalizationHelper.localized("Failed to parse sharing session"), style: .error)
                     }
                 }
             }.resume()
@@ -238,7 +238,7 @@ class LiveSharingManager {
                 if let httpResponse = response as? HTTPURLResponse {
                     if httpResponse.statusCode == 404 {
                         DispatchQueue.main.async {
-                            ToastManager.shared.show(message: "Live sharing expired", style: .error)
+                            ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing expired"), style: .error)
                             self?.stopSession(reason: "Session expired on server.")
                         }
                     }

@@ -23,15 +23,15 @@ enum DataExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAuthenticated:
-            return "Sign in before downloading your archive."
+            return LocalizationHelper.localized("Sign in before downloading your archive.")
         case .missingDownloadURL:
-            return "The export did not include a secure download link. Request a new archive."
+            return LocalizationHelper.localized("The export did not include a secure download link. Request a new archive.")
         case .invalidResponse:
-            return "The archive download returned an unexpected response."
+            return LocalizationHelper.localized("The archive download returned an unexpected response.")
         case .server(let statusCode):
-            return "Archive download failed with server status (statusCode)."
+            return LocalizationHelper.localized("Archive download failed with server status \(statusCode).")
         case .fileMoveFailed:
-            return "The archive downloaded, but could not be prepared for sharing."
+            return LocalizationHelper.localized("The archive downloaded, but could not be prepared for sharing.")
         }
     }
 }

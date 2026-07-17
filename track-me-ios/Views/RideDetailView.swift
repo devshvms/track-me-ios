@@ -176,7 +176,7 @@ struct RideDetailView: View {
                         if !editTitleText.isEmpty {
                             ride.title = editTitleText
                             try? modelContext.save()
-                            ToastManager.shared.show(message: "Ride updated", style: .success)
+                            ToastManager.shared.show(message: LocalizationHelper.localized("Ride updated"), style: .success)
                         }
                     }
                 } else {

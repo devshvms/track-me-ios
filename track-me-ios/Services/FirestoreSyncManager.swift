@@ -103,7 +103,7 @@ class FirestoreSyncManager {
     // MARK: - Formatted Last Synced Timestamp
     static func formattedLastSyncTime() -> String {
         guard let lastSync = UserDefaults.standard.object(forKey: lastSyncTimestampKey) as? Date else {
-            return "Never"
+            return LocalizationHelper.localized("Never")
         }
         let formatter = DateFormatter()
         formatter.dateStyle = .short

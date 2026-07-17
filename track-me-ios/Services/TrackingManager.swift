@@ -52,7 +52,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         case .authorizedAlways:
             beginTracking()
         default:
-            ToastManager.shared.show(message: "Enable location access in Settings to start tracking.", style: .error)
+            ToastManager.shared.show(message: LocalizationHelper.localized("Enable location access in Settings to start tracking."), style: .error)
         }
     }
 
@@ -66,7 +66,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         case .authorizedAlways:
             beginTracking()
         default:
-            ToastManager.shared.show(message: "Enable location access in Settings to start tracking.", style: .error)
+            ToastManager.shared.show(message: LocalizationHelper.localized("Enable location access in Settings to start tracking."), style: .error)
         }
     }
 
@@ -83,7 +83,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             beginTracking()
         case .denied, .restricted:
             pendingTrackingStart = false
-            ToastManager.shared.show(message: "Location permission is required for offline and background tracking.", style: .error)
+            ToastManager.shared.show(message: LocalizationHelper.localized("Location permission is required for offline and background tracking."), style: .error)
         default:
             break
         }
@@ -149,7 +149,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         if let id = currentRideId {
             DataRepository.shared.finishRide(rideId: id)
             TelemetryManager.shared.trackRideCompleted(rideId: id.uuidString, durationSeconds: Int(durationInMillis / 1000), distanceKm: totalDistance / 1000.0)
-            ToastManager.shared.show(message: "Ride saved successfully", style: .success)
+            ToastManager.shared.show(message: LocalizationHelper.localized("Ride saved successfully"), style: .success)
         }
         currentRideId = nil
         

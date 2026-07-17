@@ -8,6 +8,7 @@ struct LiveShareDialog: View {
         case timed = "Custom Duration"
         case rideLinked = "Until Ride Ends"
         var id: String { self.rawValue }
+        var localizedTitle: LocalizedStringKey { LocalizedStringKey(rawValue) }
     }
     
     @State private var sharingMode: SharingMode = .timed
@@ -50,7 +51,7 @@ struct LiveShareDialog: View {
             VStack(alignment: .leading, spacing: 16) {
                 Picker("Mode", selection: $sharingMode) {
                     ForEach(SharingMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.localizedTitle).tag(mode)
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())
@@ -126,7 +127,7 @@ struct LiveShareDialog: View {
                     
                     Button(action: {
                         UIPasteboard.general.string = link
-                        ToastManager.shared.show(message: "Link copied to clipboard", style: .success)
+                        ToastManager.shared.show(message: LocalizationHelper.localized("Link copied to clipboard"), style: .success)
                     }) {
                         Image(systemName: "doc.on.doc")
                             .padding()
