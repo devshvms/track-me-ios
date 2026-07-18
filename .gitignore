@@ -33,3 +33,6 @@ fastlane/test_output
 
 # OS X
 .DS_Store
+
+# Firebase config (real file is local-only; see GoogleService-Info.example.plist)
+track-me-ios/GoogleService-Info.plist
