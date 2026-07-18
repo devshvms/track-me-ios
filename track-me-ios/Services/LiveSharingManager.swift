@@ -220,7 +220,7 @@ class LiveSharingManager {
         
         let body: [String: Any] = [
             "lat": loc.coordinate.latitude,
-            "lon": loc.coordinate.longitude,
+            "lng": loc.coordinate.longitude,
             "batteryLevel": batteryLevel >= 0 ? batteryLevel : 100, // Handle simulator returning -1
             "speed": max(loc.speed * 3.6, 0), // km/h
             "heading": loc.course >= 0 ? loc.course : 0,
