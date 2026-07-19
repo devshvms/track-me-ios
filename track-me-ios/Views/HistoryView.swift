@@ -148,27 +148,28 @@ struct HistoryView: View {
 // MARK: - Compact Ride Row (80x60pt Thumbnail + High-Density Layout)
 struct CompactRideRowView: View {
     let ride: Ride
-    
+
     var body: some View {
         HStack(spacing: 12) {
             RoutePreviewThumbnail(points: ride.points ?? [])
-            
+                .accessibilityHidden(true)
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(ride.title ?? "TrackMe Ride")
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: ride.isSynced ? "checkmark.icloud.fill" : "exclamationmark.icloud")
                         .font(.caption)
                         .foregroundColor(ride.isSynced ? .green : .orange)
                 }
-                
+
                 HStack(spacing: 12) {
                     Label(ride.startTime.formatted(date: .omitted, time: .shortened), systemImage: "clock")
-                    
+
                     let pointsCount = (ride.points ?? []).count
                     Label("\(pointsCount) pts", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
                 }
@@ -177,6 +178,24 @@ struct CompactRideRowView: View {
             }
         }
         .padding(.vertical, 2)
+        // Read the whole row as one sentence; the sync state is otherwise
+        // conveyed only by the cloud icon's color, which VoiceOver cannot see.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityHint(LocalizationHelper.localized("Shows ride details"))
+    }
+
+    private var accessibilityDescription: String {
+        let title = ride.title ?? LocalizationHelper.localized("TrackMe Ride")
+        let time = ride.startTime.formatted(date: .abbreviated, time: .shortened)
+        let pointsCount = (ride.points ?? []).count
+        let syncState = ride.isSynced
+            ? LocalizationHelper.localized("Synced")
+            : LocalizationHelper.localized("Not yet synced")
+        return LocalizationHelper.formatted(
+            "%@. %@. %@ points. %@",
+            title, time, String(pointsCount), syncState
+        )
     }
 }
 
@@ -197,5 +216,6 @@ struct FilterChipView: View {
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

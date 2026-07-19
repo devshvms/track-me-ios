@@ -35,7 +35,8 @@ struct HomeView: View {
             }
             .mapScope(mapScope)
             .ignoresSafeArea(edges: .top)
-            
+            .accessibilityLabel(LocalizationHelper.localized("Map"))
+
             // Top UI (Map Style, GPS Warning & Offline Tracking Shield)
             VStack(spacing: 8) {
                 if trackingManager.state == .gpsLost || (trackingManager.state == .tracking && trackingManager.timeSinceLastGps > 10.0) {
@@ -50,6 +51,14 @@ struct HomeView: View {
                         .clipShape(Capsule())
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
+                        // Announce the loss once; don't re-read the ticking seconds.
+                        .accessibilityLabel(LocalizationHelper.localized("GPS signal lost"))
+                        .accessibilityAddTraits(.updatesFrequently)
+                        .onAppear {
+                            AccessibilityNotification.Announcement(
+                                LocalizationHelper.localized("GPS signal lost")
+                            ).post()
+                        }
                 }
                 
                 if !networkMonitor.isConnected {
@@ -57,6 +66,10 @@ struct HomeView: View {
                         ? "🛡️ Offline Tracking Shield Active • Route Safely Recording"
                         : "🛡️ Offline Tracking Shield • Ready to Record Locally"
                     
+                    let shieldA11yLabel = trackingManager.state != .idle
+                        ? LocalizationHelper.localized("Offline tracking active. Route is recording locally.")
+                        : LocalizationHelper.localized("Offline mode. Rides will record locally.")
+
                     Text(LocalizationHelper.localized(shieldText))
                         .font(.caption.bold())
                         .foregroundColor(.white)
@@ -70,6 +83,8 @@ struct HomeView: View {
                         .clipShape(Capsule())
                         .padding(.top, (trackingManager.state == .gpsLost || trackingManager.timeSinceLastGps > 10.0) ? 0 : 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
+                        // VoiceOver reads "🛡️" as "shield" before the sentence; use a clean label.
+                        .accessibilityLabel(shieldA11yLabel)
                 }
                 
                 HStack {
@@ -93,7 +108,8 @@ struct HomeView: View {
                                 .clipShape(Circle())
                                 .shadow(radius: 4)
                         }
-                        
+                        .accessibilityLabel(LocalizationHelper.localized("Map style"))
+
                         Button(action: { showLiveShareDialog = true }) {
                             if liveSharingManager.isActive {
                                 VStack(spacing: 2) {
@@ -117,6 +133,13 @@ struct HomeView: View {
                                     .shadow(radius: 4)
                             }
                         }
+                        .accessibilityLabel(liveSharingManager.isActive
+                            ? LocalizationHelper.localized("Live sharing active")
+                            : LocalizationHelper.localized("Start live location sharing"))
+                        .accessibilityValue(liveSharingManager.isActive
+                            ? LocalizationHelper.formatted("%@ remaining",
+                                formatDuration(TimeInterval(liveSharingManager.remainingSeconds)))
+                            : "")
                     }
                     .padding(.trailing, 16)
                     .padding(.top, trackingManager.state == .gpsLost ? 16 : 50)
@@ -136,7 +159,10 @@ struct HomeView: View {
                                 .font(.system(size: 40, weight: .bold, design: .rounded))
                                 .contentTransition(.numericText())
                         }
-                        
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.localized("Time"))
+                        .accessibilityValue(formatDuration(trackingManager.durationInMillis / 1000))
+
                         Divider()
                             .padding(.horizontal, 20)
                     }
@@ -155,10 +181,14 @@ struct HomeView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.localized("Speed"))
+                        .accessibilityValue(LocalizationHelper.formatted(
+                            "%@ meters per second", String(format: "%.1f", trackingManager.currentSpeed)))
+
                         Divider()
                             .frame(height: 40)
-                        
+
                         VStack(alignment: .center, spacing: 4) {
                             Text("DISTANCE")
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -172,6 +202,10 @@ struct HomeView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.localized("Distance"))
+                        .accessibilityValue(LocalizationHelper.formatted(
+                            "%@ kilometers", String(format: "%.2f", trackingManager.totalDistance / 1000)))
                     }
                 }
                 .padding(.vertical, 20)
@@ -198,24 +232,28 @@ struct HomeView: View {
                 HStack(spacing: 24) {
                     switch trackingManager.state {
                     case .idle:
-                        TrackingButton(icon: "play.fill", color: .green) {
+                        TrackingButton(icon: "play.fill", color: .green,
+                                       label: LocalizationHelper.localized("Start tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.startTracking()
                             }
                         }
                     case .tracking, .gpsLost:
-                        TrackingButton(icon: "pause.fill", color: .orange) {
+                        TrackingButton(icon: "pause.fill", color: .orange,
+                                       label: LocalizationHelper.localized("Pause tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.pauseTracking()
                             }
                         }
                     case .paused:
-                        TrackingButton(icon: "play.fill", color: .green) {
+                        TrackingButton(icon: "play.fill", color: .green,
+                                       label: LocalizationHelper.localized("Resume tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.resumeTracking()
                             }
                         }
-                        TrackingButton(icon: "stop.fill", color: .red) {
+                        TrackingButton(icon: "stop.fill", color: .red,
+                                       label: LocalizationHelper.localized("Stop tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.stopTracking()
                             }
@@ -259,8 +297,9 @@ struct HomeView: View {
 struct TrackingButton: View {
     var icon: String
     var color: Color
+    var label: String
     var action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
@@ -271,5 +310,6 @@ struct TrackingButton: View {
                 .clipShape(Circle())
                 .shadow(color: color.opacity(0.4), radius: 10, x: 0, y: 5)
         }
+        .accessibilityLabel(label)
     }
 }

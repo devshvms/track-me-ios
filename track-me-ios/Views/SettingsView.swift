@@ -287,6 +287,7 @@ struct SettingsView: View {
                             Toggle("", isOn: $isTelemetryEnabled)
                                 .labelsHidden()
                                 .tint(.blue)
+                                .accessibilityLabel(LocalizationHelper.localized("Share analytics data"))
                                 .onChange(of: isTelemetryEnabled) { _ in
                                     TelemetryManager.shared.updateOptOutStatus()
                                 }
@@ -325,6 +326,7 @@ struct SettingsView: View {
                             ))
                             .labelsHidden()
                             .tint(.blue)
+                            .accessibilityLabel(LocalizationHelper.localized("Disable GPS post-processing"))
                         }
                     }
                     .padding()

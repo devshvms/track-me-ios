@@ -138,11 +138,16 @@ struct RideDetailView: View {
                             )
                             .tint(.blue)
                             .padding(.horizontal, 24)
+                            .accessibilityLabel(LocalizationHelper.localized("Timeline scrubber"))
+                            .accessibilityHint(LocalizationHelper.localized(
+                                "Adjust to inspect speed, altitude, and route position"))
+                            .accessibilityValue(scrubberAccessibilityValue(index: index))
                         } else {
                             Slider(value: .constant(0), in: 0...1)
                                 .disabled(true)
                                 .tint(.gray)
                                 .padding(.horizontal, 24)
+                                .accessibilityHidden(true)
                         }
                         
                         // Ride Stats Card
@@ -276,6 +281,7 @@ struct RideDetailView: View {
                         .clipShape(Circle())
                         .shadow(radius: 4)
                 }
+                .accessibilityLabel(LocalizationHelper.localized("Map style"))
                 .padding()
             }
         } else {
@@ -354,6 +360,22 @@ struct RideDetailView: View {
         .padding()
         .background(Color(UIColor.darkGray))
         .cornerRadius(12)
+        // Swift Charts' default per-point audio graph is meaningless with
+        // hundreds of points; speak a single summary sentence instead.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(ChartAccessibility.description(points: sortedPoints))
+    }
+
+    /// Spoken value for the timeline scrubber at the given sample index.
+    private func scrubberAccessibilityValue(index: Int) -> String {
+        guard index >= 0, index < sortedPoints.count else { return "" }
+        let elapsed = sortedPoints[index].timestamp.timeIntervalSince(ride.startTime)
+        let speedKmh = sortedPoints[index].speed * 3.6
+        return LocalizationHelper.formatted(
+            "Time %@, speed %@ kilometers per hour",
+            formatDuration(elapsed),
+            String(format: "%.1f", speedKmh)
+        )
     }
     
     @ViewBuilder
@@ -362,6 +384,7 @@ struct RideDetailView: View {
             Text("Ride Stats")
                 .font(.title2).bold()
                 .foregroundColor(.white)
+                .accessibilityAddTraits(.isHeader)
             
             let totalDist = (cumulativeDistances.last ?? 0) / 1000.0
             let duration = (ride.endTime ?? ride.startTime).timeIntervalSince(ride.startTime)
@@ -400,6 +423,9 @@ struct RideDetailView: View {
                 .foregroundColor(.white)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(LocalizationHelper.localized(title))
+        .accessibilityValue(value)
     }
     
     @ViewBuilder
@@ -442,6 +468,8 @@ struct RideDetailView: View {
                 .foregroundColor(color)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(LocalizationHelper.localized(text))
     }
     
     private func formatDuration(_ timeInterval: TimeInterval) -> String {

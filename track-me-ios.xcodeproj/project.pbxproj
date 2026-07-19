@@ -16,6 +16,7 @@
 
 /* Begin PBXFileReference section */
 		811E27722FE99C6000A907B9 /* track-me-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "track-me-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000008 /* track-me-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "track-me-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -37,6 +38,11 @@
 			path = "track-me-ios";
 			sourceTree = "<group>";
 		};
+		AA0000000000000000000009 /* track-me-iosTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "track-me-iosTests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +55,13 @@
 				161D4F25E3C595034CEE4D3A /* FirebaseFirestore in Frameworks */,
 				16EA495C2A889D003036CA95 /* GoogleSignIn in Frameworks */,
 				16CD17A3EBB12F24F820700D /* PostHog in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -67,6 +80,7 @@
 			isa = PBXGroup;
 			children = (
 				811E27722FE99C6000A907B9 /* track-me-ios.app */,
+				AA0000000000000000000008 /* track-me-iosTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -101,6 +115,29 @@
 			productReference = 811E27722FE99C6000A907B9 /* track-me-ios.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA0000000000000000000001 /* track-me-iosTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000002 /* Build configuration list for PBXNativeTarget "track-me-iosTests" */;
+			buildPhases = (
+				AA0000000000000000000005 /* Sources */,
+				AA0000000000000000000006 /* Frameworks */,
+				AA0000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA000000000000000000000A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000009 /* track-me-iosTests */,
+			);
+			name = "track-me-iosTests";
+			packageProductDependencies = (
+			);
+			productName = "track-me-iosTests";
+			productReference = AA0000000000000000000008 /* track-me-iosTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -113,6 +150,10 @@
 				TargetAttributes = {
 					811E27712FE99C6000A907B9 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					AA0000000000000000000001 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 811E27712FE99C6000A907B9;
 					};
 				};
 			};
@@ -136,12 +177,20 @@
 			projectRoot = "";
 			targets = (
 				811E27712FE99C6000A907B9 /* track-me-ios */,
+				AA0000000000000000000001 /* track-me-iosTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		811E27702FE99C6000A907B9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -158,7 +207,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		AA000000000000000000000B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 811E276A2FE99C6000A907B9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 811E27712FE99C6000A907B9;
+			remoteInfo = "track-me-ios";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		AA000000000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 811E27712FE99C6000A907B9 /* track-me-ios */;
+			targetProxy = AA000000000000000000000B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		811E27812FE99C6200A907B9 /* Debug */ = {
@@ -348,6 +422,44 @@
 			};
 			name = Release;
 		};
+		AA0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "in.shvms.track-me-iosTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/track-me-ios.app/track-me-ios";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "in.shvms.track-me-iosTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/track-me-ios.app/track-me-ios";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -365,6 +477,15 @@
 			buildConfigurations = (
 				811E27812FE99C6200A907B9 /* Debug */,
 				811E27822FE99C6200A907B9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000002 /* Build configuration list for PBXNativeTarget "track-me-iosTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000003 /* Debug */,
+				AA0000000000000000000004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
