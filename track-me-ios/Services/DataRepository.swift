@@ -59,27 +59,7 @@ final class DataRepository {
                 ride.endTime = Date()
 
                 if ride.title == nil || ride.title?.isEmpty == true {
-                    var maxSpeed: Double = 0
-                    if let pts = ride.points {
-                        for p in pts {
-                            maxSpeed = max(maxSpeed, p.speed)
-                        }
-                    }
-                    
-                    // Convert speed from m/s to km/h
-                    let maxSpeedKmh = maxSpeed * 3.6
-                    let activity = maxSpeedKmh > 15.0 ? "Bike Ride" : "Walk/Run"
-                    
-                    let hour = Calendar.current.component(.hour, from: ride.startTime)
-                    let timeOfDay: String
-                    switch hour {
-                    case 5...11: timeOfDay = "Morning"
-                    case 12...16: timeOfDay = "Afternoon"
-                    case 17...20: timeOfDay = "Evening"
-                    default: timeOfDay = "Night"
-                    }
-                    
-                    ride.title = "\(timeOfDay) \(activity)"
+                    ride.title = RideTitleGenerator.make(startTime: ride.startTime, points: ride.points ?? [])
                 }
 
                 try context.save()

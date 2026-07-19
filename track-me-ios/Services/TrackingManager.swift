@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 import SwiftUI
+import SwiftData
 import UserNotifications
 
 enum TrackingState: Int {
@@ -13,7 +14,8 @@ enum TrackingState: Int {
 @Observable
 class TrackingManager: NSObject, CLLocationManagerDelegate {
     static let shared = TrackingManager()
-    
+    private static let activeRideKey = "activeRideId"
+
     private let locationManager = CLLocationManager()
     
     // State exposed to SwiftUI
@@ -91,19 +93,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     private func beginTracking() {
         pendingTrackingStart = false
-        locationManager.startUpdatingLocation()
-        
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-            if granted {
-                let content = UNMutableNotificationContent()
-                content.title = "Tracking Ride"
-                content.body = "TrackMe is currently recording your route."
-                content.sound = nil
-                let request = UNNotificationRequest(identifier: "TrackingStarted", content: content, trigger: nil)
-                UNUserNotificationCenter.current().add(request)
-            }
-        }
-        
+
+        let newRide = Ride()
+        currentRideId = newRide.id
+        UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
+
+        // Reset live state for a fresh ride.
         state = .tracking
         points.removeAll()
         currentSpeed = 0.0
@@ -111,19 +106,40 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         durationInMillis = 0
         timeSinceLastGps = 0
         lastGpsTimestamp = Date()
-        
-        let newRide = Ride()
-        currentRideId = newRide.id
-        
+
         let startLat = locationManager.location?.coordinate.latitude ?? 0.0
         let startLon = locationManager.location?.coordinate.longitude ?? 0.0
         TelemetryManager.shared.trackRideStarted(rideId: newRide.id.uuidString, startLatitude: startLat, startLongitude: startLon)
-        
+
         // Save initially on main thread
         DispatchQueue.main.async {
             DataRepository.shared.saveRide(newRide)
         }
-        
+
+        startLocationUpdatesAndTimer()
+    }
+
+    /// Shared session bring-up used by both a fresh ride and a restored one.
+    private func startLocationUpdatesAndTimer() {
+        locationManager.startUpdatingLocation()
+        requestTrackingNotification()
+        startDurationTimer()
+    }
+
+    private func requestTrackingNotification() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Tracking Ride"
+            content.body = "TrackMe is currently recording your route."
+            content.sound = nil
+            let request = UNNotificationRequest(identifier: "TrackingStarted", content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
+
+    private func startDurationTimer() {
+        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             if self.state == .tracking || self.state == .gpsLost {
@@ -139,13 +155,72 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
         }
     }
-    
+
+    /// Restores an in-progress ride interrupted by an app kill/crash, when it is
+    /// still fresh (< 5 min) and Always-authorization is intact. Otherwise clears
+    /// the marker and lets `RideRecoveryManager`'s sweep finalize the ride.
+    /// This is the iOS-idiomatic substitute for Android's START_STICKY restart.
+    func restoreInterruptedSessionIfNeeded(container: ModelContainer) async {
+        guard state == .idle, currentRideId == nil else { return }
+        guard let idString = UserDefaults.standard.string(forKey: Self.activeRideKey),
+              let rideId = UUID(uuidString: idString) else { return }
+
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
+        guard let ride = try? context.fetch(descriptor).first,
+              ride.endTime == nil,
+              let stored = ride.points, !stored.isEmpty else {
+            UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
+            return
+        }
+
+        let sorted = stored.sorted { $0.timestamp < $1.timestamp }
+        guard let last = sorted.last,
+              Date().timeIntervalSince(last.timestamp) < 300,
+              locationManager.authorizationStatus == .authorizedAlways else {
+            // Stale, or permission downgraded while the app was dead — do not
+            // silently resume; the orphan sweep will finalize it.
+            UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
+            return
+        }
+
+        // Rebuild live state and continue the SAME ride so new points append to it.
+        currentRideId = rideId
+        points = sorted.map {
+            CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
+                altitude: $0.altitude,
+                horizontalAccuracy: $0.accuracy,
+                verticalAccuracy: $0.accuracy,
+                course: -1,
+                speed: $0.speed,
+                timestamp: $0.timestamp
+            )
+        }
+        var distance = 0.0
+        if points.count > 1 {
+            for i in 1..<points.count {
+                distance += points[i].distance(from: points[i - 1])
+            }
+        }
+        totalDistance = distance
+        durationInMillis = max(0, last.timestamp.timeIntervalSince(ride.startTime)) * 1000
+        lastGpsTimestamp = last.timestamp
+        timeSinceLastGps = Date().timeIntervalSince(last.timestamp)
+        currentSpeed = 0.0
+        state = .tracking
+
+        startLocationUpdatesAndTimer()
+        ToastManager.shared.show(message: LocalizationHelper.localized("Resumed your interrupted ride"), style: .info)
+    }
+
     func stopTracking() {
         locationManager.stopUpdatingLocation()
         state = .idle
         timer?.invalidate()
         timer = nil
-        
+        UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
+
         if let id = currentRideId {
             DataRepository.shared.finishRide(rideId: id)
             TelemetryManager.shared.trackRideCompleted(rideId: id.uuidString, durationSeconds: Int(durationInMillis / 1000), distanceKm: totalDistance / 1000.0)

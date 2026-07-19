@@ -52,6 +52,9 @@ struct track_me_iosApp: App {
             ContentView()
                 .onAppear {
                     DataRepository.shared.setup(container: sharedModelContainer)
+                    Task {
+                        await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
+                    }
                 }
                 .withGlobalToasts()
                 .preferredColorScheme(colorScheme)
