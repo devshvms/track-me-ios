@@ -9,6 +9,7 @@ enum TrackingState: Int {
     case tracking
     case paused
     case gpsLost
+    case storageLow   // appended last: keep raw values stable for persistence
 }
 
 @Observable
@@ -31,6 +32,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     
     private var timer: Timer?
     private var pendingTrackingStart = false
+    private var storageWarningShown = false
+    private var lastStorageCheck = Date.distantPast
     
     override init() {
         super.init()
@@ -94,11 +97,22 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private func beginTracking() {
         pendingTrackingStart = false
 
+        // Refuse to start if the device can't reliably persist points.
+        if StorageHealthMonitor.isLowStorage() {
+            ToastManager.shared.show(
+                message: LocalizationHelper.localized("Not enough free storage to start tracking. Free up space and try again."),
+                style: .error
+            )
+            return
+        }
+
         let newRide = Ride()
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
 
         // Reset live state for a fresh ride.
+        storageWarningShown = false
+        lastStorageCheck = Date.distantPast
         state = .tracking
         points.removeAll()
         currentSpeed = 0.0
@@ -136,11 +150,37 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             startedAt: Date().addingTimeInterval(-elapsed),
             distanceMeters: totalDistance,
             speedMps: currentSpeed,
-            isPaused: state == .paused,
+            isPaused: state == .paused || state == .storageLow,
             isGpsLost: state == .gpsLost,
             pausedElapsed: elapsed,
             force: force
         )
+    }
+
+    /// Parks the ride when the device is critically low on storage: stops
+    /// location updates (battery + no useless points), freezes duration (the
+    /// timer only accumulates for `.tracking`/`.gpsLost`), and tells the user.
+    /// Internal so the repository can route a disk-full write failure here too.
+    func enterStorageLowState() {
+        guard !(state == .storageLow && storageWarningShown) else { return }
+        storageWarningShown = true
+        state = .storageLow
+        currentSpeed = 0.0
+        locationManager.stopUpdatingLocation()
+
+        let content = UNMutableNotificationContent()
+        content.title = LocalizationHelper.localized("Storage almost full")
+        content.body = LocalizationHelper.localized("Tracking is paused. Free device storage, then resume in TrackMe.")
+        content.sound = nil
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: "StorageLow", content: content, trigger: nil)
+        )
+
+        ToastManager.shared.show(
+            message: LocalizationHelper.localized("Storage almost full. Tracking is paused. Free device storage, then resume in TrackMe."),
+            style: .error
+        )
+        updateLiveActivity(force: true)
     }
 
     private func requestTrackingNotification() {
@@ -243,7 +283,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         state = .idle
         timer?.invalidate()
         timer = nil
+        storageWarningShown = false
         UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["StorageLow"])
 
         RideActivityManager.shared.end(
             startedAt: Date().addingTimeInterval(-durationInMillis / 1000),
@@ -266,7 +308,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
     
     func pauseTracking() {
-        if state == .tracking || state == .gpsLost {
+        if state == .tracking || state == .gpsLost || state == .storageLow {
             state = .paused
             currentSpeed = 0.0
             updateLiveActivity(force: true)
@@ -274,12 +316,26 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     func resumeTracking() {
-        if state == .paused {
-            state = .tracking
-            lastGpsTimestamp = Date()
-            timeSinceLastGps = 0
-            updateLiveActivity(force: true)
+        guard state == .paused || state == .storageLow else { return }
+
+        if state == .storageLow {
+            // Re-check before restarting; stay parked if still low.
+            if StorageHealthMonitor.isLowStorage() {
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized("Storage almost full. Tracking is paused. Free device storage, then resume in TrackMe."),
+                    style: .error
+                )
+                return
+            }
+            storageWarningShown = false
+            // enterStorageLowState() stopped updates — restart them.
+            locationManager.startUpdatingLocation()
         }
+
+        state = .tracking
+        lastGpsTimestamp = Date()
+        timeSinceLastGps = 0
+        updateLiveActivity(force: true)
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -290,6 +346,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timeSinceLastGps = 0
         if state == .gpsLost {
             state = .tracking
+        }
+
+        // Storage guard (throttled — the resource-values call is a syscall).
+        if Date().timeIntervalSince(lastStorageCheck) >= 5 {
+            lastStorageCheck = Date()
+            if StorageHealthMonitor.isLowStorage() {
+                enterStorageLowState()
+                return
+            }
         }
 
         for location in locations {

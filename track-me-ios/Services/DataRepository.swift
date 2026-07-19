@@ -39,9 +39,27 @@ final class DataRepository {
                 context.insert(point)
                 try context.save()
             } catch {
-                NSLog("TrackMe: failed to persist GPS point: %@", error.localizedDescription)
+                if Self.isOutOfSpace(error) {
+                    // Disk filled mid-write — park the ride instead of losing points silently.
+                    TrackingManager.shared.enterStorageLowState()
+                } else {
+                    NSLog("TrackMe: failed to persist GPS point: %@", error.localizedDescription)
+                }
             }
         }
+    }
+
+    /// Detects out-of-space failures (Cocoa `NSFileWriteOutOfSpaceError` or
+    /// SQLite `SQLITE_FULL`), including when SwiftData wraps the underlying error.
+    static func isOutOfSpace(_ error: Error) -> Bool {
+        func matches(_ e: NSError) -> Bool {
+            (e.domain == NSCocoaErrorDomain && e.code == NSFileWriteOutOfSpaceError)
+                || (e.domain == "NSSQLiteErrorDomain" && e.code == 13) // SQLITE_FULL
+        }
+        let ns = error as NSError
+        if matches(ns) { return true }
+        if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError, matches(underlying) { return true }
+        return false
     }
     
     func finishRide(rideId: UUID) {
@@ -67,6 +85,12 @@ final class DataRepository {
                 // Fire and forget cloud sync
                 FirestoreSyncManager.shared.syncRide(ride)
             } catch {
+                if Self.isOutOfSpace(error) {
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Couldn't save ride — free up storage and try again."),
+                        style: .error
+                    )
+                }
                 NSLog("TrackMe: failed to finalize ride: %@", error.localizedDescription)
             }
         }

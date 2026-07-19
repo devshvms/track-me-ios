@@ -60,6 +60,26 @@ struct HomeView: View {
                             ).post()
                         }
                 }
+
+                if trackingManager.state == .storageLow {
+                    Text(LocalizationHelper.localized("Storage almost full — free space to resume"))
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.red)
+                        .clipShape(Capsule())
+                        .padding(.top, 50)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        // Non-tappable: iOS has no public storage-settings deep link,
+                        // and opening the app's own settings here would mislead.
+                        .accessibilityLabel(LocalizationHelper.localized("Storage almost full. Free space to resume."))
+                        .onAppear {
+                            AccessibilityNotification.Announcement(
+                                LocalizationHelper.localized("Storage almost full. Free space to resume.")
+                            ).post()
+                        }
+                }
                 
                 if !networkMonitor.isConnected {
                     let shieldText = trackingManager.state != .idle
@@ -245,7 +265,7 @@ struct HomeView: View {
                                 trackingManager.pauseTracking()
                             }
                         }
-                    case .paused:
+                    case .paused, .storageLow:
                         TrackingButton(icon: "play.fill", color: .green,
                                        label: LocalizationHelper.localized("Resume tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
