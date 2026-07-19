@@ -117,6 +117,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
 
         startLocationUpdatesAndTimer()
+        RideActivityManager.shared.startActivity(rideId: newRide.id.uuidString, startedAt: Date())
     }
 
     /// Shared session bring-up used by both a fresh ride and a restored one.
@@ -124,6 +125,22 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         locationManager.startUpdatingLocation()
         requestTrackingNotification()
         startDurationTimer()
+    }
+
+    /// Pushes current stats to the Live Activity. The anchor is recomputed as
+    /// `now - elapsed` so the auto-ticking timer excludes paused time. Throttled
+    /// unless `force` (used for pause/resume/GPS state transitions).
+    private func updateLiveActivity(force: Bool = false) {
+        let elapsed = durationInMillis / 1000
+        RideActivityManager.shared.update(
+            startedAt: Date().addingTimeInterval(-elapsed),
+            distanceMeters: totalDistance,
+            speedMps: currentSpeed,
+            isPaused: state == .paused,
+            isGpsLost: state == .gpsLost,
+            pausedElapsed: elapsed,
+            force: force
+        )
     }
 
     private func requestTrackingNotification() {
@@ -146,11 +163,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 self.durationInMillis += 1000
                 if let lastTs = self.lastGpsTimestamp {
                     self.timeSinceLastGps = Date().timeIntervalSince(lastTs)
+                    let previous = self.state
                     if self.timeSinceLastGps > 10 {
                         self.state = .gpsLost
                     } else {
                         self.state = .tracking
                     }
+                    // Push immediately on a GPS-lost/restored transition, otherwise throttle.
+                    self.updateLiveActivity(force: self.state != previous)
                 }
             }
         }
@@ -211,6 +231,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         state = .tracking
 
         startLocationUpdatesAndTimer()
+        RideActivityManager.shared.startActivity(
+            rideId: rideId.uuidString,
+            startedAt: Date().addingTimeInterval(-durationInMillis / 1000)
+        )
         ToastManager.shared.show(message: LocalizationHelper.localized("Resumed your interrupted ride"), style: .info)
     }
 
@@ -220,6 +244,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timer?.invalidate()
         timer = nil
         UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
+
+        RideActivityManager.shared.end(
+            startedAt: Date().addingTimeInterval(-durationInMillis / 1000),
+            distanceMeters: totalDistance,
+            speedMps: 0,
+            pausedElapsed: durationInMillis / 1000
+        )
 
         if let id = currentRideId {
             DataRepository.shared.finishRide(rideId: id)
@@ -238,26 +269,29 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         if state == .tracking || state == .gpsLost {
             state = .paused
             currentSpeed = 0.0
+            updateLiveActivity(force: true)
         }
     }
-    
+
     func resumeTracking() {
         if state == .paused {
             state = .tracking
             lastGpsTimestamp = Date()
             timeSinceLastGps = 0
+            updateLiveActivity(force: true)
         }
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard state == .tracking || state == .gpsLost, let rideId = currentRideId else { return }
-        
+
+        let recoveredFromGpsLost = state == .gpsLost
         lastGpsTimestamp = Date()
         timeSinceLastGps = 0
         if state == .gpsLost {
             state = .tracking
         }
-        
+
         for location in locations {
             // 1. Outlier removal
             if let previous = points.last {
@@ -301,5 +335,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 LiveSharingManager.shared.updateLatestLocation(smoothedLocation)
             }
         }
+
+        // 7. Live Activity (throttled; forced when we just regained GPS).
+        updateLiveActivity(force: recoveredFromGpsLost)
     }
 }
