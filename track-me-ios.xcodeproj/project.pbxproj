@@ -12,11 +12,15 @@
 		16EA495C2A889D003036CA95 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 188E4B7AA7D5FEEFFF870518 /* GoogleSignIn */; };
 		5AD9D1C64B9610CB9D26BFE1 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AF0297CE298E685F0779A3C6 /* FirebaseCore */; };
 		702018E12E6FEF201B7BB950 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = BE023F3E41E46AB63B7FEB31 /* FirebaseAuth */; };
+		BB000000000000000000000E /* RideActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000D /* RideActivityAttributes.swift */; };
+		BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* TrackMeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		811E27722FE99C6000A907B9 /* track-me-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "track-me-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000008 /* track-me-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "track-me-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000000000000000000008 /* TrackMeWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "TrackMeWidgets.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB000000000000000000000D /* RideActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "RideActivityAttributes.swift"; path = "track-me-ios/Models/RideActivityAttributes.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -26,6 +30,13 @@
 				Info.plist,
 			);
 			target = 811E27712FE99C6000A907B9 /* track-me-ios */;
+		};
+		BB000000000000000000000A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BB0000000000000000000001 /* TrackMeWidgets */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -41,6 +52,14 @@
 		AA0000000000000000000009 /* track-me-iosTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "track-me-iosTests";
+			sourceTree = "<group>";
+		};
+		BB0000000000000000000009 /* TrackMeWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BB000000000000000000000A /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
+			path = TrackMeWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -65,6 +84,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB0000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -72,6 +98,8 @@
 			isa = PBXGroup;
 			children = (
 				811E27742FE99C6000A907B9 /* track-me-ios */,
+				BB0000000000000000000009 /* TrackMeWidgets */,
+				BB000000000000000000000D /* RideActivityAttributes.swift */,
 				811E27732FE99C6000A907B9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -81,6 +109,7 @@
 			children = (
 				811E27722FE99C6000A907B9 /* track-me-ios.app */,
 				AA0000000000000000000008 /* track-me-iosTests.xctest */,
+				BB0000000000000000000008 /* TrackMeWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,10 +124,12 @@
 				811E276E2FE99C6000A907B9 /* Sources */,
 				811E276F2FE99C6000A907B9 /* Frameworks */,
 				811E27702FE99C6000A907B9 /* Resources */,
+				BB0000000000000000000010 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BB000000000000000000000B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				811E27742FE99C6000A907B9 /* track-me-ios */,
@@ -138,6 +169,28 @@
 			productReference = AA0000000000000000000008 /* track-me-iosTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		BB0000000000000000000001 /* TrackMeWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB0000000000000000000002 /* Build configuration list for PBXNativeTarget "TrackMeWidgets" */;
+			buildPhases = (
+				BB0000000000000000000005 /* Sources */,
+				BB0000000000000000000006 /* Frameworks */,
+				BB0000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BB0000000000000000000009 /* TrackMeWidgets */,
+			);
+			name = TrackMeWidgets;
+			packageProductDependencies = (
+			);
+			productName = TrackMeWidgets;
+			productReference = BB0000000000000000000008 /* TrackMeWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -154,6 +207,9 @@
 					AA0000000000000000000001 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = 811E27712FE99C6000A907B9;
+					};
+					BB0000000000000000000001 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -178,6 +234,7 @@
 			targets = (
 				811E27712FE99C6000A907B9 /* track-me-ios */,
 				AA0000000000000000000001 /* track-me-iosTests */,
+				BB0000000000000000000001 /* TrackMeWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -191,6 +248,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AA0000000000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB0000000000000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -214,7 +278,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB0000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB000000000000000000000E /* RideActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BB0000000000000000000010 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXContainerItemProxy section */
 		AA000000000000000000000B /* PBXContainerItemProxy */ = {
@@ -224,6 +310,13 @@
 			remoteGlobalIDString = 811E27712FE99C6000A907B9;
 			remoteInfo = "track-me-ios";
 		};
+		BB000000000000000000000C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 811E276A2FE99C6000A907B9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BB0000000000000000000001;
+			remoteInfo = TrackMeWidgets;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
@@ -231,6 +324,11 @@
 			isa = PBXTargetDependency;
 			target = 811E27712FE99C6000A907B9 /* track-me-ios */;
 			targetProxy = AA000000000000000000000B /* PBXContainerItemProxy */;
+		};
+		BB000000000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BB0000000000000000000001 /* TrackMeWidgets */;
+			targetProxy = BB000000000000000000000C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -460,6 +558,52 @@
 			};
 			name = Release;
 		};
+		BB0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "TrackMeWidgets/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "in.shvms.track-me-ios.TrackMeWidgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BB0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "TrackMeWidgets/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "in.shvms.track-me-ios.TrackMeWidgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -486,6 +630,15 @@
 			buildConfigurations = (
 				AA0000000000000000000003 /* Debug */,
 				AA0000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB0000000000000000000002 /* Build configuration list for PBXNativeTarget "TrackMeWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB0000000000000000000003 /* Debug */,
+				BB0000000000000000000004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
