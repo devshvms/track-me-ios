@@ -44,12 +44,12 @@ class TelemetryManager {
     }
     
     // MARK: - 3. Rides Tracking
-    func trackRideStarted(rideId: String, startLatitude: Double, startLongitude: Double) {
+    // PII rule (A1 / TASK-016): ride events carry NO precise lat/lng. Parity with Android,
+    // whose `ride_started` sends only `ride_id`.
+    func trackRideStarted(rideId: String) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("ride_started", properties: [
-            "ride_id": rideId,
-            "start_latitude": startLatitude,
-            "start_longitude": startLongitude
+            "ride_id": rideId
         ])
     }
     
@@ -143,5 +143,45 @@ class TelemetryManager {
     func trackDataDownloadRequested() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("data_download_requested")
+    }
+
+    // MARK: - 9. v1.6.0 retention taxonomy (A1)
+    // Identical event names + property keys/types to Android's AnalyticsManager. NO PII
+    // (no lat/lng, no names/emails/titles). Emitted by the feature layer only when a surface
+    // is actually shown/acted on.
+
+    /// B1 — reveal_type in {"pr","first_ride","milestone","default"}.
+    func trackPostRideRevealShown(revealType: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("post_ride_reveal_shown", properties: [
+            "reveal_type": revealType
+        ])
+    }
+
+    /// B2 — weekly gain-framed recap surfaced.
+    func trackWeeklyRecapShown(weekKey: String, rideCount: Int, distanceKm: Double) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("weekly_recap_shown", properties: [
+            "week_key": weekKey,
+            "ride_count": rideCount,
+            "distance_km": distanceKm
+        ])
+    }
+
+    /// B3 — active-week streak advanced. `froze` reserved for the freeze/tolerance path.
+    func trackWeeklyStreakUpdated(streakWeeks: Int, froze: Bool) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("weekly_streak_updated", properties: [
+            "streak_weeks": streakWeeks,
+            "froze": froze
+        ])
+    }
+
+    /// B4 — in-app review prompt requested (system may or may not show it).
+    func trackReviewPromptRequested(platform: String = "ios") {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("review_prompt_requested", properties: [
+            "platform": platform
+        ])
     }
 }
