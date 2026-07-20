@@ -121,9 +121,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timeSinceLastGps = 0
         lastGpsTimestamp = Date()
 
-        let startLat = locationManager.location?.coordinate.latitude ?? 0.0
-        let startLon = locationManager.location?.coordinate.longitude ?? 0.0
-        TelemetryManager.shared.trackRideStarted(rideId: newRide.id.uuidString, startLatitude: startLat, startLongitude: startLon)
+        TelemetryManager.shared.trackRideStarted(rideId: newRide.id.uuidString)
 
         // Save initially on main thread
         DispatchQueue.main.async {
@@ -298,6 +296,21 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             DataRepository.shared.finishRide(rideId: id)
             TelemetryManager.shared.trackRideCompleted(rideId: id.uuidString, durationSeconds: Int(durationInMillis / 1000), distanceKm: totalDistance / 1000.0)
             ToastManager.shared.show(message: LocalizationHelper.localized("Ride saved successfully"), style: .success)
+
+            // A1: shared good-ride hook (parity with Android TrackingService.finalizeRide).
+            // Skip junk rides (mirror Android's 10 m / 2 min thresholds). Best-effort +
+            // idempotent — must never affect ride saving. The returned transition is what
+            // B1 (reveal) / B2 (recap) / B3 (streak) will consume.
+            let isJunk = totalDistance < 10.0 && durationInMillis < 2 * 60 * 1000
+            if !isJunk {
+                let summary = GoodRideSummary(
+                    rideId: id.uuidString,
+                    finishedAtMillis: Int64(Date().timeIntervalSince1970 * 1000),
+                    durationMillis: Int64(durationInMillis),
+                    distanceMeters: totalDistance
+                )
+                Task { await RideStatsStore.shared.recordGoodRide(summary) }
+            }
         }
         currentRideId = nil
         
