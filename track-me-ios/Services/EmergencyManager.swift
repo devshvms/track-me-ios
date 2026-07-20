@@ -8,9 +8,8 @@ class EmergencyManager {
     
     func startBroadcast() {
         print("SOS Placeholder Triggered - Log action for future backend/SMS integration")
-        let lat = TrackingManager.shared.points.last?.coordinate.latitude ?? 0.0
-        let lon = TrackingManager.shared.points.last?.coordinate.longitude ?? 0.0
-        TelemetryManager.shared.trackSosTriggered(latitude: lat, longitude: lon, triggerMethod: "in_app_button")
+        // No precise coordinates in telemetry (A1 / TASK-016 no-PII rule).
+        TelemetryManager.shared.trackSosTriggered(triggerMethod: "in_app_button")
         sosStartTime = Date()
     }
     

@@ -80,11 +80,11 @@ class TelemetryManager {
     }
     
     // MARK: - 5. SOS Usage
-    func trackSosTriggered(latitude: Double, longitude: Double, triggerMethod: String) {
+    // PII rule (A1 / TASK-016 + decision_log 2026-07-20): SOS telemetry carries NO precise
+    // lat/lng. Parity with Android's sos_triggered (trigger_method only).
+    func trackSosTriggered(triggerMethod: String) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("sos_triggered", properties: [
-            "latitude": latitude,
-            "longitude": longitude,
             "trigger_method": triggerMethod
         ])
     }
