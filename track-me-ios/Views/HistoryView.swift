@@ -211,8 +211,8 @@ struct FilterChipView: View {
                 .font(.caption.weight(.medium))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isSelected ? BrandColor.primary : Color(UIColor.tertiarySystemFill))
-                .foregroundColor(isSelected ? .white : .primary)
+                .background(isSelected ? BrandColor.primaryFill : Color(UIColor.tertiarySystemFill))
+                .foregroundColor(isSelected ? BrandColor.onPrimary : .primary)
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
