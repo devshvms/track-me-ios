@@ -22,6 +22,9 @@ class AuthManager {
                         TelemetryManager.shared.identifyUser(userId: result.user.uid)
                         if result.additionalUserInfo?.isNewUser == true {
                             TelemetryManager.shared.trackUserSignedUp()
+                            // D3: welcome email after the first successful sign-up.
+                            // Fire-and-forget — a missed email must not block sign-in.
+                            Task { await NotificationService.shared.send(.welcome) }
                         } else {
                             TelemetryManager.shared.trackUserLoggedIn()
                         }
@@ -50,6 +53,9 @@ class AuthManager {
                         TelemetryManager.shared.identifyUser(userId: result.user.uid)
                         if result.additionalUserInfo?.isNewUser == true {
                             TelemetryManager.shared.trackUserSignedUp()
+                            // D3: welcome email after the first successful sign-up.
+                            // Fire-and-forget — a missed email must not block sign-in.
+                            Task { await NotificationService.shared.send(.welcome) }
                         } else {
                             TelemetryManager.shared.trackUserLoggedIn()
                         }
@@ -69,6 +75,9 @@ class AuthManager {
     
     func deleteAccountAndData(feedback: String) async throws {
         TelemetryManager.shared.trackAccountDeletionRequested(reason: feedback)
+        // D3: send the delete_account email while the token is still valid — it is
+        // revoked once the account is deleted. Best-effort; never blocks deletion.
+        await NotificationService.shared.send(.deleteAccount)
         try await deleteCloudData()
         try await Auth.auth().currentUser?.delete()
     }
