@@ -32,7 +32,8 @@ final class RevealSelectorTests: XCTestCase {
             weekDistanceMeters: distanceMeters,
             streakWeeks: 1,
             isFirstRideOfWeek: true,
-            streakAdvanced: true
+            streakAdvanced: true,
+            streakFroze: false
         )
     }
 

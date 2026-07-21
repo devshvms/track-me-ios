@@ -37,6 +37,19 @@ actor RideStatsStore {
     /// Current snapshot for UI (B2 recap, B3 streak badge).
     func current() -> RideStats { cached }
 
+    /// B2: recap for the most-recent completed active week, or nil. Read-only — acknowledgement
+    /// is separate so a foreground race can't mark it seen before it's shown.
+    func pendingWeeklyRecap(now: Date = Date(), calendar: Calendar = WeekKey.mondayAnchored()) -> WeeklyRecap? {
+        WeeklyRecapSelector.select(cached, now: now, calendar: calendar)
+    }
+
+    /// B2: mark the recap for `weekStartEpochDay` presented, so it never shows again.
+    func acknowledgeWeeklyRecap(weekStartEpochDay: Int) {
+        guard cached.lastRecapShownWeekStartEpochDay != weekStartEpochDay else { return }
+        cached.lastRecapShownWeekStartEpochDay = weekStartEpochDay
+        persist(cached)
+    }
+
     // MARK: - persistence
 
     private static func load(defaults: UserDefaults, key: String) -> RideStats {
