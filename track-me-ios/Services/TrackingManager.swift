@@ -295,7 +295,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         if let id = currentRideId {
             DataRepository.shared.finishRide(rideId: id)
             TelemetryManager.shared.trackRideCompleted(rideId: id.uuidString, durationSeconds: Int(durationInMillis / 1000), distanceKm: totalDistance / 1000.0)
-            ToastManager.shared.show(message: LocalizationHelper.localized("Ride saved successfully"), style: .success)
 
             // A1: shared good-ride hook (parity with Android TrackingService.finalizeRide).
             // Skip junk rides (mirror Android's 10 m / 2 min thresholds). Best-effort +
@@ -309,7 +308,18 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     durationMillis: Int64(durationInMillis),
                     distanceMeters: totalDistance
                 )
-                Task { await RideStatsStore.shared.recordGoodRide(summary) }
+                // B1: fold in, then surface the bounded reveal — the reveal is the good-ride
+                // confirmation, replacing the flat "Ride saved" toast. Persisted one-shot so it
+                // survives backgrounding and shows once on Home.
+                Task {
+                    let transition = await RideStatsStore.shared.recordGoodRide(summary)
+                    if let reveal = RevealSelector.select(transition) {
+                        await RevealCoordinator.shared.put(reveal)
+                    }
+                }
+            } else {
+                // A sub-threshold ride the user chose to save earns no reveal — keep a plain toast.
+                ToastManager.shared.show(message: LocalizationHelper.localized("Ride saved successfully"), style: .success)
             }
         }
         currentRideId = nil

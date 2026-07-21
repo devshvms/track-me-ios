@@ -11,6 +11,8 @@ struct HomeView: View {
     @Bindable var networkMonitor = NetworkMonitor.shared
     @State private var liveSharingManager = LiveSharingManager.shared
     @State private var showLiveShareDialog = false
+    // B1: durable one-shot post-ride reveal, surfaced once on Home.
+    @Bindable var revealCoordinator = RevealCoordinator.shared
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -287,6 +289,11 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showLiveShareDialog) {
             LiveShareDialog()
+        }
+        .sheet(item: $revealCoordinator.pending) { reveal in
+            PostRideRevealView(reveal: reveal) {
+                revealCoordinator.consume(rideId: reveal.rideId)
+            }
         }
         .alert("Location access for safe tracking", isPresented: $trackingManager.showLocationPermissionExplanation) {
             Button("Continue") {
