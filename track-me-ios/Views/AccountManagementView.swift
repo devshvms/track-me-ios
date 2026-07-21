@@ -64,8 +64,8 @@ struct AccountManagementView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.primary)
+                        .background(BrandColor.primaryFill)
+                        .foregroundColor(BrandColor.onPrimary)
                         .cornerRadius(24)
                 }
                 
@@ -87,7 +87,7 @@ struct AccountManagementView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "archivebox.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(BrandColor.primary)
                         Text("Data Archive & Export")
                             .font(.headline)
                             .foregroundColor(.primary)
@@ -97,8 +97,8 @@ struct AccountManagementView: View {
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(status == "COMPLETED" ? Color.green.opacity(0.2) : Color.orange.opacity(0.2))
-                                .foregroundColor(status == "COMPLETED" ? .green : .orange)
+                                .background(status == "COMPLETED" ? BrandColor.successGreen.opacity(0.2) : BrandColor.warning.opacity(0.2))
+                                .foregroundColor(status == "COMPLETED" ? BrandColor.successGreen : BrandColor.warning)
                                 .clipShape(Capsule())
                         }
                     }
@@ -134,7 +134,7 @@ struct AccountManagementView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.green)
+                            .background(BrandColor.primaryFill)
                             .foregroundColor(.white)
                             .cornerRadius(24)
                         }
@@ -169,7 +169,7 @@ struct AccountManagementView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue)
+                            .background(BrandColor.primaryFill)
                             .foregroundColor(.white)
                             .cornerRadius(24)
                         }
@@ -210,10 +210,10 @@ struct AccountManagementView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(Color.clear)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(BrandColor.sos)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 24)
-                                            .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                                            .stroke(BrandColor.sos.opacity(0.5), lineWidth: 1)
                                     )
                             }
                             
@@ -222,8 +222,8 @@ struct AccountManagementView: View {
                                     .font(.subheadline).bold()
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.red.opacity(0.15))
-                                    .foregroundColor(.red)
+                                    .background(BrandColor.sos.opacity(0.15))
+                                    .foregroundColor(BrandColor.sos)
                                     .cornerRadius(24)
                             }
                         }

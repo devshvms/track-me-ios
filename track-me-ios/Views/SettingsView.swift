@@ -74,7 +74,7 @@ struct SettingsView: View {
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.blue)
+                                    .background(BrandColor.primaryFill)
                                     .foregroundColor(.white)
                                     .cornerRadius(24)
                             }
@@ -126,7 +126,7 @@ struct SettingsView: View {
                                 VStack {
                                     Text("\(allRides.count)")
                                         .font(.title3).bold()
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(BrandColor.primary)
                                     Text("Total Rides")
                                         .font(.caption)
                                         .foregroundColor(.gray)
@@ -136,7 +136,7 @@ struct SettingsView: View {
                                 VStack {
                                     Text("Oct 2023") // Hardcoded or format from Auth metadata if available
                                         .font(.title3).bold()
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(BrandColor.primary)
                                     Text("Joined")
                                         .font(.caption)
                                         .foregroundColor(.gray)
@@ -168,11 +168,11 @@ struct SettingsView: View {
                                 }) {
                                     ZStack {
                                         Circle()
-                                            .fill(Color.blue.opacity(0.15))
+                                            .fill(BrandColor.primary.opacity(0.15))
                                             .frame(width: 44, height: 44)
                                         Image(systemName: "arrow.triangle.2.circlepath.icloud.fill")
                                             .font(.system(size: 20))
-                                            .foregroundColor(.blue)
+                                            .foregroundColor(BrandColor.primary)
                                             .rotationEffect(.degrees(isSyncing ? 360 : 0))
                                             .animation(isSyncing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isSyncing)
                                     }
@@ -187,7 +187,7 @@ struct SettingsView: View {
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.blue)
+                                    .background(BrandColor.primaryFill)
                                     .foregroundColor(.primary)
                                     .cornerRadius(24)
                             }
@@ -213,7 +213,7 @@ struct SettingsView: View {
                                     Text(name).tag(code)
                                 }
                             }
-                            .tint(.blue)
+                            .tint(BrandColor.primary)
                         }
                         
                         Divider()
@@ -228,7 +228,7 @@ struct SettingsView: View {
                                 Text("Light").tag("light")
                                 Text("Dark").tag("dark")
                             }
-                            .tint(.blue)
+                            .tint(BrandColor.primary)
                         }
                     }
                     .padding()
@@ -261,7 +261,7 @@ struct SettingsView: View {
                                 Text("1m").tag(60)
                                 Text("5m").tag(300)
                             }
-                            .tint(.blue)
+                            .tint(BrandColor.primary)
                         }
                     }
                     .padding()
@@ -286,7 +286,7 @@ struct SettingsView: View {
                             Spacer()
                             Toggle("", isOn: $isTelemetryEnabled)
                                 .labelsHidden()
-                                .tint(.blue)
+                                .tint(BrandColor.primary)
                                 .accessibilityLabel(LocalizationHelper.localized("Share analytics data"))
                                 .onChange(of: isTelemetryEnabled) { _ in
                                     TelemetryManager.shared.updateOptOutStatus()
@@ -325,7 +325,7 @@ struct SettingsView: View {
                                 set: { isPostProcessingEnabled = !$0 }
                             ))
                             .labelsHidden()
-                            .tint(.blue)
+                            .tint(BrandColor.primary)
                             .accessibilityLabel(LocalizationHelper.localized("Disable GPS post-processing"))
                         }
                     }

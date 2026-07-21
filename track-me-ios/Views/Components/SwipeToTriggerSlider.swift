@@ -18,16 +18,16 @@ struct SwipeToTriggerSlider: View {
 
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: thumbSize / 2)
-                    .fill(isTriggered ? Color.red.opacity(0.8) : Color.red.opacity(0.3))
+                    .fill(isTriggered ? BrandColor.sos.opacity(0.8) : BrandColor.sos.opacity(0.3))
 
                 if !isTriggered {
                     Text(text)
                         .font(.subheadline).bold()
-                        .foregroundColor(.red)
+                        .foregroundColor(BrandColor.sos)
                         .frame(maxWidth: .infinity, alignment: .center)
 
                     Circle()
-                        .fill(Color.red)
+                        .fill(BrandColor.sos)
                         .frame(width: thumbSize, height: thumbSize)
                         .overlay(
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -53,7 +53,7 @@ struct SwipeToTriggerSlider: View {
                         )
                 } else {
                     RoundedRectangle(cornerRadius: thumbSize / 2)
-                        .fill(Color(red: 0.7, green: 0, blue: 0))
+                        .fill(BrandColor.sosDeep)
                         .frame(width: max(thumbSize, geometry.size.width * animationProgress))
                         .animation(.linear(duration: Double(countdown)), value: animationProgress)
 

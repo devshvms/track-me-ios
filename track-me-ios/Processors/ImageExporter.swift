@@ -56,7 +56,7 @@ class ImageExporter {
                     }
                 }
                 
-                context.cgContext.setStrokeColor(UIColor.systemBlue.cgColor)
+                context.cgContext.setStrokeColor(BrandUIColor.primary.cgColor)
                 context.cgContext.setLineWidth(5)
                 context.cgContext.setLineJoin(.round)
                 context.cgContext.setLineCap(.round)

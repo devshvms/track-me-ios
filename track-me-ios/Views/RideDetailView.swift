@@ -136,7 +136,7 @@ struct RideDetailView: View {
                                 in: 0...Double(sortedPoints.count - 1),
                                 step: 1
                             )
-                            .tint(.blue)
+                            .tint(BrandColor.primary)
                             .padding(.horizontal, 24)
                             .accessibilityLabel(LocalizationHelper.localized("Timeline scrubber"))
                             .accessibilityHint(LocalizationHelper.localized(
@@ -247,18 +247,18 @@ struct RideDetailView: View {
             
             Map(initialPosition: .region(MKCoordinateRegion(center: center, span: span))) {
                 MapPolyline(coordinates: coordinates)
-                    .stroke(.blue, lineWidth: 5)
+                    .stroke(BrandColor.primary, lineWidth: 5)
                 
                 Marker("Start", coordinate: coordinates.first!)
-                    .tint(.green)
+                    .tint(BrandColor.successGreen)
                 
                 Marker("Finish", coordinate: coordinates.last!)
-                    .tint(.red)
+                    .tint(BrandColor.sos)
                 
                 if let idx = scrubIndex, idx < coordinates.count {
                     Annotation("Scrubber", coordinate: coordinates[idx]) {
                         Circle()
-                            .fill(Color.blue)
+                            .fill(BrandColor.primary)
                             .frame(width: 16, height: 16)
                             .overlay(Circle().stroke(Color.white, lineWidth: 3))
                             .shadow(radius: 3)
@@ -328,7 +328,7 @@ struct RideDetailView: View {
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
-                        .background(Color.green)
+                        .background(BrandColor.chartSpeed)
                         .foregroundColor(.white)
                         .cornerRadius(4)
                 }
@@ -343,15 +343,15 @@ struct RideDetailView: View {
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
-                        .background(Color.orange)
+                        .background(BrandColor.chartAltitude)
                         .foregroundColor(.white)
                         .cornerRadius(4)
                 }
             }
         }
         .chartForegroundStyleScale([
-            "Speed": Color.green,
-            "Altitude": Color.orange
+            "Speed": BrandColor.chartSpeed,
+            "Altitude": BrandColor.chartAltitude
         ])
         .chartLegend(position: .top, alignment: .leading)
         .frame(height: 200)
@@ -435,20 +435,20 @@ struct RideDetailView: View {
                 Button(action: {
                     showImagePreview = true
                 }) {
-                    actionButton(icon: "square.and.arrow.up", text: "Share", color: .blue)
+                    actionButton(icon: "square.and.arrow.up", text: "Share", color: BrandColor.primary)
                 }
             }
             
             if let url = gpxURL {
                 ShareLink(item: url) {
-                    actionButton(icon: "arrow.down.doc", text: "GPX", color: .blue)
+                    actionButton(icon: "arrow.down.doc", text: "GPX", color: BrandColor.primary)
                 }
             }
             
             Button(action: {
                 showDeleteConfirm = true
             }) {
-                actionButton(icon: "trash", text: "Delete", color: .red)
+                actionButton(icon: "trash", text: "Delete", color: BrandColor.sos)
             }
         }
         .padding(.horizontal)

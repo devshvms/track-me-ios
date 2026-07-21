@@ -41,6 +41,11 @@ struct ContentView: View {
                 Task { await recapCoordinator.check() }
             }
         }
+        // C2 — brand system v1: Inter as the app-wide default family, cyan as the
+        // framework tint (selected tab, switches, framework controls). Individual
+        // views still override per role.
+        .brandDefaultFont()
+        .tint(BrandColor.primary)
     }
 }
 
