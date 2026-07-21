@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 import FirebaseAuth
+import StoreKit
 
 struct HomeView: View {
     @Bindable var trackingManager = TrackingManager.shared
@@ -13,6 +14,8 @@ struct HomeView: View {
     @State private var showLiveShareDialog = false
     // B1: durable one-shot post-ride reveal, surfaced once on Home.
     @Bindable var revealCoordinator = RevealCoordinator.shared
+    // B4: system in-app review request (self-gated by ReviewPromptPolicy).
+    @Environment(\.requestReview) private var requestReview
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -293,6 +296,14 @@ struct HomeView: View {
         .sheet(item: $revealCoordinator.pending) { reveal in
             PostRideRevealView(reveal: reveal) {
                 revealCoordinator.consume(rideId: reveal.rideId)
+                // B4: dismissing a good-ride reveal is a peak moment — ask an eligible user to
+                // rate. Self-gated; Apple throttles on top. Never after error/SOS/discard.
+                Task {
+                    let count = await RideStatsStore.shared.current().totalRides
+                    if ReviewPrompter.shouldRequestAndRecord(goodRideCount: count) {
+                        requestReview()
+                    }
+                }
             }
         }
         .alert("Location access for safe tracking", isPresented: $trackingManager.showLocationPermissionExplanation) {
