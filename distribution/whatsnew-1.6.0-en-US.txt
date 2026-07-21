@@ -1,0 +1,9 @@
+TrackMe 1.6.0 — Engagement, Telemetry & Polish
+
+• A fresh cyan brand look across the app and Live Activity, matching the icon.
+• Post-ride recap: a small, gain-framed summary after you finish recording.
+• Weekly recap + active-week streak — celebrated weekly, never nagging.
+• A cleaner, more reliable review prompt after good rides.
+• Behind-the-scenes telemetry and stability improvements.
+
+(Release-notes stub — refine copy in App Store Connect before submission.)
