@@ -41,7 +41,7 @@ struct LiveShareDialog: View {
         VStack(spacing: 20) {
             Image(systemName: "location.viewfinder")
                 .font(.system(size: 60))
-                .foregroundColor(.blue)
+                .foregroundColor(BrandColor.primary)
             
             Text("Share your live location with friends and family. Your location will be updated even if you haven't started recording a ride yet.")
                 .multilineTextAlignment(.center)
@@ -95,7 +95,7 @@ struct LiveShareDialog: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(BrandColor.primaryFill)
                     .cornerRadius(12)
             }
             .disabled(sharingMode == .timed && hours == 0 && minutes == 0)
@@ -113,7 +113,7 @@ struct LiveShareDialog: View {
                 
                 Text(formatRemainingTime(liveSharingManager.remainingSeconds))
                     .font(.system(size: 40, weight: .bold, design: .monospaced))
-                    .foregroundColor(.green)
+                    .foregroundColor(BrandColor.successGreen)
             }
             
             if let link = liveSharingManager.shareLink {
@@ -131,8 +131,8 @@ struct LiveShareDialog: View {
                     }) {
                         Image(systemName: "doc.on.doc")
                             .padding()
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundColor(.blue)
+                            .background(BrandColor.primary.opacity(0.1))
+                            .foregroundColor(BrandColor.primary)
                             .cornerRadius(8)
                     }
                     
@@ -140,8 +140,8 @@ struct LiveShareDialog: View {
                         ShareLink(item: url) {
                             Image(systemName: "square.and.arrow.up")
                                 .padding()
-                                .background(Color.green.opacity(0.1))
-                                .foregroundColor(.green)
+                                .background(BrandColor.primary.opacity(0.1))
+                                .foregroundColor(BrandColor.primary)
                                 .cornerRadius(8)
                         }
                     }
@@ -158,7 +158,7 @@ struct LiveShareDialog: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.red)
+                    .background(BrandColor.sos)
                     .cornerRadius(12)
             }
         }

@@ -26,7 +26,7 @@ struct HomeView: View {
                     MapPolyline(coordinates: coordinates)
                         .stroke(
                             LinearGradient(
-                                colors: [.blue, .purple],
+                                colors: [BrandColor.cyanBright, BrandColor.cyanDeep],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             ),
@@ -49,10 +49,10 @@ struct HomeView: View {
                     let timeString = seconds > 60 ? "\(seconds / 60)m \(seconds % 60)s" : "\(seconds)s"
                     Text(LocalizationHelper.formatted("No GPS signal for %@", timeString))
                         .font(.subheadline.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(BrandColor.onWarning)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(Color.red)
+                        .background(BrandColor.warning)
                         .clipShape(Capsule())
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -69,10 +69,10 @@ struct HomeView: View {
                 if trackingManager.state == .storageLow {
                     Text(LocalizationHelper.localized("Storage almost full — free space to resume"))
                         .font(.subheadline.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(BrandColor.onWarning)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(Color.red)
+                        .background(BrandColor.warning)
                         .clipShape(Capsule())
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -100,10 +100,10 @@ struct HomeView: View {
                         .foregroundColor(.white)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(Color(red: 0.11, green: 0.37, blue: 0.13).opacity(0.95))
+                        .background(BrandColor.successContainerDark.opacity(0.95))
                         .overlay(
                             Capsule()
-                                .stroke(Color(red: 0.51, green: 0.78, blue: 0.52), lineWidth: 1)
+                                .stroke(BrandColor.successGreen, lineWidth: 1)
                         )
                         .clipShape(Capsule())
                         .padding(.top, (trackingManager.state == .gpsLost || trackingManager.timeSinceLastGps > 10.0) ? 0 : 50)
@@ -145,9 +145,9 @@ struct HomeView: View {
                                 }
                                 .foregroundColor(.white)
                                 .frame(width: 48, height: 48)
-                                .background(Color.green.gradient)
+                                .background(BrandColor.successGreen.gradient)
                                 .clipShape(Circle())
-                                .shadow(color: .green.opacity(0.5), radius: 6)
+                                .shadow(color: BrandColor.successGreen.opacity(0.5), radius: 6)
                             } else {
                                 Image(systemName: "location.viewfinder")
                                     .font(.title2)

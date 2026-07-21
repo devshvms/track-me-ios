@@ -117,9 +117,11 @@ enum RideActivityFormat {
     }
 
     static func statusTint(_ state: RideActivityAttributes.ContentState) -> Color {
-        if state.isPaused { return .orange }
-        if state.isGpsLost { return .yellow }
-        return .green
+        // Semantic, routed through the shared brand tokens (C2): paused / GPS-lost
+        // are warnings (amber); actively recording is success/active (green).
+        if state.isPaused { return BrandColor.warning }
+        if state.isGpsLost { return BrandColor.warning }
+        return BrandColor.successGreen
     }
 
     private static func frozenDuration(_ seconds: TimeInterval) -> String {

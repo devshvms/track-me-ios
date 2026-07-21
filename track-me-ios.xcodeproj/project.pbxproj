@@ -13,6 +13,7 @@
 		5AD9D1C64B9610CB9D26BFE1 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AF0297CE298E685F0779A3C6 /* FirebaseCore */; };
 		702018E12E6FEF201B7BB950 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = BE023F3E41E46AB63B7FEB31 /* FirebaseAuth */; };
 		BB000000000000000000000E /* RideActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000D /* RideActivityAttributes.swift */; };
+		BB000000000000000000001B /* BrandColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* BrandColor.swift */; };
 		BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* TrackMeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -21,6 +22,7 @@
 		AA0000000000000000000008 /* track-me-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "track-me-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB0000000000000000000008 /* TrackMeWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "TrackMeWidgets.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB000000000000000000000D /* RideActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "RideActivityAttributes.swift"; path = "track-me-ios/Models/RideActivityAttributes.swift"; sourceTree = SOURCE_ROOT; };
+		BB000000000000000000001A /* BrandColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "BrandColor.swift"; path = "track-me-ios/Theme/BrandColor.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -100,6 +102,7 @@
 				811E27742FE99C6000A907B9 /* track-me-ios */,
 				BB0000000000000000000009 /* TrackMeWidgets */,
 				BB000000000000000000000D /* RideActivityAttributes.swift */,
+				BB000000000000000000001A /* BrandColor.swift */,
 				811E27732FE99C6000A907B9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -283,6 +286,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB000000000000000000000E /* RideActivityAttributes.swift in Sources */,
+				BB000000000000000000001B /* BrandColor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

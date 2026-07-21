@@ -37,7 +37,7 @@ struct ExportPreviewView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(BrandColor.primaryFill)
                 .cornerRadius(12)
             }
             .padding(.horizontal)
