@@ -93,12 +93,43 @@ final class RideStatsReducerTests: XCTestCase {
         XCTAssertTrue(t.streakAdvanced)
     }
 
-    func testWeekGapResetsStreak() {
+    func testSingleMissedWeekIsForgivenByFreeze() {
+        // B3: one isolated miss is auto-frozen (parity with Android).
         var stats = RideStats()
         stats = RideStatsReducer.reduce(stats, summary("1", millis(2026, 7, 20)), cal()).0
-        let (_, t) = RideStatsReducer.reduce(stats, summary("2", millis(2026, 8, 3)), cal()) // skipped a week
+        let (after, t) = RideStatsReducer.reduce(stats, summary("2", millis(2026, 8, 3)), cal()) // skipped a week
+        XCTAssertEqual(t.streakWeeks, 2)
+        XCTAssertTrue(t.streakFroze)
+        XCTAssertFalse(after.freezeAvailable)
+    }
+
+    func testTwoMissedWeeksResetStreak() {
+        var stats = RideStats()
+        stats = RideStatsReducer.reduce(stats, summary("1", millis(2026, 7, 20)), cal()).0
+        let (after, t) = RideStatsReducer.reduce(stats, summary("2", millis(2026, 8, 10)), cal()) // skipped two weeks
         XCTAssertEqual(t.streakWeeks, 1)
-        XCTAssertTrue(t.isFirstRideOfWeek)
+        XCTAssertFalse(t.streakFroze)
+        XCTAssertTrue(after.freezeAvailable)
+    }
+
+    func testTwoConsecutiveSingleMissesSecondResets() {
+        var stats = RideStats()
+        stats = RideStatsReducer.reduce(stats, summary("1", millis(2026, 7, 20)), cal()).0
+        stats = RideStatsReducer.reduce(stats, summary("2", millis(2026, 8, 3)), cal()).0  // forgiven -> 2
+        let (_, t) = RideStatsReducer.reduce(stats, summary("3", millis(2026, 8, 17)), cal()) // miss again, no token
+        XCTAssertEqual(t.streakWeeks, 1)
+        XCTAssertFalse(t.streakFroze)
+    }
+
+    func testActiveWeekRefillsFreeze() {
+        var stats = RideStats()
+        stats = RideStatsReducer.reduce(stats, summary("1", millis(2026, 7, 20)), cal()).0
+        stats = RideStatsReducer.reduce(stats, summary("2", millis(2026, 8, 3)), cal()).0  // forgiven -> 2, token used
+        stats = RideStatsReducer.reduce(stats, summary("3", millis(2026, 8, 10)), cal()).0 // consecutive -> 3, refilled
+        XCTAssertTrue(stats.freezeAvailable)
+        let (_, t) = RideStatsReducer.reduce(stats, summary("4", millis(2026, 8, 24)), cal()) // single miss again
+        XCTAssertEqual(t.streakWeeks, 4)
+        XCTAssertTrue(t.streakFroze)
     }
 
     func testTimezoneAffectsWeekAssignment() {

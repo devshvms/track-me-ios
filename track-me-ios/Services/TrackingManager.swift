@@ -313,6 +313,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 // survives backgrounding and shows once on Home.
                 Task {
                     let transition = await RideStatsStore.shared.recordGoodRide(summary)
+                    // B3: emit the streak state event on the first-ride-of-week transition.
+                    if transition.isFirstRideOfWeek {
+                        TelemetryManager.shared.trackWeeklyStreakUpdated(
+                            streakWeeks: transition.streakWeeks, froze: transition.streakFroze)
+                    }
                     if let reveal = RevealSelector.select(transition) {
                         await RevealCoordinator.shared.put(reveal)
                     }

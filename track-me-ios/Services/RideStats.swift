@@ -3,7 +3,7 @@ import Foundation
 /// Platform-neutral contract for a just-saved "good ride" — the single input to the shared
 /// A1 retention/telemetry hook. Mirrors Android's `GoodRideSummary`. Use the authoritative
 /// in-memory distance/duration; never recompute from points here.
-struct GoodRideSummary {
+nonisolated struct GoodRideSummary {
     let rideId: String
     /// Epoch millis the ride was finalized.
     let finishedAtMillis: Int64
@@ -18,7 +18,7 @@ struct GoodRideSummary {
 /// optional-with-default in the decoder so an old blob still decodes (see custom `init(from:)`).
 /// Weeks are Monday-anchored; each week is stored as the epoch-day of its Monday so
 /// consecutive weeks differ by exactly 7 (parity with Android).
-struct RideStats: Codable, Equatable {
+nonisolated struct RideStats: Codable, Equatable {
     static let currentSchemaVersion = 1
     static let maxProcessedIds = 200
 
@@ -33,6 +33,11 @@ struct RideStats: Codable, Equatable {
     var currentWeekDistanceMeters: Double = 0.0
     var streakWeeks: Int = 0
     var lastStreakWeekStartEpochDay: Int = 0
+    /// B3 streak forgiveness: whether a single-week miss can currently be auto-frozen. Consumed
+    /// by a forgiven miss, refilled after any active week. `true` for a fresh store.
+    var freezeAvailable: Bool = true
+    /// B2 dedupe: Monday epoch-day of the completed week whose recap was already surfaced.
+    var lastRecapShownWeekStartEpochDay: Int = 0
     var processedRideIds: [String] = []
 
     init() {}
@@ -51,13 +56,15 @@ struct RideStats: Codable, Equatable {
         currentWeekDistanceMeters = (try? c.decode(Double.self, forKey: .currentWeekDistanceMeters)) ?? 0.0
         streakWeeks = (try? c.decode(Int.self, forKey: .streakWeeks)) ?? 0
         lastStreakWeekStartEpochDay = (try? c.decode(Int.self, forKey: .lastStreakWeekStartEpochDay)) ?? 0
+        freezeAvailable = (try? c.decode(Bool.self, forKey: .freezeAvailable)) ?? true
+        lastRecapShownWeekStartEpochDay = (try? c.decode(Int.self, forKey: .lastRecapShownWeekStartEpochDay)) ?? 0
         processedRideIds = (try? c.decode([String].self, forKey: .processedRideIds)) ?? []
     }
 }
 
 /// Pure result of folding one `GoodRideSummary` in. Facts only — features map facts to
 /// UI/telemetry downstream (B1 reveal, etc.). Identical shape to Android's transition.
-struct RideStatsTransition {
+nonisolated struct RideStatsTransition {
     let rideId: String
     let alreadyProcessed: Bool
     let isFirstRide: Bool
@@ -73,11 +80,24 @@ struct RideStatsTransition {
     let streakWeeks: Int
     let isFirstRideOfWeek: Bool
     let streakAdvanced: Bool
+    /// True when this ride's week-rollover forgave a single missed week (B3 auto-freeze).
+    let streakFroze: Bool
+}
+
+/// B2 immutable snapshot of a completed (rolled-over) week for the recap card. Gain-framed
+/// facts only; `streakWeeks` is the B3 line. Parity with Android `WeeklyRecap`.
+nonisolated struct WeeklyRecap: Identifiable, Equatable {
+    let weekKey: String
+    let weekStartEpochDay: Int
+    let rideCount: Int
+    let distanceMeters: Double
+    let streakWeeks: Int
+    var id: Int { weekStartEpochDay }
 }
 
 /// Single source of truth for Monday-anchored week boundaries (parity with Android `WeekKey`).
 /// Inject the `Calendar` for deterministic timezone/DST tests.
-enum WeekKey {
+nonisolated enum WeekKey {
     /// A Monday-first ISO-8601 calendar in the given time zone.
     static func mondayAnchored(timeZone: TimeZone = .current) -> Calendar {
         var cal = Calendar(identifier: .iso8601) // ISO: Monday is the first weekday
@@ -106,7 +126,7 @@ enum WeekKey {
 /// Pure reducer: `(old, summary, calendar) -> (new, transition)`. No I/O, no analytics.
 /// Idempotent by ride ID; PR flags compare against the pre-update snapshot; weekly streak
 /// counts consecutive Monday-anchored active weeks. Mirrors Android `RideStatsReducer`.
-enum RideStatsReducer {
+nonisolated enum RideStatsReducer {
     static let milestones = [10, 25, 50, 100, 250, 500, 1000]
 
     static func reduce(
@@ -137,7 +157,8 @@ enum RideStatsReducer {
                 weekDistanceMeters: old.currentWeekDistanceMeters,
                 streakWeeks: old.streakWeeks,
                 isFirstRideOfWeek: false,
-                streakAdvanced: false
+                streakAdvanced: false,
+                streakFroze: false
             )
             return (old, noOp)
         }
@@ -154,18 +175,32 @@ enum RideStatsReducer {
         let newWeekRideCount = sameWeek ? old.currentWeekRideCount + 1 : 1
         let newWeekDistance = sameWeek ? old.currentWeekDistanceMeters + summary.distanceMeters : summary.distanceMeters
 
+        // B3 single-miss forgiveness (parity with Android): gap between active weeks is a
+        // multiple of 7. 7 -> consecutive; 14 -> one miss (auto-freeze if a token is available);
+        // >14 or backwards -> reset. A token is consumed by a forgiven miss, refilled by any
+        // active week. Loss is NEVER surfaced (telemetry-only `froze`).
         var newStreakWeeks = old.streakWeeks
         var newLastStreakWeekStart = old.lastStreakWeekStartEpochDay
+        var newFreezeAvailable = old.freezeAvailable
         var streakAdvanced = false
+        var streakFroze = false
         if isFirstRideOfWeek {
+            let gapDays = weekStart - old.lastStreakWeekStartEpochDay
             if old.lastStreakWeekStartEpochDay == 0 {
                 newStreakWeeks = 1
-            } else if weekStart - old.lastStreakWeekStartEpochDay == 7 {
+                newFreezeAvailable = true
+            } else if gapDays == 7 {
                 newStreakWeeks = old.streakWeeks + 1
-            } else if weekStart == old.lastStreakWeekStartEpochDay {
+                newFreezeAvailable = true
+            } else if gapDays == 14 && old.freezeAvailable {
+                newStreakWeeks = old.streakWeeks + 1
+                newFreezeAvailable = false
+                streakFroze = true
+            } else if gapDays == 0 {
                 newStreakWeeks = old.streakWeeks
             } else {
                 newStreakWeeks = 1
+                newFreezeAvailable = true
             }
             newLastStreakWeekStart = weekStart
             streakAdvanced = newStreakWeeks > old.streakWeeks
@@ -189,6 +224,7 @@ enum RideStatsReducer {
         newStats.currentWeekDistanceMeters = newWeekDistance
         newStats.streakWeeks = newStreakWeeks
         newStats.lastStreakWeekStartEpochDay = newLastStreakWeekStart
+        newStats.freezeAvailable = newFreezeAvailable
         newStats.processedRideIds = newProcessed
 
         let transition = RideStatsTransition(
@@ -206,9 +242,30 @@ enum RideStatsReducer {
             weekDistanceMeters: newWeekDistance,
             streakWeeks: newStreakWeeks,
             isFirstRideOfWeek: isFirstRideOfWeek,
-            streakAdvanced: streakAdvanced
+            streakAdvanced: streakAdvanced,
+            streakFroze: streakFroze
         )
 
         return (newStats, transition)
+    }
+}
+
+/// Pure B2 decision: given `RideStats` and "now", is there a completed week worth recapping?
+/// Parity with Android `WeeklyRecapSelector`. Gain-framed: silent on zero-ride weeks and while
+/// still inside the active week; dedup'd via `lastRecapShownWeekStartEpochDay`.
+nonisolated enum WeeklyRecapSelector {
+    static func select(_ stats: RideStats, now: Date, calendar: Calendar) -> WeeklyRecap? {
+        let thisWeekStart = WeekKey.weekStartEpochDay(now, calendar: calendar)
+        guard stats.currentWeekStartEpochDay != 0 else { return nil }          // never rode
+        guard stats.currentWeekStartEpochDay < thisWeekStart else { return nil } // still active week
+        guard stats.currentWeekRideCount > 0 else { return nil }               // nothing to celebrate
+        guard stats.lastRecapShownWeekStartEpochDay != stats.currentWeekStartEpochDay else { return nil }
+        return WeeklyRecap(
+            weekKey: WeekKey.label(weekStartEpochDay: stats.currentWeekStartEpochDay, calendar: calendar),
+            weekStartEpochDay: stats.currentWeekStartEpochDay,
+            rideCount: stats.currentWeekRideCount,
+            distanceMeters: stats.currentWeekDistanceMeters,
+            streakWeeks: stats.streakWeeks
+        )
     }
 }
