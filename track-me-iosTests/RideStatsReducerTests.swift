@@ -147,6 +147,39 @@ final class RideStatsReducerTests: XCTestCase {
         XCTAssertEqual(WeekKey.label(weekStartEpochDay: ws, calendar: cal()), "2026-W30")
     }
 
+    /// Regression for prompt-15: the label was wrong in every non-UTC zone (a Monday
+    /// 2026-07-20 ride labeled 2026-W29 instead of 2026-W30 in IST/Berlin/Tokyo/LA).
+    /// Asserts the ABSOLUTE label in positive- AND negative-offset zones — the coverage
+    /// the old UTC-only tests were missing. Fails on the pre-fix code, passes after.
+    func testWeekLabelIsCorrectInPositiveOffsetZones() {
+        for tz in ["UTC", "Asia/Kolkata", "Europe/Berlin", "Asia/Tokyo", "America/Los_Angeles", "Pacific/Auckland"] {
+            let c = WeekKey.mondayAnchored(timeZone: TimeZone(identifier: tz)!)
+            let at = millis(2026, 7, 20, hour: 12, tz: tz)   // noon local in that zone
+            let ws = WeekKey.weekStartEpochDay(Date(timeIntervalSince1970: Double(at) / 1000.0), calendar: c)
+            XCTAssertEqual(WeekKey.label(weekStartEpochDay: ws), "2026-W30", "wrong label in \(tz)")
+        }
+    }
+
+    /// Monday 2026-07-20 has proleptic epoch-day 20654 regardless of zone (parity with
+    /// Android's LocalDate.toEpochDay). The old code returned 20653 for positive offsets.
+    func testWeekEpochDayMatchesProlepticInAllZones() {
+        for tz in ["UTC", "Asia/Kolkata", "Europe/Berlin", "America/Los_Angeles"] {
+            let c = WeekKey.mondayAnchored(timeZone: TimeZone(identifier: tz)!)
+            let at = millis(2026, 7, 20, hour: 12, tz: tz)
+            let ws = WeekKey.weekStartEpochDay(Date(timeIntervalSince1970: Double(at) / 1000.0), calendar: c)
+            XCTAssertEqual(ws, 20654, "wrong epoch-day in \(tz)")
+        }
+    }
+
+    /// The fix must not disturb the difference-based streak invariant: consecutive weeks
+    /// still differ by exactly 7 epoch-days, even in a positive-offset zone.
+    func testConsecutiveWeeksStillDifferBySevenInPositiveZone() {
+        let c = WeekKey.mondayAnchored(timeZone: TimeZone(identifier: "Asia/Kolkata")!)
+        let w1 = WeekKey.weekStartEpochDay(Date(timeIntervalSince1970: Double(millis(2026, 7, 20, hour: 12, tz: "Asia/Kolkata")) / 1000.0), calendar: c)
+        let w2 = WeekKey.weekStartEpochDay(Date(timeIntervalSince1970: Double(millis(2026, 7, 27, hour: 12, tz: "Asia/Kolkata")) / 1000.0), calendar: c)
+        XCTAssertEqual(w2 - w1, 7)
+    }
+
     func testProcessedIdsAreBounded() {
         var stats = RideStats()
         let n = RideStats.maxProcessedIds + 50
