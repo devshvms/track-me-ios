@@ -107,18 +107,37 @@ nonisolated enum WeekKey {
 
     private static let epoch = Date(timeIntervalSince1970: 0)
 
-    /// Whole days from the Unix epoch to the Monday of the week containing `date`.
-    /// Uses day-component arithmetic so it's DST-safe and increments by exactly 7 per week.
+    /// A fixed UTC ISO-8601 calendar used only to turn a Y/M/D into an exact epoch-day and back,
+    /// mirroring java.time's `LocalDate` (which is date-only and timezone-free). Kept private so
+    /// the timezone-mixing bug (local-midnight Monday vs a UTC-fixed instant) cannot recur.
+    private static let utcCalendar: Calendar = {
+        var c = Calendar(identifier: .iso8601)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }()
+
+    /// Whole days from the Unix epoch to the Monday of the week containing `date`, evaluated in
+    /// `calendar`'s time zone. Matches Android `WeekKey.weekStartEpochDay` (LocalDate.toEpochDay)
+    /// in EVERY zone: it resolves the local Monday's calendar date (Y/M/D), then reconstructs that
+    /// date at UTC midnight so the day count is an exact multiple of 86400 — no instant-vs-midnight
+    /// truncation error. Still Monday-anchored and still increments by exactly 7 per week.
     static func weekStartEpochDay(_ date: Date, calendar: Calendar) -> Int {
         let interval = calendar.dateInterval(of: .weekOfYear, for: date)
-        let monday = interval?.start ?? calendar.startOfDay(for: date)
-        return calendar.dateComponents([.day], from: epoch, to: monday).day ?? 0
+        let monday = interval?.start ?? calendar.startOfDay(for: date)   // LOCAL Monday midnight
+        let ymd = calendar.dateComponents([.year, .month, .day], from: monday)
+        let utcMidnight = utcCalendar.date(from: ymd) ?? monday
+        return utcCalendar.dateComponents([.day], from: epoch, to: utcMidnight).day ?? 0
     }
 
-    /// ISO-8601 week label "YYYY-Www" for a Monday epoch-day.
-    static func label(weekStartEpochDay: Int, calendar: Calendar) -> String {
-        let monday = calendar.date(byAdding: .day, value: weekStartEpochDay, to: epoch) ?? epoch
-        let comps = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: monday)
+    /// ISO-8601 week label "YYYY-Www" for a Monday epoch-day. An epoch-day is a pure, timezone-free
+    /// date (exactly like `LocalDate.ofEpochDay`), so the label is ALWAYS computed in UTC and the
+    /// `calendar` argument is intentionally ignored — it is retained only for source compatibility
+    /// with existing call sites. Matches Android `WeekKey.label` in every zone. Do NOT reintroduce a
+    /// non-UTC calendar here: that is the exact bug this rewrite fixes.
+    static func label(weekStartEpochDay: Int, calendar: Calendar = utcCalendar) -> String {
+        _ = calendar   // deliberately unused; see doc comment above.
+        let monday = Date(timeIntervalSince1970: TimeInterval(weekStartEpochDay) * 86_400)
+        let comps = utcCalendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: monday)
         return String(format: "%04d-W%02d", comps.yearForWeekOfYear ?? 0, comps.weekOfYear ?? 0)
     }
 }
