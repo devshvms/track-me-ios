@@ -3,6 +3,7 @@ import SwiftUI
 enum ToastStyle {
     case info
     case success
+    case warning
     case error
 }
 
@@ -64,6 +65,7 @@ struct ToastView: View {
         switch toast.style {
         case .info: return "info.circle.fill"
         case .success: return "checkmark.circle.fill"
+        case .warning: return "exclamationmark.triangle.fill"
         case .error: return "xmark.circle.fill"
         }
     }
@@ -72,6 +74,7 @@ struct ToastView: View {
         switch toast.style {
         case .info: return .blue
         case .success: return .green
+        case .warning: return BrandColor.warning
         case .error: return .red
         }
     }
