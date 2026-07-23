@@ -12,6 +12,8 @@ struct ContentView: View {
     // B2: shared foreground trigger (scenePhase) — parity with Android MainActivity.onResume.
     @Environment(\.scenePhase) private var scenePhase
     @Bindable private var recapCoordinator = WeeklyRecapCoordinator.shared
+    @ObservedObject private var updateManager = AppUpdateManager.shared
+    private var trackingManager = TrackingManager.shared
 
     var body: some View {
         TabView {
@@ -39,6 +41,19 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 Task { await recapCoordinator.check() }
+                Task { _ = await updateManager.checkForUpdate() }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { updateManager.updateInfo != nil && trackingManager.state == .idle },
+            set: { _ in }
+        )) {
+            if let info = updateManager.updateInfo {
+                // A force-update that hijacks a live ride would lose data and is exactly the failure mode we're trying to prevent.
+                // Deliberate divergence from Android's unconditional dialog.
+                AppUpdateView(updateInfo: info) {
+                    updateManager.dismissUpdate(build: info.latestBuild)
+                }
             }
         }
         // C2 — brand system v1: Inter as the app-wide default family, cyan as the

@@ -58,6 +58,7 @@ struct track_me_iosApp: App {
                         RideActivityManager.shared.endOrphanedActivities(
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString
                         )
+                        _ = await AppUpdateManager.shared.checkForUpdate()
                     }
                 }
                 .withGlobalToasts()
