@@ -13,27 +13,58 @@
 		5AD9D1C64B9610CB9D26BFE1 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AF0297CE298E685F0779A3C6 /* FirebaseCore */; };
 		702018E12E6FEF201B7BB950 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = BE023F3E41E46AB63B7FEB31 /* FirebaseAuth */; };
 		BB000000000000000000000E /* RideActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000D /* RideActivityAttributes.swift */; };
-		BB000000000000000000001B /* BrandColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* BrandColor.swift */; };
 		BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* TrackMeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BB000000000000000000001B /* BrandColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* BrandColor.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AA000000000000000000000B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 811E276A2FE99C6000A907B9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 811E27712FE99C6000A907B9;
+			remoteInfo = "track-me-ios";
+		};
+		BB000000000000000000000C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 811E276A2FE99C6000A907B9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BB0000000000000000000001;
+			remoteInfo = TrackMeWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BB0000000000000000000010 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		811E27722FE99C6000A907B9 /* track-me-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "track-me-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000008 /* track-me-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "track-me-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB0000000000000000000008 /* TrackMeWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "TrackMeWidgets.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB000000000000000000000D /* RideActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "RideActivityAttributes.swift"; path = "track-me-ios/Models/RideActivityAttributes.swift"; sourceTree = SOURCE_ROOT; };
-		BB000000000000000000001A /* BrandColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "BrandColor.swift"; path = "track-me-ios/Theme/BrandColor.swift"; sourceTree = SOURCE_ROOT; };
+		BB0000000000000000000008 /* TrackMeWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TrackMeWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB000000000000000000000D /* RideActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RideActivityAttributes.swift; path = "track-me-ios/Models/RideActivityAttributes.swift"; sourceTree = SOURCE_ROOT; };
+		BB000000000000000000001A /* BrandColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BrandColor.swift; path = "track-me-ios/Theme/BrandColor.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		811E277F2FE99C6200A907B9 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		811E277F2FE99C6200A907B9 /* Exceptions for "track-me-ios" folder in "track-me-ios" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 811E27712FE99C6000A907B9 /* track-me-ios */;
 		};
-		BB000000000000000000000A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		BB000000000000000000000A /* Exceptions for "TrackMeWidgets" folder in "TrackMeWidgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -46,7 +77,7 @@
 		811E27742FE99C6000A907B9 /* track-me-ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				811E277F2FE99C6200A907B9 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				811E277F2FE99C6200A907B9 /* Exceptions for "track-me-ios" folder in "track-me-ios" target */,
 			);
 			path = "track-me-ios";
 			sourceTree = "<group>";
@@ -59,7 +90,7 @@
 		BB0000000000000000000009 /* TrackMeWidgets */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				BB000000000000000000000A /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				BB000000000000000000000A /* Exceptions for "TrackMeWidgets" folder in "TrackMeWidgets" target */,
 			);
 			path = TrackMeWidgets;
 			sourceTree = "<group>";
@@ -104,6 +135,7 @@
 				BB000000000000000000000D /* RideActivityAttributes.swift */,
 				BB000000000000000000001A /* BrandColor.swift */,
 				811E27732FE99C6000A907B9 /* Products */,
+				819EA41230127C81008BFA98 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -115,6 +147,14 @@
 				BB0000000000000000000008 /* TrackMeWidgets.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		819EA41230127C81008BFA98 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000009 /* track-me-iosTests */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -291,37 +331,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		BB0000000000000000000010 /* Embed App Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */,
-			);
-			name = "Embed App Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
-/* Begin PBXContainerItemProxy section */
-		AA000000000000000000000B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 811E276A2FE99C6000A907B9 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 811E27712FE99C6000A907B9;
-			remoteInfo = "track-me-ios";
-		};
-		BB000000000000000000000C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 811E276A2FE99C6000A907B9 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = BB0000000000000000000001;
-			remoteInfo = TrackMeWidgets;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
 		AA000000000000000000000A /* PBXTargetDependency */ = {
@@ -568,7 +577,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "TrackMeWidgets/Info.plist";
+				INFOPLIST_FILE = TrackMeWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -591,7 +600,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "TrackMeWidgets/Info.plist";
+				INFOPLIST_FILE = TrackMeWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
