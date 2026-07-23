@@ -18,6 +18,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private static let activeRideKey = "activeRideId"
 
     private let locationManager = CLLocationManager()
+    private let motionSensor = MotionSensorManager()
     
     // State exposed to SwiftUI
     var state: TrackingState = .idle
@@ -135,6 +136,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// Shared session bring-up used by both a fresh ride and a restored one.
     private func startLocationUpdatesAndTimer() {
         locationManager.startUpdatingLocation()
+        motionSensor.startListening()
         requestTrackingNotification()
         startDurationTimer()
     }
@@ -278,6 +280,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     func stopTracking() {
         locationManager.stopUpdatingLocation()
+        motionSensor.stopListening()
         state = .idle
         timer?.invalidate()
         timer = nil
@@ -361,6 +364,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
 
         state = .tracking
+        motionSensor.startListening()
         lastGpsTimestamp = Date()
         timeSinceLastGps = 0
         updateLiveActivity(force: true)
@@ -396,20 +400,29 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             // 2. Smoothing
             let smoothedLocation = GPSProcessor.smooth(points: points, newPoint: location)
             
-            // 3. Distance Calculation
-            if let previous = points.last {
-                let dist = smoothedLocation.distance(from: previous)
-                if dist > 0 {
-                    totalDistance += dist
-                }
-            }
-            currentSpeed = max(smoothedLocation.speed, 0)
-            points.append(smoothedLocation)
+            // 3. Distance Calculation & Auto-Pause Gate
+            let rawSpeed = max(smoothedLocation.speed, 0)
+            let dist = points.last.map { smoothedLocation.distance(from: $0) } ?? 0
             
-            // 4. Auto-Pause
-            let fifteenSecAgo = smoothedLocation.timestamp.addingTimeInterval(-15)
-            let recentWindow = points.filter { $0.timestamp >= fifteenSecAgo }
-            let isPaused = GPSProcessor.calculateAutoPause(recentPoints: recentWindow)
+            let isHardwareStill = motionSensor.isDeviceStationary()
+            let isStationaryDrift = rawSpeed < MotionSensorManager.driftSpeedThreshold && dist < MotionSensorManager.driftDistanceThreshold
+            let effectiveSpeed = (isHardwareStill || isStationaryDrift) ? 0 : rawSpeed
+            
+            let isPaused: Bool
+            if isHardwareStill || isStationaryDrift {
+                isPaused = true
+            } else {
+                let fifteenSecAgo = smoothedLocation.timestamp.addingTimeInterval(-15)
+                let recentWindow = points.filter { $0.timestamp >= fifteenSecAgo }
+                isPaused = GPSProcessor.calculateAutoPause(recentPoints: recentWindow)
+            }
+            
+            currentSpeed = effectiveSpeed
+            if state == .tracking, !isPaused, dist >= MotionSensorManager.minDistanceToAccumulate, effectiveSpeed > MotionSensorManager.minSpeedToAccumulate {
+                totalDistance += dist
+            }
+            
+            points.append(smoothedLocation)
             
             // 5. Offline-First Database Write
             DataRepository.shared.savePointBackground(
@@ -418,7 +431,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 lng: smoothedLocation.coordinate.longitude,
                 alt: smoothedLocation.altitude,
                 acc: smoothedLocation.horizontalAccuracy,
-                spd: currentSpeed,
+                spd: effectiveSpeed,
                 ts: smoothedLocation.timestamp,
                 paused: isPaused
             )
