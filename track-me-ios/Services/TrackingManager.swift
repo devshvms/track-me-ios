@@ -19,23 +19,23 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     private let locationManager = CLLocationManager()
     private let motionSensor = MotionSensorManager()
-    
+
     // State exposed to SwiftUI
     var state: TrackingState = .idle
     var currentRideId: UUID?
-    var points: [CLLocation] = [] 
+    var points: [CLLocation] = []
     var currentSpeed: Double = 0.0
     var totalDistance: Double = 0.0
     var durationInMillis: TimeInterval = 0
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
     var showLocationPermissionExplanation = false
-    
+
     private var timer: Timer?
     private var pendingTrackingStart = false
     private var storageWarningShown = false
     private var lastStorageCheck = Date.distantPast
-    
+
     override init() {
         super.init()
         locationManager.delegate = self
@@ -44,7 +44,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         locationManager.allowsBackgroundLocationUpdates = true
         locationManager.showsBackgroundLocationIndicator = true
     }
-    
+
     func startTracking() {
         switch locationManager.authorizationStatus {
         case .notDetermined:
@@ -136,7 +136,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// Shared session bring-up used by both a fresh ride and a restored one.
     private func startLocationUpdatesAndTimer() {
         locationManager.startUpdatingLocation()
-        motionSensor.startListening()
+        if MotionSensorManager.isMotionFusionEnabled {
+            motionSensor.startListening()
+        }
         requestTrackingNotification()
         startDurationTimer()
     }
@@ -262,10 +264,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             for i in 1..<sorted.count {
                 let p1 = sorted[i - 1]
                 let p2 = sorted[i]
-                
+
                 let dist = CLLocation(latitude: p1.latitude, longitude: p1.longitude)
                     .distance(from: CLLocation(latitude: p2.latitude, longitude: p2.longitude))
-                
+
                 if MotionSensorManager.distanceShouldAccumulate(state: .tracking, isPaused: p2.isPaused, dist: dist, effectiveSpeed: p2.speed) {
                     distance += dist
                 }
@@ -339,13 +341,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
         }
         currentRideId = nil
-        
+
         // Stop live sharing when the ride ends
         if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
             LiveSharingManager.shared.stopSession(reason: "Ride ended successfully.")
         }
     }
-    
+
     func pauseTracking() {
         if state == .tracking || state == .gpsLost || state == .storageLow {
             state = .paused
@@ -372,15 +374,18 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
 
         state = .tracking
-        motionSensor.startListening()
+        if MotionSensorManager.isMotionFusionEnabled {
+            motionSensor.startListening()
+        }
         lastGpsTimestamp = Date()
         timeSinceLastGps = 0
         updateLiveActivity(force: true)
     }
-    
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard state == .tracking || state == .gpsLost, let rideId = currentRideId else { return }
 
+        let accumulationState = state
         let recoveredFromGpsLost = state == .gpsLost
         lastGpsTimestamp = Date()
         timeSinceLastGps = 0
@@ -404,18 +409,18 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     continue
                 }
             }
-            
+
             // 2. Smoothing
             let smoothedLocation = GPSProcessor.smooth(points: points, newPoint: location)
-            
+
             // 3. Distance Calculation & Auto-Pause Gate
             let rawSpeed = max(smoothedLocation.speed, 0)
             let dist = points.last.map { smoothedLocation.distance(from: $0) } ?? 0
-            
-            let isHardwareStill = motionSensor.isDeviceStationary()
-            let isStationaryDrift = !points.isEmpty && rawSpeed < MotionSensorManager.driftSpeedThreshold && dist < MotionSensorManager.driftDistanceThreshold
+
+            let isHardwareStill = MotionSensorManager.isMotionFusionEnabled && motionSensor.isDeviceStationary()
+            let isStationaryDrift = MotionSensorManager.isMotionFusionEnabled && !points.isEmpty && rawSpeed < MotionSensorManager.driftSpeedThreshold && dist < MotionSensorManager.driftDistanceThreshold
             let effectiveSpeed = (isHardwareStill || isStationaryDrift) ? 0 : rawSpeed
-            
+
             let isPaused: Bool
             if isHardwareStill || isStationaryDrift {
                 isPaused = true
@@ -424,14 +429,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 let recentWindow = points.filter { $0.timestamp >= fifteenSecAgo }
                 isPaused = GPSProcessor.calculateAutoPause(recentPoints: recentWindow)
             }
-            
+
             currentSpeed = effectiveSpeed
-            if MotionSensorManager.distanceShouldAccumulate(state: state, isPaused: isPaused, dist: dist, effectiveSpeed: effectiveSpeed) {
+            if MotionSensorManager.distanceShouldAccumulate(state: accumulationState, isPaused: isPaused, dist: dist, effectiveSpeed: effectiveSpeed) {
                 totalDistance += dist
             }
-            
+
             points.append(smoothedLocation)
-            
+
             // 5. Offline-First Database Write
             DataRepository.shared.savePointBackground(
                 rideId: rideId,
@@ -443,7 +448,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 ts: smoothedLocation.timestamp,
                 paused: isPaused
             )
-            
+
             // 6. Push to Live Sharing Manager
             if LiveSharingManager.shared.isActive {
                 LiveSharingManager.shared.updateLatestLocation(smoothedLocation)
