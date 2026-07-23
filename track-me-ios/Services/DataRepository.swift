@@ -21,6 +21,45 @@ final class DataRepository {
         try? context.save()
     }
 
+    func allRides() -> [Ride] {
+        guard let ctx = container?.mainContext else { return [] }
+        return (try? ctx.fetch(FetchDescriptor<Ride>())) ?? []
+    }
+
+    /// Every identifier that already represents a locally-present cloud ride:
+    /// firestoreId (once set on upload) + id.uuidString (covers legacy rides whose
+    /// doc id equals their UUID but whose firestoreId was never set).
+    func existingCloudIds() -> Set<String> {
+        var ids = Set<String>()
+        for r in allRides() {
+            if let f = r.firestoreId { ids.insert(f) }
+            ids.insert(r.id.uuidString)
+        }
+        return ids
+    }
+
+    func importDownloadedRides(_ downloaded: [DownloadedRide], existingIds: Set<String>) {
+        guard let ctx = container?.mainContext else { return }
+        var inserted = 0
+        for d in downloaded {
+            // Dedup: skip if the firestoreId OR the (iOS-origin) uuid is already local.
+            if existingIds.contains(d.firestoreId) || existingIds.contains(d.localId.uuidString) { continue }
+            let ride = Ride(id: d.localId, startTime: d.startTime,
+                            sourceInfo: d.sourceInfo, isSynced: true, title: d.title)
+            ride.endTime = d.endTime
+            ride.firestoreId = d.firestoreId
+            ctx.insert(ride)
+            for p in d.points {
+                let point = GPSPoint(latitude: p.latitude, longitude: p.longitude,
+                                     altitude: p.altitude, accuracy: p.accuracy,
+                                     speed: p.speed, timestamp: p.timestamp, isPaused: p.isPaused)
+                point.ride = ride
+                ctx.insert(point)
+            }
+            inserted += 1
+        }
+        if inserted > 0 { try? ctx.save() }
+    }
     func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool) {
         guard let container = container else { return }
 

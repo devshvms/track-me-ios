@@ -28,6 +28,7 @@ class AuthManager {
                         } else {
                             TelemetryManager.shared.trackUserLoggedIn()
                         }
+                        FirestoreSyncManager.shared.syncOnSignInCompleted()
                     }
                 }
             }
@@ -59,6 +60,7 @@ class AuthManager {
                         } else {
                             TelemetryManager.shared.trackUserLoggedIn()
                         }
+                        FirestoreSyncManager.shared.syncOnSignInCompleted()
                     }
                 }
             }

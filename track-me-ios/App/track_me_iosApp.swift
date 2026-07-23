@@ -60,6 +60,7 @@ struct track_me_iosApp: App {
                         RideActivityManager.shared.endOrphanedActivities(
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString
                         )
+                        FirestoreSyncManager.shared.syncOnForegroundIfDue()
                     }
                 }
                 .withGlobalToasts()
