@@ -69,6 +69,9 @@ class AuthManager {
     
     func signOut() {
         try? Auth.auth().signOut()
+        Task { @MainActor in
+            DataRepository.shared.disableEmergencySetup()
+        }
     }
     
     func deleteCloudData() async throws {

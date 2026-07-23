@@ -135,4 +135,34 @@ final class DataRepository {
             }
         }
     }
+
+    func getEmergencySettings() -> EmergencySettings {
+        guard let container = container else {
+            return EmergencySettings()
+        }
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<EmergencySettings>()
+        do {
+            if let settings = try context.fetch(descriptor).first {
+                return settings
+            } else {
+                let newSettings = EmergencySettings()
+                context.insert(newSettings)
+                try context.save()
+                return newSettings
+            }
+        } catch {
+            return EmergencySettings()
+        }
+    }
+
+    func disableEmergencySetup() {
+        guard let container = container else { return }
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<EmergencySettings>()
+        if let settings = try? context.fetch(descriptor).first {
+            settings.isSetupComplete = false
+            try? context.save()
+        }
+    }
 }
