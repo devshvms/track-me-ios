@@ -18,23 +18,23 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private static let activeRideKey = "activeRideId"
 
     private let locationManager = CLLocationManager()
-    
+
     // State exposed to SwiftUI
     var state: TrackingState = .idle
     var currentRideId: UUID?
-    var points: [CLLocation] = [] 
+    var points: [CLLocation] = []
     var currentSpeed: Double = 0.0
     var totalDistance: Double = 0.0
     var durationInMillis: TimeInterval = 0
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
     var showLocationPermissionExplanation = false
-    
+
     private var timer: Timer?
     private var pendingTrackingStart = false
     private var storageWarningShown = false
     private var lastStorageCheck = Date.distantPast
-    
+
     override init() {
         super.init()
         locationManager.delegate = self
@@ -42,8 +42,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         locationManager.distanceFilter = 2 // meters
         locationManager.allowsBackgroundLocationUpdates = true
         locationManager.showsBackgroundLocationIndicator = true
+        // TrackMe records a continuous ride; do NOT let Core Location pause the
+        // stream on its own judgement — it often fails to auto-resume, silently
+        // truncating a ride in the background. We stop updates explicitly in
+        // stopTracking()/enterStorageLowState(). activityType tunes the location
+        // engine for human-powered movement (parity with Android's continuous FGS).
+        locationManager.pausesLocationUpdatesAutomatically = false
+        locationManager.activityType = .fitness
     }
-    
+
     func startTracking() {
         switch locationManager.authorizationStatus {
         case .notDetermined:
@@ -92,6 +99,25 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         default:
             break
         }
+    }
+
+    static func shouldRearmOnInvoluntaryPause(state: TrackingState) -> Bool {
+        state == .tracking || state == .gpsLost
+    }
+
+    /// Core Location paused updates despite pausesLocationUpdatesAutomatically = false
+    /// (defensive: should be rare). If we're mid-ride, immediately re-arm the stream
+    /// so the ride doesn't silently flat-line. Do NOT change TrackingState here — this
+    /// is an involuntary system pause, not a user pause; the ride is still "tracking".
+    func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
+        guard Self.shouldRearmOnInvoluntaryPause(state: state) else { return }
+        TelemetryManager.shared.trackLocationUpdatesPaused()
+        manager.startUpdatingLocation()
+    }
+
+    func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
+        // Nothing required — didUpdateLocations resumes naturally. Log for telemetry.
+        TelemetryManager.shared.trackLocationUpdatesResumed()
     }
 
     private func beginTracking() {
@@ -328,13 +354,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
         }
         currentRideId = nil
-        
+
         // Stop live sharing when the ride ends
         if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
             LiveSharingManager.shared.stopSession(reason: "Ride ended successfully.")
         }
     }
-    
+
     func pauseTracking() {
         if state == .tracking || state == .gpsLost || state == .storageLow {
             state = .paused
@@ -365,7 +391,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timeSinceLastGps = 0
         updateLiveActivity(force: true)
     }
-    
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard state == .tracking || state == .gpsLost, let rideId = currentRideId else { return }
 
@@ -392,10 +418,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     continue
                 }
             }
-            
+
             // 2. Smoothing
             let smoothedLocation = GPSProcessor.smooth(points: points, newPoint: location)
-            
+
             // 3. Distance Calculation
             if let previous = points.last {
                 let dist = smoothedLocation.distance(from: previous)
@@ -405,12 +431,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
             currentSpeed = max(smoothedLocation.speed, 0)
             points.append(smoothedLocation)
-            
+
             // 4. Auto-Pause
             let fifteenSecAgo = smoothedLocation.timestamp.addingTimeInterval(-15)
             let recentWindow = points.filter { $0.timestamp >= fifteenSecAgo }
             let isPaused = GPSProcessor.calculateAutoPause(recentPoints: recentWindow)
-            
+
             // 5. Offline-First Database Write
             DataRepository.shared.savePointBackground(
                 rideId: rideId,
@@ -422,7 +448,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 ts: smoothedLocation.timestamp,
                 paused: isPaused
             )
-            
+
             // 6. Push to Live Sharing Manager
             if LiveSharingManager.shared.isActive {
                 LiveSharingManager.shared.updateLatestLocation(smoothedLocation)
