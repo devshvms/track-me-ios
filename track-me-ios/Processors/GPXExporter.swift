@@ -7,6 +7,7 @@ class GPXExporter {
         gpx += "<gpx version=\"1.1\" creator=\"TrackMe iOS\">\n"
         gpx += "  <trk>\n"
         gpx += "    <name>\(ride.title ?? "TrackMe Ride")</name>\n"
+        gpx += "    <desc>TrackMeID:\(ride.id.uuidString)</desc>\n"
         gpx += "    <trkseg>\n"
         
         let formatter = ISO8601DateFormatter()
