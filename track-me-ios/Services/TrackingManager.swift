@@ -258,9 +258,17 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             )
         }
         var distance = 0.0
-        if points.count > 1 {
-            for i in 1..<points.count {
-                distance += points[i].distance(from: points[i - 1])
+        if sorted.count > 1 {
+            for i in 1..<sorted.count {
+                let p1 = sorted[i - 1]
+                let p2 = sorted[i]
+                
+                let dist = CLLocation(latitude: p1.latitude, longitude: p1.longitude)
+                    .distance(from: CLLocation(latitude: p2.latitude, longitude: p2.longitude))
+                
+                if MotionSensorManager.distanceShouldAccumulate(state: .tracking, isPaused: p2.isPaused, dist: dist, effectiveSpeed: p2.speed) {
+                    distance += dist
+                }
             }
         }
         totalDistance = distance
@@ -405,7 +413,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             let dist = points.last.map { smoothedLocation.distance(from: $0) } ?? 0
             
             let isHardwareStill = motionSensor.isDeviceStationary()
-            let isStationaryDrift = rawSpeed < MotionSensorManager.driftSpeedThreshold && dist < MotionSensorManager.driftDistanceThreshold
+            let isStationaryDrift = !points.isEmpty && rawSpeed < MotionSensorManager.driftSpeedThreshold && dist < MotionSensorManager.driftDistanceThreshold
             let effectiveSpeed = (isHardwareStill || isStationaryDrift) ? 0 : rawSpeed
             
             let isPaused: Bool
@@ -418,7 +426,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
             
             currentSpeed = effectiveSpeed
-            if state == .tracking, !isPaused, dist >= MotionSensorManager.minDistanceToAccumulate, effectiveSpeed > MotionSensorManager.minSpeedToAccumulate {
+            if MotionSensorManager.distanceShouldAccumulate(state: state, isPaused: isPaused, dist: dist, effectiveSpeed: effectiveSpeed) {
                 totalDistance += dist
             }
             
