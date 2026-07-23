@@ -7492,6 +7492,108 @@
           }
         }
       }
+    },
+    "GPX Imported Successfully" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "GPX erfolgreich importiert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "GPX importado correctamente" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "GPX importé avec succès" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "GPX सफलतापूर्वक आयात किया गया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPXを正常にインポートしました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "GPX 导入成功" } }
+      }
+    },
+    "Identical ride already exists" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Identische Fahrt existiert bereits" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ya existe un recorrido idéntico" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Un trajet identique existe déjà" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "समान राइड पहले से मौजूद है" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "同じライドがすでに存在します" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "相同的骑行已存在" } }
+      }
+    },
+    "Failed to import. Please ensure the file is a valid GPX format." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Import fehlgeschlagen. Bitte stellen Sie sicher, dass die Datei ein gültiges GPX-Format hat." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Error al importar. Asegúrate de que el archivo tenga un formato GPX válido." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Échec de l'importation. Veuillez vérifier que le fichier est au format GPX valide." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आयात विफल। कृपया सुनिश्चित करें कि फ़ाइल एक मान्य GPX प्रारूप है।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "インポートに失敗しました。ファイルが有効なGPX形式であることを確認してください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导入失败。请确保文件为有效的 GPX 格式。" } }
+      }
+    },
+    "Update Available" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } }
+      }
+    },
+    "Update Now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } }
+      }
+    },
+    "Later" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Later" } }
+      }
+    },
+    "You're up to date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } }
+      }
+    },
+    "Check for Updates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } }
+      }
+    },
+    "Coming soon to the App Store" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon to the App Store" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon to the App Store" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon to the App Store" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon to the App Store" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon to the App Store" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon to the App Store" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon to the App Store" } }
+      }
     }
   },
   "version" : "1.1"

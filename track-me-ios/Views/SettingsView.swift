@@ -5,19 +5,19 @@ import SwiftData
 struct SettingsView: View {
     @AppStorage("enableGPSPostProcessing") var isPostProcessingEnabled: Bool = true
     @State private var isLoggedOut = Auth.auth().currentUser == nil
-    
+
     @State private var showGpsInfo = false
     @State private var isSyncing = false
     @State private var lastSyncString = FirestoreSyncManager.formattedLastSyncTime()
-    
+
     @AppStorage("liveShareFrequency") var liveShareFrequency: Int = 10
     @State private var showLiveShareInfo = false
-    
+
     @AppStorage("enableTelemetry") var isTelemetryEnabled: Bool = false
-    
+
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appTheme") private var appTheme: String = "system"
-    
+
     let languages = [
         ("en", "English"),
         ("es", "Español"),
@@ -26,15 +26,15 @@ struct SettingsView: View {
         ("hi", "हिन्दी"),
         ("ja", "日本語")
     ]
-    
+
     // We get total rides from SwiftData
     @Query private var allRides: [Ride]
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    
+
                     if isLoggedOut {
                         // Logged-out Card
                         VStack(spacing: 16) {
@@ -48,14 +48,14 @@ struct SettingsView: View {
                                     .frame(width: 40, height: 40)
                                     .foregroundColor(.primary)
                             }
-                            
+
                             Text("Guest")
                                 .font(.title2).bold()
                                 .foregroundColor(.primary)
                             Text("Ride history is saved locally only.")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
-                            
+
                             Button(action: {
                                 Auth.auth().signInAnonymously { result, error in
                                     if let error = error {
@@ -82,7 +82,7 @@ struct SettingsView: View {
                         .padding()
                         .background(Color(UIColor.secondarySystemGroupedBackground))
                         .cornerRadius(16)
-                        
+
                     } else {
                         // Logged-in Card
                         VStack(spacing: 0) {
@@ -108,7 +108,7 @@ struct SettingsView: View {
                                             .foregroundColor(.primary)
                                     }
                                 }
-                                
+
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(Auth.auth().currentUser?.displayName ?? "Explorer")
                                         .font(.headline)
@@ -120,7 +120,7 @@ struct SettingsView: View {
                                 Spacer()
                             }
                             .padding()
-                            
+
                             // Stats Row
                             HStack {
                                 VStack {
@@ -132,7 +132,7 @@ struct SettingsView: View {
                                         .foregroundColor(.gray)
                                 }
                                 .frame(maxWidth: .infinity)
-                                
+
                                 VStack {
                                     Text("Oct 2023") // Hardcoded or format from Auth metadata if available
                                         .font(.title3).bold()
@@ -144,9 +144,9 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .padding(.vertical, 8)
-                            
+
                             Divider().background(Color.gray).padding(.horizontal)
-                            
+
                             // Horizon v1.2.0 Sync Row
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -180,7 +180,7 @@ struct SettingsView: View {
                                 .buttonStyle(.plain)
                             }
                             .padding()
-                            
+
                             // Account Management Button
                             NavigationLink(destination: AccountManagementView()) {
                                 Text("Account Management")
@@ -196,13 +196,13 @@ struct SettingsView: View {
                         .background(Color(UIColor.secondarySystemGroupedBackground))
                         .cornerRadius(16)
                     }
-                    
+
                     // Preferences Card
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Preferences")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
+
                         HStack {
                             Text("Language")
                                 .font(.subheadline)
@@ -215,9 +215,9 @@ struct SettingsView: View {
                             }
                             .tint(BrandColor.primary)
                         }
-                        
+
                         Divider()
-                        
+
                         HStack {
                             Text("Theme")
                                 .font(.subheadline)
@@ -234,7 +234,7 @@ struct SettingsView: View {
                     .padding()
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
-                    
+
                     // Live Location Sharing Card
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
@@ -248,7 +248,7 @@ struct SettingsView: View {
                                     .font(.title3)
                             }
                         }
-                        
+
                         HStack {
                             Text("Update Frequency")
                                 .font(.subheadline)
@@ -267,13 +267,13 @@ struct SettingsView: View {
                     .padding()
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
-                    
+
                     // Privacy & Analytics Card
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Privacy & Analytics")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
+
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Share Analytics Data")
@@ -296,13 +296,13 @@ struct SettingsView: View {
                     .padding()
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
-                    
+
                     // Advanced Settings Card
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Advanced Settings")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
+
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
@@ -332,14 +332,31 @@ struct SettingsView: View {
                     .padding()
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
-                    
+
                     Spacer()
-                    
-                    // Version Text
-                    Text("Version 1.2.0 (Horizon)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(.bottom, 24)
+
+                    // Version Text and Check for Updates
+                    VStack(spacing: 8) {
+                        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+                        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+                        Text("Version \(shortVersion) (\(build))")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+
+                        Button(action: {
+                            Task {
+                                let hasUpdate = await AppUpdateManager.shared.checkForUpdate(forceCheck: true)
+                                if !hasUpdate {
+                                    ToastManager.shared.show(message: LocalizationHelper.localized("You're up to date"), style: .success)
+                                }
+                            }
+                        }) {
+                            Text(LocalizationHelper.localized("Check for Updates"))
+                                .font(.caption)
+                                .foregroundColor(BrandColor.primary)
+                        }
+                    }
+                    .padding(.bottom, 24)
                 }
                 .padding()
             }
