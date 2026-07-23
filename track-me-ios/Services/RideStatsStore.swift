@@ -52,6 +52,13 @@ actor RideStatsStore {
 
     // MARK: - persistence
 
+    /// Clears all persisted ride statistics (lifetime totals, milestones, weekly/streak
+    /// state, processed-ride ids). Used on account deletion so stats never cross accounts.
+    func reset() {
+        defaults.removeObject(forKey: key)
+        cached = RideStats()
+    }
+
     private static func load(defaults: UserDefaults, key: String) -> RideStats {
         guard let data = defaults.data(forKey: key) else { return RideStats() }
         do {

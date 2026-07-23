@@ -5,13 +5,13 @@ struct AccountManagementView: View {
     @State private var showSignOutWarning = false
     @State private var showDeleteCloudWarning = false
     @State private var showDeleteAccountWarning = false
-    
+
     @State private var feedbackText = ""
     @State private var confirmText = ""
     @State private var isDeleting = false
-    
+
     @State private var isPrivacyExpanded = false
-    
+
     @State private var isRequestingExport = false
     @State private var showExportConfirmationModal = false
     @State private var exportErrorMessage: String? = nil
@@ -19,9 +19,9 @@ struct AccountManagementView: View {
     @State private var currentExportResponse: DataExportResponse? = nil
     @State private var isDownloadingArchive = false
     @State private var downloadedArchiveURL: URL? = nil
-    
+
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -47,17 +47,17 @@ struct AccountManagementView: View {
                                 .foregroundColor(.primary)
                         }
                     }
-                    
+
                     Text(Auth.auth().currentUser?.displayName ?? "Explorer")
                         .font(.title2).bold()
                         .foregroundColor(.primary)
-                    
+
                     Text(Auth.auth().currentUser?.email ?? "")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
                 .padding(.top, 24)
-                
+
                 // Emergency Setup Button
                 NavigationLink(destination: EmergencySetupView()) {
                     Text("Configure Emergency Setup")
@@ -68,7 +68,7 @@ struct AccountManagementView: View {
                         .foregroundColor(BrandColor.onPrimary)
                         .cornerRadius(24)
                 }
-                
+
                 // Sign Out Button
                 Button(action: { showSignOutWarning = true }) {
                     Text("Sign Out")
@@ -82,7 +82,7 @@ struct AccountManagementView: View {
                                 .stroke(Color.gray, lineWidth: 1)
                         )
                 }
-                
+
                 // On-demand Data Archive Export Card
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -102,11 +102,11 @@ struct AccountManagementView: View {
                                 .clipShape(Capsule())
                         }
                     }
-                    
+
                     Text("Request a comprehensive archive of your synchronized ride history (GPX files & JSON metadata). The ZIP is assembled when you download it and expires six hours after retrieval, or after 48 hours if untouched.")
                         .font(.caption)
                         .foregroundColor(.gray)
-                    
+
                     if currentExportResponse?.status == "COMPLETED", let downloadUrl = currentExportResponse?.downloadUrl, let url = URL(string: downloadUrl) {
                         Button(action: {
                             guard !isDownloadingArchive else { return }
@@ -179,7 +179,7 @@ struct AccountManagementView: View {
                 .padding()
                 .background(Color(UIColor.secondarySystemGroupedBackground))
                 .cornerRadius(16)
-                
+
                 // Privacy and Security Card
                 VStack(spacing: 0) {
                     Button(action: {
@@ -197,13 +197,13 @@ struct AccountManagementView: View {
                         }
                         .padding()
                     }
-                    
+
                     if isPrivacyExpanded {
                         VStack(alignment: .leading, spacing: 20) {
                             Text(LocalizationHelper.localized("Privacy Policy\n\nYour data is completely under your control. We only store data locally by default. If you enable Cloud Sync, your rides are securely stored on our servers. You can permanently delete your synced data or your entire account at any time using the options below. Deleted data cannot be recovered."))
                                 .font(.caption)
                                 .foregroundColor(.gray)
-                            
+
                             Button(action: { showDeleteCloudWarning = true }) {
                                 Text("Delete Cloud Data")
                                     .font(.subheadline).bold()
@@ -216,7 +216,7 @@ struct AccountManagementView: View {
                                             .stroke(BrandColor.sos.opacity(0.5), lineWidth: 1)
                                     )
                             }
-                            
+
                             Button(action: { showDeleteAccountWarning = true }) {
                                 Text("Delete Account & Data")
                                     .font(.subheadline).bold()
@@ -263,12 +263,18 @@ struct AccountManagementView: View {
             TextField("Type DELETE to confirm", text: $confirmText)
             Button("Cancel", role: .cancel) { }
             Button("Delete Everything", role: .destructive) {
-                if confirmText == "DELETE" {
-                    Task {
-                        isDeleting = true
-                        try? await AuthManager.shared.deleteAccountAndData(feedback: feedbackText)
-                        isDeleting = false
+                guard confirmText == "DELETE" else { return }
+                Task {
+                    isDeleting = true
+                    defer { isDeleting = false }
+                    do {
+                        try await AuthManager.shared.deleteAccountAndData(feedback: feedbackText)
                         dismiss()
+                    } catch {
+                        ToastManager.shared.show(
+                            message: Self.deletionErrorMessage(for: error),
+                            style: .error
+                        )
                     }
                 }
             }
@@ -305,5 +311,13 @@ struct AccountManagementView: View {
             }
         }
         .trackScreen("AccountManagementView")
+    }
+
+    static func deletionErrorMessage(for error: Error) -> String {
+        let nsError = error as NSError
+        if nsError.domain == AuthErrorDomain && nsError.code == AuthErrorCode.requiresRecentLogin.rawValue {
+            return LocalizationHelper.localized("For your security, please sign out and sign back in, then try deleting your account again.")
+        }
+        return LocalizationHelper.localized("Couldn't delete your account. Check your connection and try again.")
     }
 }
