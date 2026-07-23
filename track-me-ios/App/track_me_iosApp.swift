@@ -25,7 +25,9 @@ struct track_me_iosApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Ride.self,
-            GPSPoint.self
+            GPSPoint.self,
+            EmergencyContact.self,
+            EmergencySettings.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
