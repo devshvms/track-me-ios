@@ -62,7 +62,9 @@ class FirestoreSyncManager {
         }
         ref.getDocuments { snapshot, error in
             guard let docs = snapshot?.documents, error == nil else {
-                completion(false)
+                DispatchQueue.main.async {
+                    completion(false)
+                }
                 return
             }
             let parsed = docs.compactMap { doc in
@@ -90,23 +92,28 @@ class FirestoreSyncManager {
         Task { @MainActor in
             let localRides = DataRepository.shared.allRides()
             let unsynced = localRides.filter { !$0.isSynced }
-            
+
             if unsynced.isEmpty {
                 self.downloadAndInsert(uid: uid, limit: limit, completion: completion)
                 return
             }
-            
+
             let group = DispatchGroup()
             var anyUploadFailed = false
-            
+            let lock = NSLock()
+
             for ride in unsynced {
                 group.enter()
                 self.syncRide(ride) { success in
-                    if !success { anyUploadFailed = true }
+                    if !success {
+                        lock.lock()
+                        anyUploadFailed = true
+                        lock.unlock()
+                    }
                     group.leave()
                 }
             }
-            
+
             group.notify(queue: .main) {
                 if anyUploadFailed {
                     completion(false)
@@ -126,23 +133,28 @@ class FirestoreSyncManager {
 
         // 1. Upload unsynced local rides
         let unsynced = localRides.filter { !$0.isSynced }
-        
+
         if unsynced.isEmpty {
             self.downloadAndInsert(uid: uid, limit: nil, completion: completion)
             return
         }
-        
+
         let group = DispatchGroup()
         var anyUploadFailed = false
-        
+        let lock = NSLock()
+
         for ride in unsynced {
             group.enter()
             syncRide(ride) { success in
-                if !success { anyUploadFailed = true }
+                if !success {
+                    lock.lock()
+                    anyUploadFailed = true
+                    lock.unlock()
+                }
                 group.leave()
             }
         }
-        
+
         group.notify(queue: .main) {
             if anyUploadFailed {
                 completion(false)
