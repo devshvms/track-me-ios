@@ -335,11 +335,28 @@ struct SettingsView: View {
                     
                     Spacer()
                     
-                    // Version Text
-                    Text("Version 1.2.0 (Horizon)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(.bottom, 24)
+                    // Version Text and Check for Updates
+                    VStack(spacing: 8) {
+                        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+                        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+                        Text("Version \(shortVersion) (\(build))")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Button(action: {
+                            Task {
+                                let hasUpdate = await AppUpdateManager.shared.checkForUpdate(forceCheck: true)
+                                if !hasUpdate {
+                                    ToastManager.shared.show(message: LocalizationHelper.localized("You're up to date"), style: .success)
+                                }
+                            }
+                        }) {
+                            Text(LocalizationHelper.localized("Check for Updates"))
+                                .font(.caption)
+                                .foregroundColor(BrandColor.primary)
+                        }
+                    }
+                    .padding(.bottom, 24)
                 }
                 .padding()
             }

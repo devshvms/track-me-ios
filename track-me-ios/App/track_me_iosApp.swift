@@ -61,6 +61,7 @@ struct track_me_iosApp: App {
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString
                         )
                         FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                        _ = await AppUpdateManager.shared.checkForUpdate()
                     }
                 }
                 .withGlobalToasts()
