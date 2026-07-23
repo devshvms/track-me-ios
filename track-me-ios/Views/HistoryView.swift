@@ -116,19 +116,36 @@ struct HistoryView: View {
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.xml, .init(filenameExtension: "gpx")!]) { result in
                 switch result {
                 case .success(let url):
-                    if url.startAccessingSecurityScopedResource() {
-                        defer { url.stopAccessingSecurityScopedResource() }
-                        let parser = GPXParser()
-                        if let ride = parser.parse(url: url) {
-                            modelContext.insert(ride)
-                        }
-                    }
-                case .failure(let error):
-                    print("Error reading file: \(error.localizedDescription)")
+                    importGPX(from: url)
+                case .failure:
+                    ToastManager.shared.show(message: LocalizationHelper.localized("Failed to import. Please ensure the file is a valid GPX format."), style: .error)
                 }
             }
         }
         .trackScreen("HistoryView")
+    }
+
+    private func importGPX(from url: URL) {
+        guard url.startAccessingSecurityScopedResource() else {
+            ToastManager.shared.show(message: LocalizationHelper.localized("Failed to import. Please ensure the file is a valid GPX format."), style: .error)
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        let existingIds = Set(rides.flatMap { ride in
+            [ride.id.uuidString.lowercased(), ride.firestoreId?.lowercased()].compactMap { $0 }
+        })
+        let parser = GPXParser()
+        guard let ride = parser.parse(url: url) else {
+            ToastManager.shared.show(message: LocalizationHelper.localized("Failed to import. Please ensure the file is a valid GPX format."), style: .error)
+            return
+        }
+        if let importedId = parser.originalTrackMeId?.lowercased(), existingIds.contains(importedId) {
+            ToastManager.shared.show(message: LocalizationHelper.localized("Identical ride already exists"), style: .info)
+            return
+        }
+        modelContext.insert(ride)
+        FirestoreSyncManager.shared.syncRide(ride)
+        ToastManager.shared.show(message: LocalizationHelper.localized("GPX Imported Successfully"), style: .success)
     }
     
     private func estimateDistanceKm(points: [GPSPoint]) -> Double {

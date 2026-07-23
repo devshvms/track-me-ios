@@ -3,6 +3,7 @@ import SwiftData
 import CoreLocation
 
 class GPXParser: NSObject, XMLParserDelegate {
+    private(set) var originalTrackMeId: String?
     
     private var points: [GPSPoint] = []
     private var currentLat: Double?
@@ -30,6 +31,7 @@ class GPXParser: NSObject, XMLParserDelegate {
         parser.delegate = self
         points = []
         rideName = nil
+        originalTrackMeId = nil
         
         parser.parse()
         
@@ -86,6 +88,8 @@ class GPXParser: NSObject, XMLParserDelegate {
         
         if elementName == "name", rideName == nil, !text.isEmpty {
             rideName = text
+        } else if elementName == "desc", text.hasPrefix("TrackMeID:") {
+            originalTrackMeId = String(text.dropFirst("TrackMeID:".count))
         } else if elementName == "ele" {
             currentEle = Double(text)
         } else if elementName == "time" {
