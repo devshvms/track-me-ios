@@ -24,11 +24,26 @@ class LiveSharingManager {
     // We will keep a reference to the latest location to push
     var latestLocation: CLLocation?
     
+    private var isRetryingAuth = false
+    private var lastErrorToastAt = Date.distantPast
+    
+    // MARK: - Request construction
+    private static let requestTimeout: TimeInterval = 15   // parity with Android LiveShareManager (connect/read = 15s)
+    
+    /// Builds a POST JSON request for the live-share API with the shared timeout applied.
+    static func makeLiveShareRequest(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = requestTimeout
+        return request
+    }
+    
     private init() {
     }
 
-    private func withAuthToken(_ completion: @escaping (String?) -> Void) {
-        Auth.auth().currentUser?.getIDToken { token, _ in
+    private func withAuthToken(forceRefresh: Bool = false, _ completion: @escaping (String?) -> Void) {
+        Auth.auth().currentUser?.getIDTokenForcingRefresh(forceRefresh) { token, _ in
             completion(token)
         }
     }
@@ -50,9 +65,7 @@ class LiveSharingManager {
         
         self.isRideLinked = (durationMinutes == nil)
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = Self.makeLiveShareRequest(url: url)
         
         var body: [String: Any] = [:]
         if let dur = durationMinutes {
@@ -65,7 +78,7 @@ class LiveSharingManager {
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        withAuthToken { [weak self] token in
+        withAuthToken(forceRefresh: true) { [weak self] token in
             guard let self = self else { return }
             var authenticatedRequest = request
             self.applyAuth(&authenticatedRequest, token: token)
@@ -73,17 +86,32 @@ class LiveSharingManager {
             URLSession.shared.dataTask(with: authenticatedRequest) { [weak self] data, response, error in
                 guard let self = self else { return }
                 
+                let code = (response as? HTTPURLResponse)?.statusCode
+                
                 if let error = error {
                     print("Failed to start session: \(error)")
                     DispatchQueue.main.async {
-                        ToastManager.shared.show(message: LocalizationHelper.localized("Failed to start live share"), style: .error)
+                        self.handleTransportError(error)
                     }
                     return
                 }
                 
-                guard let data = data else {
+                guard let data = data, let statusCode = code else {
                     DispatchQueue.main.async {
                         ToastManager.shared.show(message: LocalizationHelper.localized("Invalid response from server"), style: .error)
+                    }
+                    return
+                }
+                
+                if statusCode != 200 {
+                    if statusCode == 401 || statusCode == 403 {
+                        DispatchQueue.main.async {
+                            ToastManager.shared.show(message: LiveShareError.message(statusCode: statusCode, error: nil), style: .error)
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            self.handleHTTPError(statusCode)
+                        }
                     }
                     return
                 }
@@ -142,9 +170,7 @@ class LiveSharingManager {
     
     func stopSession(reason: String = "Share session ended manually.") {
         if let sessionId = sessionId, let url = URL(string: APIConfig.LiveShare.stopSession(sessionId: sessionId)) {
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            var request = Self.makeLiveShareRequest(url: url)
             let body: [String: Any] = ["stopReason": reason]
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
             withAuthToken { [request] token in
@@ -207,12 +233,15 @@ class LiveSharingManager {
         self.latestLocation = location
     }
     
-    private func pushLocation(_ loc: CLLocation) {
+    private func pushLocation(_ loc: CLLocation, isRetry: Bool = false) {
         guard let sessionId = sessionId, let url = URL(string: APIConfig.LiveShare.locationPush(sessionId: sessionId)) else { return }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let expiresAt = expiresAt, Date() > expiresAt {
+            stopSession(reason: "Share window elapsed.")
+            return
+        }
+        
+        var request = Self.makeLiveShareRequest(url: url)
         
         // Fetch battery level
         UIDevice.current.isBatteryMonitoringEnabled = true
@@ -229,21 +258,80 @@ class LiveSharingManager {
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        withAuthToken { [weak self] token in
+        withAuthToken(forceRefresh: isRetry) { [weak self] token in
             guard let self = self else { return }
             var authenticatedRequest = request
             self.applyAuth(&authenticatedRequest, token: token)
             
             URLSession.shared.dataTask(with: authenticatedRequest) { [weak self] data, response, error in
-                if let httpResponse = response as? HTTPURLResponse {
-                    if httpResponse.statusCode == 404 {
-                        DispatchQueue.main.async {
-                            ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing expired"), style: .error)
-                            self?.stopSession(reason: "Session expired on server.")
+                guard let self = self else { return }
+                
+                let code = (response as? HTTPURLResponse)?.statusCode
+                
+                DispatchQueue.main.async {
+                    if let error = error {
+                        self.handleTransportError(error)
+                        return
+                    }
+                    
+                    switch code {
+                    case .some(200...299):
+                        self.isRetryingAuth = false
+                    case .some(404):
+                        ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing expired"), style: .error)
+                        self.stopSession(reason: "Session expired on server.")
+                    case .some(401):
+                        if isRetry {
+                            ToastManager.shared.show(message: LiveShareError.message(statusCode: 401, error: nil), style: .error)
+                            self.stopSession(reason: "Authentication expired.")
+                        } else if !self.isRetryingAuth {
+                            self.isRetryingAuth = true
+                            self.pushLocation(loc, isRetry: true)
                         }
+                    default:
+                        self.handleHTTPError(code)
                     }
                 }
             }.resume()
         }
+    }
+    
+    private func handleTransportError(_ error: Error) {
+        showThrottledError(message: LiveShareError.message(statusCode: nil, error: error))
+    }
+    
+    private func handleHTTPError(_ statusCode: Int?) {
+        showThrottledError(message: LiveShareError.message(statusCode: statusCode, error: nil))
+    }
+    
+    private func showThrottledError(message: String) {
+        if Date().timeIntervalSince(lastErrorToastAt) > 30 {
+            lastErrorToastAt = Date()
+            ToastManager.shared.show(message: message, style: .error)
+        }
+    }
+}
+
+enum LiveShareError {
+    /// Mirrors Android LiveShareManager.formatGracefulError.
+    static func message(statusCode: Int?, error: Error?) -> String {
+        if statusCode == 401 || statusCode == 403 {
+            return LocalizationHelper.localized("Your sign-in expired. Please sign in again to share your location.")
+        }
+        if let code = statusCode, [404, 500, 502, 503].contains(code) {
+            return LocalizationHelper.localized("Live sharing service is temporarily unavailable. Please try again later.")
+        }
+        if let urlErr = error as? URLError {
+            switch urlErr.code {
+            case .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+                return LocalizationHelper.localized("Unable to reach live share server. Please check your internet connection and try again.")
+            case .timedOut, .networkConnectionLost:
+                return LocalizationHelper.localized("Connection timed out. Please check your internet connection and try again.")
+            case .secureConnectionFailed, .serverCertificateUntrusted:
+                return LocalizationHelper.localized("Secure connection to live sharing server failed. Please try again.")
+            default: break
+            }
+        }
+        return LocalizationHelper.localized("Unable to connect to live share service. Please check your network connection.")
     }
 }
