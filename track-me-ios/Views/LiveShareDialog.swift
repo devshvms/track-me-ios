@@ -113,7 +113,7 @@ struct LiveShareDialog: View {
                 
                 Text(formatRemainingTime(liveSharingManager.remainingSeconds))
                     .font(.system(size: 40, weight: .bold, design: .monospaced))
-                    .foregroundColor(BrandColor.successGreen)
+                    .foregroundColor(BrandColor.success)
             }
             
             if let link = liveSharingManager.shareLink {

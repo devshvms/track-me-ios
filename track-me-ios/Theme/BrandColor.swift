@@ -41,7 +41,7 @@ enum BrandColor {
 
     /// Semantic success / active-running (live share broadcasting, ride active,
     /// export complete). NOT a call-to-action. Never the primary button.
-    static let successGreen = greenGo
+    static let success = greenGo
     /// Dark success container tint (e.g. the offline-shield "active" banner).
     static let successContainerDark = Color(hex: 0x14532D)
     /// Foreground for content on `warning` (amber). Navy is AA on amber; white is not.

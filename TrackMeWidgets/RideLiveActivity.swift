@@ -44,7 +44,7 @@ struct RideLiveActivity: Widget {
                 Image(systemName: RideActivityFormat.statusIcon(context.state))
                     .foregroundStyle(RideActivityFormat.statusTint(context.state))
             }
-            .keylineTint(.green)
+            .keylineTint(BrandColor.primary)
         }
     }
 }
@@ -118,10 +118,10 @@ enum RideActivityFormat {
 
     static func statusTint(_ state: RideActivityAttributes.ContentState) -> Color {
         // Semantic, routed through the shared brand tokens (C2): paused / GPS-lost
-        // are warnings (amber); actively recording is success/active (green).
+        // are warnings (amber); actively recording is the brand action (cyan).
         if state.isPaused { return BrandColor.warning }
         if state.isGpsLost { return BrandColor.warning }
-        return BrandColor.successGreen
+        return BrandColor.primary
     }
 
     private static func frozenDuration(_ seconds: TimeInterval) -> String {

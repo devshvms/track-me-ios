@@ -250,7 +250,7 @@ struct RideDetailView: View {
                     .stroke(BrandColor.primary, lineWidth: 5)
                 
                 Marker("Start", coordinate: coordinates.first!)
-                    .tint(BrandColor.successGreen)
+                    .tint(BrandColor.primary)
                 
                 Marker("Finish", coordinate: coordinates.last!)
                     .tint(BrandColor.sos)

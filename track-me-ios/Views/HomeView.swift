@@ -8,7 +8,7 @@ struct HomeView: View {
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var mapStyle: MapStyle = .standard
     @Namespace private var mapScope
-    
+
     @Bindable var networkMonitor = NetworkMonitor.shared
     @State private var liveSharingManager = LiveSharingManager.shared
     @State private var showLiveShareDialog = false
@@ -16,7 +16,7 @@ struct HomeView: View {
     @Bindable var revealCoordinator = RevealCoordinator.shared
     // B4: system in-app review request (self-gated by ReviewPromptPolicy).
     @Environment(\.requestReview) private var requestReview
-    
+
     var body: some View {
         ZStack(alignment: .bottom) {
             Map(position: $position, scope: mapScope) {
@@ -85,12 +85,12 @@ struct HomeView: View {
                             ).post()
                         }
                 }
-                
+
                 if !networkMonitor.isConnected {
                     let shieldText = trackingManager.state != .idle
                         ? "🛡️ Offline Tracking Shield Active • Route Safely Recording"
                         : "🛡️ Offline Tracking Shield • Ready to Record Locally"
-                    
+
                     let shieldA11yLabel = trackingManager.state != .idle
                         ? LocalizationHelper.localized("Offline tracking active. Route is recording locally.")
                         : LocalizationHelper.localized("Offline mode. Rides will record locally.")
@@ -103,7 +103,7 @@ struct HomeView: View {
                         .background(BrandColor.successContainerDark.opacity(0.95))
                         .overlay(
                             Capsule()
-                                .stroke(BrandColor.successGreen, lineWidth: 1)
+                                .stroke(BrandColor.success, lineWidth: 1)
                         )
                         .clipShape(Capsule())
                         .padding(.top, (trackingManager.state == .gpsLost || trackingManager.timeSinceLastGps > 10.0) ? 0 : 50)
@@ -111,14 +111,14 @@ struct HomeView: View {
                         // VoiceOver reads "🛡️" as "shield" before the sentence; use a clean label.
                         .accessibilityLabel(shieldA11yLabel)
                 }
-                
+
                 HStack {
                     MapCompass(scope: mapScope)
                         .padding(.leading, 16)
                         .padding(.top, trackingManager.state == .gpsLost ? 16 : 50)
-                    
+
                     Spacer()
-                    
+
                     VStack(spacing: 16) {
                         Menu {
                             Button("Normal") { mapStyle = .standard }
@@ -145,9 +145,9 @@ struct HomeView: View {
                                 }
                                 .foregroundColor(.white)
                                 .frame(width: 48, height: 48)
-                                .background(BrandColor.successGreen.gradient)
+                                .background(BrandColor.success.gradient)
                                 .clipShape(Circle())
-                                .shadow(color: BrandColor.successGreen.opacity(0.5), radius: 6)
+                                .shadow(color: BrandColor.success.opacity(0.5), radius: 6)
                             } else {
                                 Image(systemName: "location.viewfinder")
                                     .font(.title2)
@@ -171,7 +171,7 @@ struct HomeView: View {
                 }
                 Spacer()
             }
-            
+
             VStack(spacing: 20) {
                 // Glassmorphic Stats Card
                 VStack(spacing: 20) {
@@ -191,7 +191,7 @@ struct HomeView: View {
                         Divider()
                             .padding(.horizontal, 20)
                     }
-                    
+
                     HStack(spacing: 40) {
                         VStack(alignment: .center, spacing: 4) {
                             Text("SPEED")
@@ -242,7 +242,7 @@ struct HomeView: View {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(Color.white.opacity(0.2), lineWidth: 1)
                 )
-                
+
                 // SOS Component
                 if trackingManager.state != .idle && Auth.auth().currentUser != nil {
                     SwipeToTriggerSlider(onTriggered: {
@@ -252,12 +252,12 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                
+
                 // Main Action Buttons
                 HStack(spacing: 24) {
                     switch trackingManager.state {
                     case .idle:
-                        TrackingButton(icon: "play.fill", color: .green,
+                        TrackingButton(icon: "play.fill", color: BrandColor.primary,
                                        label: LocalizationHelper.localized("Start tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.startTracking()
@@ -271,7 +271,7 @@ struct HomeView: View {
                             }
                         }
                     case .paused, .storageLow:
-                        TrackingButton(icon: "play.fill", color: .green,
+                        TrackingButton(icon: "play.fill", color: BrandColor.primary,
                                        label: LocalizationHelper.localized("Resume tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.resumeTracking()
@@ -318,7 +318,7 @@ struct HomeView: View {
         }
         .trackScreen("HomeView")
     }
-    
+
     private func formatDuration(_ timeInterval: TimeInterval) -> String {
         let totalSeconds = Int(timeInterval)
         let hours = totalSeconds / 3600

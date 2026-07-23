@@ -97,8 +97,8 @@ struct AccountManagementView: View {
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(status == "COMPLETED" ? BrandColor.successGreen.opacity(0.2) : BrandColor.warning.opacity(0.2))
-                                .foregroundColor(status == "COMPLETED" ? BrandColor.successGreen : BrandColor.warning)
+                                .background(status == "COMPLETED" ? BrandColor.success.opacity(0.2) : BrandColor.warning.opacity(0.2))
+                                .foregroundColor(status == "COMPLETED" ? BrandColor.success : BrandColor.warning)
                                 .clipShape(Capsule())
                         }
                     }
