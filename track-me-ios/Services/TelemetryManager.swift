@@ -184,4 +184,15 @@ class TelemetryManager {
             "platform": platform
         ])
     }
+
+    // MARK: - 10. Background Tracking Reliability (v1.6.0)
+    func trackLocationUpdatesPaused() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("location_updates_paused")
+    }
+
+    func trackLocationUpdatesResumed() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("location_updates_resumed")
+    }
 }
