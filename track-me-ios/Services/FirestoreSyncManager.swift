@@ -6,15 +6,18 @@ import FirebaseAuth
 class FirestoreSyncManager {
     static let shared = FirestoreSyncManager()
     let db = Firestore.firestore()
-    
+
     static let lastSyncTimestampKey = "last_sync_time"
-    
+
     // MARK: - Sync Local -> Remote (Single Ride)
-    func syncRide(_ ride: Ride) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        
+    func syncRide(_ ride: Ride, completion: ((Bool) -> Void)? = nil) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            completion?(false)
+            return
+        }
+
         let rideRef = db.collection("users").document(uid).collection("rides").document(ride.id.uuidString)
-        
+
         let pointsArray = ride.points?.compactMap { point -> [String: Any]? in
             return [
                 "lat": point.latitude,
@@ -25,7 +28,7 @@ class FirestoreSyncManager {
                 "isPaused": point.isPaused
             ]
         } ?? []
-        
+
         let data: [String: Any] = [
             "id": ride.id.uuidString,
             "startTime": ride.startTime,
@@ -34,7 +37,7 @@ class FirestoreSyncManager {
             "title": ride.title ?? "",
             "points": pointsArray
         ]
-        
+
         rideRef.setData(data, merge: true) { error in
             if error == nil {
                 DispatchQueue.main.async {
@@ -42,11 +45,14 @@ class FirestoreSyncManager {
                     ride.firestoreId = ride.id.uuidString
                     try? DataRepository.shared.container?.mainContext.save()
                     UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
+                    completion?(true)
                 }
+            } else {
+                completion?(false)
             }
         }
     }
-    
+
     // MARK: - Download & Insert Helper
     private func downloadAndInsert(uid: String, limit: Int?, completion: @escaping (Bool) -> Void) {
         var ref: Query = db.collection("users").document(uid).collection("rides")
@@ -80,42 +86,75 @@ class FirestoreSyncManager {
             completion(false)
             return
         }
-        
+
         Task { @MainActor in
             let localRides = DataRepository.shared.allRides()
-            for ride in localRides where !ride.isSynced {
-                self.syncRide(ride)
+            let unsynced = localRides.filter { !$0.isSynced }
+            
+            if unsynced.isEmpty {
+                self.downloadAndInsert(uid: uid, limit: limit, completion: completion)
+                return
             }
             
-            self.downloadAndInsert(uid: uid, limit: limit, completion: completion)
+            let group = DispatchGroup()
+            var anyUploadFailed = false
+            
+            for ride in unsynced {
+                group.enter()
+                self.syncRide(ride) { success in
+                    if !success { anyUploadFailed = true }
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                if anyUploadFailed {
+                    completion(false)
+                } else {
+                    self.downloadAndInsert(uid: uid, limit: limit, completion: completion)
+                }
+            }
         }
     }
-    
+
     // MARK: - Manual Full Bidirectional Sync (syncAll)
     func syncAll(localRides: [Ride], completion: @escaping (Bool) -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else {
             completion(false)
             return
         }
-        
+
         // 1. Upload unsynced local rides
         let unsynced = localRides.filter { !$0.isSynced }
+        
+        if unsynced.isEmpty {
+            self.downloadAndInsert(uid: uid, limit: nil, completion: completion)
+            return
+        }
+        
         let group = DispatchGroup()
+        var anyUploadFailed = false
         
         for ride in unsynced {
             group.enter()
-            syncRide(ride)
-            group.leave()
+            syncRide(ride) { success in
+                if !success { anyUploadFailed = true }
+                group.leave()
+            }
         }
         
         group.notify(queue: .main) {
-            // 2. Download ALL cloud rides and insert the missing ones.
-            self.downloadAndInsert(uid: uid, limit: nil) { success in
-                completion(success)
+            if anyUploadFailed {
+                completion(false)
+            } else {
+                // 2. Download ALL cloud rides and insert the missing ones.
+                self.downloadAndInsert(uid: uid, limit: nil) { success in
+                    completion(success)
+                }
             }
         }
     }
-    
+
     // MARK: - Foreground & Auth Sync Triggers
     private static let foregroundThrottleKey = "last_periodic_sync_time"
     private static let foregroundThrottle: TimeInterval = 30 * 60   // 30 min
@@ -131,7 +170,7 @@ class FirestoreSyncManager {
         UserDefaults.standard.set(Date(), forKey: Self.foregroundThrottleKey)
         syncPeriodic { _ in }
     }
-    
+
     /// Called right after a successful sign-in. Unlike syncOnForegroundIfDue this
     /// ignores the 30-min throttle (a sign-in is an explicit restore moment), but
     /// still refreshes the throttle timestamp so C.1 won't immediately re-fire.
@@ -142,7 +181,7 @@ class FirestoreSyncManager {
         syncPeriodic { _ in }
     }
 
-    
+
     // MARK: - Formatted Last Synced Timestamp
     static func formattedLastSyncTime() -> String {
         guard let lastSync = UserDefaults.standard.object(forKey: lastSyncTimestampKey) as? Date else {
@@ -153,7 +192,7 @@ class FirestoreSyncManager {
         formatter.timeStyle = .short
         return formatter.string(from: lastSync)
     }
-    
+
     func deleteCloudData() async throws {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let ridesRef = db.collection("users").document(uid).collection("rides")

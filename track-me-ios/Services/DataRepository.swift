@@ -10,17 +10,17 @@ final class DataRepository {
     // order so concurrent contexts cannot overwrite each other's relationship
     // updates, and so ride finalization can wait for the last point.
     private var pointWriteChain: Task<Void, Never>?
-    
+
     func setup(container: ModelContainer) {
         self.container = container
     }
-    
+
     func saveRide(_ ride: Ride) {
         guard let context = container?.mainContext else { return }
         context.insert(ride)
         try? context.save()
     }
-    
+
     func allRides() -> [Ride] {
         guard let ctx = container?.mainContext else { return [] }
         return (try? ctx.fetch(FetchDescriptor<Ride>())) ?? []
@@ -60,7 +60,7 @@ final class DataRepository {
         }
         if inserted > 0 { try? ctx.save() }
     }
-    
+
     func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool) {
         guard let container = container else { return }
 
@@ -101,7 +101,7 @@ final class DataRepository {
         if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError, matches(underlying) { return true }
         return false
     }
-    
+
     func finishRide(rideId: UUID) {
         guard let container = container else { return }
 
@@ -121,7 +121,7 @@ final class DataRepository {
                 }
 
                 try context.save()
-                
+
                 // Fire and forget cloud sync
                 FirestoreSyncManager.shared.syncRide(ride)
             } catch {

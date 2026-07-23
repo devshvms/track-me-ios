@@ -8,11 +8,11 @@ final class SyncDownloadLogicTests: XCTestCase {
         // 1. Timestamp
         let ts = Timestamp(date: Date(timeIntervalSince1970: 1000))
         XCTAssertEqual(FirestoreSyncManager.decodeDate(ts), Date(timeIntervalSince1970: 1000))
-        
+
         // 2. Epoch millis and seconds
         XCTAssertEqual(FirestoreSyncManager.decodeDate(NSNumber(value: 1_700_000_000_000)), Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(FirestoreSyncManager.decodeDate(NSNumber(value: 1_700_000_000)), Date(timeIntervalSince1970: 1_700_000_000))
-        
+
         // 3. Invalid
         XCTAssertNil(FirestoreSyncManager.decodeDate(NSNull()))
         XCTAssertNil(FirestoreSyncManager.decodeDate(nil))
@@ -36,7 +36,7 @@ final class SyncDownloadLogicTests: XCTestCase {
                 ]
             ]
         ]
-        
+
         let ride = FirestoreSyncManager.parseRideDocument(docId: uuid.uuidString, data: data)
         XCTAssertNotNil(ride)
         XCTAssertEqual(ride?.localId, uuid)
@@ -45,7 +45,7 @@ final class SyncDownloadLogicTests: XCTestCase {
         XCTAssertNil(ride?.endTime)
         XCTAssertEqual(ride?.sourceInfo, "iOS Device")
         XCTAssertEqual(ride?.points.count, 1)
-        
+
         let point = ride!.points[0]
         XCTAssertEqual(point.latitude, 12.3)
         XCTAssertEqual(point.accuracy, 0) // default
@@ -66,14 +66,14 @@ final class SyncDownloadLogicTests: XCTestCase {
                 ]
             ]
         ]
-        
+
         let ride = FirestoreSyncManager.parseRideDocument(docId: docId, data: data)
         XCTAssertNotNil(ride)
         XCTAssertEqual(ride?.firestoreId, docId)
         XCTAssertNotEqual(ride?.localId.uuidString, docId) // Fresh localId
         XCTAssertEqual(ride?.startTime, Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(ride?.endTime, Date(timeIntervalSince1970: 1_700_000_005))
-        
+
         let point = ride!.points[0]
         XCTAssertEqual(point.accuracy, 5.0)
         XCTAssertEqual(point.timestamp, Date(timeIntervalSince1970: 1_700_000_001))
