@@ -33,6 +33,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var timer: Timer?
     private var pendingTrackingStart = false
     private var storageWarningShown = false
+    private var splitWarningShown = false
     private var lastStorageCheck = Date.distantPast
 
     override init() {
@@ -138,9 +139,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         // Reset live state for a fresh ride.
         storageWarningShown = false
+        splitWarningShown = false
         lastStorageCheck = Date.distantPast
         state = .tracking
-        points.removeAll()
+        points.removeAll(keepingCapacity: false)
         currentSpeed = 0.0
         totalDistance = 0.0
         durationInMillis = 0
@@ -319,39 +321,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         )
 
         if let id = currentRideId {
-            DataRepository.shared.finishRide(rideId: id)
-            TelemetryManager.shared.trackRideCompleted(rideId: id.uuidString, durationSeconds: Int(durationInMillis / 1000), distanceKm: totalDistance / 1000.0)
-
-            // A1: shared good-ride hook (parity with Android TrackingService.finalizeRide).
-            // Skip junk rides (mirror Android's 10 m / 2 min thresholds). Best-effort +
-            // idempotent — must never affect ride saving. The returned transition is what
-            // B1 (reveal) / B2 (recap) / B3 (streak) will consume.
-            let isJunk = totalDistance < 10.0 && durationInMillis < 2 * 60 * 1000
-            if !isJunk {
-                let summary = GoodRideSummary(
-                    rideId: id.uuidString,
-                    finishedAtMillis: Int64(Date().timeIntervalSince1970 * 1000),
-                    durationMillis: Int64(durationInMillis),
-                    distanceMeters: totalDistance
-                )
-                // B1: fold in, then surface the bounded reveal — the reveal is the good-ride
-                // confirmation, replacing the flat "Ride saved" toast. Persisted one-shot so it
-                // survives backgrounding and shows once on Home.
-                Task {
-                    let transition = await RideStatsStore.shared.recordGoodRide(summary)
-                    // B3: emit the streak state event on the first-ride-of-week transition.
-                    if transition.isFirstRideOfWeek {
-                        TelemetryManager.shared.trackWeeklyStreakUpdated(
-                            streakWeeks: transition.streakWeeks, froze: transition.streakFroze)
-                    }
-                    if let reveal = RevealSelector.select(transition) {
-                        await RevealCoordinator.shared.put(reveal)
-                    }
-                }
-            } else {
-                // A sub-threshold ride the user chose to save earns no reveal — keep a plain toast.
-                ToastManager.shared.show(message: LocalizationHelper.localized("Ride saved successfully"), style: .success)
-            }
+            let endedAt = points.last?.timestamp ?? Date()
+            finalizeSegment(id: id, endedAt: endedAt)
         }
         currentRideId = nil
 
@@ -453,9 +424,107 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             if LiveSharingManager.shared.isActive {
                 LiveSharingManager.shared.updateLatestLocation(smoothedLocation)
             }
+
+            // 7. Auto-Split Evaluation
+            switch RideSplitPolicy.evaluate(pointCount: points.count, alreadyWarned: splitWarningShown) {
+            case .warn:
+                splitWarningShown = true
+                showLongRideWarningNotification()
+            case .split:
+                splitCurrentRide()
+                return // stop processing this batch; Part 2 handles the next fix
+            case .none:
+                break
+            }
         }
 
         // 7. Live Activity (throttled; forced when we just regained GPS).
         updateLiveActivity(force: recoveredFromGpsLost)
+    }
+
+    // MARK: - Auto-Split & Finalization Helpers
+
+    /// Finalize the ride identified by `id` using the authoritative in-memory
+    /// segment distance/duration. Shared by normal stop and auto-split so the
+    /// A1 good-ride hook + telemetry fire identically on both paths.
+    private func finalizeSegment(id: UUID, endedAt: Date) {
+        DataRepository.shared.finishRide(rideId: id)
+        TelemetryManager.shared.trackRideCompleted(
+            rideId: id.uuidString,
+            durationSeconds: Int(durationInMillis / 1000),
+            distanceKm: totalDistance / 1000.0)
+
+        let isJunk = totalDistance < 10.0 && durationInMillis < 2 * 60 * 1000
+        if !isJunk {
+            let summary = GoodRideSummary(
+                rideId: id.uuidString,
+                finishedAtMillis: Int64(endedAt.timeIntervalSince1970 * 1000),
+                durationMillis: Int64(durationInMillis),
+                distanceMeters: totalDistance
+            )
+            Task {
+                let transition = await RideStatsStore.shared.recordGoodRide(summary)
+                if transition.isFirstRideOfWeek {
+                    TelemetryManager.shared.trackWeeklyStreakUpdated(
+                        streakWeeks: transition.streakWeeks, froze: transition.streakFroze)
+                }
+                if let reveal = RevealSelector.select(transition) {
+                    await RevealCoordinator.shared.put(reveal)
+                }
+            }
+        } else {
+            ToastManager.shared.show(message: LocalizationHelper.localized("Ride saved successfully"), style: .success)
+        }
+    }
+
+    private func splitCurrentRide() {
+        guard let oldId = currentRideId else { return }
+        let endedAt = points.last?.timestamp ?? Date()
+
+        // 1. Finalize Part 1 (telemetry + A1 hook + cloud sync via finishRide's unsynced flag).
+        finalizeSegment(id: oldId, endedAt: endedAt)
+
+        // 2. Start Part 2 in the SAME session — do NOT stop location/timer/Live Activity.
+        let part2 = Ride(title: (LocalizationHelper.localized("Ride")) + " (" + LocalizationHelper.localized("Part 2") + ")")
+        currentRideId = part2.id
+        UserDefaults.standard.set(part2.id.uuidString, forKey: Self.activeRideKey)
+        DispatchQueue.main.async { DataRepository.shared.saveRide(part2) }
+        TelemetryManager.shared.trackRideStarted(rideId: part2.id.uuidString)
+
+        // 3. Reset per-segment live state (THIS is the memory + O(n²) fix).
+        points.removeAll(keepingCapacity: false)
+        totalDistance = 0.0
+        durationInMillis = 0
+        splitWarningShown = false
+
+        // 4. Roll the Live Activity over to the new ride (keep it visible — no gap).
+        RideActivityManager.shared.end(
+            startedAt: endedAt.addingTimeInterval(-durationInMillis / 1000),
+            distanceMeters: 0,
+            speedMps: 0,
+            pausedElapsed: 0
+        )
+        RideActivityManager.shared.startActivity(rideId: part2.id.uuidString, startedAt: Date())
+
+        // 5. Keep live sharing linked to the ongoing session (do NOT stop it).
+        showAutoSplitNotification()
+    }
+
+    private func showLongRideWarningNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = LocalizationHelper.localized("Long Ride")
+        content.body = LocalizationHelper.localized("Approaching the limit. Your ride will split automatically at 9,000 points.")
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: "LongRideWarning", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func showAutoSplitNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = LocalizationHelper.localized("Ride Auto-Split")
+        content.body = LocalizationHelper.localized("Your ride reached 9,000 points and was split automatically.")
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: "RideAutoSplit", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
 }
