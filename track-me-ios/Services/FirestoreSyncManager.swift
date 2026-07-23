@@ -39,47 +39,61 @@ class FirestoreSyncManager {
             if error == nil {
                 DispatchQueue.main.async {
                     ride.isSynced = true
+                    ride.firestoreId = ride.id.uuidString
+                    try? DataRepository.shared.container?.mainContext.save()
                     UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
                 }
             }
         }
     }
     
-    // MARK: - Horizon v1.2.0 Periodic Lightweight Sync (syncPeriodic)
-    // Fetches top N recent cloud rides, deduplicating against existing local IDs
-    func syncPeriodic(limit: Int = 10, localRideIds: Set<String>, completion: @escaping (Bool) -> Void) {
+    // MARK: - Download & Insert Helper
+    private func downloadAndInsert(uid: String, limit: Int?, completion: @escaping (Bool) -> Void) {
+        var ref: Query = db.collection("users").document(uid).collection("rides")
+            .order(by: "startTime", descending: true)
+        if let limit = limit {
+            ref = ref.limit(to: limit)
+        }
+        ref.getDocuments { snapshot, error in
+            guard let docs = snapshot?.documents, error == nil else {
+                completion(false)
+                return
+            }
+            let parsed = docs.compactMap { doc in
+                FirestoreSyncManager.parseRideDocument(docId: doc.documentID, data: doc.data())
+            }
+            Task { @MainActor in
+                let existingIds = DataRepository.shared.existingCloudIds()
+                DataRepository.shared.importDownloadedRides(parsed, existingIds: existingIds)
+                UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
+                completion(true)
+            }
+        }
+    }
+
+    // MARK: - Periodic Lightweight Sync (syncPeriodic)
+    /// Bidirectional lightweight sync: upload unsynced local rides, then download the
+    /// most-recent `limit` cloud rides and insert any not already present locally.
+    /// Safe to call repeatedly; idempotent via firestoreId/id dedup.
+    func syncPeriodic(limit: Int = 10, completion: @escaping (Bool) -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else {
             completion(false)
             return
         }
         
-        let ridesRef = db.collection("users").document(uid).collection("rides")
-            .order(by: "startTime", descending: true)
-            .limit(to: limit)
-        
-        ridesRef.getDocuments { snapshot, error in
-            guard let documents = snapshot?.documents, error == nil else {
-                completion(false)
-                return
+        Task { @MainActor in
+            let localRides = DataRepository.shared.allRides()
+            for ride in localRides where !ride.isSynced {
+                self.syncRide(ride)
             }
             
-            for doc in documents {
-                let docId = doc.documentID
-                // Horizon deduplication requirement: skip if already exists locally
-                if localRideIds.contains(docId) {
-                    continue
-                }
-                // Process and insert new cloud ride if needed
-            }
-            
-            UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
-            completion(true)
+            self.downloadAndInsert(uid: uid, limit: limit, completion: completion)
         }
     }
     
-    // MARK: - Horizon v1.2.0 Manual Full Bidirectional Sync (syncAll)
+    // MARK: - Manual Full Bidirectional Sync (syncAll)
     func syncAll(localRides: [Ride], completion: @escaping (Bool) -> Void) {
-        guard Auth.auth().currentUser?.uid != nil else {
+        guard let uid = Auth.auth().currentUser?.uid else {
             completion(false)
             return
         }
@@ -95,10 +109,39 @@ class FirestoreSyncManager {
         }
         
         group.notify(queue: .main) {
-            UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
-            completion(true)
+            // 2. Download ALL cloud rides and insert the missing ones.
+            self.downloadAndInsert(uid: uid, limit: nil) { success in
+                completion(success)
+            }
         }
     }
+    
+    // MARK: - Foreground & Auth Sync Triggers
+    private static let foregroundThrottleKey = "last_periodic_sync_time"
+    private static let foregroundThrottle: TimeInterval = 30 * 60   // 30 min
+
+    /// Foreground/launch entry point: sync at most every 30 min, never while a ride
+    /// is actively recording, only when signed in.
+    func syncOnForegroundIfDue() {
+        guard Auth.auth().currentUser != nil else { return }
+        // Do NOT contend with live point writes.
+        if TrackingManager.shared.state == .tracking || TrackingManager.shared.state == .paused { return }
+        let last = UserDefaults.standard.object(forKey: Self.foregroundThrottleKey) as? Date
+        if let last, Date().timeIntervalSince(last) < Self.foregroundThrottle { return }
+        UserDefaults.standard.set(Date(), forKey: Self.foregroundThrottleKey)
+        syncPeriodic { _ in }
+    }
+    
+    /// Called right after a successful sign-in. Unlike syncOnForegroundIfDue this
+    /// ignores the 30-min throttle (a sign-in is an explicit restore moment), but
+    /// still refreshes the throttle timestamp so C.1 won't immediately re-fire.
+    func syncOnSignInCompleted() {
+        guard Auth.auth().currentUser != nil else { return }
+        if TrackingManager.shared.state == .tracking || TrackingManager.shared.state == .paused { return }
+        UserDefaults.standard.set(Date(), forKey: Self.foregroundThrottleKey)
+        syncPeriodic { _ in }
+    }
+
     
     // MARK: - Formatted Last Synced Timestamp
     static func formattedLastSyncTime() -> String {

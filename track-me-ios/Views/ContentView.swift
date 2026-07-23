@@ -39,6 +39,7 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 Task { await recapCoordinator.check() }
+                FirestoreSyncManager.shared.syncOnForegroundIfDue()
             }
         }
         // C2 — brand system v1: Inter as the app-wide default family, cyan as the
