@@ -60,7 +60,6 @@ final class DataRepository {
         }
         if inserted > 0 { try? ctx.save() }
     }
-
     func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool) {
         guard let container = container else { return }
 
@@ -134,5 +133,24 @@ final class DataRepository {
                 NSLog("TrackMe: failed to finalize ride: %@", error.localizedDescription)
             }
         }
+    }
+
+    /// Deletes ALL locally-stored rides and GPS points. Serialized behind any pending
+    /// point writes so a concurrent background insert can't resurrect a row after the wipe.
+    /// Throws if the SwiftData delete/save fails (caller must NOT report success on throw).
+    func wipeAllLocalData() async throws {
+        guard let container = container else { return }
+
+        // Drain any in-flight point writes first (same pattern as finishRide).
+        let pending = pointWriteChain
+        await pending?.value
+
+        let context = ModelContext(container)
+        // Delete points before rides to avoid dangling relationships regardless of the
+        // container's delete rule. Bulk model-delete is available on this deployment target.
+        try context.delete(model: GPSPoint.self)
+        try context.delete(model: Ride.self)
+        // TODO(prompt-16): also delete Emergency* models + stop active broadcast
+        try context.save()
     }
 }
