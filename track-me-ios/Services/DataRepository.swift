@@ -137,10 +137,9 @@ final class DataRepository {
     }
 
     func getEmergencySettings() -> EmergencySettings {
-        guard let container = container else {
+        guard let context = container?.mainContext else {
             return EmergencySettings()
         }
-        let context = ModelContext(container)
         let descriptor = FetchDescriptor<EmergencySettings>()
         do {
             if let settings = try context.fetch(descriptor).first {
@@ -157,8 +156,7 @@ final class DataRepository {
     }
 
     func disableEmergencySetup() {
-        guard let container = container else { return }
-        let context = ModelContext(container)
+        guard let context = container?.mainContext else { return }
         let descriptor = FetchDescriptor<EmergencySettings>()
         if let settings = try? context.fetch(descriptor).first {
             settings.isSetupComplete = false

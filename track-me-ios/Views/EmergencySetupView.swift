@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 import MessageUI
-
+import CoreLocation
 struct EmergencySetupView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \EmergencyContact.createdAt) private var contacts: [EmergencyContact]
@@ -18,63 +18,9 @@ struct EmergencySetupView: View {
 
     var body: some View {
         Form {
-            Section(header: Text(LocalizationHelper.localized("Emergency Contacts"))) {
-                ForEach(contacts) { contact in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(contact.name).font(.headline)
-                            Text(contact.phoneNumber).font(.subheadline).foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Text(contact.medium)
-                            .font(.caption)
-                            .padding(4)
-                            .background(Color.secondary.opacity(0.2))
-                            .cornerRadius(4)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(LocalizationHelper.formatted("%@, %@, via %@", contact.name, contact.phoneNumber, contact.medium))
-                }
-                .onDelete(perform: deleteContacts)
-
-                Button(action: { showingContactPicker = true }) {
-                    Label(LocalizationHelper.localized("Add from Contacts"), systemImage: "person.crop.circle.badge.plus")
-                }
-                Button(action: { showingManualEntry = true }) {
-                    Label(LocalizationHelper.localized("Add Manually"), systemImage: "keyboard")
-                }
-            }
-
-            Section(
-                header: Text(LocalizationHelper.localized("Message Template")),
-                footer: Text(LocalizationHelper.localized("Placeholders: [Location Link], [Battery Percent], [Device Name], [Timestamp]"))
-            ) {
-                TextEditor(text: $messageTemplate)
-                    .frame(minHeight: 100)
-
-                Button(LocalizationHelper.localized("Reset to default")) {
-                    messageTemplate = "EMERGENCY! I need help. My last known location is: [Location Link]. Battery: [Battery Percent]. Device: [Device Name]. Time: [Timestamp]"
-                }
-                .foregroundColor(.red)
-            }
-
-            Section {
-                Button(LocalizationHelper.localized("Send test message")) {
-                    if canSendText() {
-                        showingTestMessage = true
-                    } else {
-                        showingNoSmsAlert = true
-                    }
-                }
-
-                Button(action: saveSettings) {
-                    Text(LocalizationHelper.localized("Finish setup"))
-                        .frame(maxWidth: .infinity)
-                        .foregroundColor((messageTemplate.isEmpty || contacts.isEmpty) ? .secondary : .white)
-                }
-                .listRowBackground((messageTemplate.isEmpty || contacts.isEmpty) ? Color.gray.opacity(0.3) : BrandColor.success)
-                .disabled(messageTemplate.isEmpty || contacts.isEmpty)
-            }
+            contactsSection
+            templateSection
+            actionsSection
         }
         .navigationTitle(LocalizationHelper.localized("Emergency Setup"))
         .onAppear {
@@ -104,18 +50,87 @@ struct EmergencySetupView: View {
             Text(LocalizationHelper.localized("This device cannot send SMS messages."))
         }
         .sheet(isPresented: $showingTestMessage) {
-            UIDevice.current.isBatteryMonitoringEnabled = true
-            MessageComposeView(
-                recipients: contacts.map { $0.phoneNumber },
-                body: EmergencyManager.shared.buildEmergencyMessage(
-                    template: messageTemplate,
-                    coordinate: TrackingManager.shared.points.last?.coordinate,
-                    battery: Float(UIDevice.current.batteryLevel),
-                    deviceModel: UIDevice.current.model,
-                    date: Date()
-                )
-            )
+            createTestMessageView()
         }
+    }
+
+    private var contactsSection: some View {
+        Section(header: Text(LocalizationHelper.localized("Emergency Contacts"))) {
+            ForEach(contacts) { contact in
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(contact.name).font(.headline)
+                        Text(contact.phoneNumber).font(.subheadline).foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Text(contact.medium)
+                        .font(.caption)
+                        .padding(4)
+                        .background(Color.secondary.opacity(0.2))
+                        .cornerRadius(4)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(LocalizationHelper.formatted("%@, %@, via %@", contact.name, contact.phoneNumber, contact.medium))
+            }
+            .onDelete(perform: deleteContacts)
+
+            Button(action: { showingContactPicker = true }) {
+                Label(LocalizationHelper.localized("Add from Contacts"), systemImage: "person.crop.circle.badge.plus")
+            }
+            Button(action: { showingManualEntry = true }) {
+                Label(LocalizationHelper.localized("Add Manually"), systemImage: "keyboard")
+            }
+        }
+    }
+
+    private var templateSection: some View {
+        Section(
+            header: Text(LocalizationHelper.localized("Message Template")),
+            footer: Text(LocalizationHelper.localized("Placeholders: [Location Link], [Battery Percent], [Device Name], [Timestamp]"))
+        ) {
+            TextEditor(text: $messageTemplate)
+                .frame(minHeight: 100)
+
+            Button(LocalizationHelper.localized("Reset to default")) {
+                messageTemplate = "EMERGENCY! I need help. My last known location is: [Location Link]. Battery: [Battery Percent]. Device: [Device Name]. Time: [Timestamp]"
+            }
+            .foregroundColor(.red)
+        }
+    }
+
+    private var actionsSection: some View {
+        Section {
+            Button(LocalizationHelper.localized("Send test message")) {
+                if canSendText() {
+                    UIDevice.current.isBatteryMonitoringEnabled = true
+                    showingTestMessage = true
+                } else {
+                    showingNoSmsAlert = true
+                }
+            }
+
+            Button(action: saveSettings) {
+                Text(LocalizationHelper.localized("Finish setup"))
+                    .frame(maxWidth: .infinity)
+                    .foregroundColor((messageTemplate.isEmpty || contacts.isEmpty) ? .secondary : .white)
+            }
+            .listRowBackground((messageTemplate.isEmpty || contacts.isEmpty) ? Color.gray.opacity(0.3) : BrandColor.successGreen)
+            .disabled(messageTemplate.isEmpty || contacts.isEmpty)
+        }
+    }
+
+    private func createTestMessageView() -> some View {
+        let text = EmergencyManager.shared.buildEmergencyMessage(
+            template: messageTemplate,
+            coordinate: TrackingManager.shared.points.last?.coordinate,
+            battery: Float(UIDevice.current.batteryLevel),
+            deviceModel: UIDevice.current.model,
+            date: Date()
+        )
+        return MessageComposeView(
+            recipients: contacts.map { $0.phoneNumber },
+            body: text
+        )
     }
 
     private var settings: EmergencySettings? {
