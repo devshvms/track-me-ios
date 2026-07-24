@@ -7,7 +7,7 @@ struct HistoryView: View {
     @State private var showFileImporter = false
     @Environment(\.modelContext) private var modelContext
     
-    // Horizon v1.2.0 Inline Filters
+    // v1.6.0 Inline Filters
     @State private var selectedSyncStatus: String = "All"
     let syncStatusOptions = ["All", "Synced", "Unsynced"]
     
@@ -44,7 +44,7 @@ struct HistoryView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Horizon Inline Filter Chips
+                // Inline Filter Chips
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(syncStatusOptions, id: \.self) { option in
