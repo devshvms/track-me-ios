@@ -30,6 +30,24 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
     var showLocationPermissionExplanation = false
+    var showLocationDeniedRecovery = false
+    
+    private static let askedAlwaysKey = "hasRequestedAlwaysUpgrade"
+    private var hasAskedAlways: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.askedAlwaysKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.askedAlwaysKey) }
+    }
+
+    private var mappedAuth: LocationAuth {
+        switch locationManager.authorizationStatus {
+        case .notDetermined: return .notDetermined
+        case .authorizedWhenInUse: return .whenInUse
+        case .authorizedAlways: return .always
+        case .denied: return .denied
+        case .restricted: return .restricted
+        @unknown default: return .notDetermined
+        }
+    }
 
     private var timer: Timer?
     private var pendingTrackingStart = false
@@ -53,34 +71,47 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         locationManager.activityType = .fitness
     }
 
+    private func requestAlwaysUpgradeIfAppropriate() {
+        guard LocationStartDecision.shouldRequestAlwaysUpgrade(
+                status: mappedAuth, hasAskedAlways: hasAskedAlways) else { return }
+        hasAskedAlways = true
+        locationManager.requestAlwaysAuthorization()
+    }
+
+    private func offerDeniedRecovery() {
+        showLocationDeniedRecovery = true
+    }
+
     func startTracking() {
-        switch locationManager.authorizationStatus {
-        case .notDetermined:
+        switch LocationStartDecision.action(for: mappedAuth, afterPrimer: false) {
+        case .showPrimer:
             pendingTrackingStart = true
             showLocationPermissionExplanation = true
-            return
-        case .authorizedWhenInUse:
+        case .requestWhenInUse:
             pendingTrackingStart = true
-            locationManager.requestAlwaysAuthorization()
-            return
-        case .authorizedAlways:
+            locationManager.requestWhenInUseAuthorization()
+        case .begin:
             beginTracking()
-        default:
-            ToastManager.shared.show(message: LocalizationHelper.localized("Enable location access in Settings to start tracking."), style: .error)
+            requestAlwaysUpgradeIfAppropriate()
+        case .deniedRecovery:
+            pendingTrackingStart = false
+            offerDeniedRecovery()
         }
     }
 
     func continueAfterLocationExplanation() {
         pendingTrackingStart = true
-        switch locationManager.authorizationStatus {
-        case .notDetermined:
+        switch LocationStartDecision.action(for: mappedAuth, afterPrimer: true) {
+        case .requestWhenInUse:
             locationManager.requestWhenInUseAuthorization()
-        case .authorizedWhenInUse:
-            locationManager.requestAlwaysAuthorization()
-        case .authorizedAlways:
+        case .begin:
             beginTracking()
-        default:
-            ToastManager.shared.show(message: LocalizationHelper.localized("Enable location access in Settings to start tracking."), style: .error)
+            requestAlwaysUpgradeIfAppropriate()
+        case .deniedRecovery:
+            pendingTrackingStart = false
+            offerDeniedRecovery()
+        case .showPrimer:
+            break
         }
     }
 
@@ -90,15 +121,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         guard pendingTrackingStart else { return }
-        switch manager.authorizationStatus {
-        case .authorizedWhenInUse:
-            manager.requestAlwaysAuthorization()
-        case .authorizedAlways:
+        switch mappedAuth {
+        case .whenInUse, .always:
             beginTracking()
+            requestAlwaysUpgradeIfAppropriate()
         case .denied, .restricted:
             pendingTrackingStart = false
-            ToastManager.shared.show(message: LocalizationHelper.localized("Location permission is required for offline and background tracking."), style: .error)
-        default:
+            offerDeniedRecovery()
+        case .notDetermined:
             break
         }
     }
@@ -267,7 +297,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         let sorted = stored.sorted { $0.timestamp < $1.timestamp }
         guard let last = sorted.last,
               Date().timeIntervalSince(last.timestamp) < 300,
-              locationManager.authorizationStatus == .authorizedAlways else {
+              locationManager.authorizationStatus == .authorizedAlways || locationManager.authorizationStatus == .authorizedWhenInUse else {
             // Stale, or permission downgraded while the app was dead — do not
             // silently resume; the orphan sweep will finalize it.
             UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
