@@ -177,16 +177,27 @@ struct HomeView: View {
                 VStack(spacing: 20) {
                     if trackingManager.state != .idle {
                         VStack(alignment: .center, spacing: 4) {
-                            Text(trackingManager.state == .paused || trackingManager.state == .storageLow ? "TOTAL TIME" : "TIME")
+                            Text("TIME")
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                                 .foregroundColor(.secondary)
-                            Text(formatDuration(trackingManager.elapsedDurationInMillis / 1000))
+                            Text(formatDuration(trackingManager.durationInMillis / 1000))
                                 .font(.system(size: 40, weight: .bold, design: .rounded))
                                 .contentTransition(.numericText())
+
+                            if trackingManager.elapsedDurationInMillis - trackingManager.durationInMillis >= 1000 {
+                                Text("\(LocalizationHelper.localized("TOTAL TIME")) \(formatDuration(trackingManager.elapsedDurationInMillis / 1000))")
+                                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                                    .foregroundColor(.secondary.opacity(0.8))
+                                    .padding(.top, -2)
+                            }
                         }
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(trackingManager.state == .paused || trackingManager.state == .storageLow ? LocalizationHelper.localized("Total time") : LocalizationHelper.localized("Time"))
-                        .accessibilityValue(formatDuration(trackingManager.elapsedDurationInMillis / 1000))
+                        .accessibilityLabel(LocalizationHelper.localized("Time"))
+                        .accessibilityValue(
+                            trackingManager.elapsedDurationInMillis - trackingManager.durationInMillis >= 1000 ?
+                            "\(formatDuration(trackingManager.durationInMillis / 1000)), \(LocalizationHelper.localized("TOTAL TIME")) \(formatDuration(trackingManager.elapsedDurationInMillis / 1000))" :
+                            formatDuration(trackingManager.durationInMillis / 1000)
+                        )
 
                         Divider()
                             .padding(.horizontal, 20)
