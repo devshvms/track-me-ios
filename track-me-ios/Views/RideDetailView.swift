@@ -386,9 +386,9 @@ struct RideDetailView: View {
                 .foregroundColor(.white)
                 .accessibilityAddTraits(.isHeader)
             
-            let totalDist = (cumulativeDistances.last ?? 0) / 1000.0
-            let duration = (ride.endTime ?? ride.startTime).timeIntervalSince(ride.startTime)
-            let avgSpeed = duration > 0 ? (totalDist / (duration / 3600.0)) : 0.0
+            let totalDist = ride.displayDistanceKm
+            let duration = ride.movingDurationMillis.map { Double($0) / 1000.0 } ?? (ride.endTime ?? ride.startTime).timeIntervalSince(ride.startTime)
+            let avgSpeedKmh = ride.avgSpeedMps.map { $0 * 3.6 } ?? (duration > 0 ? (totalDist / (duration / 3600.0)) : 0.0)
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
             
             HStack {
@@ -396,7 +396,7 @@ struct RideDetailView: View {
                 Spacer()
                 statItem(title: "Duration", value: formatDuration(duration))
                 Spacer()
-                statItem(title: "GPS Tag", value: "\(sortedPoints.count)")
+                statItem(title: "GPS Tag", value: "\(ride.pointCount ?? sortedPoints.count)")
             }
             
             HStack {
@@ -404,7 +404,7 @@ struct RideDetailView: View {
                 Spacer()
                 statItem(title: "Max G-Force", value: String(format: "%.2f G", maxGForce))
                 Spacer()
-                statItem(title: "Avg Speed", value: String(format: "%.1f km/h", avgSpeed))
+                statItem(title: "Avg Speed", value: String(format: "%.1f km/h", avgSpeedKmh))
             }
         }
         .padding(20)

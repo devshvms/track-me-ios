@@ -12,6 +12,15 @@ final class Ride {
     var firestoreId: String?
     var title: String?
     
+    // Persisted ride aggregates (parity with Android PostRideCalculation).
+    // Populated at finalize from the live-tracked totals; nil only for legacy
+    // rides not yet backfilled (see RideAggregateBackfill).
+    var distanceMeters: Double?
+    var movingDurationMillis: Int?
+    var maxSpeedMps: Double?
+    var avgSpeedMps: Double?
+    var pointCount: Int?
+    
     @Relationship(deleteRule: .cascade, inverse: \GPSPoint.ride)
     var points: [GPSPoint]?
     
@@ -22,5 +31,14 @@ final class Ride {
         self.isBroadcasted = isBroadcasted
         self.isSynced = isSynced
         self.title = title
+    }
+}
+
+extension Ride {
+    /// Distance in km for display. Uses the persisted aggregate when present;
+    /// falls back to a live re-computation for un-backfilled legacy rides only.
+    var displayDistanceKm: Double {
+        if let m = distanceMeters { return m / 1000.0 }
+        return RideMetrics.rawDistanceMeters(points ?? []) / 1000.0
     }
 }

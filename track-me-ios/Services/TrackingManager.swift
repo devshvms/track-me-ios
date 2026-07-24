@@ -30,6 +30,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
     var showLocationPermissionExplanation = false
+    
+    private(set) var rideStartDate: Date?
+    var maxSpeedMps: Double = 0.0
+    
+    /// Total wall-clock time since the ride started, INCLUDING paused/auto-paused segments.
+    /// (Contrast `durationInMillis`, which excludes paused time.)
+    var elapsedDurationInMillis: TimeInterval {
+        guard let start = rideStartDate, state != .idle else { return 0 }
+        return max(0, Date().timeIntervalSince(start)) * 1000
+    }
 
     private var timer: Timer?
     private var pendingTrackingStart = false
@@ -149,6 +159,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         durationInMillis = 0
         timeSinceLastGps = 0
         lastGpsTimestamp = Date()
+        rideStartDate = newRide.startTime
+        maxSpeedMps = 0.0
 
         TelemetryManager.shared.trackRideStarted(rideId: newRide.id.uuidString)
 
@@ -306,6 +318,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         lastGpsTimestamp = last.timestamp
         timeSinceLastGps = Date().timeIntervalSince(last.timestamp)
         currentSpeed = 0.0
+        maxSpeedMps = sorted.map { $0.speed }.max() ?? 0.0
+        rideStartDate = ride.startTime
         state = .tracking
 
         startLocationUpdatesAndTimer()
@@ -322,6 +336,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         state = .idle
         timer?.invalidate()
         timer = nil
+        rideStartDate = nil
         storageWarningShown = false
         UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["StorageLow"])
@@ -428,6 +443,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
 
             currentSpeed = effectiveSpeed
+            if effectiveSpeed > maxSpeedMps { maxSpeedMps = effectiveSpeed }
+            
             if MotionSensorManager.distanceShouldAccumulate(state: accumulationState, isPaused: isPaused, dist: dist, effectiveSpeed: effectiveSpeed) {
                 totalDistance += dist
             }
@@ -475,11 +492,21 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// segment distance/duration. Shared by normal stop and auto-split so the
     /// A1 good-ride hook + telemetry fire identically on both paths.
     private func finalizeSegment(id: UUID, endedAt: Date) {
-        DataRepository.shared.finishRide(rideId: id)
+        let finalDistance = totalDistance
+        let finalDuration = Int(durationInMillis)
+        let finalMaxSpeed = maxSpeedMps
+        
+        DataRepository.shared.finishRide(
+            rideId: id,
+            distanceMeters: finalDistance,
+            movingDurationMillis: finalDuration,
+            maxSpeedMps: finalMaxSpeed
+        )
+        
         TelemetryManager.shared.trackRideCompleted(
             rideId: id.uuidString,
-            durationSeconds: Int(durationInMillis / 1000),
-            distanceKm: totalDistance / 1000.0)
+            durationSeconds: finalDuration / 1000,
+            distanceKm: finalDistance / 1000.0)
 
         let isJunk = totalDistance < 10.0 && durationInMillis < 2 * 60 * 1000
         if !isJunk {
@@ -522,6 +549,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         points.removeAll(keepingCapacity: false)
         totalDistance = 0.0
         durationInMillis = 0
+        maxSpeedMps = 0.0
+        rideStartDate = part2.startTime
         splitWarningShown = false
 
         // 4. Roll the Live Activity over to the new ride (keep it visible — no gap).

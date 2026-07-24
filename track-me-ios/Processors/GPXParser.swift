@@ -63,6 +63,17 @@ class GPXParser: NSObject, XMLParserDelegate {
         ride.endTime = points.last!.timestamp
         ride.points = points
         
+        let distance = RideMetrics.rawDistanceMeters(points)
+        let durationMillis = Int(ride.endTime!.timeIntervalSince(ride.startTime) * 1000)
+        let maxSpeed = points.map { $0.speed }.max() ?? 0.0
+        let avgSpeed = durationMillis > 0 ? distance / (Double(durationMillis) / 1000.0) : 0.0
+        
+        ride.distanceMeters = distance
+        ride.movingDurationMillis = durationMillis
+        ride.pointCount = points.count
+        ride.maxSpeedMps = maxSpeed
+        ride.avgSpeedMps = avgSpeed
+        
         return ride
     }
     

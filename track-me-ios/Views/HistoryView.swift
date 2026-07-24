@@ -28,7 +28,7 @@ struct HistoryView: View {
             default: matchesSync = true
             }
             
-            let rideDistanceKm = (ride.points ?? []).count > 1 ? estimateDistanceKm(points: ride.points ?? []) : 0.0
+            let rideDistanceKm = ride.displayDistanceKm
             let matchesDistance = rideDistanceKm >= selectedDistanceThresholdKm
             
             return matchesSync && matchesDistance
@@ -148,18 +148,6 @@ struct HistoryView: View {
         ToastManager.shared.show(message: LocalizationHelper.localized("GPX Imported Successfully"), style: .success)
     }
     
-    private func estimateDistanceKm(points: [GPSPoint]) -> Double {
-        var totalMeters = 0.0
-        let sorted = points.sorted { $0.timestamp < $1.timestamp }
-        for i in 1..<sorted.count {
-            let p1 = sorted[i-1]
-            let p2 = sorted[i]
-            let loc1 = CLLocation(latitude: p1.latitude, longitude: p1.longitude)
-            let loc2 = CLLocation(latitude: p2.latitude, longitude: p2.longitude)
-            totalMeters += loc2.distance(from: loc1)
-        }
-        return totalMeters / 1000.0
-    }
 }
 
 // MARK: - Compact Ride Row (80x60pt Thumbnail + High-Density Layout)
@@ -187,7 +175,7 @@ struct CompactRideRowView: View {
                 HStack(spacing: 12) {
                     Label(ride.startTime.formatted(date: .omitted, time: .shortened), systemImage: "clock")
 
-                    let pointsCount = (ride.points ?? []).count
+                    let pointsCount = ride.pointCount ?? (ride.points ?? []).count
                     Label("\(pointsCount) pts", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
                 }
                 .font(.caption2)
@@ -205,7 +193,7 @@ struct CompactRideRowView: View {
     private var accessibilityDescription: String {
         let title = ride.title ?? LocalizationHelper.localized("TrackMe Ride")
         let time = ride.startTime.formatted(date: .abbreviated, time: .shortened)
-        let pointsCount = (ride.points ?? []).count
+        let pointsCount = ride.pointCount ?? (ride.points ?? []).count
         let syncState = ride.isSynced
             ? LocalizationHelper.localized("Synced")
             : LocalizationHelper.localized("Not yet synced")

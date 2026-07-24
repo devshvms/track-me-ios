@@ -56,6 +56,19 @@ final class DataRepository {
                 point.ride = ride
                 ctx.insert(point)
             }
+            
+            let pts = ride.points ?? []
+            let distance = RideMetrics.rawDistanceMeters(pts)
+            let durationMillis = Int((ride.endTime ?? Date()).timeIntervalSince(ride.startTime) * 1000)
+            let maxSpeed = pts.map { $0.speed }.max() ?? 0.0
+            let avgSpeed = durationMillis > 0 ? distance / (Double(durationMillis) / 1000.0) : 0.0
+            
+            ride.distanceMeters = distance
+            ride.movingDurationMillis = durationMillis
+            ride.pointCount = pts.count
+            ride.maxSpeedMps = maxSpeed
+            ride.avgSpeedMps = avgSpeed
+            
             inserted += 1
         }
         if inserted > 0 { try? ctx.save() }
@@ -101,7 +114,7 @@ final class DataRepository {
         return false
     }
 
-    func finishRide(rideId: UUID) {
+    func finishRide(rideId: UUID, distanceMeters: Double? = nil, movingDurationMillis: Int? = nil, maxSpeedMps: Double? = nil) {
         guard let container = container else { return }
 
         let pendingWrites = pointWriteChain
@@ -115,8 +128,20 @@ final class DataRepository {
                 guard let ride = try context.fetch(descriptor).first else { return }
                 ride.endTime = Date()
 
+                if let d = distanceMeters { ride.distanceMeters = d }
+                if let md = movingDurationMillis { ride.movingDurationMillis = md }
+                if let ms = maxSpeedMps { ride.maxSpeedMps = ms }
+                
+                let pts = ride.points ?? []
+                ride.pointCount = pts.count
+                if let md = movingDurationMillis, md > 0, let d = distanceMeters {
+                    ride.avgSpeedMps = d / (Double(md) / 1000.0)
+                } else {
+                    ride.avgSpeedMps = 0.0
+                }
+
                 if ride.title == nil || ride.title?.isEmpty == true {
-                    ride.title = RideTitleGenerator.make(startTime: ride.startTime, points: ride.points ?? [])
+                    ride.title = RideTitleGenerator.make(startTime: ride.startTime, points: pts)
                 }
 
                 try context.save()

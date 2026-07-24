@@ -177,16 +177,16 @@ struct HomeView: View {
                 VStack(spacing: 20) {
                     if trackingManager.state != .idle {
                         VStack(alignment: .center, spacing: 4) {
-                            Text("TIME")
+                            Text(trackingManager.state == .paused || trackingManager.state == .storageLow ? "TOTAL TIME" : "TIME")
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                                 .foregroundColor(.secondary)
-                            Text(formatDuration(trackingManager.durationInMillis / 1000))
+                            Text(formatDuration(trackingManager.elapsedDurationInMillis / 1000))
                                 .font(.system(size: 40, weight: .bold, design: .rounded))
                                 .contentTransition(.numericText())
                         }
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.localized("Time"))
-                        .accessibilityValue(formatDuration(trackingManager.durationInMillis / 1000))
+                        .accessibilityLabel(trackingManager.state == .paused || trackingManager.state == .storageLow ? LocalizationHelper.localized("Total time") : LocalizationHelper.localized("Time"))
+                        .accessibilityValue(formatDuration(trackingManager.elapsedDurationInMillis / 1000))
 
                         Divider()
                             .padding(.horizontal, 20)

@@ -4,6 +4,7 @@ import CoreLocation
 
 @Model
 final class GPSPoint {
+    #Index<GPSPoint>([\.ride])
     @Attribute(.unique) var id: UUID
     var latitude: Double
     var longitude: Double

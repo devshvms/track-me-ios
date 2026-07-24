@@ -54,6 +54,7 @@ struct track_me_iosApp: App {
                     DataRepository.shared.setup(container: sharedModelContainer)
                     Task {
                         await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
+                        await RideAggregateBackfill.run(container: sharedModelContainer)
                         // Dismiss any Live Activity left over from a crash/force-quit.
                         RideActivityManager.shared.endOrphanedActivities(
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString

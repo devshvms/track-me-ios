@@ -76,6 +76,18 @@ enum RideRecoveryManager {
 
             // The ride ended when the phone died, not now.
             ride.endTime = lastPoint.timestamp
+            
+            let distance = RideMetrics.rawDistanceMeters(points)
+            let durationMillis = Int(lastPoint.timestamp.timeIntervalSince(ride.startTime) * 1000)
+            let maxSpeed = points.map { $0.speed }.max() ?? 0.0
+            let avgSpeed = durationMillis > 0 ? distance / (Double(durationMillis) / 1000.0) : 0.0
+            
+            ride.distanceMeters = distance
+            ride.movingDurationMillis = durationMillis
+            ride.pointCount = points.count
+            ride.maxSpeedMps = maxSpeed
+            ride.avgSpeedMps = avgSpeed
+            
             if ride.title == nil || ride.title?.isEmpty == true {
                 ride.title = RideTitleGenerator.make(startTime: ride.startTime, points: points)
             }
