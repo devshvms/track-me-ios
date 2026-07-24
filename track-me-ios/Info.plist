@@ -12,6 +12,8 @@
 	<string>TrackMe needs your location to track your rides and calculate your speed and distance.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>TrackMe needs your location to track your rides in the background even when your phone is locked.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>TrackMe uses motion data to tell when you've stopped moving so it doesn't add distance while you're standing still.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
