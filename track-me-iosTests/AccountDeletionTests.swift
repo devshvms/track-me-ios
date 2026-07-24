@@ -62,29 +62,28 @@ final class RideStatsStoreResetTests: XCTestCase {
     func testReset_clearsBlobAndCache() async throws {
         // Arrange
         let summary = GoodRideSummary(
-            id: UUID(),
-            distanceMeters: 5000,
-            durationMillis: 1000 * 60 * 30,
+            rideId: UUID().uuidString,
             finishedAtMillis: 1000000,
-            hasPoints: true
+            durationMillis: 1000 * 60 * 30,
+            distanceMeters: 5000
         )
         await store.recordGoodRide(summary)
 
-        let statsAfterRide = await store.stats.value
-        XCTAssertEqual(statsAfterRide.totalRides, 1)
+        let statsAfterRide = await store.current()
         XCTAssertEqual(statsAfterRide.totalDistanceMeters, 5000)
+        XCTAssertEqual(statsAfterRide.totalRides, 1)
 
-        // Act
+        // Reset the store
         await store.reset()
 
-        // Assert
-        let statsAfterReset = await store.stats.value
-        XCTAssertEqual(statsAfterReset.totalRides, 0)
+        // Verify the store is wiped back to zero
+        let statsAfterReset = await store.current()
         XCTAssertEqual(statsAfterReset.totalDistanceMeters, 0)
+        XCTAssertEqual(statsAfterReset.totalRides, 0)
 
         // Also verify the persisted blob is gone by instantiating a new store
         let newStore = RideStatsStore(defaults: defaults)
-        let freshStats = await newStore.stats.value
+        let freshStats = await newStore.current()
         XCTAssertEqual(freshStats.totalRides, 0)
     }
 }
