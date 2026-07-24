@@ -5,19 +5,28 @@ import SwiftData
 @MainActor
 final class EmergencySetupLogicTests: XCTestCase {
 
-    var container: ModelContainer!
+    static let sharedContainer: ModelContainer = {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        return try! ModelContainer(for: Ride.self, GPSPoint.self, EmergencyContact.self, EmergencySettings.self, configurations: config)
+    }()
+
     var repository: DataRepository!
 
     override func setUpWithError() throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        container = try ModelContainer(for: Ride.self, GPSPoint.self, EmergencyContact.self, EmergencySettings.self, configurations: config)
-        repository = DataRepository()
-        repository.setup(container: container)
+        repository = DataRepository.shared
+        repository.setup(container: Self.sharedContainer)
     }
 
     override func tearDownWithError() throws {
-        container = nil
         repository = nil
+        let context = Self.sharedContainer.mainContext
+        if let allSettings = try? context.fetch(FetchDescriptor<EmergencySettings>()) {
+            for setting in allSettings { context.delete(setting) }
+        }
+        if let allContacts = try? context.fetch(FetchDescriptor<EmergencyContact>()) {
+            for contact in allContacts { context.delete(contact) }
+        }
+        try? context.save()
     }
 
     func testSetupComplete_TrueWhenFlagAndContacts() {
@@ -37,19 +46,19 @@ final class EmergencySetupLogicTests: XCTestCase {
     func testGetEmergencySettings_CreatesDefaultIfNotExists() {
         let settings = repository.getEmergencySettings()
         XCTAssertFalse(settings.isSetupComplete)
-        XCTAssertEqual(settings.customMessage, "")
+        XCTAssertFalse(settings.messageTemplate.isEmpty)
     }
 
     func testDisableEmergencySetup_SetsFlagToFalse() {
         let settings = repository.getEmergencySettings()
         settings.isSetupComplete = true
-        settings.customMessage = "Test"
-        try? container.mainContext.save()
+        settings.messageTemplate = "Test"
+        try? Self.sharedContainer.mainContext.save()
 
         repository.disableEmergencySetup()
 
         let fetched = repository.getEmergencySettings()
         XCTAssertFalse(fetched.isSetupComplete)
-        XCTAssertEqual(fetched.customMessage, "Test")
+        XCTAssertEqual(fetched.messageTemplate, "Test")
     }
 }
