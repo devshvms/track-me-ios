@@ -147,7 +147,7 @@ struct SettingsView: View {
 
                             Divider().background(Color.gray).padding(.horizontal)
 
-                            // Horizon v1.2.0 Sync Row
+                            // v1.6.0 Sync Row
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Cloud Sync")
