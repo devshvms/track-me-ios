@@ -10,46 +10,35 @@ class FirestoreSyncManager {
     static let lastSyncTimestampKey = "last_sync_time"
 
     // MARK: - Sync Local -> Remote (Single Ride)
-    func syncRide(_ ride: Ride, completion: ((Bool) -> Void)? = nil) {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            completion?(false)
-            return
-        }
-
+    @discardableResult
+    func uploadRide(_ ride: Ride) async -> Bool {
+        guard let uid = Auth.auth().currentUser?.uid else { return false }
         let rideRef = db.collection("users").document(uid).collection("rides").document(ride.id.uuidString)
-
-        let pointsArray = ride.points?.compactMap { point -> [String: Any]? in
-            return [
-                "lat": point.latitude,
-                "lng": point.longitude,
-                "altitude": point.altitude,
-                "speed": point.speed,
-                "timestamp": point.timestamp,
-                "isPaused": point.isPaused
-            ]
+        let pointsArray = ride.points?.map { point in
+            ["lat": point.latitude, "lng": point.longitude, "altitude": point.altitude,
+             "speed": point.speed, "timestamp": point.timestamp, "isPaused": point.isPaused] as [String: Any]
         } ?? []
-
-        let data: [String: Any] = [
-            "id": ride.id.uuidString,
-            "startTime": ride.startTime,
-            "endTime": ride.endTime ?? NSNull(),
-            "sourceInfo": ride.sourceInfo,
-            "title": ride.title ?? "",
-            "points": pointsArray
-        ]
-
-        rideRef.setData(data, merge: true) { error in
-            if error == nil {
-                DispatchQueue.main.async {
-                    ride.isSynced = true
-                    ride.firestoreId = ride.id.uuidString
-                    try? DataRepository.shared.container?.mainContext.save()
-                    UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
-                    completion?(true)
-                }
-            } else {
-                completion?(false)
+        let data: [String: Any] = ["id": ride.id.uuidString, "startTime": ride.startTime,
+            "endTime": ride.endTime ?? NSNull(), "sourceInfo": ride.sourceInfo,
+            "title": ride.title ?? "", "points": pointsArray]
+        do {
+            try await rideRef.setData(data, merge: true)
+            await MainActor.run {
+                ride.isSynced = true
+                ride.firestoreId = ride.id.uuidString
+                try? DataRepository.shared.container?.mainContext.save()
+                UserDefaults.standard.set(Date(), forKey: Self.lastSyncTimestampKey)
             }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    func syncRide(_ ride: Ride, completion: ((Bool) -> Void)? = nil) {
+        Task {
+            let success = await uploadRide(ride)
+            completion?(success)
         }
     }
 
@@ -139,30 +128,20 @@ class FirestoreSyncManager {
             return
         }
 
-        let group = DispatchGroup()
-        var anyUploadFailed = false
-        let lock = NSLock()
-
-        for ride in unsynced {
-            group.enter()
-            syncRide(ride) { success in
-                if !success {
-                    lock.lock()
-                    anyUploadFailed = true
-                    lock.unlock()
+        Task {
+            var failed = false
+            await withTaskGroup(of: Bool.self) { group in
+                for ride in unsynced {
+                    group.addTask { await self.uploadRide(ride) }
                 }
-                group.leave()
+                for await success in group where !success { failed = true }
             }
-        }
-
-        group.notify(queue: .main) {
-            if anyUploadFailed {
-                completion(false)
-            } else {
-                // 2. Download ALL cloud rides and insert the missing ones.
-                self.downloadAndInsert(uid: uid, limit: nil) { success in
-                    completion(success)
-                }
+            guard !failed else {
+                await MainActor.run { completion(false) }
+                return
+            }
+            self.downloadAndInsert(uid: uid, limit: nil) { success in
+                completion(success)
             }
         }
     }
