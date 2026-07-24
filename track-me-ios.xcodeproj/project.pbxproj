@@ -84,6 +84,8 @@
 		};
 		AA0000000000000000000009 /* track-me-iosTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "track-me-iosTests";
 			sourceTree = "<group>";
 		};
@@ -206,8 +208,6 @@
 				AA0000000000000000000009 /* track-me-iosTests */,
 			);
 			name = "track-me-iosTests";
-			packageProductDependencies = (
-			);
 			productName = "track-me-iosTests";
 			productReference = AA0000000000000000000008 /* track-me-iosTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -228,8 +228,6 @@
 				BB0000000000000000000009 /* TrackMeWidgets */,
 			);
 			name = TrackMeWidgets;
-			packageProductDependencies = (
-			);
 			productName = TrackMeWidgets;
 			productReference = BB0000000000000000000008 /* TrackMeWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -262,6 +260,12 @@
 			knownRegions = (
 				en,
 				Base,
+				es,
+				fr,
+				de,
+				hi,
+				ja,
+				"zh-Hans",
 			);
 			mainGroup = 811E27692FE99C6000A907B9;
 			minimizedProjectReferenceProxies = 1;
