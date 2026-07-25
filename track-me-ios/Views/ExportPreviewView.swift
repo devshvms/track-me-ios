@@ -86,8 +86,7 @@ struct ExportPreviewView: View {
                 .aspectRatio(selectedRatio.aspect, contentMode: .fit)
                 .clipped()
             
-            if showTitle || showDate || showDuration || showDistance || true {
-                VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6) {
                     if showTitle {
                         Text(ride.title ?? LocalizationHelper.localized("TrackMe Ride"))
                             .font(.title2).bold()
@@ -107,7 +106,6 @@ struct ExportPreviewView: View {
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
-            }
         }
         .frame(width: 350, height: 350 / selectedRatio.aspect)
     }
