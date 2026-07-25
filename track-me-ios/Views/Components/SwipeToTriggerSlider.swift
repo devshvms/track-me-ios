@@ -9,6 +9,7 @@ struct SwipeToTriggerSlider: View {
     @State private var countdown: Int = 10
     @State private var timer: Timer?
     @State private var animationProgress: CGFloat = 0
+    @State private var lastHapticOffset: CGFloat = 0
 
     let thumbSize: CGFloat = 64
 
@@ -39,6 +40,10 @@ struct SwipeToTriggerSlider: View {
                                 .onChanged { value in
                                     if value.translation.width > 0 {
                                         offset = min(maxDrag, value.translation.width)
+                                        if abs(offset - lastHapticOffset) > 50 {
+                                            Haptics.selection()
+                                            lastHapticOffset = offset
+                                        }
                                     }
                                 }
                                 .onEnded { value in
@@ -49,6 +54,7 @@ struct SwipeToTriggerSlider: View {
                                             offset = 0
                                         }
                                     }
+                                    lastHapticOffset = 0
                                 }
                         )
                 } else {
