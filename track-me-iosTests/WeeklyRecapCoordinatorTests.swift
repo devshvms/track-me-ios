@@ -6,9 +6,9 @@ import XCTest
 final class WeeklyRecapCoordinatorTests: XCTestCase {
     private func calendar() -> Calendar { WeekKey.mondayAnchored(timeZone: TimeZone(identifier: "UTC")!) }
 
-    private func date(_ day: Int) -> Date {
+    private func date(_ day: Int, month: Int = 7) -> Date {
         var components = DateComponents()
-        components.year = 2026; components.month = 7; components.day = day; components.hour = 12
+        components.year = 2026; components.month = month; components.day = day; components.hour = 12
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC")!
         return calendar.date(from: components)!
@@ -26,7 +26,7 @@ final class WeeklyRecapCoordinatorTests: XCTestCase {
 
         stats.currentWeekStartEpochDay = WeekKey.weekStartEpochDay(date(27), calendar: calendar())
         stats.currentWeekRideCount = 2
-        XCTAssertNotNil(WeeklyRecapSelector.select(stats, now: date(4), calendar: calendar()))
+        XCTAssertNotNil(WeeklyRecapSelector.select(stats, now: date(4, month: 8), calendar: calendar()))
         // Store acknowledgement is idempotent; repeating the same week marker is unchanged.
         stats.lastRecapShownWeekStartEpochDay = firstWeek
         XCTAssertEqual(stats.lastRecapShownWeekStartEpochDay, firstWeek)
