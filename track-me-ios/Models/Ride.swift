@@ -11,6 +11,7 @@ final class Ride {
     var isSynced: Bool
     var firestoreId: String?
     var title: String?
+    var persona: String = "AUTO"
     
     @Relationship(deleteRule: .cascade, inverse: \GPSPoint.ride)
     var points: [GPSPoint]?
@@ -23,4 +24,8 @@ final class Ride {
         self.isSynced = isSynced
         self.title = title
     }
+}
+
+extension Ride {
+    var ridePersona: RidePersona { RidePersona.fromStoredName(persona) }
 }

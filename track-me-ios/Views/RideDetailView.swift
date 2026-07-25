@@ -176,6 +176,12 @@ struct RideDetailView: View {
                 } else {
                     Text(ride.title ?? "Ride Details")
                         .font(.headline)
+                    if ride.ridePersona != .auto {
+                        Text("\(ride.ridePersona.emoji) \(ride.ridePersona.displayName)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.secondary)
+                            .accessibilityLabel(ride.ridePersona.displayName)
+                    }
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {

@@ -35,6 +35,7 @@ class FirestoreSyncManager {
             "endTime": ride.endTime ?? NSNull(),
             "sourceInfo": ride.sourceInfo,
             "title": ride.title ?? "",
+            "persona": ride.persona,
             "points": pointsArray
         ]
 
