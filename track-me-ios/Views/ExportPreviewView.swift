@@ -5,11 +5,31 @@ struct ExportPreviewView: View {
     let ride: Ride
     let snapshotImage: UIImage
     
-    @State private var showStats = true
     @State private var showTitle = true
+    @State private var showDate = true
+    @State private var showDuration = true
+    @State private var showDistance = true
+    @State private var darkOverlay = true
+    @State private var selectedRatio: ExportRatio = .square
+    @State private var renderedImage: UIImage
+    @State private var isRendering = false
+    @State private var ratioDebounce: DispatchWorkItem?
     
     @State private var isShowingShareSheet = false
     @State private var shareItems: [Any] = []
+
+    enum ExportRatio: String, CaseIterable, Identifiable {
+        case square = "1:1", portrait = "4:5", story = "9:16"
+        var id: String { rawValue }
+        var aspect: CGFloat { switch self { case .square: return 1; case .portrait: return 4.0 / 5.0; case .story: return 9.0 / 16.0 } }
+        var snapshotSize: CGSize { CGSize(width: 800, height: 800 / aspect) }
+    }
+
+    init(ride: Ride, snapshotImage: UIImage) {
+        self.ride = ride
+        self.snapshotImage = snapshotImage
+        _renderedImage = State(initialValue: snapshotImage)
+    }
     
     var body: some View {
         VStack {
@@ -21,8 +41,14 @@ struct ExportPreviewView: View {
             Spacer()
             
             Form {
-                Toggle("Show Ride Title", isOn: $showTitle)
-                Toggle("Show Stats Overlay", isOn: $showStats)
+                Picker(LocalizationHelper.localized("Image ratio"), selection: $selectedRatio) {
+                    ForEach(ExportRatio.allCases) { ratio in Text(ratio.rawValue).tag(ratio) }
+                }.pickerStyle(.segmented)
+                Toggle(LocalizationHelper.localized("Show ride title"), isOn: $showTitle)
+                Toggle(LocalizationHelper.localized("Show date"), isOn: $showDate)
+                Toggle(LocalizationHelper.localized("Show duration"), isOn: $showDuration)
+                Toggle(LocalizationHelper.localized("Show distance"), isOn: $showDistance)
+                Toggle(LocalizationHelper.localized("Dark overlay"), isOn: $darkOverlay)
             }
             .frame(height: 150)
             .cornerRadius(16)
@@ -31,7 +57,7 @@ struct ExportPreviewView: View {
             Button(action: shareImage) {
                 HStack {
                     Image(systemName: "square.and.arrow.up")
-                    Text("Share Image")
+                    Text(LocalizationHelper.localized("Share image"))
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -49,44 +75,58 @@ struct ExportPreviewView: View {
         .sheet(isPresented: $isShowingShareSheet) {
             ActivityView(activityItems: shareItems)
         }
+        .onChange(of: selectedRatio) { _, ratio in
+            ratioDebounce?.cancel()
+            let work = DispatchWorkItem { regenerateSnapshot(for: ratio) }
+            ratioDebounce = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        }
     }
     
     var exportFrame: some View {
         ZStack(alignment: .bottom) {
-            Image(uiImage: snapshotImage)
+            if isRendering { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
+            Image(uiImage: renderedImage)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 350, height: 400)
+                .aspectRatio(selectedRatio.aspect, contentMode: .fit)
                 .clipped()
             
-            if showStats || showTitle {
-                VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6) {
                     if showTitle {
-                        Text(ride.title ?? "TrackMe Ride")
+                        Text(ride.title ?? LocalizationHelper.localized("TrackMe Ride"))
                             .font(.title2).bold()
-                            .foregroundColor(.white)
+                            .foregroundColor(darkOverlay ? .white : .black)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                     }
-                    if showStats {
-                        let duration = String(format: "%.0f mins", (ride.endTime?.timeIntervalSince(ride.startTime) ?? 0) / 60)
-                        let distanceStr: String = {
-                            if let pts = ride.points, pts.count > 0 {
-                                return String(format: "%.2f km", calculateDistance(pts) / 1000)
-                            }
-                            return "0.00 km"
-                        }()
-                        let dateStr = DateFormatter.localizedString(from: ride.startTime ?? Date(), dateStyle: .medium, timeStyle: .none)
-                        
-                        Text("\(dateStr) • \(duration) • \(distanceStr)")
+                    let points = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
+                    let duration = ride.endTime?.timeIntervalSince(ride.startTime) ?? points.last.map { $0.timestamp.timeIntervalSince(ride.startTime) } ?? 0
+                    let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .none)
+                    let fields = [showDate ? dateStr : nil, showDuration ? String(format: "%02d:%02d:%02d", Int(duration) / 3600, (Int(duration) % 3600) / 60, Int(duration) % 60) : nil, showDistance ? String(format: "%.2f km", RideDistance.kilometers(points)) : nil].compactMap { $0 }
+                    if !fields.isEmpty {
+                        Text(fields.joined(separator: " • "))
                             .font(.subheadline)
-                            .foregroundColor(Color.white.opacity(0.9))
+                            .foregroundColor(darkOverlay ? .white : .black)
                     }
+                    HStack { Spacer(); Text("TrackMe") // TODO(attribution): replace with approved wordmark asset.
+                        .font(.subheadline.weight(.semibold)).foregroundColor(darkOverlay ? .white : BrandColor.primary) }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.black.opacity(0.6))
+                .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
+        }
+        .frame(width: 350, height: 350 / selectedRatio.aspect)
+    }
+
+    private func regenerateSnapshot(for ratio: ExportRatio) {
+        isRendering = true
+        ImageExporter.generateSnapshot(for: ride, size: ratio.snapshotSize) { image in
+            Task { @MainActor in
+                if let image { renderedImage = image }
+                isRendering = false
             }
         }
-        .frame(width: 350, height: 400)
     }
     
     @MainActor
@@ -103,36 +143,4 @@ struct ExportPreviewView: View {
         }
     }
     
-    private func calculateDistance(_ points: [GPSPoint]) -> Double {
-        var dist = 0.0
-        for i in 1..<points.count {
-            let p1 = points[i-1].coordinate
-            let p2 = points[i].coordinate
-            dist += p1.distance(to: p2) // Assuming MKMapPoint distance wait no, CLLocations are better. Let's use simple Pythagorean approximation just for export display or distance property.
-            // Wait, coordinate is CLLocationCoordinate2D.
-        }
-        return dist // We actually don't have a direct distance property on GPSPoint. Let's fix this in the code.
-    }
-}
-
-extension CLLocationCoordinate2D {
-    func distance(to: CLLocationCoordinate2D) -> Double {
-        let l1 = CLLocation(latitude: self.latitude, longitude: self.longitude)
-        let l2 = CLLocation(latitude: to.latitude, longitude: to.longitude)
-        return l1.distance(from: l2)
-    }
-}
-
-struct StatBadge: View {
-    var icon: String
-    var value: String
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-            Text(value).bold()
-        }
-        .font(.caption)
-        .foregroundColor(.white)
-    }
 }

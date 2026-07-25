@@ -386,7 +386,7 @@ struct RideDetailView: View {
                 .foregroundColor(.white)
                 .accessibilityAddTraits(.isHeader)
             
-            let totalDist = (cumulativeDistances.last ?? 0) / 1000.0
+            let totalDist = RideDistance.kilometers(sortedPoints)
             let duration = (ride.endTime ?? ride.startTime).timeIntervalSince(ride.startTime)
             let avgSpeed = duration > 0 ? (totalDist / (duration / 3600.0)) : 0.0
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
@@ -453,7 +453,9 @@ struct RideDetailView: View {
         }
         .padding(.horizontal)
         .sheet(isPresented: $showImagePreview) {
-            ImagePreviewView(image: snapshotImage)
+            if let image = snapshotImage {
+                ExportPreviewView(ride: ride, snapshotImage: image)
+            }
         }
     }
     
@@ -481,40 +483,6 @@ struct RideDetailView: View {
             return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
         } else {
             return String(format: "%02d:%02d:%02d", 0, minutes, seconds)
-        }
-    }
-}
-
-struct ImagePreviewView: View {
-    @Environment(\.dismiss) var dismiss
-    let image: UIImage?
-    
-    var body: some View {
-        NavigationStack {
-            VStack {
-                if let image = image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .padding()
-                } else {
-                    ProgressView()
-                }
-            }
-            .navigationTitle("Preview")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if let image = image {
-                        ShareLink(item: Image(uiImage: image), preview: SharePreview("Ride Snapshot", image: Image(uiImage: image))) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-            }
         }
     }
 }
