@@ -316,6 +316,16 @@ struct HomeView: View {
         } message: {
             Text("TrackMe records your route locally first and needs location access while you are moving. Allowing Always access lets an active track continue when your phone is locked.")
         }
+        .alert("Location access needed", isPresented: $trackingManager.showLocationDeniedRecovery) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Not now", role: .cancel) { }
+        } message: {
+            Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
+        }
         .trackScreen("HomeView")
     }
 
