@@ -91,8 +91,10 @@ struct ExportPreviewView: View {
                         Text(ride.title ?? LocalizationHelper.localized("TrackMe Ride"))
                             .font(.title2).bold()
                             .foregroundColor(darkOverlay ? .white : .black)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                     }
-                    let points = ride.points ?? []
+                    let points = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
                     let duration = ride.endTime?.timeIntervalSince(ride.startTime) ?? points.last.map { $0.timestamp.timeIntervalSince(ride.startTime) } ?? 0
                     let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .none)
                     let fields = [showDate ? dateStr : nil, showDuration ? String(format: "%02d:%02d:%02d", Int(duration) / 3600, (Int(duration) % 3600) / 60, Int(duration) % 60) : nil, showDistance ? String(format: "%.2f km", RideDistance.kilometers(points)) : nil].compactMap { $0 }
@@ -101,7 +103,8 @@ struct ExportPreviewView: View {
                             .font(.subheadline)
                             .foregroundColor(darkOverlay ? .white : .black)
                     }
-                    HStack { Spacer(); Text("TrackMe").font(.subheadline.weight(.semibold)).foregroundColor(darkOverlay ? .white : BrandColor.primary) }
+                    HStack { Spacer(); Text("TrackMe") // TODO(attribution): replace with approved wordmark asset.
+                        .font(.subheadline.weight(.semibold)).foregroundColor(darkOverlay ? .white : BrandColor.primary) }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)

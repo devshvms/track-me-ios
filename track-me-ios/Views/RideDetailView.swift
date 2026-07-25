@@ -486,37 +486,3 @@ struct RideDetailView: View {
         }
     }
 }
-
-struct ImagePreviewView: View {
-    @Environment(\.dismiss) var dismiss
-    let image: UIImage?
-    
-    var body: some View {
-        NavigationStack {
-            VStack {
-                if let image = image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .padding()
-                } else {
-                    ProgressView()
-                }
-            }
-            .navigationTitle("Preview")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if let image = image {
-                        ShareLink(item: Image(uiImage: image), preview: SharePreview("Ride Snapshot", image: Image(uiImage: image))) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
