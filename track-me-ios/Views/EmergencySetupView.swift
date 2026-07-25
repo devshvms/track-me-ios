@@ -114,7 +114,7 @@ struct EmergencySetupView: View {
                     .frame(maxWidth: .infinity)
                     .foregroundColor((messageTemplate.isEmpty || contacts.isEmpty) ? .secondary : .white)
             }
-            .listRowBackground((messageTemplate.isEmpty || contacts.isEmpty) ? Color.gray.opacity(0.3) : BrandColor.successGreen)
+            .listRowBackground((messageTemplate.isEmpty || contacts.isEmpty) ? Color.gray.opacity(0.3) : BrandColor.success)
             .disabled(messageTemplate.isEmpty || contacts.isEmpty)
         }
     }
