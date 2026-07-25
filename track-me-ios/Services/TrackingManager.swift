@@ -27,6 +27,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var currentSpeed: Double = 0.0
     var totalDistance: Double = 0.0
     var durationInMillis: TimeInterval = 0
+    var isAutoPaused: Bool = false
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
     var showLocationPermissionExplanation = false
@@ -210,7 +211,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             startedAt: Date().addingTimeInterval(-elapsed),
             distanceMeters: totalDistance,
             speedMps: currentSpeed,
-            isPaused: state == .paused || state == .storageLow,
+            isPaused: state == .paused || state == .storageLow || isAutoPaused,
             isGpsLost: state == .gpsLost,
             pausedElapsed: elapsed,
             force: force
@@ -260,7 +261,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             if self.state == .tracking || self.state == .gpsLost {
-                self.durationInMillis += 1000
+                let previousAutoPaused = self.isAutoPaused
+                if self.state == .tracking {
+                    let start = Date().addingTimeInterval(-GPSProcessor.autoPauseWindow)
+                    self.isAutoPaused = AutoPausePreference.isEnabled() && GPSProcessor.calculateAutoPause(recentPoints: self.points.filter { $0.timestamp >= start })
+                } else { self.isAutoPaused = false }
+                if !self.isAutoPaused { self.durationInMillis += 1000 }
                 if let lastTs = self.lastGpsTimestamp {
                     self.timeSinceLastGps = Date().timeIntervalSince(lastTs)
                     let previous = self.state
@@ -270,7 +276,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                         self.state = .tracking
                     }
                     // Push immediately on a GPS-lost/restored transition, otherwise throttle.
-                    self.updateLiveActivity(force: self.state != previous)
+                    self.updateLiveActivity(force: self.state != previous || previousAutoPaused != self.isAutoPaused)
                 }
             }
         }

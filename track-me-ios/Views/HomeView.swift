@@ -95,6 +95,13 @@ struct HomeView: View {
                             ).post()
                         }
                 }
+                if trackingManager.isAutoPaused && trackingManager.state == .tracking {
+                    Text(LocalizationHelper.localized("Auto Paused"))
+                        .font(.subheadline.bold()).foregroundColor(.black)
+                        .padding(.vertical, 8).padding(.horizontal, 16)
+                        .background(BrandColor.warning).clipShape(Capsule())
+                        .accessibilityLabel(LocalizationHelper.localized("Auto paused. You stopped moving; recording continues and distance is not counting."))
+                }
 
                 if !networkMonitor.isConnected {
                     let shieldText = trackingManager.state != .idle
