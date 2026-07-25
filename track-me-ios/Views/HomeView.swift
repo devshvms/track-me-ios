@@ -7,6 +7,7 @@ struct HomeView: View {
     @Bindable var trackingManager = TrackingManager.shared
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var mapStyle: MapStyle = .standard
+    @State private var mapStyleHapticTrigger = 0
     @Namespace private var mapScope
 
     @Bindable var networkMonitor = NetworkMonitor.shared
@@ -121,9 +122,9 @@ struct HomeView: View {
 
                     VStack(spacing: 16) {
                         Menu {
-                            Button("Normal") { mapStyle = .standard }
-                            Button("Satellite") { mapStyle = .imagery }
-                            Button("Hybrid") { mapStyle = .hybrid }
+                            Button("Normal") { mapStyle = .standard; mapStyleHapticTrigger += 1 }
+                            Button("Satellite") { mapStyle = .imagery; mapStyleHapticTrigger += 1 }
+                            Button("Hybrid") { mapStyle = .hybrid; mapStyleHapticTrigger += 1 }
                         } label: {
                             Image(systemName: "map")
                                 .font(.title2)
@@ -134,6 +135,7 @@ struct HomeView: View {
                                 .shadow(radius: 4)
                         }
                         .accessibilityLabel(LocalizationHelper.localized("Map style"))
+                        .sensoryFeedback(.selection, trigger: mapStyleHapticTrigger)
 
                         Button(action: { showLiveShareDialog = true }) {
                             if liveSharingManager.isActive {
@@ -165,6 +167,9 @@ struct HomeView: View {
                             ? LocalizationHelper.formatted("%@ remaining",
                                 formatDuration(TimeInterval(liveSharingManager.remainingSeconds)))
                             : "")
+                        .sensoryFeedback(trigger: liveSharingManager.isActive) { _, active in
+                            active ? .success : .impact(weight: .light)
+                        }
                     }
                     .padding(.trailing, 16)
                     .padding(.top, trackingManager.state == .gpsLost ? 16 : 50)
@@ -260,6 +265,7 @@ struct HomeView: View {
                         TrackingButton(icon: "play.fill", color: BrandColor.primaryFill,
                                        label: LocalizationHelper.localized("Start tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                Haptics.impact(.medium)
                                 trackingManager.startTracking()
                             }
                         }
@@ -267,6 +273,7 @@ struct HomeView: View {
                         TrackingButton(icon: "pause.fill", color: .orange,
                                        label: LocalizationHelper.localized("Pause tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                Haptics.selection()
                                 trackingManager.pauseTracking()
                             }
                         }
@@ -274,12 +281,14 @@ struct HomeView: View {
                         TrackingButton(icon: "play.fill", color: BrandColor.primaryFill,
                                        label: LocalizationHelper.localized("Resume tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                Haptics.impact(.medium)
                                 trackingManager.resumeTracking()
                             }
                         }
                         TrackingButton(icon: "stop.fill", color: .red,
                                        label: LocalizationHelper.localized("Stop tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                Haptics.impact(.heavy)
                                 trackingManager.stopTracking()
                             }
                         }
