@@ -257,7 +257,7 @@ struct HomeView: View {
                 HStack(spacing: 24) {
                     switch trackingManager.state {
                     case .idle:
-                        TrackingButton(icon: "play.fill", color: BrandColor.primary,
+                        TrackingButton(icon: "play.fill", color: BrandColor.primaryFill,
                                        label: LocalizationHelper.localized("Start tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.startTracking()
@@ -271,7 +271,7 @@ struct HomeView: View {
                             }
                         }
                     case .paused, .storageLow:
-                        TrackingButton(icon: "play.fill", color: BrandColor.primary,
+                        TrackingButton(icon: "play.fill", color: BrandColor.primaryFill,
                                        label: LocalizationHelper.localized("Resume tracking")) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 trackingManager.resumeTracking()
