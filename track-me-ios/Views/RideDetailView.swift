@@ -453,7 +453,9 @@ struct RideDetailView: View {
         }
         .padding(.horizontal)
         .sheet(isPresented: $showImagePreview) {
-            ImagePreviewView(image: snapshotImage)
+            if let image = snapshotImage {
+                ExportPreviewView(ride: ride, snapshotImage: image)
+            }
         }
     }
     
