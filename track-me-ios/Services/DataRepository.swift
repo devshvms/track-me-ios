@@ -150,8 +150,8 @@ final class DataRepository {
         // container's delete rule. Bulk model-delete is available on this deployment target.
         try context.delete(model: GPSPoint.self)
         try context.delete(model: Ride.self)
-        try context.delete(model: EmergencyContact.self)
-        try context.delete(model: EmergencySettings.self)
+        try? context.delete(model: EmergencyContact.self)
+        try? context.delete(model: EmergencySettings.self)
         try context.save()
     }
 

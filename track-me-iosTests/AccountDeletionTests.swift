@@ -10,7 +10,7 @@ final class DataRepositoryWipeTests: XCTestCase {
 
     override func setUpWithError() throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        container = try ModelContainer(for: Ride.self, GPSPoint.self, configurations: config)
+        container = try ModelContainer(for: Ride.self, GPSPoint.self, EmergencyContact.self, EmergencySettings.self, configurations: config)
         repository = DataRepository()
         repository.setup(container: container)
     }
