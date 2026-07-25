@@ -23,6 +23,7 @@ enum BrandColor {
     static let navy700 = Color(hex: 0x23272F)
     static let greenGo = Color(hex: 0x16A34A)
     static let redSos = Color(hex: 0xDC2626)
+    static let redTextDark = Color(hex: 0xF87171) // AA error/destructive TEXT on dark surfaces
     static let amberWarn = Color(hex: 0xF59E0B)
 
     // MARK: Semantic roles ---------------------------------------------------
@@ -51,6 +52,14 @@ enum BrandColor {
     static let sos = redSos
     /// A deeper SOS red for the fully-armed slider state.
     static let sosDeep = Color(hex: 0xB30000)
+
+    /// SOS / destructive / error as FOREGROUND TEXT. Adapts to the surface so
+    /// error text is WCAG AA in BOTH appearances: deep red (#DC2626, 4.8:1 on
+    /// white) on light, brightened red (#F87171, ~6.2:1 on navy) on dark. This is
+    /// the iOS mirror of Android's adaptive Material `error` role (RedSos light /
+    /// RedTextDark dark, theme/Color.kt + Theme.kt). Use for any red LABEL; keep
+    /// `sos` for fills, strokes, `.tint` markers, and the SOS slider thumb.
+    static let sosText = dynamic(light: 0xDC2626, dark: 0xF87171)
 
     /// Warning (GPS lost, paused, pending/processing).
     static let warning = amberWarn

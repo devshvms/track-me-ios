@@ -210,7 +210,7 @@ struct AccountManagementView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(Color.clear)
-                                    .foregroundColor(BrandColor.sos)
+                                    .foregroundColor(BrandColor.sosText)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 24)
                                             .stroke(BrandColor.sos.opacity(0.5), lineWidth: 1)
@@ -223,7 +223,7 @@ struct AccountManagementView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(BrandColor.sos.opacity(0.15))
-                                    .foregroundColor(BrandColor.sos)
+                                    .foregroundColor(BrandColor.sosText)
                                     .cornerRadius(24)
                             }
                         }
