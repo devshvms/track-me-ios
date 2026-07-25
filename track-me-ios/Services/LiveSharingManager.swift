@@ -195,6 +195,24 @@ class LiveSharingManager {
         }
     }
 
+    func endSessionAwaitingAuth(reason: String) async {
+        guard isActive, let id = sessionId, let url = URL(string: APIConfig.LiveShare.stopSession(sessionId: id)) else { return }
+        let token = await withCheckedContinuation { continuation in
+            withAuthToken { token in continuation.resume(returning: token) }
+        }
+        var request = Self.makeLiveShareRequest(url: url)
+        request.timeoutInterval = 5
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["stopReason": reason])
+        applyAuth(&request, token: token)
+        _ = try? await URLSession.shared.data(for: request)
+        await MainActor.run {
+            let duration = self.sessionStartTime.map { Int(Date().timeIntervalSince($0)) } ?? 0
+            TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
+            self.isActive = false; self.sessionId = nil; self.shareLink = nil; self.expiresAt = nil; self.sessionStartTime = nil
+            self.isRetryingAuth = false; self.stopTimers()
+        }
+    }
+
     private func startTimers() {
         stopTimers()
 

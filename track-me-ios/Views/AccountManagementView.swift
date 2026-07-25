@@ -242,11 +242,13 @@ struct AccountManagementView: View {
         .alert("Sign Out Warning", isPresented: $showSignOutWarning) {
             Button("Cancel", role: .cancel) { }
             Button("Sign Out", role: .destructive) {
-                AuthManager.shared.signOut()
-                dismiss()
+                Task {
+                    await AuthManager.shared.signOut()
+                    dismiss()
+                }
             }
         } message: {
-            Text("Signing out will clear all your synced rides from this phone's local history. They will remain safely in the cloud, and any new rides will be saved locally. Are you sure you want to sign out?")
+            Text(LocalizationHelper.localized("Signing out will stop any active live share and clear synced rides from this phone. They remain safely in the cloud, and new rides continue to be saved locally. Are you sure you want to sign out?"))
         }
         .alert("Delete Cloud Data", isPresented: $showDeleteCloudWarning) {
             Button("Cancel", role: .cancel) { }

@@ -6830,6 +6830,16 @@
         }
       }
     },
+    "Signing out will stop any active live share and clear synced rides from this phone. They remain safely in the cloud, and new rides continue to be saved locally. Are you sure you want to sign out?": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Beim Abmelden wird eine aktive Live-Freigabe beendet und synchronisierte Fahrten werden von diesem iPhone entfernt. Sie bleiben sicher in der Cloud. Wirklich abmelden?" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Al cerrar sesión se detendrá cualquier uso compartido en directo y se borrarán las rutas sincronizadas de este teléfono. Seguirán en la nube. ¿Quieres cerrar sesión?" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "La déconnexion arrêtera tout partage en direct et supprimera les trajets synchronisés de cet iPhone. Ils resteront dans le cloud. Voulez-vous vous déconnecter ?" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "साइन आउट करने से सक्रिय लाइव शेयर रुक जाएगा और इस फोन से सिंक राइड हट जाएंगी। वे क्लाउड में सुरक्षित रहेंगी। साइन आउट करें?" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "サインアウトするとアクティブなライブ共有が停止し、同期済みライドがこのiPhoneから削除されます。クラウドには残ります。サインアウトしますか？" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "退出登录会停止活动中的实时分享，并从此手机清除已同步的骑行。它们仍保存在云端。确定退出登录吗？" } }
+      }
+    },
     "SPEED": {
       "localizations": {
         "de": {
@@ -9132,4 +9142,3 @@
   },
   "version": "1.1"
 }
-

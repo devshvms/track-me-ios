@@ -67,7 +67,10 @@ class AuthManager {
         }
     }
 
-    func signOut() {
+    func signOut() async {
+        if LiveSharingManager.shared.isActive {
+            await LiveSharingManager.shared.endSessionAwaitingAuth(reason: "Signed out")
+        }
         try? Auth.auth().signOut()
         Task { @MainActor in
             DataRepository.shared.disableEmergencySetup()
@@ -80,6 +83,9 @@ class AuthManager {
 
     func deleteAccountAndData(feedback: String) async throws {
         TelemetryManager.shared.trackAccountDeletionRequested(reason: feedback)
+        if LiveSharingManager.shared.isActive {
+            await LiveSharingManager.shared.endSessionAwaitingAuth(reason: "Account deleted")
+        }
         // D3: send the delete_account email while the token is still valid — it is
         // revoked once the account is deleted. Best-effort; never blocks deletion.
         await NotificationService.shared.send(.deleteAccount)
@@ -94,6 +100,6 @@ class AuthManager {
         // Only reached if BOTH cloud delete and auth delete succeeded → wipe local + sign out.
         try await DataRepository.shared.wipeAllLocalData()
         await RideStatsStore.shared.reset()
-        signOut()
+        await signOut()
     }
 }
