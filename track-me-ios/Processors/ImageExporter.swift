@@ -3,7 +3,7 @@ import MapKit
 import UIKit
 
 class ImageExporter {
-    static func generateSnapshot(for ride: Ride, completion: @escaping (UIImage?) -> Void) {
+    static func generateSnapshot(for ride: Ride, size: CGSize = CGSize(width: 800, height: 800), completion: @escaping (UIImage?) -> Void) {
         let sortedPoints = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
         guard !sortedPoints.isEmpty else {
             completion(nil)
@@ -29,7 +29,7 @@ class ImageExporter {
         
         let options = MKMapSnapshotter.Options()
         options.region = MKCoordinateRegion(center: center, span: span)
-        options.size = CGSize(width: 800, height: 800)
+        options.size = size
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
             options.scale = windowScene.screen.scale
         } else {

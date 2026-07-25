@@ -386,7 +386,7 @@ struct RideDetailView: View {
                 .foregroundColor(.white)
                 .accessibilityAddTraits(.isHeader)
             
-            let totalDist = (cumulativeDistances.last ?? 0) / 1000.0
+            let totalDist = RideDistance.kilometers(sortedPoints)
             let duration = (ride.endTime ?? ride.startTime).timeIntervalSince(ride.startTime)
             let avgSpeed = duration > 0 ? (totalDist / (duration / 3600.0)) : 0.0
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)

@@ -10,9 +10,25 @@ struct ExportPreviewView: View {
     @State private var showDuration = true
     @State private var showDistance = true
     @State private var darkOverlay = true
+    @State private var selectedRatio: ExportRatio = .square
+    @State private var renderedImage: UIImage
+    @State private var isRendering = false
     
     @State private var isShowingShareSheet = false
     @State private var shareItems: [Any] = []
+
+    enum ExportRatio: String, CaseIterable, Identifiable {
+        case square = "1:1", portrait = "4:5", story = "9:16"
+        var id: String { rawValue }
+        var aspect: CGFloat { switch self { case .square: return 1; case .portrait: return 4.0 / 5.0; case .story: return 9.0 / 16.0 } }
+        var snapshotSize: CGSize { CGSize(width: 800, height: 800 / aspect) }
+    }
+
+    init(ride: Ride, snapshotImage: UIImage) {
+        self.ride = ride
+        self.snapshotImage = snapshotImage
+        _renderedImage = State(initialValue: snapshotImage)
+    }
     
     var body: some View {
         VStack {
@@ -24,11 +40,14 @@ struct ExportPreviewView: View {
             Spacer()
             
             Form {
-                Toggle("Show Ride Title", isOn: $showTitle)
-            Toggle("Show Date", isOn: $showDate)
-            Toggle("Show Duration", isOn: $showDuration)
-            Toggle("Show Distance", isOn: $showDistance)
-            Toggle("Dark Overlay", isOn: $darkOverlay)
+                Picker(LocalizationHelper.localized("Image ratio"), selection: $selectedRatio) {
+                    ForEach(ExportRatio.allCases) { ratio in Text(ratio.rawValue).tag(ratio) }
+                }.pickerStyle(.segmented)
+                Toggle(LocalizationHelper.localized("Show ride title"), isOn: $showTitle)
+                Toggle(LocalizationHelper.localized("Show date"), isOn: $showDate)
+                Toggle(LocalizationHelper.localized("Show duration"), isOn: $showDuration)
+                Toggle(LocalizationHelper.localized("Show distance"), isOn: $showDistance)
+                Toggle(LocalizationHelper.localized("Dark overlay"), isOn: $darkOverlay)
             }
             .frame(height: 150)
             .cornerRadius(16)
@@ -37,7 +56,7 @@ struct ExportPreviewView: View {
             Button(action: shareImage) {
                 HStack {
                     Image(systemName: "square.and.arrow.up")
-                    Text("Share Image")
+                    Text(LocalizationHelper.localized("Share image"))
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -55,22 +74,24 @@ struct ExportPreviewView: View {
         .sheet(isPresented: $isShowingShareSheet) {
             ActivityView(activityItems: shareItems)
         }
+        .onChange(of: selectedRatio) { _, ratio in regenerateSnapshot(for: ratio) }
     }
     
     var exportFrame: some View {
         ZStack(alignment: .bottom) {
-            Image(uiImage: snapshotImage)
+            if isRendering { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
+            Image(uiImage: renderedImage)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 350, height: 400)
+                .aspectRatio(selectedRatio.aspect, contentMode: .fit)
                 .clipped()
             
-            if showTitle || showDate || showDuration || showDistance {
+            if showTitle || showDate || showDuration || showDistance || true {
                 VStack(alignment: .leading, spacing: 6) {
                     if showTitle {
                         Text(ride.title ?? LocalizationHelper.localized("TrackMe Ride"))
                             .font(.title2).bold()
-                            .foregroundColor(.white)
+                            .foregroundColor(darkOverlay ? .white : .black)
                     }
                     let points = ride.points ?? []
                     let duration = ride.endTime?.timeIntervalSince(ride.startTime) ?? points.last.map { $0.timestamp.timeIntervalSince(ride.startTime) } ?? 0
@@ -81,14 +102,24 @@ struct ExportPreviewView: View {
                             .font(.subheadline)
                             .foregroundColor(darkOverlay ? .white : .black)
                     }
-                    Text("TrackMe").font(.subheadline.weight(.semibold)).foregroundColor(darkOverlay ? .white : BrandColor.primary)
+                    HStack { Spacer(); Text("TrackMe").font(.subheadline.weight(.semibold)).foregroundColor(darkOverlay ? .white : BrandColor.primary) }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
             }
         }
-        .frame(width: 350, height: 400)
+        .frame(width: 350, height: 350 / selectedRatio.aspect)
+    }
+
+    private func regenerateSnapshot(for ratio: ExportRatio) {
+        isRendering = true
+        ImageExporter.generateSnapshot(for: ride, size: ratio.snapshotSize) { image in
+            Task { @MainActor in
+                if let image { renderedImage = image }
+                isRendering = false
+            }
+        }
     }
     
     @MainActor
