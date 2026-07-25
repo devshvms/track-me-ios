@@ -2258,6 +2258,16 @@
         }
       }
     },
+    "Speed and altitude chart. Duration %@. Average speed %@. Altitude ranges from %@ to %@ meters. %@": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Geschwindigkeits- und Höhendiagramm. Dauer %1$@. Durchschnittsgeschwindigkeit %2$@. Höhe von %3$@ bis %4$@ Meter. %5$@" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Gráfico de velocidad y altitud. Duración %1$@. Velocidad media %2$@. Altitud de %3$@ a %4$@ metros. %5$@" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Graphique de vitesse et d'altitude. Durée %1$@. Vitesse moyenne %2$@. Altitude de %3$@ à %4$@ mètres. %5$@" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "गति और ऊँचाई चार्ट। अवधि %1$@। औसत गति %2$@। ऊँचाई %3$@ से %4$@ मीटर तक। %5$@" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "速度と高度のグラフ。時間%1$@。平均速度%2$@。高度は%3$@から%4$@メートル。%5$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "速度和海拔图表。时长%1$@。平均速度%2$@。海拔从%3$@到%4$@米。%5$@" } }
+      }
+    },
     "%@ hours %@ minutes": {
       "localizations": {
         "de": {
@@ -4875,6 +4885,9 @@
         }
       }
     },
+    "Kilometers (km)": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Kilometer (km)" } }, "es": { "stringUnit": { "state": "translated", "value": "Kilómetros (km)" } }, "fr": { "stringUnit": { "state": "translated", "value": "Kilomètres (km)" } }, "hi": { "stringUnit": { "state": "translated", "value": "किलोमीटर (किमी)" } }, "ja": { "stringUnit": { "state": "translated", "value": "キロメートル (km)" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "公里 (km)" } } } },
+    "Miles (mi)": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Meilen (mi)" } }, "es": { "stringUnit": { "state": "translated", "value": "Millas (mi)" } }, "fr": { "stringUnit": { "state": "translated", "value": "Miles (mi)" } }, "hi": { "stringUnit": { "state": "translated", "value": "मील (mi)" } }, "ja": { "stringUnit": { "state": "translated", "value": "マイル (mi)" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "英里 (mi)" } } } },
+    "Units": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Einheiten" } }, "es": { "stringUnit": { "state": "translated", "value": "Unidades" } }, "fr": { "stringUnit": { "state": "translated", "value": "Unités" } }, "hi": { "stringUnit": { "state": "translated", "value": "इकाइयाँ" } }, "ja": { "stringUnit": { "state": "translated", "value": "単位" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "单位" } } } },
     "Language": {
       "localizations": {
         "de": {

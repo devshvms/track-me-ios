@@ -17,6 +17,7 @@ struct ExportPreviewView: View {
     
     @State private var isShowingShareSheet = false
     @State private var shareItems: [Any] = []
+    @ObservedObject private var unitSettings = UnitSettings.shared
 
     enum ExportRatio: String, CaseIterable, Identifiable {
         case square = "1:1", portrait = "4:5", story = "9:16"
@@ -103,7 +104,7 @@ struct ExportPreviewView: View {
                     let points = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
                     let duration = ride.endTime?.timeIntervalSince(ride.startTime) ?? points.last.map { $0.timestamp.timeIntervalSince(ride.startTime) } ?? 0
                     let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .none)
-                    let fields = [showDate ? dateStr : nil, showDuration ? String(format: "%02d:%02d:%02d", Int(duration) / 3600, (Int(duration) % 3600) / 60, Int(duration) % 60) : nil, showDistance ? String(format: "%.2f km", RideDistance.kilometers(points)) : nil].compactMap { $0 }
+                    let fields = [showDate ? dateStr : nil, showDuration ? String(format: "%02d:%02d:%02d", Int(duration) / 3600, (Int(duration) % 3600) / 60, Int(duration) % 60) : nil, showDistance ? UnitFormatter.distance(meters: RideDistance.meters(points), unit: unitSettings.unit) : nil].compactMap { $0 }
                     if !fields.isEmpty {
                         Text(fields.joined(separator: " • "))
                             .font(.subheadline)

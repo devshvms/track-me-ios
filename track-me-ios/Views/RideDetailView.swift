@@ -16,6 +16,7 @@ struct RideDetailView: View {
     @Bindable var ride: Ride
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var unitSettings = UnitSettings.shared
     
     // UI States
     @State private var isEditingTitle = false
@@ -117,12 +118,10 @@ struct RideDetailView: View {
                         // Scrubber Details
                         let index = scrubIndex ?? (sortedPoints.count - 1)
                         let elapsed = sortedPoints[index].timestamp.timeIntervalSince(ride.startTime)
-                        let dist = cumulativeDistances[index] / 1000.0
-                        
                         Text(LocalizationHelper.formatted(
-                            "Time: %@  |  Dist: %@ km",
+                            "Time: %@  |  Dist: %@",
                             formatDuration(elapsed),
-                            String(format: "%.2f", dist)
+                            UnitFormatter.distance(meters: cumulativeDistances[index], unit: unitSettings.unit)
                         ))
                             .font(.system(.subheadline, design: .default, weight: .bold))
                             .foregroundColor(.secondary)
@@ -324,7 +323,7 @@ struct RideDetailView: View {
                 )
                 .foregroundStyle(by: .value("Metric", "Speed"))
                 .annotation(position: .top, alignment: .center) {
-                    Text(String(format: "%.1f m/s", pts[idx].rawSpeed))
+                    Text(UnitFormatter.speed(mps: pts[idx].rawSpeed, unit: unitSettings.unit))
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
@@ -363,18 +362,18 @@ struct RideDetailView: View {
         // Swift Charts' default per-point audio graph is meaningless with
         // hundreds of points; speak a single summary sentence instead.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(ChartAccessibility.description(points: sortedPoints))
+        .accessibilityLabel(ChartAccessibility.description(points: sortedPoints, unit: unitSettings.unit))
     }
 
     /// Spoken value for the timeline scrubber at the given sample index.
     private func scrubberAccessibilityValue(index: Int) -> String {
         guard index >= 0, index < sortedPoints.count else { return "" }
         let elapsed = sortedPoints[index].timestamp.timeIntervalSince(ride.startTime)
-        let speedKmh = sortedPoints[index].speed * 3.6
+        let speed = UnitFormatter.speed(mps: sortedPoints[index].speed, unit: unitSettings.unit)
         return LocalizationHelper.formatted(
-            "Time %@, speed %@ kilometers per hour",
+            "Time %@, speed %@",
             formatDuration(elapsed),
-            String(format: "%.1f", speedKmh)
+            speed
         )
     }
     
@@ -386,13 +385,13 @@ struct RideDetailView: View {
                 .foregroundColor(.white)
                 .accessibilityAddTraits(.isHeader)
             
-            let totalDist = RideDistance.kilometers(sortedPoints)
+            let totalDistMeters = RideDistance.meters(sortedPoints)
             let duration = (ride.endTime ?? ride.startTime).timeIntervalSince(ride.startTime)
-            let avgSpeed = duration > 0 ? (totalDist / (duration / 3600.0)) : 0.0
+            let avgSpeedMps = duration > 0 ? (totalDistMeters / duration) : 0.0
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
             
             HStack {
-                statItem(title: "Distance", value: String(format: "%.2f km", totalDist))
+                statItem(title: "Distance", value: UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit))
                 Spacer()
                 statItem(title: "Duration", value: formatDuration(duration))
                 Spacer()
@@ -404,7 +403,7 @@ struct RideDetailView: View {
                 Spacer()
                 statItem(title: "Max G-Force", value: String(format: "%.2f G", maxGForce))
                 Spacer()
-                statItem(title: "Avg Speed", value: String(format: "%.1f km/h", avgSpeed))
+                statItem(title: "Avg Speed", value: UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit))
             }
         }
         .padding(20)

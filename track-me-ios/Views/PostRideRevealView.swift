@@ -11,6 +11,7 @@ import SwiftUI
 struct PostRideRevealView: View {
     let reveal: Reveal
     let onDismiss: () -> Void
+    @ObservedObject private var unitSettings = UnitSettings.shared
 
     var body: some View {
         VStack(spacing: 14) {
@@ -94,7 +95,7 @@ struct PostRideRevealView: View {
         case .firstRide:
             return LocalizationHelper.localized("Welcome aboard. Every journey starts with one — nicely done.")
         case .distancePR, .durationPR:
-            let value = reveal.kind == .distancePR ? Self.formatKm(reveal.distanceMeters)
+            let value = reveal.kind == .distancePR ? UnitFormatter.distance(meters: reveal.distanceMeters, unit: unitSettings.unit, decimals: 1)
                                                    : Self.formatDuration(reveal.durationMillis)
             return LocalizationHelper.formatted("%@ — your longest ride yet.", value)
         case .milestone:
@@ -102,13 +103,9 @@ struct PostRideRevealView: View {
         case .standard:
             return LocalizationHelper.formatted(
                 "%@ in %@. Great to have you out there.",
-                Self.formatKm(reveal.distanceMeters), Self.formatDuration(reveal.durationMillis)
+                UnitFormatter.distance(meters: reveal.distanceMeters, unit: unitSettings.unit, decimals: 1), Self.formatDuration(reveal.durationMillis)
             )
         }
-    }
-
-    static func formatKm(_ meters: Double) -> String {
-        String(format: "%.1f km", meters / 1000.0)
     }
 
     /// Compact "1h 20m" / "45m"; parity with Android's reveal formatting.

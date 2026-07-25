@@ -21,14 +21,14 @@ enum ChartAccessibility {
     static let gapThresholdSeconds: TimeInterval = 25
 
     /// Composes the spoken description for a set of samples.
-    static func description(for samples: [ChartSample]) -> String {
+    static func description(for samples: [ChartSample], unit: UnitSystem = .metric) -> String {
         guard let first = samples.first, let last = samples.last else {
             return LocalizationHelper.localized("Speed and altitude chart. No GPS data available.")
         }
 
         let duration = last.timestamp.timeIntervalSince(first.timestamp)
-        let averageSpeedKmh = samples.reduce(0) { $0 + $1.speedMetersPerSecond }
-            / Double(samples.count) * 3.6
+        let averageSpeedMps = samples.reduce(0) { $0 + $1.speedMetersPerSecond }
+            / Double(samples.count)
         let altitudes = samples.map(\.altitudeMeters)
         let minAltitude = altitudes.min() ?? 0
         let maxAltitude = altitudes.max() ?? 0
@@ -47,9 +47,9 @@ enum ChartAccessibility {
         }
 
         return LocalizationHelper.formatted(
-            "Speed and altitude chart. Duration %@. Average speed %@ kilometers per hour. Altitude ranges from %@ to %@ meters. %@",
+            "Speed and altitude chart. Duration %@. Average speed %@. Altitude ranges from %@ to %@ meters. %@",
             spokenDuration(duration),
-            String(format: "%.1f", averageSpeedKmh),
+            UnitFormatter.speed(mps: averageSpeedMps, unit: unit),
             String(format: "%.0f", minAltitude),
             String(format: "%.0f", maxAltitude),
             gapSentence
@@ -75,12 +75,12 @@ enum ChartAccessibility {
 
 extension ChartAccessibility {
     /// App-facing convenience: maps SwiftData points into samples, sorted by time.
-    static func description(points: [GPSPoint]) -> String {
+    static func description(points: [GPSPoint], unit: UnitSystem = .metric) -> String {
         let samples = points
             .sorted { $0.timestamp < $1.timestamp }
             .map { ChartSample(timestamp: $0.timestamp,
                                speedMetersPerSecond: $0.speed,
                                altitudeMeters: $0.altitude) }
-        return description(for: samples)
+        return description(for: samples, unit: unit)
     }
 }
