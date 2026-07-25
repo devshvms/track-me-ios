@@ -4,6 +4,7 @@ import SwiftData
 
 struct SettingsView: View {
     @AppStorage("enableGPSPostProcessing") var isPostProcessingEnabled: Bool = true
+    @AppStorage("intelligentAutoPause") var isAutoPauseEnabled: Bool = true
     @State private var isLoggedOut = Auth.auth().currentUser == nil
 
     @State private var showGpsInfo = false
@@ -237,6 +238,14 @@ struct SettingsView: View {
                     }
                     .padding()
                     .background(Color(UIColor.secondarySystemGroupedBackground))
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(LocalizationHelper.localized("Intelligent Auto-Pause")).font(.subheadline)
+                                Text(LocalizationHelper.localized("Dynamically pauses the moving timer at traffic signals or stops based on activity speed.")).font(.caption).foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $isAutoPauseEnabled).labelsHidden().accessibilityLabel(LocalizationHelper.localized("Intelligent auto-pause"))
+                        }
                     .cornerRadius(16)
 
                     // Live Location Sharing Card

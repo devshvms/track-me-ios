@@ -451,11 +451,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             let isPaused: Bool
             if isHardwareStill || isStationaryDrift {
                 isPaused = true
-            } else {
+            } else if AutoPausePreference.isEnabled() {
                 let fifteenSecAgo = smoothedLocation.timestamp.addingTimeInterval(-15)
                 let recentWindow = points.filter { $0.timestamp >= fifteenSecAgo }
                 isPaused = GPSProcessor.calculateAutoPause(recentPoints: recentWindow)
-            }
+            } else { isPaused = false }
 
             currentSpeed = effectiveSpeed
             if MotionSensorManager.distanceShouldAccumulate(state: accumulationState, isPaused: isPaused, dist: dist, effectiveSpeed: effectiveSpeed) {
