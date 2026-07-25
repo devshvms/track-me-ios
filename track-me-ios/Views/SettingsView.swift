@@ -18,6 +18,7 @@ struct SettingsView: View {
 
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appTheme") private var appTheme: String = "system"
+    @ObservedObject private var unitSettings = UnitSettings.shared
     // Static so the shipped set can be regression-tested without instantiating the View
     // (see track-me-iosTests/LanguagePickerTests.swift). Codes must match the
     // Localizable.xcstrings localization keys exactly so Locale(identifier:) resolves the
@@ -232,6 +233,23 @@ struct SettingsView: View {
                                 Text("System").tag("system")
                                 Text("Light").tag("light")
                                 Text("Dark").tag("dark")
+                            }
+                            .tint(BrandColor.primary)
+                        }
+
+                        Divider()
+
+                        HStack {
+                            Text(LocalizationHelper.localized("Units"))
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Picker(LocalizationHelper.localized("Units"), selection: Binding(
+                                get: { unitSettings.unit },
+                                set: { unitSettings.set($0) }
+                            )) {
+                                Text(LocalizationHelper.localized("Kilometers (km)")).tag(UnitSystem.metric)
+                                Text(LocalizationHelper.localized("Miles (mi)")).tag(UnitSystem.imperial)
                             }
                             .tint(BrandColor.primary)
                         }

@@ -68,7 +68,18 @@ final class ChartAccessibilityTests: XCTestCase {
             sample(10, speed: 12, altitude: 60)
         ]
         let description = ChartAccessibility.description(for: samples)
-        XCTAssertTrue(description.contains("36.0 kilometers per hour"), description)
+        XCTAssertTrue(description.contains("36.0 km/h"), description)
+    }
+
+    func testImperialSpeedUsesSelectedUnit() {
+        let samples = [
+            ChartSample(timestamp: Date(timeIntervalSince1970: 0), speedMetersPerSecond: 10, altitudeMeters: 5),
+            ChartSample(timestamp: Date(timeIntervalSince1970: 10), speedMetersPerSecond: 10, altitudeMeters: 8)
+        ]
+
+        let description = ChartAccessibility.description(for: samples, unit: .imperial)
+
+        XCTAssertTrue(description.contains("22.4 mph"), description)
     }
 
     func testAltitudeRangeIsMinToMax() {

@@ -7,6 +7,7 @@ import SwiftUI
 struct WeeklyRecapView: View {
     let recap: WeeklyRecap
     let onDismiss: () -> Void
+    @ObservedObject private var unitSettings = UnitSettings.shared
 
     var body: some View {
         VStack(spacing: 20) {
@@ -18,7 +19,7 @@ struct WeeklyRecapView: View {
             VStack(spacing: 12) {
                 statRow(LocalizationHelper.localized("Rides"), "\(recap.rideCount)")
                 statRow(LocalizationHelper.localized("Distance"),
-                        String(format: "%.1f km", recap.distanceMeters / 1000.0))
+                        UnitFormatter.distance(meters: recap.distanceMeters, unit: unitSettings.unit, decimals: 1))
             }
             .padding(.horizontal, 28)
 

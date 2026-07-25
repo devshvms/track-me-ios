@@ -13,6 +13,7 @@ struct HomeView: View {
     @Namespace private var mapScope
 
     @Bindable var networkMonitor = NetworkMonitor.shared
+    @ObservedObject private var unitSettings = UnitSettings.shared
     @State private var liveSharingManager = LiveSharingManager.shared
     @State private var showLiveShareDialog = false
     // B1: durable one-shot post-ride reveal, surfaced once on Home.
@@ -219,18 +220,17 @@ struct HomeView: View {
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                                 .foregroundColor(.secondary)
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                Text(String(format: "%.1f", trackingManager.currentSpeed))
+                                Text(UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit).split(separator: " ").first.map(String.init) ?? "0.0")
                                     .font(.system(size: 32, weight: .bold, design: .rounded))
                                     .contentTransition(.numericText())
-                                Text("m/s")
+                                Text(UnitFormatter.speedUnitLabel(unitSettings.unit))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(LocalizationHelper.localized("Speed"))
-                        .accessibilityValue(LocalizationHelper.formatted(
-                            "%@ meters per second", String(format: "%.1f", trackingManager.currentSpeed)))
+                        .accessibilityValue(UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit))
 
                         Divider()
                             .frame(height: 40)
@@ -240,18 +240,17 @@ struct HomeView: View {
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                                 .foregroundColor(.secondary)
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                Text(String(format: "%.2f", trackingManager.totalDistance / 1000))
+                                Text(UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit))
                                     .font(.system(size: 32, weight: .bold, design: .rounded))
                                     .contentTransition(.numericText())
-                                Text("km")
+                                Text(UnitFormatter.distanceUnitLabel(unitSettings.unit))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(LocalizationHelper.localized("Distance"))
-                        .accessibilityValue(LocalizationHelper.formatted(
-                            "%@ kilometers", String(format: "%.2f", trackingManager.totalDistance / 1000)))
+                        .accessibilityValue(UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit))
                     }
                 }
                 .padding(.vertical, 20)

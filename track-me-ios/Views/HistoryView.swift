@@ -6,19 +6,13 @@ struct HistoryView: View {
     @Query(sort: \Ride.startTime, order: .reverse) private var rides: [Ride]
     @State private var showFileImporter = false
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var unitSettings = UnitSettings.shared
     
     // v1.6.0 Inline Filters
     @State private var selectedSyncStatus: String = "All"
     let syncStatusOptions = ["All", "Synced", "Unsynced"]
     
     @State private var selectedDistanceThresholdKm: Double = 0.0
-    let distanceOptions: [(label: String, minKm: Double)] = [
-        ("All", 0.0),
-        ("> 5 km", 5.0),
-        ("> 20 km", 20.0),
-        ("> 50 km", 50.0)
-    ]
-    
     private var filteredRides: [Ride] {
         rides.filter { ride in
             let matchesSync: Bool
@@ -42,6 +36,12 @@ struct HistoryView: View {
     }
     
     var body: some View {
+        let distanceOptions: [(label: String, minKm: Double)] = [
+            (LocalizationHelper.localized("All"), 0.0),
+            (unitSettings.unit == .imperial ? "> 3 mi" : "> 5 km", 5.0),
+            (unitSettings.unit == .imperial ? "> 12 mi" : "> 20 km", 20.0),
+            (unitSettings.unit == .imperial ? "> 31 mi" : "> 50 km", 50.0)
+        ]
         NavigationStack {
             VStack(spacing: 0) {
                 // Inline Filter Chips
