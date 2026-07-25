@@ -135,8 +135,8 @@ final class DataRepository {
         }
     }
 
-    /// Deletes ALL locally-stored rides and GPS points. Serialized behind any pending
-    /// point writes so a concurrent background insert can't resurrect a row after the wipe.
+    /// Deletes ALL locally-stored rides, GPS points, and emergency settings/contacts.
+    /// Serialized behind any pending point writes so a concurrent background insert can't resurrect a row after the wipe.
     /// Throws if the SwiftData delete/save fails (caller must NOT report success on throw).
     func wipeAllLocalData() async throws {
         guard let container = container else { return }
@@ -150,7 +150,36 @@ final class DataRepository {
         // container's delete rule. Bulk model-delete is available on this deployment target.
         try context.delete(model: GPSPoint.self)
         try context.delete(model: Ride.self)
-        // TODO(prompt-16): also delete Emergency* models + stop active broadcast
+        try context.delete(model: EmergencyContact.self)
+        try context.delete(model: EmergencySettings.self)
         try context.save()
+    }
+
+    func getEmergencySettings() -> EmergencySettings {
+        guard let context = container?.mainContext else {
+            return EmergencySettings()
+        }
+        let descriptor = FetchDescriptor<EmergencySettings>()
+        do {
+            if let settings = try context.fetch(descriptor).first {
+                return settings
+            } else {
+                let newSettings = EmergencySettings()
+                context.insert(newSettings)
+                try context.save()
+                return newSettings
+            }
+        } catch {
+            return EmergencySettings()
+        }
+    }
+
+    func disableEmergencySetup() {
+        guard let context = container?.mainContext else { return }
+        let descriptor = FetchDescriptor<EmergencySettings>()
+        if let settings = try? context.fetch(descriptor).first {
+            settings.isSetupComplete = false
+            try? context.save()
+        }
     }
 }

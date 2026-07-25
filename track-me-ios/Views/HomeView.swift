@@ -2,6 +2,8 @@ import SwiftUI
 import MapKit
 import FirebaseAuth
 import StoreKit
+import SwiftData
+import MessageUI
 
 struct HomeView: View {
     @Bindable var trackingManager = TrackingManager.shared
@@ -18,6 +20,13 @@ struct HomeView: View {
     // B4: system in-app review request (self-gated by ReviewPromptPolicy).
     @Environment(\.requestReview) private var requestReview
 
+    @Query private var emergencySettingsList: [EmergencySettings]
+    @Query private var emergencyContacts: [EmergencyContact]
+
+    @State private var showEmergencySetup = false
+    @State private var showEmergencyCompose = false
+    @State private var emergencyMessageBody = ""
+    @State private var showShareSheet = false
     var body: some View {
         ZStack(alignment: .bottom) {
             Map(position: $position, scope: mapScope) {
@@ -251,7 +260,33 @@ struct HomeView: View {
                 // SOS Component
                 if trackingManager.state != .idle && Auth.auth().currentUser != nil {
                     SwipeToTriggerSlider(onTriggered: {
-                        EmergencyManager.shared.startBroadcast()
+                        let isSetupComplete = emergencySettingsList.first?.isSetupComplete ?? false
+                        if !EmergencySetupLogic.isSetupComplete(isSetupComplete: isSetupComplete, contactCount: emergencyContacts.count) {
+                            ToastManager.shared.show(
+                                message: LocalizationHelper.localized("Set up emergency contacts to use SOS"),
+                                style: .warning
+                            )
+                            showEmergencySetup = true
+                        } else {
+                            EmergencyManager.shared.startBroadcast()
+                            EmergencyManager.shared.fetchFreshLocation { coordinate in
+                                UIDevice.current.isBatteryMonitoringEnabled = true
+                                let template = emergencySettingsList.first?.messageTemplate ?? "EMERGENCY! My location: [Location Link]"
+                                self.emergencyMessageBody = EmergencyManager.shared.buildEmergencyMessage(
+                                    template: template,
+                                    coordinate: coordinate ?? trackingManager.points.last?.coordinate,
+                                    battery: Float(UIDevice.current.batteryLevel),
+                                    deviceModel: UIDevice.current.model,
+                                    date: Date()
+                                )
+
+                                if MFMessageComposeViewController.canSendText() {
+                                    showEmergencyCompose = true
+                                } else {
+                                    showShareSheet = true
+                                }
+                            }
+                        }
                     })
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal)
@@ -340,6 +375,26 @@ struct HomeView: View {
             Button("Not now", role: .cancel) { }
         } message: {
             Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
+        }
+        .sheet(isPresented: $showEmergencySetup) {
+            EmergencySetupView()
+        }
+        .sheet(isPresented: $showEmergencyCompose) {
+            MessageComposeView(
+                recipients: emergencyContacts.map { $0.phoneNumber },
+                body: emergencyMessageBody,
+                onCompletion: { result in
+                    EmergencyManager.shared.resolveBroadcast(falseAlarm: result == .cancelled || result == .failed)
+                    if result == .sent {
+                        ToastManager.shared.show(message: LocalizationHelper.localized("SOS Sent"), style: .success)
+                    }
+                }
+            )
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(activityItems: [emergencyMessageBody]) { completed in
+                EmergencyManager.shared.resolveBroadcast(falseAlarm: !completed)
+            }
         }
         .trackScreen("HomeView")
     }
