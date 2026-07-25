@@ -18,9 +18,10 @@ class FirestoreSyncManager {
             ["lat": point.latitude, "lng": point.longitude, "altitude": point.altitude,
              "speed": point.speed, "timestamp": point.timestamp, "isPaused": point.isPaused] as [String: Any]
         } ?? []
+<<<<<<< HEAD
         let data: [String: Any] = ["id": ride.id.uuidString, "startTime": ride.startTime,
             "endTime": ride.endTime ?? NSNull(), "sourceInfo": ride.sourceInfo,
-            "title": ride.title ?? "", "points": pointsArray]
+            "title": ride.title ?? "", "persona": ride.persona, "points": pointsArray]
         do {
             try await rideRef.setData(data, merge: true)
             await MainActor.run {

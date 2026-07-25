@@ -8,6 +8,7 @@ struct DownloadedRide: Equatable {
     let endTime: Date?
     let sourceInfo: String
     let title: String?
+    let persona: String = "AUTO"
     let points: [DownloadedPoint]
 }
 
@@ -52,6 +53,7 @@ extension FirestoreSyncManager {
             localId: localId, firestoreId: docId, startTime: start, endTime: end,
             sourceInfo: (data["sourceInfo"] as? String) ?? "Cloud Sync",
             title: data["title"] as? String,
+            persona: (data["persona"] as? String) ?? "AUTO",
             points: points
         )
     }
