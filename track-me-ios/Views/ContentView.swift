@@ -32,9 +32,11 @@ struct ContentView: View {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
         }
-        .sheet(item: $recapCoordinator.pending) { recap in
+        .sheet(item: $recapCoordinator.pending, onDismiss: {
+            Task { await recapCoordinator.acknowledge() }
+        }) { recap in
             WeeklyRecapView(recap: recap) {
-                Task { await recapCoordinator.acknowledge() }
+                recapCoordinator.pending = nil
             }
         }
         .task { await recapCoordinator.check() }
