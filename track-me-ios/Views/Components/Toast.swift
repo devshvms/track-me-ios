@@ -73,7 +73,7 @@ struct ToastView: View {
     private var iconColor: Color {
         switch toast.style {
         case .info: return .blue
-        case .success: return .green
+        case .success: return BrandColor.success
         case .warning: return BrandColor.warning
         case .error: return .red
         }

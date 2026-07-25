@@ -39,7 +39,7 @@ final class BrandColorTests: XCTestCase {
     }
 
     func testSemanticTokenHexesMatchBrandSystem() {
-        XCTAssertEqual(hex(BrandColor.successGreen, dark: false), 0x16A34A)
+        XCTAssertEqual(hex(BrandColor.success, dark: false), 0x16A34A)
         XCTAssertEqual(hex(BrandColor.sos, dark: false), 0xDC2626)
         XCTAssertEqual(hex(BrandColor.warning, dark: false), 0xF59E0B)
     }
@@ -49,8 +49,8 @@ final class BrandColorTests: XCTestCase {
     func testGreenIsNotTheBrandAction() {
         // The whole point of C2/C1: success-green must never equal the primary
         // brand-action token in either appearance.
-        XCTAssertNotEqual(hex(BrandColor.successGreen, dark: false), hex(BrandColor.primary, dark: false))
-        XCTAssertNotEqual(hex(BrandColor.successGreen, dark: true), hex(BrandColor.primary, dark: true))
+        XCTAssertNotEqual(hex(BrandColor.success, dark: false), hex(BrandColor.primary, dark: false))
+        XCTAssertNotEqual(hex(BrandColor.success, dark: true), hex(BrandColor.primary, dark: true))
     }
 
     // MARK: contrast (AA) ----------------------------------------------------
@@ -64,5 +64,16 @@ final class BrandColorTests: XCTestCase {
     func testOnWarningMeetsAA() {
         // Navy text on amber warning banner.
         XCTAssertGreaterThanOrEqual(contrast(BrandColor.onWarning, BrandColor.warning, dark: false), 4.5)
+    }
+
+    func testChartTokensMatchExpectedHuesAndMeetGraphicalContrast() {
+        // Chart tokens should be the exact data hues.
+        XCTAssertEqual(hex(BrandColor.chartSpeed, dark: false), 0x16A34A)
+        XCTAssertEqual(hex(BrandColor.chartAltitude, dark: false), 0xF59E0B)
+
+        // Graphical elements need 3.0:1 on the chart background (we'll assume standard system backgrounds)
+        // White/dark surfaces check
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.chartSpeed, .white, dark: false), 3.0)
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.chartAltitude, .black, dark: true), 3.0)
     }
 }

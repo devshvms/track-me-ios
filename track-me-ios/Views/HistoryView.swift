@@ -181,7 +181,7 @@ struct CompactRideRowView: View {
 
                     Image(systemName: ride.isSynced ? "checkmark.icloud.fill" : "exclamationmark.icloud")
                         .font(.caption)
-                        .foregroundColor(ride.isSynced ? .green : .orange)
+                        .foregroundColor(ride.isSynced ? BrandColor.success : .orange)
                 }
 
                 HStack(spacing: 12) {
