@@ -13,6 +13,7 @@ struct ExportPreviewView: View {
     @State private var selectedRatio: ExportRatio = .square
     @State private var renderedImage: UIImage
     @State private var isRendering = false
+    @State private var ratioDebounce: DispatchWorkItem?
     
     @State private var isShowingShareSheet = false
     @State private var shareItems: [Any] = []
@@ -74,7 +75,12 @@ struct ExportPreviewView: View {
         .sheet(isPresented: $isShowingShareSheet) {
             ActivityView(activityItems: shareItems)
         }
-        .onChange(of: selectedRatio) { _, ratio in regenerateSnapshot(for: ratio) }
+        .onChange(of: selectedRatio) { _, ratio in
+            ratioDebounce?.cancel()
+            let work = DispatchWorkItem { regenerateSnapshot(for: ratio) }
+            ratioDebounce = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        }
     }
     
     var exportFrame: some View {
@@ -137,18 +143,4 @@ struct ExportPreviewView: View {
         }
     }
     
-}
-
-struct StatBadge: View {
-    var icon: String
-    var value: String
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-            Text(value).bold()
-        }
-        .font(.caption)
-        .foregroundColor(.white)
-    }
 }
