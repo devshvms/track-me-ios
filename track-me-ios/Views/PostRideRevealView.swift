@@ -12,42 +12,48 @@ struct PostRideRevealView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(spacing: 20) {
-            ZStack {
-                Circle()
-                    .fill(Color.accentColor.opacity(0.15))
-                    .frame(width: 84, height: 84)
-                Image(systemName: symbol)
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+        VStack(spacing: 14) {
+            Group {
+                if reveal.kind == .standard {
+                    // Routine rides keep the calm, static treatment. The animated
+                    // badge is reserved for an earned outcome only.
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.15))
+                            .frame(width: 84, height: 84)
+                        Image(systemName: symbol)
+                            .font(.system(size: 40, weight: .semibold))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                } else {
+                    AchievementBadge(symbol: symbol)
+                }
             }
             .accessibilityHidden(true)
-            .padding(.top, 32)
+            .padding(.top, 18)
 
             Text(title)
-                .font(.title2.weight(.bold))
+                .font(.title3.weight(.bold))
                 .multilineTextAlignment(.center)
 
             Text(message)
-                .font(.body)
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-
-            Spacer(minLength: 0)
+                .padding(.horizontal, 20)
 
             Button(action: onDismiss) {
                 Text(LocalizationHelper.localized("Nice!"))
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minWidth: 96, minHeight: 44)
             }
             .buttonStyle(.borderedProminent)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
+            .padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity)
-        .presentationDetents([.medium])
+        .presentationDetents([.height(360), .medium])
+        .presentationBackground(.ultraThinMaterial)
+        .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
         // One clean VoiceOver announcement of the whole reveal.
         .accessibilityElement(children: .combine)
