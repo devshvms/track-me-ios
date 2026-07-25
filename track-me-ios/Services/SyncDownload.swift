@@ -8,7 +8,7 @@ struct DownloadedRide: Equatable {
     let endTime: Date?
     let sourceInfo: String
     let title: String?
-    let persona: String = "AUTO"
+    let persona: String
     let points: [DownloadedPoint]
 }
 
