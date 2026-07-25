@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "sourceLanguage": "en",
   "strings": {
     "Image ratio": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Bildformat" } }, "es": { "stringUnit": { "state": "translated", "value": "Proporción de imagen" } }, "fr": { "stringUnit": { "state": "translated", "value": "Format de l’image" } }, "hi": { "stringUnit": { "state": "translated", "value": "इमेज अनुपात" } }, "ja": { "stringUnit": { "state": "translated", "value": "画像比率" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "图片比例" } } } },
@@ -15,9 +14,10 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deine Woche im Rückblick"
-=======
-  "sourceLanguage" : "en",
-  "strings" : {
+          }
+        }
+      }
+    },
     "Placeholders: [Location Link], [Battery Percent], [Device Name], [Timestamp]" : {
       "localizations" : {
         "de" : {
