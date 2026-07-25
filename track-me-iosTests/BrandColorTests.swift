@@ -76,4 +76,30 @@ final class BrandColorTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(contrast(BrandColor.chartSpeed, .white, dark: false), 3.0)
         XCTAssertGreaterThanOrEqual(contrast(BrandColor.chartAltitude, .black, dark: true), 3.0)
     }
+    // MARK: adaptive error/destructive TEXT (prompt 33) ----------------------
+
+    /// Dark navy surface used behind destructive labels (BrandColor.navy800).
+    private var darkSurface: Color { Color(hex: 0x181A20) }
+
+    func testSosTextAdaptsDeepLightBrightDark() {
+        XCTAssertEqual(hex(BrandColor.sosText, dark: false), 0xDC2626, "sosText is deep red on light")
+        XCTAssertEqual(hex(BrandColor.sosText, dark: true), 0xF87171, "sosText brightens on dark for AA")
+    }
+
+    func testSosTextMeetsAAOnDarkSurface() {
+        // Brightened red on navy dark surface clears AA (4.5:1) for normal text (~6.3:1).
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.sosText, darkSurface, dark: true), 4.5)
+    }
+
+    func testConstantSosFailsAAAsTextOnDark_regressionGuard() {
+        // Documents WHY sosText exists: the constant sos red is sub-AA as dark-mode
+        // TEXT (~3.6:1). If someone later makes `sos` itself adaptive, this fails and
+        // forces a conscious merge decision.
+        XCTAssertLessThan(contrast(BrandColor.sos, darkSurface, dark: true), 4.5)
+    }
+
+    func testSosTextStillAAOnLightWhite() {
+        // Light path must not regress: deep red on white stays AA (~4.83:1).
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.sosText, .white, dark: false), 4.5)
+    }
 }

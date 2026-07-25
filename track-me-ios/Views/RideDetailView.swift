@@ -448,7 +448,7 @@ struct RideDetailView: View {
             Button(action: {
                 showDeleteConfirm = true
             }) {
-                actionButton(icon: "trash", text: "Delete", color: BrandColor.sos)
+                actionButton(icon: "trash", text: "Delete", color: BrandColor.sos, textColor: BrandColor.sosText)
             }
         }
         .padding(.horizontal)
@@ -458,14 +458,14 @@ struct RideDetailView: View {
     }
     
     @ViewBuilder
-    func actionButton(icon: String, text: String, color: Color) -> some View {
+    func actionButton(icon: String, text: String, color: Color, textColor: Color? = nil) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
             Text(text)
                 .font(.caption)
-                .foregroundColor(color)
+                .foregroundColor(textColor ?? color)   // adaptive for destructive labels
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
