@@ -31,17 +31,17 @@ final class UnitSettings: ObservableObject {
 
 enum UnitFormatter {
     static func distance(meters: Double, unit: UnitSystem, decimals: Int = 2) -> String {
-        String(format: "%.*f %@", decimals, unit == .imperial ? meters / 1609.344 : meters / 1000, distanceUnitLabel(unit))
+        String(format: "%.*f %@", locale: Locale.current, decimals, unit == .imperial ? meters / 1609.344 : meters / 1000, distanceUnitLabel(unit))
     }
 
     static func distanceValue(meters: Double, unit: UnitSystem, decimals: Int = 2) -> String {
-        String(format: "%.*f", decimals, unit == .imperial ? meters / 1609.344 : meters / 1000)
+        String(format: "%.*f", locale: Locale.current, decimals, unit == .imperial ? meters / 1609.344 : meters / 1000)
     }
 
     static func distanceUnitLabel(_ unit: UnitSystem) -> String { unit == .imperial ? "mi" : "km" }
 
     static func speed(mps: Double, unit: UnitSystem) -> String {
-        String(format: "%.1f %@", mps * (unit == .imperial ? 2.236936 : 3.6), speedUnitLabel(unit))
+        String(format: "%.1f %@", locale: Locale.current, mps * (unit == .imperial ? 2.236936 : 3.6), speedUnitLabel(unit))
     }
 
     static func speedUnitLabel(_ unit: UnitSystem) -> String { unit == .imperial ? "mph" : "km/h" }
