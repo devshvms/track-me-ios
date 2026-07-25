@@ -44,6 +44,7 @@ final class SyncDownloadLogicTests: XCTestCase {
         XCTAssertEqual(ride?.startTime, Date(timeIntervalSince1970: 100))
         XCTAssertNil(ride?.endTime)
         XCTAssertEqual(ride?.sourceInfo, "iOS Device")
+        XCTAssertEqual(ride?.persona, "AUTO")
         XCTAssertEqual(ride?.points.count, 1)
 
         let point = ride!.points[0]
@@ -73,6 +74,11 @@ final class SyncDownloadLogicTests: XCTestCase {
         XCTAssertNotEqual(ride?.localId.uuidString, docId) // Fresh localId
         XCTAssertEqual(ride?.startTime, Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(ride?.endTime, Date(timeIntervalSince1970: 1_700_000_005))
+
+        let cyclingData = data.merging(["persona": "CYCLING"]) { _, new in new }
+        let cyclingRide = FirestoreSyncManager.parseRideDocument(docId: docId, data: cyclingData)
+        XCTAssertEqual(cyclingRide?.persona, "CYCLING")
+        XCTAssertEqual(RidePersona.fromStoredName(cyclingRide?.persona), .cycling)
 
         let point = ride!.points[0]
         XCTAssertEqual(point.accuracy, 5.0)
