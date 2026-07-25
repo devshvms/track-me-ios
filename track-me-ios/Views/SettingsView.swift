@@ -17,14 +17,18 @@ struct SettingsView: View {
 
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appTheme") private var appTheme: String = "system"
-
-    let languages = [
+    // Static so the shipped set can be regression-tested without instantiating the View
+    // (see track-me-iosTests/LanguagePickerTests.swift). Codes must match the
+    // Localizable.xcstrings localization keys exactly so Locale(identifier:) resolves the
+    // right *.lproj — Chinese is "zh-Hans" (Simplified only), NOT Android's "zh".
+    static let languages = [
         ("en", "English"),
         ("es", "Español"),
         ("fr", "Français"),
         ("de", "Deutsch"),
         ("hi", "हिन्दी"),
-        ("ja", "日本語")
+        ("ja", "日本語"),
+        ("zh-Hans", "中文")
     ]
 
     // We get total rides from SwiftData
@@ -209,7 +213,7 @@ struct SettingsView: View {
                                 .foregroundColor(.primary)
                             Spacer()
                             Picker("Language", selection: $appLanguage) {
-                                ForEach(languages, id: \.0) { code, name in
+                                ForEach(Self.languages, id: \.0) { code, name in
                                     Text(name).tag(code)
                                 }
                             }
