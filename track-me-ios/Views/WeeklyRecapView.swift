@@ -3,7 +3,7 @@ import SwiftUI
 /// B2 weekly recap card (iOS) with the B3 streak line. Parity with Android's WeeklyRecapDialog.
 /// STRICTLY gain-framed: only appears when there is something to celebrate (rides > 0) and never
 /// shows a loss/at-risk/comparison message. Accent-tinted (C2 repoints to cyan); Dynamic Type +
-/// VoiceOver friendly. Emits weekly_recap_shown exactly once on appear.
+/// VoiceOver friendly. Telemetry is emitted once per week by the coordinator.
 struct WeeklyRecapView: View {
     let recap: WeeklyRecap
     let onDismiss: () -> Void
@@ -48,11 +48,6 @@ struct WeeklyRecapView: View {
         .frame(maxWidth: .infinity)
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
-        .onAppear {
-            TelemetryManager.shared.trackWeeklyRecapShown(
-                weekKey: recap.weekKey, rideCount: recap.rideCount,
-                distanceKm: recap.distanceMeters / 1000.0)
-        }
     }
 
     private var streakLine: String? {
