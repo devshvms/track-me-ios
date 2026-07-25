@@ -67,7 +67,10 @@ class AuthManager {
         }
     }
 
-    func signOut() {
+    func signOut() async {
+        if LiveSharingManager.shared.isActive {
+            await LiveSharingManager.shared.endSessionAwaitingAuth(reason: "Signed out")
+        }
         try? Auth.auth().signOut()
         Task { @MainActor in
             DataRepository.shared.disableEmergencySetup()
@@ -94,6 +97,6 @@ class AuthManager {
         // Only reached if BOTH cloud delete and auth delete succeeded → wipe local + sign out.
         try await DataRepository.shared.wipeAllLocalData()
         await RideStatsStore.shared.reset()
-        signOut()
+        await signOut()
     }
 }
