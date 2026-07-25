@@ -6,7 +6,8 @@ import SwiftUI
 ///
 /// Design guardrails: bounded set only (`RevealKind`); brand accent via `.tint`/accentColor
 /// (repointed to cyan by C2); Dynamic Type + VoiceOver friendly; no forced animation; dismiss
-/// is the only action and fires the telemetry exactly once (on appear).
+/// is the only in-view action; telemetry fires exactly once per unique reveal (`.task(id:)`),
+/// and any dismissal (button or swipe) acknowledges the durable one-shot via the sheet's onDismiss.
 struct PostRideRevealView: View {
     let reveal: Reveal
     let onDismiss: () -> Void
@@ -58,7 +59,12 @@ struct PostRideRevealView: View {
         // One clean VoiceOver announcement of the whole reveal.
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(message)")
-        .onAppear {
+        // Fire `post_ride_reveal_shown` exactly once per unique reveal, not once per appearance.
+        // `.task(id:)` runs once per distinct id for the view's lifetime and re-runs only when the
+        // id changes — the SwiftUI analogue of Android's `LaunchedEffect(reveal.rideId)`. Guards
+        // against a within-session re-appearance (e.g. a transient system alert covering the sheet)
+        // double-counting the B1 activation-funnel metric.
+        .task(id: reveal.rideId) {
             TelemetryManager.shared.trackPostRideRevealShown(revealType: reveal.revealType)
         }
     }

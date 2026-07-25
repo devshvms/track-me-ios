@@ -107,8 +107,20 @@ final class RevealCoordinator {
     }
 
     /// Acknowledge the reveal for `rideId`; no-op if a newer reveal has since replaced it.
+    /// Precise API retained for callers/tests that know the rideId (e.g. the "Nice!" button).
     func consume(rideId: String) {
         guard pending?.rideId == rideId else { return }
+        acknowledgeDisplayed()
+    }
+
+    /// Acknowledge whatever reveal is currently outstanding — the durable one-shot is spent once
+    /// its sheet is dismissed by ANY means (button, swipe-down, interactive/system dismissal).
+    /// Mirrors Android's `AlertDialog(onDismissRequest:)` → `PendingRevealStore.consume`. This is
+    /// the path SwiftUI's `.sheet(item:)` swipe-dismiss must route through: the binding writes
+    /// `pending = nil` in memory only and never calls `consume(rideId:)`, so without this the
+    /// persisted `UserDefaults` key leaks and the reveal re-appears (and re-fires telemetry) on
+    /// every cold launch. Idempotent by construction — safe to call after `pending` is already nil.
+    func acknowledgeDisplayed() {
         defaults.removeObject(forKey: key)
         pending = nil
     }

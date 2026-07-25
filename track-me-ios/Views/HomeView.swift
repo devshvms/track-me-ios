@@ -302,7 +302,13 @@ struct HomeView: View {
         .sheet(isPresented: $showLiveShareDialog) {
             LiveShareDialog()
         }
-        .sheet(item: $revealCoordinator.pending) { reveal in
+        .sheet(item: $revealCoordinator.pending, onDismiss: {
+            // ANY dismissal — swipe-down (the invited path, we show a drag indicator),
+            // interactive, or system — acknowledges the durable one-shot. The "Nice!" button
+            // already calls consume(rideId:) below; this runs second there as a harmless
+            // idempotent no-op. Mirrors Android's onDismissRequest → consume.
+            revealCoordinator.acknowledgeDisplayed()
+        }) { reveal in
             PostRideRevealView(reveal: reveal) {
                 revealCoordinator.consume(rideId: reveal.rideId)
                 // B4: dismissing a good-ride reveal is a peak moment — ask an eligible user to

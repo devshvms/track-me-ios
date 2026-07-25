@@ -78,4 +78,102 @@ final class RevealSelectorTests: XCTestCase {
         let back = try JSONDecoder().decode(Reveal.self, from: data)
         XCTAssertEqual(r, back)
     }
+
+    // MARK: - RevealCoordinator Persistence Tests (TASK-054)
+
+    private var defaults: UserDefaults { .standard }
+    private let testKey = "pending_reveal_v1"
+
+    private func makeReveal(rideId: String = "ride-1") -> Reveal {
+        Reveal(
+            rideId: rideId,
+            kind: .standard,
+            totalRides: 5,
+            distanceMeters: 3200,
+            durationMillis: 900_000,
+            milestoneRideCount: nil
+        )
+    }
+
+    @MainActor
+    func testSwipeDismiss_thenReacknowledge_clearsPersistedOneShot() {
+        defaults.removeObject(forKey: testKey)
+        defer { defaults.removeObject(forKey: testKey) }
+
+        let coordinator = RevealCoordinator.shared
+        coordinator.put(makeReveal())
+
+        XCTAssertNotNil(defaults.data(forKey: testKey))
+
+        // Simulate SwiftUI's swipe-dismiss binding write: memory-only, does NOT call consume().
+        coordinator.pending = nil
+
+        // The sheet's onDismiss handler.
+        coordinator.acknowledgeDisplayed()
+
+        // Disk key must be removed so cold launch does not re-seed it.
+        XCTAssertNil(defaults.data(forKey: testKey),
+                     "After acknowledgment the persisted key must be removed from disk.")
+    }
+
+    @MainActor
+    func testButtonDismiss_clearsPersistedOneShot() {
+        defaults.removeObject(forKey: testKey)
+        defer { defaults.removeObject(forKey: testKey) }
+
+        let coordinator = RevealCoordinator.shared
+        let reveal = makeReveal()
+        coordinator.put(reveal)
+
+        coordinator.consume(rideId: reveal.rideId)
+
+        XCTAssertNil(coordinator.pending)
+        XCTAssertNil(defaults.data(forKey: testKey))
+    }
+
+    @MainActor
+    func testConsume_wrongRideId_isNoOp() {
+        defaults.removeObject(forKey: testKey)
+        defer { defaults.removeObject(forKey: testKey) }
+
+        let coordinator = RevealCoordinator.shared
+        coordinator.put(makeReveal(rideId: "newer"))
+
+        coordinator.consume(rideId: "older-already-gone")
+
+        XCTAssertNotNil(coordinator.pending)
+        XCTAssertNotNil(defaults.data(forKey: testKey))
+    }
+
+    @MainActor
+    func testDurableOneShot_survivesProcessDeathBeforeShow() {
+        defaults.removeObject(forKey: testKey)
+        defer { defaults.removeObject(forKey: testKey) }
+
+        let coordinator = RevealCoordinator.shared
+        coordinator.put(makeReveal(rideId: "persisted-before-show"))
+
+        guard let data = defaults.data(forKey: testKey),
+              let decoded = try? JSONDecoder().decode(Reveal.self, from: data) else {
+            XCTFail("Persisted data should be non-nil and decodable")
+            return
+        }
+
+        XCTAssertEqual(decoded.rideId, "persisted-before-show")
+    }
+
+    @MainActor
+    func testAcknowledge_isIdempotent() {
+        defaults.removeObject(forKey: testKey)
+        defer { defaults.removeObject(forKey: testKey) }
+
+        let coordinator = RevealCoordinator.shared
+        coordinator.put(makeReveal())
+
+        coordinator.acknowledgeDisplayed()
+        coordinator.acknowledgeDisplayed()
+
+        XCTAssertNil(coordinator.pending)
+        XCTAssertNil(defaults.data(forKey: testKey))
+    }
 }
