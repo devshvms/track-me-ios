@@ -40,6 +40,35 @@ final class ChartAccessibilityTests: XCTestCase {
         XCTAssertTrue(description.contains("No GPS signal gaps."), description)
     }
 
+    func testSignalGapsEmptyWhenFewerThanTwoSamples() {
+        XCTAssertTrue(ChartAccessibility.signalGaps(for: []).isEmpty)
+        XCTAssertTrue(ChartAccessibility.signalGaps(for: [sample(0, speed: 5, altitude: 100)]).isEmpty)
+    }
+
+    func testSignalGapsDetectsIntervalsOverThreshold() {
+        let samples = [
+            sample(0, speed: 5, altitude: 100),
+            sample(10, speed: 5, altitude: 100),
+            sample(40, speed: 5, altitude: 100),
+            sample(50, speed: 5, altitude: 100)
+        ]
+
+        let gaps = ChartAccessibility.signalGaps(for: samples)
+        XCTAssertEqual(gaps.count, 1)
+        XCTAssertEqual(gaps[0].start, Date(timeIntervalSince1970: 10))
+        XCTAssertEqual(gaps[0].end, Date(timeIntervalSince1970: 40))
+    }
+
+    func testSignalGapBoundaryExactly25IsNotAGap() {
+        let samples = [
+            sample(0, speed: 5, altitude: 100),
+            sample(25, speed: 5, altitude: 100),
+            sample(50, speed: 5, altitude: 100)
+        ]
+
+        XCTAssertTrue(ChartAccessibility.signalGaps(for: samples).isEmpty)
+    }
+
     func testSingleGapUsesSingularSentence() {
         let samples = [
             sample(0, speed: 5, altitude: 100),
@@ -59,6 +88,7 @@ final class ChartAccessibilityTests: XCTestCase {
         ]
         let description = ChartAccessibility.description(for: samples)
         XCTAssertTrue(description.contains("3 GPS signal gaps."), description)
+        XCTAssertEqual(ChartAccessibility.signalGaps(for: samples).count, 3)
     }
 
     func testAverageSpeedIsMetersPerSecondTimes3Point6() {

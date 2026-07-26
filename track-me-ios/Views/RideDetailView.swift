@@ -84,6 +84,14 @@ struct RideDetailView: View {
             )
         }
     }
+
+    private var chartSamples: [ChartSample] {
+        sortedPoints.map {
+            ChartSample(timestamp: $0.timestamp,
+                        speedMetersPerSecond: $0.speed,
+                        altitudeMeters: $0.altitude)
+        }
+    }
     
     private var maxGForce: Double {
         let pts = sortedPoints
@@ -293,7 +301,18 @@ struct RideDetailView: View {
     @ViewBuilder
     var combinedChart: some View {
         let pts = normalizedPoints
+        let gaps = ChartAccessibility.signalGaps(for: chartSamples)
         Chart {
+            // Keep gap bands behind the metric lines and derive them from the
+            // same samples used by the VoiceOver summary.
+            ForEach(Array(gaps.enumerated()), id: \.offset) { _, gap in
+                RectangleMark(
+                    xStart: .value("Gap start", gap.start),
+                    xEnd: .value("Gap end", gap.end)
+                )
+                .foregroundStyle(Color.red.opacity(0.30))
+            }
+
             ForEach(pts) { pt in
                 LineMark(
                     x: .value("Time", pt.timestamp),
