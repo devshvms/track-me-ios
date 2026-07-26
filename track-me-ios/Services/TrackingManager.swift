@@ -12,6 +12,22 @@ enum TrackingState: Int {
     case storageLow   // appended last: keep raw values stable for persistence
 }
 
+/// CLLocationManager settings that define a recorded ride session.
+///
+/// Keeping this descriptor separate from the framework object makes the
+/// reliability invariants testable without requiring a physical device.
+struct LocationSessionConfig {
+    var desiredAccuracy: CLLocationAccuracy = kCLLocationAccuracyBest
+    var distanceFilter: CLLocationDistance = 2
+    var allowsBackgroundLocationUpdates = true
+    var showsBackgroundLocationIndicator = true
+    var activityType: CLActivityType = .fitness
+    /// TrackMe owns pause detection; Core Location must not silently stop the stream.
+    var pausesLocationUpdatesAutomatically = false
+
+    static let recordingRide = LocationSessionConfig()
+}
+
 @Observable
 class TrackingManager: NSObject, CLLocationManagerDelegate {
     static let shared = TrackingManager()
@@ -59,17 +75,20 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     override init() {
         super.init()
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 2 // meters
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.showsBackgroundLocationIndicator = true
+        let config = LocationSessionConfig.recordingRide
+        locationManager.desiredAccuracy = config.desiredAccuracy
+        locationManager.distanceFilter = config.distanceFilter
+        locationManager.allowsBackgroundLocationUpdates = config.allowsBackgroundLocationUpdates
+        locationManager.showsBackgroundLocationIndicator = config.showsBackgroundLocationIndicator
         // TrackMe records a continuous ride; do NOT let Core Location pause the
         // stream on its own judgement — it often fails to auto-resume, silently
         // truncating a ride in the background. We stop updates explicitly in
         // stopTracking()/enterStorageLowState(). activityType tunes the location
         // engine for human-powered movement (parity with Android's continuous FGS).
-        locationManager.pausesLocationUpdatesAutomatically = false
-        locationManager.activityType = .fitness
+        locationManager.activityType = config.activityType
+        locationManager.pausesLocationUpdatesAutomatically = config.pausesLocationUpdatesAutomatically
+        // TODO: derive activityType from RidePersona when persona-aware tracking
+        // lands (.automotiveNavigation/.otherNavigation for drive modes).
     }
 
     private func requestAlwaysUpgradeIfAppropriate() {
