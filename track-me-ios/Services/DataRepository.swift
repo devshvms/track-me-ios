@@ -47,6 +47,7 @@ final class DataRepository {
             let ride = Ride(id: d.localId, startTime: d.startTime,
                             sourceInfo: d.sourceInfo, isSynced: true, title: d.title)
             ride.endTime = d.endTime
+            ride.persona = d.persona
             ride.firestoreId = d.firestoreId
             ctx.insert(ride)
             for p in d.points {

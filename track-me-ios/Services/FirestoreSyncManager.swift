@@ -20,7 +20,7 @@ class FirestoreSyncManager {
         } ?? []
         let data: [String: Any] = ["id": ride.id.uuidString, "startTime": ride.startTime,
             "endTime": ride.endTime ?? NSNull(), "sourceInfo": ride.sourceInfo,
-            "title": ride.title ?? "", "points": pointsArray]
+            "title": ride.title ?? "", "persona": ride.persona, "points": pointsArray]
         do {
             try await rideRef.setData(data, merge: true)
             await MainActor.run {

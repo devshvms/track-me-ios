@@ -125,6 +125,13 @@ struct RideDetailView: View {
                         ))
                             .font(.system(.subheadline, design: .default, weight: .bold))
                             .foregroundColor(.secondary)
+
+                        if ride.ridePersona != .auto {
+                            Text("\(ride.ridePersona.emoji) \(ride.ridePersona.displayName)")
+                                .font(.system(.subheadline, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .accessibilityLabel(ride.ridePersona.displayName)
+                        }
                         
                         if sortedPoints.count > 1 {
                             Slider(
