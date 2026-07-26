@@ -9110,6 +9110,26 @@
         }
       }
     },
+    "%d rides • %@": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "%d Fahrten • %@" } },
+        "es": { "stringUnit": { "state": "translated", "value": "%d viajes • %@" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "%d trajets • %@" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "%d सवारी • %@" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "%d 件のライド • %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%d 次骑行 • %@" } }
+      }
+    },
+    "%@. %@. %@, %@, %@. %@": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
+        "es": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "%1$@。%2$@。%3$@、%4$@、%5$@。%6$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$@。%2$@。%3$@、%4$@、%5$@。%6$@" } }
+      }
+    },
     "Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.": {
       "extractionState": "manual",
       "localizations": {

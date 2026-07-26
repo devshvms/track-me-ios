@@ -1,7 +1,6 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
-import CoreLocation
 struct HistoryView: View {
     @Query(sort: \Ride.startTime, order: .reverse) private var rides: [Ride]
     @State private var showFileImporter = false
@@ -22,7 +21,7 @@ struct HistoryView: View {
             default: matchesSync = true
             }
             
-            let rideDistanceKm = (ride.points ?? []).count > 1 ? estimateDistanceKm(points: ride.points ?? []) : 0.0
+            let rideDistanceKm = RideDistance.totalKm(ride.points ?? [])
             let matchesDistance = rideDistanceKm >= selectedDistanceThresholdKm
             
             return matchesSync && matchesDistance
@@ -84,10 +83,23 @@ struct HistoryView: View {
                                     .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                                 }
                             } header: {
-                                Text(bucket.localizedTitle())
-                                    .font(.footnote.weight(.semibold))
+                                HStack {
+                                    Text(bucket.localizedTitle())
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    let totalKm = bucketRides.reduce(0.0) {
+                                        $0 + RideDistance.totalKm($1.points ?? [])
+                                    }
+                                    Text(LocalizationHelper.formatted(
+                                        "%d rides • %@",
+                                        bucketRides.count,
+                                        HistoryMetricFormat.km(totalKm)
+                                    ))
+                                    .font(.caption2)
                                     .foregroundColor(.secondary)
-                                    .textCase(nil)
+                                }
+                                .textCase(nil)
                             }
                         }
                     }
@@ -148,18 +160,6 @@ struct HistoryView: View {
         ToastManager.shared.show(message: LocalizationHelper.localized("GPX Imported Successfully"), style: .success)
     }
     
-    private func estimateDistanceKm(points: [GPSPoint]) -> Double {
-        var totalMeters = 0.0
-        let sorted = points.sorted { $0.timestamp < $1.timestamp }
-        for i in 1..<sorted.count {
-            let p1 = sorted[i-1]
-            let p2 = sorted[i]
-            let loc1 = CLLocation(latitude: p1.latitude, longitude: p1.longitude)
-            let loc2 = CLLocation(latitude: p2.latitude, longitude: p2.longitude)
-            totalMeters += loc2.distance(from: loc1)
-        }
-        return totalMeters / 1000.0
-    }
 }
 
 // MARK: - Compact Ride Row (80x60pt Thumbnail + High-Density Layout)
@@ -186,12 +186,21 @@ struct CompactRideRowView: View {
 
                 HStack(spacing: 12) {
                     Label(ride.startTime.formatted(date: .omitted, time: .shortened), systemImage: "clock")
-
-                    let pointsCount = (ride.points ?? []).count
-                    Label("\(pointsCount) pts", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
                 }
                 .font(.caption2)
                 .foregroundColor(.secondary)
+
+                HStack(spacing: 8) {
+                    Text(HistoryMetricFormat.km(metrics.distanceKm))
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(BrandColor.primary)
+                    Text(HistoryMetricFormat.duration(metrics.duration))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text(HistoryMetricFormat.kmh(metrics.avgSpeedKmh))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .padding(.vertical, 2)
@@ -205,13 +214,25 @@ struct CompactRideRowView: View {
     private var accessibilityDescription: String {
         let title = ride.title ?? LocalizationHelper.localized("TrackMe Ride")
         let time = ride.startTime.formatted(date: .abbreviated, time: .shortened)
-        let pointsCount = (ride.points ?? []).count
         let syncState = ride.isSynced
             ? LocalizationHelper.localized("Synced")
             : LocalizationHelper.localized("Not yet synced")
         return LocalizationHelper.formatted(
-            "%@. %@. %@ points. %@",
-            title, time, String(pointsCount), syncState
+            "%@. %@. %@, %@, %@. %@",
+            title,
+            time,
+            HistoryMetricFormat.km(metrics.distanceKm),
+            HistoryMetricFormat.duration(metrics.duration),
+            HistoryMetricFormat.kmh(metrics.avgSpeedKmh),
+            syncState
+        )
+    }
+
+    private var metrics: HistoryRideMetrics {
+        HistoryRideMetrics(
+            points: ride.points ?? [],
+            startTime: ride.startTime,
+            endTime: ride.endTime
         )
     }
 }
