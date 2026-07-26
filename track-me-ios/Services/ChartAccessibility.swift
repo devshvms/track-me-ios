@@ -20,6 +20,25 @@ enum ChartAccessibility {
     /// Successive samples more than this many seconds apart count as a gap.
     static let gapThresholdSeconds: TimeInterval = 25
 
+    /// Returns the timestamp intervals spanning every GPS signal gap.
+    ///
+    /// This is the single source of truth for both the spoken gap count and
+    /// the visual chart bands. Keeping the helper storage-agnostic makes the
+    /// boundary behavior unit-testable without SwiftData or a live chart.
+    static func signalGaps(for samples: [ChartSample]) -> [(start: Date, end: Date)] {
+        guard samples.count > 1 else { return [] }
+
+        var gaps: [(start: Date, end: Date)] = []
+        for index in 1..<samples.count {
+            let previous = samples[index - 1].timestamp
+            let current = samples[index].timestamp
+            if current.timeIntervalSince(previous) > gapThresholdSeconds {
+                gaps.append((start: previous, end: current))
+            }
+        }
+        return gaps
+    }
+
     /// Composes the spoken description for a set of samples.
     static func description(for samples: [ChartSample], unit: UnitSystem = .metric) -> String {
         guard let first = samples.first, let last = samples.last else {
@@ -33,11 +52,7 @@ enum ChartAccessibility {
         let minAltitude = altitudes.min() ?? 0
         let maxAltitude = altitudes.max() ?? 0
 
-        var gaps = 0
-        for index in 1..<samples.count where
-            samples[index].timestamp.timeIntervalSince(samples[index - 1].timestamp) > gapThresholdSeconds {
-            gaps += 1
-        }
+        let gaps = signalGaps(for: samples).count
 
         let gapSentence: String
         switch gaps {
@@ -74,6 +89,15 @@ enum ChartAccessibility {
 }
 
 extension ChartAccessibility {
+    /// App-facing convenience for drawing gap intervals from SwiftData points.
+    static func signalGaps(points: [GPSPoint]) -> [(start: Date, end: Date)] {
+        signalGaps(for: points
+            .sorted { $0.timestamp < $1.timestamp }
+            .map { ChartSample(timestamp: $0.timestamp,
+                               speedMetersPerSecond: $0.speed,
+                               altitudeMeters: $0.altitude) })
+    }
+
     /// App-facing convenience: maps SwiftData points into samples, sorted by time.
     static func description(points: [GPSPoint], unit: UnitSystem = .metric) -> String {
         let samples = points
