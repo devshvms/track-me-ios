@@ -239,7 +239,7 @@ class DataExportService {
             "clientOS": "iOS",
             "exportFormats": ["GPX", "JSON_ARCHIVE"],
             "metadata": [
-                "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.6.0"
+                "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.6.1"
             ]
         ]
         docRef.setData(data, merge: true) { error in
