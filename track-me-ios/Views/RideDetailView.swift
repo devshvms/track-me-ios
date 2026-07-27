@@ -21,7 +21,7 @@ struct RideDetailView: View {
     // UI States
     @State private var isEditingTitle = false
     @State private var editTitleText = ""
-    @State private var mapStyle: MapStyle = .standard
+    @State private var mapStyle: TrackMeMapStyle = .standard
     
     // Scrubber
     @State private var scrubIndex: Int?
@@ -279,14 +279,10 @@ struct RideDetailView: View {
                     }
                 }
             }
-            .mapStyle(mapStyle)
+            .mapStyle(mapStyle.mapKitStyle)
             .frame(minWidth: 1) // Prevents zero-width CAMetalLayer initialization warnings
             .overlay(alignment: .topTrailing) {
-                Menu {
-                    Button("Normal") { mapStyle = .standard }
-                    Button("Satellite") { mapStyle = .imagery }
-                    Button("Hybrid") { mapStyle = .hybrid }
-                } label: {
+                MapStyleMenu(selection: $mapStyle) {
                     Image(systemName: "map")
                         .font(.title2)
                         .foregroundColor(.primary)
@@ -295,7 +291,6 @@ struct RideDetailView: View {
                         .clipShape(Circle())
                         .shadow(radius: 4)
                 }
-                .accessibilityLabel(LocalizationHelper.localized("Map style"))
                 .padding()
             }
         } else {

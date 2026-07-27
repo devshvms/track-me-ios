@@ -8,8 +8,7 @@ import MessageUI
 struct HomeView: View {
     @Bindable var trackingManager = TrackingManager.shared
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
-    @State private var mapStyle: MapStyle = .standard
-    @State private var mapStyleHapticTrigger = 0
+    @State private var mapStyle: TrackMeMapStyle = .standard
     @Namespace private var mapScope
 
     @Bindable var networkMonitor = NetworkMonitor.shared
@@ -45,7 +44,7 @@ struct HomeView: View {
                         )
                 }
             }
-            .mapStyle(mapStyle)
+            .mapStyle(mapStyle.mapKitStyle)
             .mapControls {
                 MapUserLocationButton()
             }
@@ -138,11 +137,7 @@ struct HomeView: View {
                     Spacer()
 
                     VStack(spacing: 16) {
-                        Menu {
-                            Button("Normal") { mapStyle = .standard; mapStyleHapticTrigger += 1 }
-                            Button("Satellite") { mapStyle = .imagery; mapStyleHapticTrigger += 1 }
-                            Button("Hybrid") { mapStyle = .hybrid; mapStyleHapticTrigger += 1 }
-                        } label: {
+                        MapStyleMenu(selection: $mapStyle) {
                             Image(systemName: "map")
                                 .font(.title2)
                                 .foregroundColor(.primary)
@@ -151,8 +146,6 @@ struct HomeView: View {
                                 .clipShape(Circle())
                                 .shadow(radius: 4)
                         }
-                        .accessibilityLabel(LocalizationHelper.localized("Map style"))
-                        .sensoryFeedback(.selection, trigger: mapStyleHapticTrigger)
 
                         Button(action: { showLiveShareDialog = true }) {
                             if liveSharingManager.isActive {
