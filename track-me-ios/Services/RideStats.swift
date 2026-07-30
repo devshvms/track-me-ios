@@ -11,6 +11,26 @@ nonisolated struct GoodRideSummary {
     let durationMillis: Int64
     /// Filtered ride distance in meters.
     let distanceMeters: Double
+    /// True when SOS was entered at any point during this ride. The ride still contributes to
+    /// history aggregates, but downstream celebratory surfaces must be suppressed.
+    /// Parity with Android `GoodRideSummary.suppressPostRideCelebrations`.
+    let suppressPostRideCelebrations: Bool
+
+    /// Explicit memberwise init so the new flag defaults to `false` while `let` immutability is
+    /// preserved (Swift omits defaulted `let` properties from the synthesized init entirely).
+    init(
+        rideId: String,
+        finishedAtMillis: Int64,
+        durationMillis: Int64,
+        distanceMeters: Double,
+        suppressPostRideCelebrations: Bool = false
+    ) {
+        self.rideId = rideId
+        self.finishedAtMillis = finishedAtMillis
+        self.durationMillis = durationMillis
+        self.distanceMeters = distanceMeters
+        self.suppressPostRideCelebrations = suppressPostRideCelebrations
+    }
 }
 
 /// Versioned local aggregate of ride history, shared by all v1.6.0 retention features.
@@ -82,6 +102,49 @@ nonisolated struct RideStatsTransition {
     let streakAdvanced: Bool
     /// True when this ride's week-rollover forgave a single missed week (B3 auto-freeze).
     let streakFroze: Bool
+    /// True when B1/B4 post-ride celebrations must not be presented for this ride.
+    /// Parity with Android `RideStatsTransition.suppressPostRideCelebrations`.
+    let suppressPostRideCelebrations: Bool
+
+    /// Explicit memberwise init: the new flag is last and defaults to `false`, so every existing
+    /// construction site (and test) keeps compiling while the fields stay `let`.
+    init(
+        rideId: String,
+        alreadyProcessed: Bool,
+        isFirstRide: Bool,
+        isDistancePR: Bool,
+        isDurationPR: Bool,
+        milestoneRideCount: Int?,
+        totalRides: Int,
+        distanceMeters: Double,
+        durationMillis: Int64,
+        weekKey: String,
+        weekRideCount: Int,
+        weekDistanceMeters: Double,
+        streakWeeks: Int,
+        isFirstRideOfWeek: Bool,
+        streakAdvanced: Bool,
+        streakFroze: Bool,
+        suppressPostRideCelebrations: Bool = false
+    ) {
+        self.rideId = rideId
+        self.alreadyProcessed = alreadyProcessed
+        self.isFirstRide = isFirstRide
+        self.isDistancePR = isDistancePR
+        self.isDurationPR = isDurationPR
+        self.milestoneRideCount = milestoneRideCount
+        self.totalRides = totalRides
+        self.distanceMeters = distanceMeters
+        self.durationMillis = durationMillis
+        self.weekKey = weekKey
+        self.weekRideCount = weekRideCount
+        self.weekDistanceMeters = weekDistanceMeters
+        self.streakWeeks = streakWeeks
+        self.isFirstRideOfWeek = isFirstRideOfWeek
+        self.streakAdvanced = streakAdvanced
+        self.streakFroze = streakFroze
+        self.suppressPostRideCelebrations = suppressPostRideCelebrations
+    }
 }
 
 /// B2 immutable snapshot of a completed (rolled-over) week for the recap card. Gain-framed
@@ -177,7 +240,8 @@ nonisolated enum RideStatsReducer {
                 streakWeeks: old.streakWeeks,
                 isFirstRideOfWeek: false,
                 streakAdvanced: false,
-                streakFroze: false
+                streakFroze: false,
+                suppressPostRideCelebrations: summary.suppressPostRideCelebrations
             )
             return (old, noOp)
         }
@@ -262,7 +326,8 @@ nonisolated enum RideStatsReducer {
             streakWeeks: newStreakWeeks,
             isFirstRideOfWeek: isFirstRideOfWeek,
             streakAdvanced: streakAdvanced,
-            streakFroze: streakFroze
+            streakFroze: streakFroze,
+            suppressPostRideCelebrations: summary.suppressPostRideCelebrations
         )
 
         return (newStats, transition)
