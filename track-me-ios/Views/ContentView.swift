@@ -33,6 +33,10 @@ struct ContentView: View {
                 }
         }
         .sheet(item: $recapCoordinator.pending, onDismiss: {
+            // TASK-119: prompt 30 requires acknowledging on ANY *user* dismissal. A gate-driven
+            // park (the moment stopped being calm) is not a dismissal — it must leave the week
+            // un-acked so the recap returns at the next calm check.
+            guard !recapCoordinator.consumeGatePark() else { return }
             Task { await recapCoordinator.acknowledge() }
         }) { recap in
             WeeklyRecapView(recap: recap) {
@@ -40,6 +44,12 @@ struct ContentView: View {
             }
         }
         .task { await recapCoordinator.check() }
+        // TASK-119: a recap queued while idle must not stay on screen if tracking starts moments
+        // later (a restored ride resuming after launch is the realistic case). Parity with the
+        // Android `HomeScreen` render-time guard.
+        .onChange(of: trackingManager.state) { _, _ in
+            recapCoordinator.parkIfNotCalm()
+        }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 Task { await recapCoordinator.check() }
