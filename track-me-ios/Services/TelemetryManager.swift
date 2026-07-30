@@ -1,26 +1,79 @@
 import Foundation
 import SwiftUI
 import PostHog
+import FirebaseFirestore
+
+/// Pure consent contract shared with Android: local opt-in is required, while the
+/// remote flag can only force telemetry off.
+struct TelemetryConsentState {
+    let localConsent: Bool
+    let remoteAllowed: Bool
+
+    var isEnabled: Bool { localConsent && remoteAllowed }
+}
 
 class TelemetryManager {
     static let shared = TelemetryManager()
     
-    @AppStorage("enableTelemetry") private var isTelemetryEnabled: Bool = false
+    @AppStorage("enableTelemetry") private var localConsent: Bool = false
+
+    // The remote flag is an operations-only emergency kill switch. Absence of the
+    // document/field means no override; only an explicit false can disable telemetry.
+    private var remoteAllowed: Bool = true
+    private var configListener: ListenerRegistration?
+    private var isInitialized = false
     
     private init() {}
+
+    private var effectiveState: TelemetryConsentState {
+        TelemetryConsentState(localConsent: localConsent, remoteAllowed: remoteAllowed)
+    }
     
     // MARK: - PostHog Setup
     func initializePostHog() {
         let configuration = PostHogConfig(apiKey: "phc_ohRdDdd3VeXqFJPWefGv8vF3ogo4cUHaw9hrMLvDmP8k", host: "https://eu.posthog.com")
         // PostHog handles standard properties automatically (OS Version, Screen Dimensions, etc)
         // Opt out automatically if telemetry is disabled
-        configuration.optOut = !isTelemetryEnabled
+        configuration.optOut = !effectiveState.isEnabled
         PostHogSDK.shared.setup(configuration)
+        isInitialized = true
+
+        startRemoteConfigListener()
     }
-    
-    // Call this if the user toggles the feature flag in Settings
+
+    /// Listens for the shvm-controlled Firestore emergency kill switch.
+    /// Missing documents/fields fail open to the local consent state; an explicit
+    /// false can only force everyone off and can never opt anyone in.
+    private func startRemoteConfigListener() {
+        configListener = Firestore.firestore()
+            .collection("config")
+            .document("telemetry_settings")
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self else { return }
+                if let error {
+                    print("TelemetryManager: telemetry settings listener failed: \(error)")
+                    return
+                }
+
+                let remoteAllowed: Bool
+                if let snapshot, snapshot.exists {
+                    remoteAllowed = snapshot.get("isTelemetryEnabled") as? Bool ?? true
+                } else {
+                    remoteAllowed = true
+                }
+                self.remoteAllowed = remoteAllowed
+                self.applyOptState()
+            }
+    }
+
+    // Call this if the user toggles the local feature flag in Settings.
     func updateOptOutStatus() {
-        if isTelemetryEnabled {
+        applyOptState()
+    }
+
+    private func applyOptState() {
+        guard isInitialized else { return }
+        if effectiveState.isEnabled {
             PostHogSDK.shared.optIn()
         } else {
             PostHogSDK.shared.optOut()
@@ -28,7 +81,7 @@ class TelemetryManager {
     }
     
     private func shouldTrack() -> Bool {
-        return isTelemetryEnabled
+        effectiveState.isEnabled
     }
     
     // MARK: - 1. Installs & Active Devices
