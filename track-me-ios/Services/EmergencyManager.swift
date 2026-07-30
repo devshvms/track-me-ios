@@ -7,7 +7,26 @@ import UIKit
 class EmergencyManager {
     static let shared = EmergencyManager()
 
+    /// Parity with Android `EmergencyManager.EMERGENCY_TRIGGERED_FOR_RIDE_KEY`. Persisted so the
+    /// suppression survives process death between SOS and ride finalization.
+    private static let emergencyTriggeredForRideKey = "emergency_triggered_for_ride"
+
+    private let defaults: UserDefaults
+    /// Guards the suppression bit: it is written from the SOS surface (main actor) and read during
+    /// ride finalization, which may run off the main actor. Mirrors Android's `@Synchronized`.
+    private let lock = NSLock()
+
     private var sosStartTime: Date?
+
+    /// Whether the current ride has entered the emergency flow. Deliberately separate from whether
+    /// SOS is *currently* active: the user can resolve SOS before stopping the ride, but the
+    /// celebratory post-ride surfaces must remain suppressed for that ride.
+    private var emergencyTriggeredForRide: Bool
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        self.emergencyTriggeredForRide = defaults.bool(forKey: Self.emergencyTriggeredForRideKey)
+    }
 
     // NOTE: startBroadcast in v1 iOS does not auto-send an SMS.
     // It is called when the user slides the SOS slider, but HomeView handles presenting
@@ -16,12 +35,50 @@ class EmergencyManager {
         print("SOS Placeholder Triggered - Log action for future backend/SMS integration")
         TelemetryManager.shared.trackSosTriggered(triggerMethod: "in_app_button")
         sosStartTime = Date()
+        lock.lock()
+        defer { lock.unlock() }
+        emergencyTriggeredForRide = true
+        persistSuppression()
     }
 
     func resolveBroadcast(falseAlarm: Bool) {
         let duration = Int(Date().timeIntervalSince(sosStartTime ?? Date()))
         TelemetryManager.shared.trackSosResolved(resolutionTimeSeconds: duration, falseAlarm: falseAlarm)
         sosStartTime = nil
+        // Deliberately does NOT clear `emergencyTriggeredForRide`: the ride still had an emergency,
+        // so it must not earn a celebration. Parity with Android `stopEmergency()`.
+    }
+
+    /// Whether an emergency is currently in flight (iOS analogue of Android's
+    /// `isEmergencyActive`; iOS has no repeating broadcast loop, so the SOS clock is the state).
+    var isEmergencyActive: Bool { sosStartTime != nil }
+
+    /// Start a fresh per-ride suppression window. Called when a new ride begins — including the
+    /// second half of an auto-split — but NOT when an interrupted ride is restored, so a restored
+    /// ride keeps the bit persisted before the kill. Parity with Android `beginRideSession()`.
+    func beginRideSession() {
+        lock.lock()
+        defer { lock.unlock() }
+        // Carry an already-active SOS across a ride split; otherwise the new segment could
+        // incorrectly earn a celebratory reveal while the emergency flow is still running.
+        emergencyTriggeredForRide = isEmergencyActive
+        persistSuppression()
+    }
+
+    /// Consume the per-ride suppression bit exactly once at finalization.
+    /// Parity with Android `consumeRideSuppression()`.
+    @discardableResult
+    func consumeRideSuppression() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let wasTriggered = defaults.bool(forKey: Self.emergencyTriggeredForRideKey)
+        emergencyTriggeredForRide = false
+        defaults.removeObject(forKey: Self.emergencyTriggeredForRideKey)
+        return wasTriggered
+    }
+
+    private func persistSuppression() {
+        defaults.set(emergencyTriggeredForRide, forKey: Self.emergencyTriggeredForRideKey)
     }
 
     func fetchFreshLocation(timeout: TimeInterval = 2.0, completion: @escaping (CLLocationCoordinate2D?) -> Void) {

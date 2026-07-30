@@ -184,6 +184,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             return
         }
 
+        // Open a fresh per-ride SOS suppression window before the ride exists, so an emergency
+        // that is still running carries into it. A restored ride deliberately does NOT call this
+        // (see restoreInterruptedSessionIfNeeded) — it keeps the persisted bit.
+        EmergencyManager.shared.beginRideSession()
+
         let newRide = Ride()
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
@@ -530,6 +535,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// segment distance/duration. Shared by normal stop and auto-split so the
     /// A1 good-ride hook + telemetry fire identically on both paths.
     private func finalizeSegment(id: UUID, endedAt: Date) {
+        // Consume the single per-ride SOS bit before the junk-ride early return, so a discarded
+        // segment cannot leave the bit set for the next ride. History still records a valid ride,
+        // while the transition prevents B1 from creating a reveal (and therefore B4 from chaining
+        // a review request) after an emergency flow. Parity with Android `finalizeRide`.
+        let suppressPostRideCelebrations = EmergencyManager.shared.consumeRideSuppression()
+
         DataRepository.shared.finishRide(rideId: id)
         TelemetryManager.shared.trackRideCompleted(
             rideId: id.uuidString,
@@ -542,7 +553,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 rideId: id.uuidString,
                 finishedAtMillis: Int64(endedAt.timeIntervalSince1970 * 1000),
                 durationMillis: Int64(durationInMillis),
-                distanceMeters: totalDistance
+                distanceMeters: totalDistance,
+                suppressPostRideCelebrations: suppressPostRideCelebrations
             )
             Task {
                 let transition = await RideStatsStore.shared.recordGoodRide(summary)
@@ -564,9 +576,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         let endedAt = points.last?.timestamp ?? Date()
 
         // 1. Finalize Part 1 (telemetry + A1 hook + cloud sync via finishRide's unsynced flag).
+        //    This consumes Part 1's SOS suppression bit.
         finalizeSegment(id: oldId, endedAt: endedAt)
 
         // 2. Start Part 2 in the SAME session — do NOT stop location/timer/Live Activity.
+        //    Re-open the suppression window so a still-running emergency carries into Part 2.
+        EmergencyManager.shared.beginRideSession()
         let part2 = Ride(title: (LocalizationHelper.localized("Ride")) + " (" + LocalizationHelper.localized("Part 2") + ")")
         currentRideId = part2.id
         UserDefaults.standard.set(part2.id.uuidString, forKey: Self.activeRideKey)
