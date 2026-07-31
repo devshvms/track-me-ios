@@ -8145,6 +8145,26 @@
           }
         }
       }
+    },
+    "TrackMe is for adults" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe ist für Erwachsene" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe es para adultos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe est réservé aux adultes" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe वयस्कों के लिए है" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe は成人向けです" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 仅适用于成人" } }
+      }
+    },
+    "TrackMe is intended for an adult audience and isn't available to users under 18, per our Privacy Policy. If you believe this is a mistake, please contact us." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe richtet sich an ein erwachsenes Publikum und ist gemäß unserer Datenschutzrichtlinie nicht für Personen unter 18 Jahren verfügbar. Wenn du glaubst, dass dies ein Fehler ist, kontaktiere uns bitte." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe está destinado a un público adulto y no está disponible para menores de 18 años, según nuestra Política de privacidad. Si crees que se trata de un error, ponte en contacto con nosotros." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe est destiné à un public adulte et n'est pas disponible pour les moins de 18 ans, conformément à notre Politique de confidentialité. Si vous pensez qu'il s'agit d'une erreur, contactez-nous." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe वयस्क दर्शकों के लिए है और हमारी गोपनीयता नीति के अनुसार 18 वर्ष से कम उम्र के उपयोगकर्ताओं के लिए उपलब्ध नहीं है। यदि आपको लगता है कि यह गलती है, तो कृपया हमसे संपर्क करें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe は成人向けであり、プライバシーポリシーにより18歳未満の方は利用できません。誤りだと思われる場合は、お問い合わせください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 面向成人用户，根据我们的隐私政策，未满 18 岁的用户无法使用。如果你认为这是错误，请联系我们。" } }
+      }
     }
   },
   "version" : "1.1"

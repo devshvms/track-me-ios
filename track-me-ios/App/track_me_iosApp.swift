@@ -14,6 +14,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         FirebaseApp.configure()
         TelemetryManager.shared.initializePostHog()
+        // The age-range request is started from ContentView, where SwiftUI supplies the
+        // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
     }
 }
