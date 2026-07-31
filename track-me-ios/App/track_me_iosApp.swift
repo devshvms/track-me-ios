@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseAuth
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
@@ -15,6 +16,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         FirebaseApp.configure()
         TelemetryManager.shared.initializePostHog()
         return true
+    }
+
+    func application(_ app: UIApplication,
+                     open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        Auth.auth().canHandle(url)
     }
 }
 
@@ -50,6 +57,9 @@ struct track_me_iosApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    _ = Auth.auth().canHandle(url)
+                }
                 .onAppear {
                     DataRepository.shared.setup(container: sharedModelContainer)
                     Task {

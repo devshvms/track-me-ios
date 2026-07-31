@@ -29,6 +29,15 @@
 				<string>com.googleusercontent.apps.126912105508-aknqk6cn4du3jcjbuhrkeablptpcku5n</string>
 			</array>
 		</dict>
+		<!-- Firebase OAuth callbacks use the app bundle identifier as a scheme. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>in.shvms.track-me-ios</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

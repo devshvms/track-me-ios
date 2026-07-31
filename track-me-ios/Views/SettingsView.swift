@@ -2,9 +2,16 @@ import SwiftUI
 import FirebaseAuth
 import SwiftData
 
+private enum SignInProvider: Equatable {
+    case apple
+    case google
+}
+
 struct SettingsView: View {
     @AppStorage("enableGPSPostProcessing") var isPostProcessingEnabled: Bool = true
-    @State private var isLoggedOut = Auth.auth().currentUser == nil
+    @State private var isLoggedOut = Auth.auth().currentUser == nil || Auth.auth().currentUser?.isAnonymous == true
+    @State private var isSigningIn = false
+    @State private var signingInProvider: SignInProvider?
 
     @State private var showGpsInfo = false
     @State private var isSyncing = false
@@ -56,28 +63,19 @@ struct SettingsView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
 
-                            Button(action: {
-                                Auth.auth().signInAnonymously { result, error in
-                                    if let error = error {
-                                        print("Anonymous sign in error: \(error.localizedDescription)")
-                                    } else if let authResult = result {
-                                        TelemetryManager.shared.identifyUser(userId: authResult.user.uid)
-                                        if authResult.additionalUserInfo?.isNewUser == true {
-                                            TelemetryManager.shared.trackUserSignedUp()
-                                        } else {
-                                            TelemetryManager.shared.trackUserLoggedIn()
-                                        }
-                                    }
-                                }
-                            }) {
-                                Text("Sign in (Anonymous Test)")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(BrandColor.primaryFill)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(24)
+                            Button(action: { signIn(using: .apple) }) {
+                                signInLabel(for: .apple, title: "Sign in with Apple", foreground: BrandColor.onPrimary)
                             }
+                            .disabled(isSigningIn)
+                            .accessibilityLabel(LocalizationHelper.localized("Sign in with Apple"))
+                            .accessibilityValue(signingInProvider == .apple ? LocalizationHelper.localized("Signing in…") : "")
+
+                            Button(action: { signIn(using: .google) }) {
+                                signInLabel(for: .google, title: "Sign in with Google", foreground: BrandColor.primary)
+                            }
+                            .disabled(isSigningIn)
+                            .accessibilityLabel(LocalizationHelper.localized("Sign in with Google"))
+                            .accessibilityValue(signingInProvider == .google ? LocalizationHelper.localized("Signing in…") : "")
                         }
                         .padding()
                         .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -134,7 +132,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
 
                                 VStack {
-                                    Text("Oct 2023") // Hardcoded or format from Auth metadata if available
+                                    Text(joinedDateString)
                                         .font(.title3).bold()
                                         .foregroundColor(BrandColor.primary)
                                     Text("Joined")
@@ -376,10 +374,69 @@ struct SettingsView: View {
             }
             .onAppear {
                 Auth.auth().addStateDidChangeListener { _, user in
-                    isLoggedOut = (user == nil)
+                    isLoggedOut = (user == nil || user?.isAnonymous == true)
                 }
             }
         }
         .trackScreen("SettingsView")
+    }
+
+    @ViewBuilder
+    private func signInLabel(for provider: SignInProvider, title: String, foreground: Color) -> some View {
+        HStack(spacing: 10) {
+            if signingInProvider == provider {
+                ProgressView()
+                    .tint(foreground)
+                Text(LocalizationHelper.localized("Signing in…"))
+            } else {
+                Text(LocalizationHelper.localized(title))
+            }
+        }
+        .font(.headline)
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(provider == .apple ? BrandColor.primaryFill : Color.clear)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(BrandColor.primary, lineWidth: provider == .google ? 1 : 0)
+        )
+        .foregroundColor(foreground)
+        .cornerRadius(24)
+    }
+
+    private var joinedDateString: String {
+        guard let creationDate = Auth.auth().currentUser?.metadata.creationDate else {
+            return LocalizationHelper.localized("Unknown", localeCode: appLanguage)
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM yyyy"
+        formatter.locale = Locale(identifier: appLanguage)
+        return formatter.string(from: creationDate)
+    }
+
+    private func signIn(using provider: SignInProvider) {
+        guard !isSigningIn else { return }
+        isSigningIn = true
+        signingInProvider = provider
+
+        Task { @MainActor in
+            let result: Result<User, Error>
+            switch provider {
+            case .apple:
+                result = await AuthManager.shared.signInWithApple()
+            case .google:
+                result = await AuthManager.shared.signInWithGoogle()
+            }
+
+            isSigningIn = false
+            signingInProvider = nil
+            if case .failure(let error) = result,
+               !AuthManager.isSignInCancellation(error) {
+                ToastManager.shared.show(
+                    message: AuthManager.signInErrorMessage(for: error),
+                    style: .error
+                )
+            }
+        }
     }
 }
