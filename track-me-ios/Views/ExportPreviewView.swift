@@ -9,6 +9,7 @@ struct ExportPreviewView: View {
     @State private var showDate = true
     @State private var showDuration = true
     @State private var showDistance = true
+    @State private var privacyTrim = true
     @State private var darkOverlay = true
     @State private var selectedRatio: ExportRatio = .square
     @State private var renderedImage: UIImage
@@ -34,6 +35,13 @@ struct ExportPreviewView: View {
         self.snapshotImage = snapshotImage
         _renderedImage = State(initialValue: snapshotImage)
     }
+
+    /// Pure seam shared by image and video export so the toggle cannot drift
+    /// between the two presentation paths.
+    static func renderPoints(_ points: [GPSPoint], privacyTrim: Bool, trimMeters: Double = 200.0) -> [GPSPoint] {
+        let sorted = points.sorted { $0.timestamp < $1.timestamp }
+        return privacyTrim ? RoutePrivacyTrim.trim(sorted, trimMeters: trimMeters) : sorted
+    }
     
     var body: some View {
         VStack {
@@ -52,9 +60,10 @@ struct ExportPreviewView: View {
                 Toggle(LocalizationHelper.localized("Show date"), isOn: $showDate)
                 Toggle(LocalizationHelper.localized("Show duration"), isOn: $showDuration)
                 Toggle(LocalizationHelper.localized("Show distance"), isOn: $showDistance)
+                Toggle(LocalizationHelper.localized("Privacy trim (200 m)"), isOn: $privacyTrim)
                 Toggle(LocalizationHelper.localized("Dark overlay"), isOn: $darkOverlay)
             }
-            .frame(height: 150)
+            .frame(height: 190)
             .cornerRadius(16)
             .padding(.horizontal)
             
@@ -114,6 +123,13 @@ struct ExportPreviewView: View {
             ratioDebounce = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
         }
+        .onChange(of: privacyTrim) { _, _ in
+            ratioDebounce?.cancel()
+            let work = DispatchWorkItem { regenerateSnapshot(for: selectedRatio) }
+            ratioDebounce = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        }
+        .onAppear { regenerateSnapshot(for: selectedRatio) }
         .onDisappear { videoExportTask?.cancel() }
     }
     
@@ -155,7 +171,8 @@ struct ExportPreviewView: View {
 
     private func regenerateSnapshot(for ratio: ExportRatio) {
         isRendering = true
-        ImageExporter.generateSnapshot(for: ride, size: ratio.snapshotSize) { image in
+        let renderPoints = Self.renderPoints(ride.points ?? [], privacyTrim: privacyTrim)
+        ImageExporter.generateSnapshot(points: renderPoints, size: ratio.snapshotSize) { image in
             Task { @MainActor in
                 if let image { renderedImage = image }
                 isRendering = false
@@ -197,12 +214,12 @@ struct ExportPreviewView: View {
         let overlay = ReplayOverlay(personaLabel: ride.ridePersona.displayName, imperialUnits: unitSettings.unit == .imperial)
         let config: ReplayExportConfig
         do {
-            config = try ReplayExportConfig(width: width, height: height, persona: ride.ridePersona, overlay: overlay)
+            config = try ReplayExportConfig(width: width, height: height, applyPrivacyTrim: privacyTrim, persona: ride.ridePersona, overlay: overlay)
         } catch {
             ToastManager.shared.show(message: LocalizationHelper.localized("Couldn't create the video. Try again."), style: .error)
             return
         }
-        let trimmed = config.applyPrivacyTrim ? RoutePrivacyTrim.trim(untrimmed, trimMeters: config.privacyTrimDistanceMeters) : untrimmed
+        let trimmed = Self.renderPoints(untrimmed, privacyTrim: config.applyPrivacyTrim, trimMeters: config.privacyTrimDistanceMeters)
         isExportingVideo = true
         videoExportProgress = 0
         videoExportTask = Task { @MainActor in
