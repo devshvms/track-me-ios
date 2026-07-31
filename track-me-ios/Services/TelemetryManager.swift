@@ -145,6 +145,18 @@ class TelemetryManager {
         PostHogSDK.shared.capture("data_download_requested")
     }
 
+    func trackHelpOpened() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("help_opened")
+    }
+
+    func trackSupportContactStarted(faqExpandedCount: Int) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("support_contact_started", properties: [
+            "faq_expanded_count": faqExpandedCount
+        ])
+    }
+
     // MARK: - 9. v1.6.0 retention taxonomy (A1)
     // Identical event names + property keys/types to Android's AnalyticsManager. NO PII
     // (no lat/lng, no names/emails/titles). Emitted by the feature layer only when a surface
