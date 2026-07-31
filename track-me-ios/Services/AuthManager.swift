@@ -4,6 +4,12 @@ import FirebaseAuth
 class AuthManager {
     static let shared = AuthManager()
 
+    private let errorLogger: ErrorLogger
+
+    init(errorLogger: ErrorLogger = CrashlyticsErrorLogger.shared) {
+        self.errorLogger = errorLogger
+    }
+
     // Native Apple Sign-In via Firebase OAuthProvider
     func signInWithApple() {
         let provider = OAuthProvider(providerID: "apple.com")
@@ -11,13 +17,15 @@ class AuthManager {
 
         provider.getCredentialWith(nil) { credential, error in
             if let error = error {
-                print("Apple sign in error: \(error.localizedDescription)")
+                self.errorLogger.log("Apple sign in error")
+                self.errorLogger.recordError(error)
                 return
             }
             if let credential = credential {
                 Auth.auth().signIn(with: credential) { authResult, error in
                     if let error = error {
-                        print("Firebase Auth error: \(error.localizedDescription)")
+                        self.errorLogger.log("Firebase Auth error during Apple sign-in")
+                        self.errorLogger.recordError(error)
                     } else if let result = authResult {
                         TelemetryManager.shared.identifyUser(userId: result.user.uid)
                         if result.additionalUserInfo?.isNewUser == true {
@@ -43,13 +51,15 @@ class AuthManager {
 
         provider.getCredentialWith(nil) { credential, error in
             if let error = error {
-                print("Google sign in error: \(error.localizedDescription)")
+                self.errorLogger.log("Google sign in error")
+                self.errorLogger.recordError(error)
                 return
             }
             if let credential = credential {
                 Auth.auth().signIn(with: credential) { authResult, error in
                     if let error = error {
-                        print("Firebase Auth error: \(error.localizedDescription)")
+                        self.errorLogger.log("Firebase Auth error during Google sign-in")
+                        self.errorLogger.recordError(error)
                     } else if let result = authResult {
                         TelemetryManager.shared.identifyUser(userId: result.user.uid)
                         if result.additionalUserInfo?.isNewUser == true {

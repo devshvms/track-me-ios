@@ -8,6 +8,8 @@ import FirebaseAuth
 class LiveSharingManager {
     static let shared = LiveSharingManager()
 
+    private let errorLogger: ErrorLogger
+
     var isActive: Bool = false
     var isRideLinked: Bool = false
     var sessionId: String?
@@ -39,7 +41,8 @@ class LiveSharingManager {
         return request
     }
 
-    private init() {
+    init(errorLogger: ErrorLogger = CrashlyticsErrorLogger.shared) {
+        self.errorLogger = errorLogger
     }
 
     private func withAuthToken(forceRefresh: Bool = false, _ completion: @escaping (String?) -> Void) {
@@ -89,7 +92,8 @@ class LiveSharingManager {
                 let code = (response as? HTTPURLResponse)?.statusCode
 
                 if let error = error {
-                    print("Failed to start session: \(error)")
+                    self.errorLogger.log("Failed to start live-share session")
+                    self.errorLogger.recordError(error)
                     DispatchQueue.main.async {
                         self.handleTransportError(error)
                     }
@@ -159,7 +163,8 @@ class LiveSharingManager {
                         }
                     }
                 } catch {
-                    print("Failed to parse start session response: \(error)")
+                    self.errorLogger.log("Failed to parse live-share start-session response")
+                    self.errorLogger.recordError(error)
                     DispatchQueue.main.async {
                         ToastManager.shared.show(message: LocalizationHelper.localized("Failed to parse sharing session"), style: .error)
                     }
