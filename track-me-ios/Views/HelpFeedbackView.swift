@@ -112,6 +112,18 @@ struct HelpFeedbackView: View {
             lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled ? "enabled" : "disabled",
             backgroundRefresh: backgroundRefreshStatus(UIApplication.shared.backgroundRefreshStatus),
             signedIn: !(Auth.auth().currentUser?.isAnonymous ?? true)
+        ), labels: SupportDiagnosticsLabels(
+            appVersion: LocalizationHelper.localized("App version"),
+            iosVersion: LocalizationHelper.localized("iOS version"),
+            device: LocalizationHelper.localized("Device"),
+            appLanguage: LocalizationHelper.localized("App language"),
+            deviceLocale: LocalizationHelper.localized("Device locale"),
+            units: LocalizationHelper.localized("Units"),
+            locationAuthorization: LocalizationHelper.localized("Location authorization"),
+            notificationAuthorization: LocalizationHelper.localized("Notification authorization"),
+            lowPowerMode: LocalizationHelper.localized("Low Power Mode"),
+            backgroundRefresh: LocalizationHelper.localized("Background refresh"),
+            signedIn: LocalizationHelper.localized("Signed in")
         ))
     }
 
