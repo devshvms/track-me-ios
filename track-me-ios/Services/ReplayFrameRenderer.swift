@@ -87,7 +87,11 @@ enum ReplayFrameRenderer {
         context.setStrokeColor(UIColor.white.cgColor)
         context.setLineWidth(3)
         context.addEllipse(in: CGRect(x: point.x - 12, y: point.y - 12, width: 24, height: 24))
-        if start { context.fillPath() } else { context.strokePath(); context.fillPath() }
+        context.fillPath()
+        if !start {
+            context.addEllipse(in: CGRect(x: point.x - 12, y: point.y - 12, width: 24, height: 24))
+            context.strokePath()
+        }
     }
 
     private static func drawMarker(_ context: CGContext, at point: CGPoint, heading: CGFloat) {
