@@ -345,7 +345,10 @@ struct RideDetailView: View {
                 .foregroundStyle(by: .value("Metric", "Speed"))
                 .annotation(position: .top, alignment: .center) {
                     Text(UnitFormatter.speed(mps: pts[idx].rawSpeed, unit: unitSettings.unit))
-                        .font(.system(size: 10, weight: .bold))
+                        // The chart summary/scrubber remains the primary VoiceOver path;
+                        // keep these visual annotations readable without covering the plot.
+                        .font(.caption2.bold())
+                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(BrandColor.chartSpeed)
@@ -360,7 +363,8 @@ struct RideDetailView: View {
                 .foregroundStyle(by: .value("Metric", "Altitude"))
                 .annotation(position: .bottom, alignment: .center) {
                     Text(String(format: "%.1f m", pts[idx].rawAltitude))
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.caption2.bold())
+                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(BrandColor.chartAltitude)
