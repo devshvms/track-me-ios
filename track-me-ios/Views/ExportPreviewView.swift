@@ -9,6 +9,7 @@ struct ExportPreviewView: View {
     @State private var showDate = true
     @State private var showDuration = true
     @State private var showDistance = true
+    @State private var privacyTrim = true
     @State private var darkOverlay = true
     @State private var selectedRatio: ExportRatio = .square
     @State private var renderedImage: UIImage
@@ -17,6 +18,9 @@ struct ExportPreviewView: View {
     
     @State private var isShowingShareSheet = false
     @State private var shareItems: [Any] = []
+    @State private var isExportingVideo = false
+    @State private var videoExportProgress: Float = 0
+    @State private var videoExportTask: Task<Void, Never>?
     @ObservedObject private var unitSettings = UnitSettings.shared
 
     enum ExportRatio: String, CaseIterable, Identifiable {
@@ -30,6 +34,13 @@ struct ExportPreviewView: View {
         self.ride = ride
         self.snapshotImage = snapshotImage
         _renderedImage = State(initialValue: snapshotImage)
+    }
+
+    /// Pure seam shared by image and video export so the toggle cannot drift
+    /// between the two presentation paths.
+    static func renderPoints(_ points: [GPSPoint], privacyTrim: Bool, trimMeters: Double = 200.0) -> [GPSPoint] {
+        let sorted = points.sorted { $0.timestamp < $1.timestamp }
+        return privacyTrim ? RoutePrivacyTrim.trim(sorted, trimMeters: trimMeters) : sorted
     }
     
     var body: some View {
@@ -49,9 +60,10 @@ struct ExportPreviewView: View {
                 Toggle(LocalizationHelper.localized("Show date"), isOn: $showDate)
                 Toggle(LocalizationHelper.localized("Show duration"), isOn: $showDuration)
                 Toggle(LocalizationHelper.localized("Show distance"), isOn: $showDistance)
+                Toggle(LocalizationHelper.localized("Privacy trim (200 m)"), isOn: $privacyTrim)
                 Toggle(LocalizationHelper.localized("Dark overlay"), isOn: $darkOverlay)
             }
-            .frame(height: 150)
+            .frame(height: 190)
             .cornerRadius(16)
             .padding(.horizontal)
             
@@ -68,7 +80,36 @@ struct ExportPreviewView: View {
                 .cornerRadius(12)
             }
             .padding(.horizontal)
-            .padding(.bottom)
+
+            Button(action: exportVideo) {
+                HStack {
+                    if isExportingVideo {
+                        ProgressView(value: videoExportProgress)
+                            .progressViewStyle(.linear)
+                            .frame(width: 28)
+                    } else {
+                        Image(systemName: "video.fill")
+                    }
+                    Text(isExportingVideo
+                         ? String(format: LocalizationHelper.localized("Exporting… %d%%"), Int(videoExportProgress * 100))
+                         : LocalizationHelper.localized("Export video"))
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(hasEnoughPointsForVideo ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.4))
+                .cornerRadius(12)
+            }
+            .disabled(!hasEnoughPointsForVideo)
+            .padding(.horizontal)
+            if !hasEnoughPointsForVideo {
+                Text(LocalizationHelper.localized("Not enough GPS points to export video"))
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+            }
+            Spacer(minLength: 8)
         }
         .navigationTitle("Export Preview")
         .navigationBarTitleDisplayMode(.inline)
@@ -82,6 +123,14 @@ struct ExportPreviewView: View {
             ratioDebounce = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
         }
+        .onChange(of: privacyTrim) { _, _ in
+            ratioDebounce?.cancel()
+            let work = DispatchWorkItem { regenerateSnapshot(for: selectedRatio) }
+            ratioDebounce = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        }
+        .onAppear { regenerateSnapshot(for: selectedRatio) }
+        .onDisappear { videoExportTask?.cancel() }
     }
     
     var exportFrame: some View {
@@ -122,7 +171,8 @@ struct ExportPreviewView: View {
 
     private func regenerateSnapshot(for ratio: ExportRatio) {
         isRendering = true
-        ImageExporter.generateSnapshot(for: ride, size: ratio.snapshotSize) { image in
+        let renderPoints = Self.renderPoints(ride.points ?? [], privacyTrim: privacyTrim)
+        ImageExporter.generateSnapshot(points: renderPoints, size: ratio.snapshotSize) { image in
             Task { @MainActor in
                 if let image { renderedImage = image }
                 isRendering = false
@@ -141,6 +191,57 @@ struct ExportPreviewView: View {
         if let uiImage = renderer.uiImage {
             shareItems = [uiImage]
             isShowingShareSheet = true
+        }
+    }
+
+    private var hasEnoughPointsForVideo: Bool {
+        (ride.points ?? []).count >= 2
+    }
+
+    @MainActor
+    private func exportVideo() {
+        if isExportingVideo {
+            videoExportTask?.cancel()
+            return
+        }
+        let untrimmed = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
+        guard untrimmed.count >= 2 else { return }
+        let width = 1080
+        let height = max(1, Int((CGFloat(width) / selectedRatio.aspect).rounded()))
+        let durationMillis = Int64(max(0, (ride.endTime ?? untrimmed.last!.timestamp).timeIntervalSince(ride.startTime) * 1000))
+        let stats = ReplayStats(distanceMeters: RideDistance.meters(untrimmed), durationMillis: durationMillis,
+                                averageSpeedMetersPerSecond: durationMillis > 0 ? RideDistance.meters(untrimmed) / (Double(durationMillis) / 1000) : 0)
+        let overlay = ReplayOverlay(personaLabel: ride.ridePersona.displayName, imperialUnits: unitSettings.unit == .imperial)
+        let config: ReplayExportConfig
+        do {
+            config = try ReplayExportConfig(width: width, height: height, applyPrivacyTrim: privacyTrim, persona: ride.ridePersona, overlay: overlay)
+        } catch {
+            ToastManager.shared.show(message: LocalizationHelper.localized("Couldn't create the video. Try again."), style: .error)
+            return
+        }
+        let trimmed = Self.renderPoints(untrimmed, privacyTrim: config.applyPrivacyTrim, trimMeters: config.privacyTrimDistanceMeters)
+        isExportingVideo = true
+        videoExportProgress = 0
+        videoExportTask = Task { @MainActor in
+            let capture = await ReplayVideoExporter.captureRouteSnapshot(points: trimmed, size: CGSize(width: width / 2, height: height / 2))
+            do {
+                let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+                let url = try await ReplayVideoExporter.export(points: trimmed, stats: stats, config: config,
+                    outputDirectory: directory, mapSnapshot: capture.0, routeProjection: capture.1) { progress in
+                        Task { @MainActor in self.videoExportProgress = progress }
+                    }
+                try Task.checkCancellation()
+                self.shareItems = [url]
+                self.isShowingShareSheet = true
+            } catch is CancellationError {
+                // User dismissed the sheet or tapped the action while encoding.
+            } catch ReplayVideoExporterError.cancelled {
+                // Partial files are removed by the exporter.
+            } catch {
+                ToastManager.shared.show(message: LocalizationHelper.localized("Couldn't create the video. Try again."), style: .error)
+            }
+            self.isExportingVideo = false
+            self.videoExportTask = nil
         }
     }
     
