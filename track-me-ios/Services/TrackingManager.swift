@@ -405,6 +405,53 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// Cancels a just-started ride without finalization, cloud sync, or post-ride surfaces.
+    /// The policy is checked again here so a stale UI affordance cannot discard a real ride.
+    @discardableResult
+    func discardNearEmptyRideStart() -> Bool {
+        guard state != .idle,
+              let id = currentRideId,
+              RideStartAbortPolicy.canOfferPostCommitUndo(
+                durationInMillis: durationInMillis,
+                distanceMeters: totalDistance
+              ) else { return false }
+
+        locationManager.stopUpdatingLocation()
+        motionSensor.stopListening()
+        timer?.invalidate()
+        timer = nil
+        storageWarningShown = false
+        splitWarningShown = false
+        state = .idle
+        UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["StorageLow"])
+
+        RideActivityManager.shared.end(
+            startedAt: Date().addingTimeInterval(-durationInMillis / 1000),
+            distanceMeters: totalDistance,
+            speedMps: 0,
+            pausedElapsed: durationInMillis / 1000
+        )
+
+        // Consume the ride-scoped SOS bit just as normal finalization does, but deliberately
+        // skip finishRide/ride_completed/reveal generation for an explicit start abort.
+        _ = EmergencyManager.shared.consumeRideSuppression()
+        DataRepository.shared.deleteRide(rideId: id)
+        currentRideId = nil
+        points.removeAll(keepingCapacity: false)
+        currentSpeed = 0
+        totalDistance = 0
+        durationInMillis = 0
+        isAutoPaused = false
+        timeSinceLastGps = 0
+        lastGpsTimestamp = nil
+
+        if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
+            LiveSharingManager.shared.stopSession(reason: "Ride start cancelled.")
+        }
+        return true
+    }
+
     func pauseTracking() {
         if state == .tracking || state == .gpsLost || state == .storageLow {
             state = .paused

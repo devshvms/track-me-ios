@@ -27,6 +27,7 @@ struct HomeView: View {
     @State private var showEmergencyCompose = false
     @State private var emergencyMessageBody = ""
     @State private var showShareSheet = false
+    @State private var rideStartLaunch = RideStartLaunchState()
     var body: some View {
         ZStack(alignment: .bottom) {
             Map(position: $position, scope: mapScope) {
@@ -240,16 +241,29 @@ struct HomeView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
+                if trackingManager.state != .idle && RideStartAbortPolicy.canOfferPostCommitUndo(
+                    durationInMillis: trackingManager.durationInMillis,
+                    distanceMeters: trackingManager.totalDistance
+                ) {
+                    Button(role: .destructive) {
+                        guard trackingManager.discardNearEmptyRideStart() else { return }
+                        Haptics.notify(.warning)
+                        TelemetryManager.shared.trackRideStartAborted(method: .postCommitUndo)
+                    } label: {
+                        Label(LocalizationHelper.localized("Cancel"), systemImage: "xmark")
+                            .font(.subheadline.bold())
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(BrandColor.sos)
+                    .accessibilityHint(LocalizationHelper.localized("Cancel"))
+                }
+
                 // Main Action Buttons
                 HStack(spacing: 24) {
                     switch trackingManager.state {
                     case .idle:
-                        TrackingButton(icon: "play.fill", color: BrandColor.primaryFill,
-                                       label: LocalizationHelper.localized("Start tracking")) {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                Haptics.impact(.medium)
-                                trackingManager.startTracking()
-                            }
+                        AbortableStartTrackingButton(launchState: $rideStartLaunch) {
+                            trackingManager.startTracking()
                         }
                     case .tracking, .gpsLost:
                         TrackingButton(icon: "pause.fill", color: .orange,
@@ -344,6 +358,9 @@ struct HomeView: View {
             }
         }
         .trackScreen("HomeView")
+        .onDisappear {
+            rideStartLaunch.reset()
+        }
     }
 
     private func formatDuration(_ timeInterval: TimeInterval) -> String {
@@ -530,5 +547,53 @@ struct TrackingButton: View {
                 .shadow(color: color.opacity(0.4), radius: 10, x: 0, y: 5)
         }
         .accessibilityLabel(label)
+    }
+}
+
+private struct AbortableStartTrackingButton: View {
+    @Binding var launchState: RideStartLaunchState
+    var onCommit: () -> Void
+
+    var body: some View {
+        Button {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                if let token = launchState.pendingToken {
+                    guard launchState.abort(observedToken: token) else { return }
+                    Haptics.notify(.warning)
+                    TelemetryManager.shared.trackRideStartAborted(method: .preCommit)
+                } else {
+                    Haptics.impact(.medium)
+                    launchState.begin()
+                }
+            }
+        } label: {
+            Image(systemName: launchState.isPending ? "xmark" : "play.fill")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 72, height: 72)
+                .background(BrandColor.primaryFill.gradient)
+                .clipShape(Circle())
+                .scaleEffect(launchState.isPending ? 1.1 : 1)
+                .shadow(color: BrandColor.primaryFill.opacity(0.4), radius: 10, x: 0, y: 5)
+                .overlay {
+                    if launchState.isPending {
+                        Circle()
+                            .stroke(BrandColor.primaryFill.opacity(0.45), lineWidth: 2)
+                            .scaleEffect(1.35)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+        }
+        .accessibilityLabel(LocalizationHelper.localized(launchState.isPending ? "Cancel" : "Start tracking"))
+        .task(id: launchState.pendingToken) {
+            guard let token = launchState.pendingToken else { return }
+            do {
+                try await Task.sleep(for: RideStartAbortPolicy.preCommitDelay)
+            } catch {
+                return
+            }
+            guard launchState.commit(observedToken: token) else { return }
+            onCommit()
+        }
     }
 }

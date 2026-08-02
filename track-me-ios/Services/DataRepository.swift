@@ -136,6 +136,28 @@ final class DataRepository {
         }
     }
 
+    /// Removes a ride that was explicitly abandoned during the near-empty start window.
+    /// Serialized behind point writes so an in-flight location callback cannot resurrect it.
+    func deleteRide(rideId: UUID) {
+        guard let container = container else { return }
+
+        let pendingWrites = pointWriteChain
+        pointWriteChain = Task { [weak self] in
+            await pendingWrites?.value
+            guard self != nil else { return }
+
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
+            do {
+                guard let ride = try context.fetch(descriptor).first else { return }
+                context.delete(ride)
+                try context.save()
+            } catch {
+                NSLog("TrackMe: failed to discard near-empty ride: %@", error.localizedDescription)
+            }
+        }
+    }
+
     /// Deletes ALL locally-stored rides, GPS points, and emergency settings/contacts.
     /// Serialized behind any pending point writes so a concurrent background insert can't resurrect a row after the wipe.
     /// Throws if the SwiftData delete/save fails (caller must NOT report success on throw).
