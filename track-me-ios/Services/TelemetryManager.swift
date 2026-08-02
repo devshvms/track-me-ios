@@ -61,6 +61,13 @@ class TelemetryManager {
             "distance_km": distanceKm
         ])
     }
+
+    func trackRideStartAborted(method: RideStartAbortMethod) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("ride_start_aborted", properties: [
+            "method": method.rawValue
+        ])
+    }
     
     // MARK: - 4. Live Sharing
     func trackLiveShareStarted(shareId: String, recipientCount: Int) {
