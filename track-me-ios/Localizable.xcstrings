@@ -11572,6 +11572,66 @@
           }
         }
       }
+    },
+    "Sign in with Apple": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Mit Apple anmelden" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Sign in with Apple" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Iniciar sesión con Apple" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Se connecter avec Apple" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "Apple से साइन इन करें" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "Appleでサインイン" } }
+      }
+    },
+    "Sign in with Google": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Mit Google anmelden" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Sign in with Google" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Iniciar sesión con Google" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Se connecter avec Google" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "Google से साइन इन करें" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "Googleでサインイン" } }
+      }
+    },
+    "Signing in…": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Anmeldung läuft…" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Signing in…" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Iniciando sesión…" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Connexion…" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "साइन इन हो रहा है…" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "サインイン中…" } }
+      }
+    },
+    "No connection — check your network and try again.": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Keine Verbindung – überprüfe dein Netzwerk und versuche es erneut." } },
+        "en": { "stringUnit": { "state": "translated", "value": "No connection — check your network and try again." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Sin conexión: comprueba tu red e inténtalo de nuevo." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Aucune connexion — vérifiez votre réseau et réessayez." } },
+        "hi": { "stringUnit": { "state": "translated", "value": "कनेक्शन नहीं है — अपना नेटवर्क जाँचें और फिर कोशिश करें।" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "接続できません — ネットワークを確認してもう一度お試しください。" } }
+      }
+    },
+    "Sign-in isn't available right now. Please try again later.": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Die Anmeldung ist derzeit nicht verfügbar. Bitte versuche es später erneut." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Sign-in isn't available right now. Please try again later." } },
+        "es": { "stringUnit": { "state": "translated", "value": "El inicio de sesión no está disponible ahora. Inténtalo de nuevo más tarde." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "La connexion n’est pas disponible pour le moment. Veuillez réessayer plus tard." } },
+        "hi": { "stringUnit": { "state": "translated", "value": "अभी साइन इन उपलब्ध नहीं है। कृपया बाद में फिर कोशिश करें।" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "現在サインインを利用できません。しばらくしてからもう一度お試しください。" } }
+      }
+    },
+    "Unknown": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Unbekannt" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Unknown" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Desconocido" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Inconnu" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "अज्ञात" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "不明" } }
+      }
     }
   },
   "version": "1.1"

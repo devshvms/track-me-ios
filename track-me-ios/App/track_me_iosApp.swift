@@ -23,6 +23,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
     }
+
+    func application(_ app: UIApplication,
+                     open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        Auth.auth().canHandle(url)
+    }
 }
 
 @main
@@ -59,6 +65,9 @@ struct track_me_iosApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    _ = Auth.auth().canHandle(url)
+                }
                 .onAppear {
                     DataRepository.shared.setup(container: sharedModelContainer)
                     Task {
