@@ -51,6 +51,7 @@ struct RideLiveActivity: Widget {
 
 private struct RideLockScreenView: View {
     let state: RideActivityAttributes.ContentState
+    @ScaledMetric(relativeTo: .largeTitle) private var durationSize: CGFloat = 34
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
@@ -58,8 +59,10 @@ private struct RideLockScreenView: View {
                 Label("TrackMe", systemImage: RideActivityFormat.statusIcon(state))
                     .font(.caption).foregroundStyle(.secondary)
                 RideActivityFormat.durationView(state)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.system(size: durationSize, weight: .bold, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                 if let status = RideActivityFormat.statusLine(state) {
                     Text(status).font(.caption).foregroundStyle(.secondary)
                 }

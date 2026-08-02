@@ -111,9 +111,9 @@ struct LiveShareDialog: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
-                Text(formatRemainingTime(liveSharingManager.remainingSeconds))
-                    .font(.system(size: 40, weight: .bold, design: .monospaced))
-                    .foregroundColor(BrandColor.success)
+                LiveShareRemainingTimeView(
+                    text: formatRemainingTime(liveSharingManager.remainingSeconds)
+                )
             }
             
             if let link = liveSharingManager.shareLink {
@@ -172,5 +172,18 @@ struct LiveShareDialog: View {
             return String(format: "%02d:%02d:%02d", hrs, mins, secs)
         }
         return String(format: "%02d:%02d", mins, secs)
+    }
+}
+
+internal struct LiveShareRemainingTimeView: View {
+    let text: String
+    @ScaledMetric(relativeTo: .largeTitle) private var textSize: CGFloat = 40
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: textSize, weight: .bold, design: .monospaced))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .foregroundColor(BrandColor.success)
     }
 }

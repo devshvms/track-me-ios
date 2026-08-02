@@ -153,13 +153,18 @@ struct HomeView: View {
                                     Image(systemName: "antenna.radiowaves.left.and.right")
                                         .font(.system(size: 16, weight: .bold))
                                     Text(formatDuration(TimeInterval(liveSharingManager.remainingSeconds)))
+                                        // Fixed-size chrome: clamp the environment below rather than
+                                        // scaling this 10pt countdown out of its 48pt touch target.
                                         .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                 }
                                 .foregroundColor(.white)
                                 .frame(width: 48, height: 48)
                                 .background(BrandColor.success.gradient)
                                 .clipShape(Circle())
                                 .shadow(color: BrandColor.success.opacity(0.5), radius: 6)
+                                .dynamicTypeSize(...DynamicTypeSize.xLarge)
                             } else {
                                 Image(systemName: "location.viewfinder")
                                     .font(.title2)
@@ -188,72 +193,15 @@ struct HomeView: View {
             }
 
             VStack(spacing: 20) {
-                // Glassmorphic Stats Card
-                VStack(spacing: 20) {
-                    if trackingManager.state != .idle {
-                        VStack(alignment: .center, spacing: 4) {
-                            Text("TIME")
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                            Text(formatDuration(trackingManager.durationInMillis / 1000))
-                                .font(.system(size: 40, weight: .bold, design: .rounded))
-                                .contentTransition(.numericText())
-                        }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.localized("Time"))
-                        .accessibilityValue(formatDuration(trackingManager.durationInMillis / 1000))
-
-                        Divider()
-                            .padding(.horizontal, 20)
-                    }
-
-                    HStack(spacing: 40) {
-                        VStack(alignment: .center, spacing: 4) {
-                            Text("SPEED")
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                Text(UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit).split(separator: " ").first.map(String.init) ?? "0.0")
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .contentTransition(.numericText())
-                                Text(UnitFormatter.speedUnitLabel(unitSettings.unit))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.localized("Speed"))
-                        .accessibilityValue(UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit))
-
-                        Divider()
-                            .frame(height: 40)
-
-                        VStack(alignment: .center, spacing: 4) {
-                            Text("DISTANCE")
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                Text(UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit))
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .contentTransition(.numericText())
-                                Text(UnitFormatter.distanceUnitLabel(unitSettings.unit))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.localized("Distance"))
-                        .accessibilityValue(UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit))
-                    }
-                }
-                .padding(.vertical, 20)
-                .padding(.horizontal, 30)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .shadow(color: Color.black.opacity(0.15), radius: 15, x: 0, y: 10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                RideStatsCard(
+                    isTracking: trackingManager.state != .idle,
+                    duration: formatDuration(trackingManager.durationInMillis / 1000),
+                    speedValue: UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit).split(separator: " ").first.map(String.init) ?? "0.0",
+                    speedUnit: UnitFormatter.speedUnitLabel(unitSettings.unit),
+                    speedAccessibilityValue: UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit),
+                    distanceValue: UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+                    distanceUnit: UnitFormatter.distanceUnitLabel(unitSettings.unit),
+                    distanceAccessibilityValue: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit)
                 )
 
                 // SOS Component
@@ -409,6 +357,160 @@ struct HomeView: View {
             return String(format: "%02d:%02d", minutes, seconds)
         }
     }
+}
+
+/// The glanceable ride metrics card. Custom sizes stay pixel-identical at the
+/// default Dynamic Type size while scaling with larger settings. The visual
+/// card is intentionally capped at accessibility3: TIME/SPEED/DISTANCE remain
+/// fully exposed through their VoiceOver elements above that visual ceiling.
+internal struct RideStatsCard: View {
+    let isTracking: Bool
+    let duration: String
+    let speedValue: String
+    let speedUnit: String
+    let speedAccessibilityValue: String
+    let distanceValue: String
+    let distanceUnit: String
+    let distanceAccessibilityValue: String
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    var body: some View {
+        RideStatsCardContent(
+            isTracking: isTracking,
+            duration: duration,
+            speedValue: speedValue,
+            speedUnit: speedUnit,
+            speedAccessibilityValue: speedAccessibilityValue,
+            distanceValue: distanceValue,
+            distanceUnit: distanceUnit,
+            distanceAccessibilityValue: distanceAccessibilityValue
+        )
+        // ScaledMetric reads the environment while its view is built. Applying
+        // the cap to the content view (rather than after it) keeps AX5 from
+        // inflating the visual card before the modifier can clamp it.
+        .environment(\.dynamicTypeSize, dynamicTypeSize > .accessibility3 ? .accessibility3 : dynamicTypeSize)
+    }
+}
+
+private struct RideStatsCardContent: View {
+    let isTracking: Bool
+    let duration: String
+    let speedValue: String
+    let speedUnit: String
+    let speedAccessibilityValue: String
+    let distanceValue: String
+    let distanceUnit: String
+    let distanceAccessibilityValue: String
+
+    @ScaledMetric(relativeTo: .caption) private var timeLabelSize: CGFloat = 12
+    @ScaledMetric(relativeTo: .largeTitle) private var timeValueSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .title) private var dividerHeight: CGFloat = 40
+
+    var body: some View {
+        VStack(spacing: 20) {
+            if isTracking {
+                VStack(alignment: .center, spacing: 4) {
+                    Text("TIME")
+                        .font(.system(size: timeLabelSize, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                    Text(duration)
+                        .font(.system(size: timeValueSize, weight: .bold, design: .rounded))
+                        .contentTransition(.numericText())
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(LocalizationHelper.localized("Time"))
+                .accessibilityValue(duration)
+
+                Divider()
+                    .padding(.horizontal, 20)
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 40) {
+                    RideStatReadout(
+                        label: LocalizationHelper.localized("Speed"),
+                        value: speedValue,
+                        unit: speedUnit,
+                        accessibilityValue: speedAccessibilityValue
+                    )
+
+                    Divider()
+                        .frame(height: dividerHeight)
+
+                    RideStatReadout(
+                        label: LocalizationHelper.localized("Distance"),
+                        value: distanceValue,
+                        unit: distanceUnit,
+                        accessibilityValue: distanceAccessibilityValue
+                    )
+                }
+
+                VStack(spacing: 12) {
+                    RideStatReadout(
+                        label: LocalizationHelper.localized("Speed"),
+                        value: speedValue,
+                        unit: speedUnit,
+                        accessibilityValue: speedAccessibilityValue
+                    )
+                    Divider()
+                    RideStatReadout(
+                        label: LocalizationHelper.localized("Distance"),
+                        value: distanceValue,
+                        unit: distanceUnit,
+                        accessibilityValue: distanceAccessibilityValue
+                    )
+                }
+            }
+        }
+        .padding(.vertical, 20)
+        .padding(.horizontal, 30)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.black.opacity(0.15), radius: 15, x: 0, y: 10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
+internal struct RideStatReadout: View {
+    let label: String
+    let value: String
+    let unit: String
+    let accessibilityValue: String
+
+    @ScaledMetric(relativeTo: .caption) private var labelSize: CGFloat = 12
+    @ScaledMetric(relativeTo: .title) private var valueSize: CGFloat = 32
+
+    internal var accessibilityDescriptor: RideStatAccessibilityDescriptor {
+        RideStatAccessibilityDescriptor(label: label, value: accessibilityValue)
+    }
+
+    var body: some View {
+        VStack(alignment: .center, spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: labelSize, weight: .semibold, design: .rounded))
+                .foregroundColor(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: valueSize, weight: .bold, design: .rounded))
+                    .contentTransition(.numericText())
+                Text(unit)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityDescriptor.label)
+        .accessibilityValue(accessibilityDescriptor.value)
+    }
+}
+
+/// The semantic contract used by VoiceOver for a single ride metric.
+internal struct RideStatAccessibilityDescriptor: Equatable {
+    let label: String
+    let value: String
 }
 
 struct TrackingButton: View {
