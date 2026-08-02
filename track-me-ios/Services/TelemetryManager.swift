@@ -238,6 +238,16 @@ class TelemetryManager {
         ])
     }
 
+    /// Age-signal compliance outcome. Category and decision are coarse, non-PII values.
+    func trackAgeSignalChecked(platform: String = "ios", category: String, decision: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("age_signal_checked", properties: [
+            "platform": platform,
+            "category": category,
+            "decision": decision
+        ])
+    }
+
     // MARK: - 10. Background Tracking Reliability (v1.6.0)
     func trackLocationUpdatesPaused() {
         guard shouldTrack() else { return }

@@ -19,6 +19,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             CrashlyticsErrorLogger.shared.setUserId(user?.uid)
         }
         TelemetryManager.shared.initializePostHog()
+        // The age-range request is started from ContentView, where SwiftUI supplies the
+        // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
     }
 }

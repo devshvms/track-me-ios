@@ -7,16 +7,25 @@
 
 import SwiftUI
 import SwiftData
+import DeclaredAgeRange
 
 struct ContentView: View {
     // B2: shared foreground trigger (scenePhase) — parity with Android MainActivity.onResume.
     @Environment(\.scenePhase) private var scenePhase
     @Bindable private var recapCoordinator = WeeklyRecapCoordinator.shared
     @ObservedObject private var updateManager = AppUpdateManager.shared
+    @ObservedObject private var ageSignalManager = AgeSignalManager.shared
+    @Environment(\.requestAgeRange) private var requestAgeRange
     private var trackingManager = TrackingManager.shared
 
     var body: some View {
-        TabView {
+        Group {
+            if ageSignalManager.decision == .blocked {
+                AgeRestrictedView()
+            } else if ageSignalManager.decision == nil {
+                AgeSignalCheckingView()
+            } else {
+                TabView {
             HomeView()
                 .tabItem {
                     Label("Home", systemImage: "map.fill")
@@ -31,6 +40,8 @@ struct ContentView: View {
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
+                }
+            }
         }
         .sheet(item: $recapCoordinator.pending, onDismiss: {
             // TASK-119: prompt 30 requires acknowledging on ANY *user* dismissal. A gate-driven
@@ -74,6 +85,11 @@ struct ContentView: View {
         // views still override per role.
         .brandDefaultFont()
         .tint(BrandColor.primary)
+        .task {
+            await ageSignalManager.checkAndPersist { gate in
+                try await requestAgeRange(ageGates: gate)
+            }
+        }
     }
 }
 
