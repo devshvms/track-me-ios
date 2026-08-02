@@ -1,554 +1,492 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Image ratio": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Bildformat" } }, "es": { "stringUnit": { "state": "translated", "value": "Proporción de imagen" } }, "fr": { "stringUnit": { "state": "translated", "value": "Format de l’image" } }, "hi": { "stringUnit": { "state": "translated", "value": "इमेज अनुपात" } }, "ja": { "stringUnit": { "state": "translated", "value": "画像比率" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "图片比例" } } } },
-    "Show ride title": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Fahrttitel anzeigen" } }, "es": { "stringUnit": { "state": "translated", "value": "Mostrar título" } }, "fr": { "stringUnit": { "state": "translated", "value": "Afficher le titre" } }, "hi": { "stringUnit": { "state": "translated", "value": "राइड शीर्षक दिखाएं" } }, "ja": { "stringUnit": { "state": "translated", "value": "ライドタイトルを表示" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "显示骑行标题" } } } },
-    "Show date": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Datum anzeigen" } }, "es": { "stringUnit": { "state": "translated", "value": "Mostrar fecha" } }, "fr": { "stringUnit": { "state": "translated", "value": "Afficher la date" } }, "hi": { "stringUnit": { "state": "translated", "value": "तारीख दिखाएं" } }, "ja": { "stringUnit": { "state": "translated", "value": "日付を表示" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "显示日期" } } } },
-    "Show duration": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Dauer anzeigen" } }, "es": { "stringUnit": { "state": "translated", "value": "Mostrar duración" } }, "fr": { "stringUnit": { "state": "translated", "value": "Afficher la durée" } }, "hi": { "stringUnit": { "state": "translated", "value": "अवधि दिखाएं" } }, "ja": { "stringUnit": { "state": "translated", "value": "時間を表示" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "显示时长" } } } },
-    "Show distance": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Distanz anzeigen" } }, "es": { "stringUnit": { "state": "translated", "value": "Mostrar distancia" } }, "fr": { "stringUnit": { "state": "translated", "value": "Afficher la distance" } }, "hi": { "stringUnit": { "state": "translated", "value": "दूरी दिखाएं" } }, "ja": { "stringUnit": { "state": "translated", "value": "距離を表示" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "显示距离" } } } },
-    "Dark overlay": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Dunkle Überlagerung" } }, "es": { "stringUnit": { "state": "translated", "value": "Superposición oscura" } }, "fr": { "stringUnit": { "state": "translated", "value": "Superposition sombre" } }, "hi": { "stringUnit": { "state": "translated", "value": "गहरा ओवरले" } }, "ja": { "stringUnit": { "state": "translated", "value": "暗いオーバーレイ" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "深色叠加层" } } } },
-    "Share image": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Bild teilen" } }, "es": { "stringUnit": { "state": "translated", "value": "Compartir imagen" } }, "fr": { "stringUnit": { "state": "translated", "value": "Partager l’image" } }, "hi": { "stringUnit": { "state": "translated", "value": "इमेज साझा करें" } }, "ja": { "stringUnit": { "state": "translated", "value": "画像を共有" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "分享图片" } } } },
-    "Privacy trim (200 m)": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Privatsphären-Zuschnitt (200 m)" } }, "es": { "stringUnit": { "state": "translated", "value": "Recorte de privacidad (200 m)" } }, "fr": { "stringUnit": { "state": "translated", "value": "Découpe de confidentialité (200 m)" } }, "hi": { "stringUnit": { "state": "translated", "value": "प्राइवेसी ट्रिम (200 मीटर)" } }, "ja": { "stringUnit": { "state": "translated", "value": "プライバシートリム（200 m）" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "隐私裁剪（200 米）" } } } },
-    "Export video": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Video exportieren" } }, "es": { "stringUnit": { "state": "translated", "value": "Exportar vídeo" } }, "fr": { "stringUnit": { "state": "translated", "value": "Exporter la vidéo" } }, "hi": { "stringUnit": { "state": "translated", "value": "वीडियो निर्यात करें" } }, "ja": { "stringUnit": { "state": "translated", "value": "ビデオを書き出す" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "导出视频" } } } },
-    "Exporting… %d%%": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Exportiere… %d%%" } }, "es": { "stringUnit": { "state": "translated", "value": "Exportando… %d%%" } }, "fr": { "stringUnit": { "state": "translated", "value": "Exportation… %d%%" } }, "hi": { "stringUnit": { "state": "translated", "value": "निर्यात हो रहा है… %d%%" } }, "ja": { "stringUnit": { "state": "translated", "value": "書き出し中… %d%%" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在导出… %d%%" } } } },
-    "Couldn't create the video. Try again.": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Das Video konnte nicht erstellt werden. Bitte erneut versuchen." } }, "es": { "stringUnit": { "state": "translated", "value": "No se pudo crear el vídeo. Inténtalo de nuevo." } }, "fr": { "stringUnit": { "state": "translated", "value": "Impossible de créer la vidéo. Réessayez." } }, "hi": { "stringUnit": { "state": "translated", "value": "वीडियो नहीं बन सका। फिर से प्रयास करें।" } }, "ja": { "stringUnit": { "state": "translated", "value": "ビデオを作成できませんでした。もう一度お試しください。" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "无法创建视频，请重试。" } } } },
-    "Not enough GPS points to export video": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Nicht genügend GPS-Punkte für den Videoexport" } }, "es": { "stringUnit": { "state": "translated", "value": "No hay suficientes puntos GPS para exportar el vídeo" } }, "fr": { "stringUnit": { "state": "translated", "value": "Pas assez de points GPS pour exporter la vidéo" } }, "hi": { "stringUnit": { "state": "translated", "value": "वीडियो निर्यात करने के लिए पर्याप्त GPS पॉइंट नहीं हैं" } }, "ja": { "stringUnit": { "state": "translated", "value": "ビデオを書き出すにはGPSポイントが不足しています" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "GPS 点不足，无法导出视频" } } } },
+    "Image ratio": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildformat"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proporción de imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Format de l’image"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इमेज अनुपात"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像比率"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片比例"
+          }
+        }
+      }
+    },
+    "Show ride title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrttitel anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar título"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher le titre"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइड शीर्षक दिखाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライドタイトルを表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示骑行标题"
+          }
+        }
+      }
+    },
+    "Show date": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar fecha"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la date"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तारीख दिखाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日付を表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示日期"
+          }
+        }
+      }
+    },
+    "Show duration": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dauer anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar duración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la durée"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अवधि दिखाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間を表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示时长"
+          }
+        }
+      }
+    },
+    "Show distance": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distanz anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar distancia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la distance"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूरी दिखाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "距離を表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示距离"
+          }
+        }
+      }
+    },
+    "Dark overlay": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dunkle Überlagerung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superposición oscura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superposition sombre"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गहरा ओवरले"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暗いオーバーレイ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色叠加层"
+          }
+        }
+      }
+    },
+    "Share image": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild teilen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partager l’image"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इमेज साझा करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像を共有"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享图片"
+          }
+        }
+      }
+    },
+    "Privacy trim (200 m)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privatsphären-Zuschnitt (200 m)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorte de privacidad (200 m)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Découpe de confidentialité (200 m)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्राइवेसी ट्रिम (200 मीटर)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プライバシートリム（200 m）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私裁剪（200 米）"
+          }
+        }
+      }
+    },
+    "Export video": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video exportieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar vídeo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter la vidéo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वीडियो निर्यात करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ビデオを書き出す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出视频"
+          }
+        }
+      }
+    },
+    "Exporting… %d%%": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportiere… %d%%"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportando… %d%%"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportation… %d%%"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निर्यात हो रहा है… %d%%"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き出し中… %d%%"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在导出… %d%%"
+          }
+        }
+      }
+    },
+    "Couldn't create the video. Try again.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Video konnte nicht erstellt werden. Bitte erneut versuchen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo crear el vídeo. Inténtalo de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de créer la vidéo. Réessayez."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वीडियो नहीं बन सका। फिर से प्रयास करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ビデオを作成できませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建视频，请重试。"
+          }
+        }
+      }
+    },
+    "Not enough GPS points to export video": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht genügend GPS-Punkte für den Videoexport"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay suficientes puntos GPS para exportar el vídeo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas assez de points GPS pour exporter la vidéo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वीडियो निर्यात करने के लिए पर्याप्त GPS पॉइंट नहीं हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ビデオを書き出すにはGPSポイントが不足しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS 点不足，无法导出视频"
+          }
+        }
+      }
+    },
     "Your week in review": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Deine Woche im Rückblick"
-          }
-        }
-      }
-    },
-    "Placeholders: [Location Link], [Battery Percent], [Device Name], [Timestamp]" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Platzhalter: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Marcadores: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Espaces réservés : [Location Link], [Battery Percent], [Device Name], [Timestamp]"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "प्लेसहोल्डर: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "プレースホルダー: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "占位符: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
-          }
-        }
-      }
-    },
-    "Reset to default" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auf Standard zurücksetzen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restablecer a predeterminado"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialiser"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "डिफ़ॉल्ट पर रीसेट करें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "デフォルトにリセット"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重置为默认"
-          }
-        }
-      }
-    },
-    "Send test message" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Testnachricht senden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enviar mensaje de prueba"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Envoyer un message de test"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "परीक्षण संदेश भेजें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "テストメッセージを送信"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "发送测试消息"
-          }
-        }
-      }
-    },
-    "Finish setup" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einrichtung abschließen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finalizar configuración"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminer la configuration"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "सेटअप समाप्त करें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "セットアップを完了する"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完成设置"
-          }
-        }
-      }
-    },
-    "Add Contact" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kontakt hinzufügen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir contacto"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ajouter un contact"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "संपर्क जोड़ें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "連絡先を追加"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加联系人"
-          }
-        }
-      }
-    },
-    "Name" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nom"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "नाम"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "名前"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "姓名"
-          }
-        }
-      }
-    },
-    "Phone" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Telefon"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Teléfono"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Téléphone"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "फ़ोन"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "電話"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "电话"
-          }
-        }
-      }
-    },
-    "Cannot send SMS" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SMS kann nicht gesendet werden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se puede enviar SMS"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible d'envoyer un SMS"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SMS नहीं भेज सकते"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SMSを送信できません"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法发送短信"
-          }
-        }
-      }
-    },
-    "This device cannot send SMS messages." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Gerät kann keine SMS-Nachrichten senden."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este dispositivo no puede enviar mensajes SMS."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cet appareil ne peut pas envoyer de messages SMS."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "यह उपकरण SMS संदेश नहीं भेज सकता।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このデバイスはSMSメッセージを送信できません。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此设备无法发送短信。"
-          }
-        }
-      }
-    },
-    "Settings saved" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einstellungen gespeichert"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configuración guardada"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paramètres enregistrés"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "सेटिंग्स सहेजी गईं"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定が保存されました"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置已保存"
-          }
-        }
-      }
-    },
-    "Set up emergency contacts to use SOS" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Richten Sie Notfallkontakte ein, um SOS zu verwenden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configura contactos de emergencia para usar SOS"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configurez des contacts d'urgence pour utiliser SOS"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOS का उपयोग करने के लिए आपातकालीन संपर्क सेट करें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOSを使用するには緊急連絡先を設定してください"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置紧急联系人以使用SOS"
-          }
-        }
-      }
-    },
-    "SOS Sent" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOS gesendet"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOS enviado"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOS envoyé"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOS भेजा गया"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOSを送信しました"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SOS已发送"
-          }
-        }
-      }
-    },
-    "Cannot send SMS, using share sheet fallback" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SMS kann nicht gesendet werden, Share-Sheet-Fallback wird verwendet"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se puede enviar SMS, usando hoja de compartir alternativa"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible d'envoyer un SMS, utilisation du partage en secours"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SMS नहीं भेज सकते, शेयर शीट फ़ॉलबैक का उपयोग कर रहे हैं"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SMSを送信できません。共有シートフォールバックを使用します"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法发送短信，使用共享工作表备用"
-          }
-        }
-      }
-    },
-    "Your week in review" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Woche im Rückblick"
           }
         },
         "es": {
@@ -579,6 +517,526 @@
           "stringUnit": {
             "state": "translated",
             "value": "本周回顾"
+          }
+        }
+      }
+    },
+    "Placeholders: [Location Link], [Battery Percent], [Device Name], [Timestamp]": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platzhalter: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcadores: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espaces réservés : [Location Link], [Battery Percent], [Device Name], [Timestamp]"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्लेसहोल्डर: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレースホルダー: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "占位符: [Location Link], [Battery Percent], [Device Name], [Timestamp]"
+          }
+        }
+      }
+    },
+    "Reset to default": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf Standard zurücksetzen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer a predeterminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डिफ़ॉल्ट पर रीसेट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトにリセット"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置为默认"
+          }
+        }
+      }
+    },
+    "Send test message": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testnachricht senden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar mensaje de prueba"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer un message de test"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "परीक्षण संदेश भेजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テストメッセージを送信"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送测试消息"
+          }
+        }
+      }
+    },
+    "Finish setup": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichtung abschließen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finalizar configuración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminer la configuration"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेटअप समाप्त करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セットアップを完了する"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成设置"
+          }
+        }
+      }
+    },
+    "Add Contact": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakt hinzufügen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir contacto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un contact"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपर्क जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連絡先を追加"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加联系人"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नाम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "姓名"
+          }
+        }
+      }
+    },
+    "Phone": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefon"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teléfono"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléphone"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोन"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電話"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "电话"
+          }
+        }
+      }
+    },
+    "Cannot send SMS": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMS kann nicht gesendet werden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede enviar SMS"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'envoyer un SMS"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMS नहीं भेज सकते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMSを送信できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法发送短信"
+          }
+        }
+      }
+    },
+    "This device cannot send SMS messages.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Gerät kann keine SMS-Nachrichten senden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este dispositivo no puede enviar mensajes SMS."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet appareil ne peut pas envoyer de messages SMS."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह उपकरण SMS संदेश नहीं भेज सकता।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイスはSMSメッセージを送信できません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此设备无法发送短信。"
+          }
+        }
+      }
+    },
+    "Settings saved": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen gespeichert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configuración guardada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paramètres enregistrés"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेटिंग्स सहेजी गईं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定が保存されました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置已保存"
+          }
+        }
+      }
+    },
+    "Set up emergency contacts to use SOS": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richten Sie Notfallkontakte ein, um SOS zu verwenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configura contactos de emergencia para usar SOS"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurez des contacts d'urgence pour utiliser SOS"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOS का उपयोग करने के लिए आपातकालीन संपर्क सेट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOSを使用するには緊急連絡先を設定してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置紧急联系人以使用SOS"
+          }
+        }
+      }
+    },
+    "SOS Sent": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOS gesendet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOS enviado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOS envoyé"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOS भेजा गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOSを送信しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SOS已发送"
+          }
+        }
+      }
+    },
+    "Cannot send SMS, using share sheet fallback": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMS kann nicht gesendet werden, Share-Sheet-Fallback wird verwendet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede enviar SMS, usando hoja de compartir alternativa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'envoyer un SMS, utilisation du partage en secours"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMS नहीं भेज सकते, शेयर शीट फ़ॉलबैक का उपयोग कर रहे हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMSを送信できません。共有シートフォールバックを使用します"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法发送短信，使用共享工作表备用"
           }
         }
       }
@@ -2265,12 +2723,42 @@
     },
     "Speed and altitude chart. Duration %@. Average speed %@. Altitude ranges from %@ to %@ meters. %@": {
       "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "Geschwindigkeits- und Höhendiagramm. Dauer %1$@. Durchschnittsgeschwindigkeit %2$@. Höhe von %3$@ bis %4$@ Meter. %5$@" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Gráfico de velocidad y altitud. Duración %1$@. Velocidad media %2$@. Altitud de %3$@ a %4$@ metros. %5$@" } },
-        "fr": { "stringUnit": { "state": "translated", "value": "Graphique de vitesse et d'altitude. Durée %1$@. Vitesse moyenne %2$@. Altitude de %3$@ à %4$@ mètres. %5$@" } },
-        "hi": { "stringUnit": { "state": "translated", "value": "गति और ऊँचाई चार्ट। अवधि %1$@। औसत गति %2$@। ऊँचाई %3$@ से %4$@ मीटर तक। %5$@" } },
-        "ja": { "stringUnit": { "state": "translated", "value": "速度と高度のグラフ。時間%1$@。平均速度%2$@。高度は%3$@から%4$@メートル。%5$@" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "速度和海拔图表。时长%1$@。平均速度%2$@。海拔从%3$@到%4$@米。%5$@" } }
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geschwindigkeits- und Höhendiagramm. Dauer %1$@. Durchschnittsgeschwindigkeit %2$@. Höhe von %3$@ bis %4$@ Meter. %5$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gráfico de velocidad y altitud. Duración %1$@. Velocidad media %2$@. Altitud de %3$@ a %4$@ metros. %5$@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Graphique de vitesse et d'altitude. Durée %1$@. Vitesse moyenne %2$@. Altitude de %3$@ à %4$@ mètres. %5$@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गति और ऊँचाई चार्ट। अवधि %1$@। औसत गति %2$@। ऊँचाई %3$@ से %4$@ मीटर तक। %5$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "速度と高度のグラフ。時間%1$@。平均速度%2$@。高度は%3$@から%4$@メートル。%5$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "速度和海拔图表。时长%1$@。平均速度%2$@。海拔从%3$@到%4$@米。%5$@"
+          }
+        }
       }
     },
     "%@ hours %@ minutes": {
@@ -2713,8 +3201,7 @@
         }
       }
     },
-    "": {
-    },
+    "": {},
     "%@ • %@ • %@": {
       "comment": "A row of text that shows the date, duration, and distance of a ride. The argument is the string “%.0f mins”.",
       "isCommentAutoGenerated": true,
@@ -2809,8 +3296,7 @@
         }
       }
     },
-    "%lld": {
-    },
+    "%lld": {},
     "%lld pts": {
       "comment": "A label that shows the number of points a ride has.",
       "isCommentAutoGenerated": true
@@ -2897,16 +3383,11 @@
         }
       }
     },
-    "1m": {
-    },
-    "5m": {
-    },
-    "5s": {
-    },
-    "10s": {
-    },
-    "30s": {
-    },
+    "1m": {},
+    "5m": {},
+    "5s": {},
+    "10s": {},
+    "30s": {},
     "Account Management": {
       "localizations": {
         "de": {
@@ -2947,11 +3428,206 @@
         }
       }
     },
-    "Intelligent Auto-Pause": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Intelligente automatische Pause" } }, "es": { "stringUnit": { "state": "translated", "value": "Pausa automática inteligente" } }, "fr": { "stringUnit": { "state": "translated", "value": "Pause automatique intelligente" } }, "hi": { "stringUnit": { "state": "translated", "value": "स्मार्ट ऑटो-पॉज़" } }, "ja": { "stringUnit": { "state": "translated", "value": "インテリジェント自動一時停止" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "智能自动暂停" } } } },
-    "Dynamically pauses the moving timer at traffic signals or stops based on activity speed.": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Pausiert den Bewegungstimer an Ampeln oder Stopps dynamisch anhand der Aktivitätsgeschwindigkeit." } }, "es": { "stringUnit": { "state": "translated", "value": "Pausa dinámicamente el temporizador en semáforos o paradas según la velocidad de actividad." } }, "fr": { "stringUnit": { "state": "translated", "value": "Met en pause le minuteur aux feux ou arrêts selon la vitesse de l’activité." } }, "hi": { "stringUnit": { "state": "translated", "value": "गतिविधि की गति के आधार पर सिग्नल या रुकने पर टाइमर को रोकता है।" } }, "ja": { "stringUnit": { "state": "translated", "value": "活動速度に基づき、信号や停止時に移動タイマーを動的に一時停止します。" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "根据活动速度，在信号灯或停下时动态暂停计时器。" } } } },
-    "Intelligent auto-pause": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Intelligente automatische Pause" } }, "es": { "stringUnit": { "state": "translated", "value": "Pausa automática inteligente" } }, "fr": { "stringUnit": { "state": "translated", "value": "Pause automatique intelligente" } }, "hi": { "stringUnit": { "state": "translated", "value": "स्मार्ट ऑटो-पॉज़" } }, "ja": { "stringUnit": { "state": "translated", "value": "インテリジェント自動一時停止" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "智能自动暂停" } } } },
-    "Auto Paused": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Autom. pausiert" } }, "es": { "stringUnit": { "state": "translated", "value": "Pausa automática" } }, "fr": { "stringUnit": { "state": "translated", "value": "Pause auto" } }, "hi": { "stringUnit": { "state": "translated", "value": "स्वतः रुका" } }, "ja": { "stringUnit": { "state": "translated", "value": "自動一時停止" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "自动暂停" } } } },
-    "Auto paused. You stopped moving; recording continues and distance is not counting.": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Automatisch pausiert. Sie stehen still; die Aufzeichnung läuft weiter, die Distanz zählt nicht." } }, "es": { "stringUnit": { "state": "translated", "value": "Pausa automática. Dejaste de moverte; la grabación continúa y la distancia no cuenta." } }, "fr": { "stringUnit": { "state": "translated", "value": "Pause automatique. Vous êtes immobile ; l’enregistrement continue et la distance ne compte pas." } }, "hi": { "stringUnit": { "state": "translated", "value": "स्वतः रुका। आप चल नहीं रहे हैं; रिकॉर्डिंग जारी है और दूरी नहीं गिनी जा रही।" } }, "ja": { "stringUnit": { "state": "translated", "value": "自動一時停止中。移動していないため、記録は続きますが距離は加算されません。" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "已自动暂停。您已停止移动；记录会继续，但不计入距离。" } } } },
+    "Intelligent Auto-Pause": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligente automatische Pause"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa automática inteligente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause automatique intelligente"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्मार्ट ऑटो-पॉज़"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インテリジェント自動一時停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智能自动暂停"
+          }
+        }
+      }
+    },
+    "Dynamically pauses the moving timer at traffic signals or stops based on activity speed.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausiert den Bewegungstimer an Ampeln oder Stopps dynamisch anhand der Aktivitätsgeschwindigkeit."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa dinámicamente el temporizador en semáforos o paradas según la velocidad de actividad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Met en pause le minuteur aux feux ou arrêts selon la vitesse de l’activité."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गतिविधि की गति के आधार पर सिग्नल या रुकने पर टाइमर को रोकता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活動速度に基づき、信号や停止時に移動タイマーを動的に一時停止します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据活动速度，在信号灯或停下时动态暂停计时器。"
+          }
+        }
+      }
+    },
+    "Intelligent auto-pause": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligente automatische Pause"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa automática inteligente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause automatique intelligente"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्मार्ट ऑटो-पॉज़"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インテリジェント自動一時停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智能自动暂停"
+          }
+        }
+      }
+    },
+    "Auto Paused": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autom. pausiert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa automática"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause auto"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्वतः रुका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動一時停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动暂停"
+          }
+        }
+      }
+    },
+    "Auto paused. You stopped moving; recording continues and distance is not counting.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch pausiert. Sie stehen still; die Aufzeichnung läuft weiter, die Distanz zählt nicht."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa automática. Dejaste de moverte; la grabación continúa y la distancia no cuenta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause automatique. Vous êtes immobile ; l’enregistrement continue et la distance ne compte pas."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्वतः रुका। आप चल नहीं रहे हैं; रिकॉर्डिंग जारी है और दूरी नहीं गिनी जा रही।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動一時停止中。移動していないため、記録は続きますが距離は加算されません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已自动暂停。您已停止移动；记录会继续，但不计入距离。"
+          }
+        }
+      }
+    },
     "Advanced Settings": {
       "localizations": {
         "de": {
@@ -4444,8 +5120,7 @@
       "comment": "Label for the last location in a map view.",
       "isCommentAutoGenerated": true
     },
-    "Frequency": {
-    },
+    "Frequency": {},
     "Got it": {
       "localizations": {
         "de": {
@@ -4486,8 +5161,7 @@
         }
       }
     },
-    "GPS Post-Processing": {
-    },
+    "GPS Post-Processing": {},
     "Guest": {
       "localizations": {
         "de": {
@@ -4890,9 +5564,132 @@
         }
       }
     },
-    "Kilometers (km)": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Kilometer (km)" } }, "es": { "stringUnit": { "state": "translated", "value": "Kilómetros (km)" } }, "fr": { "stringUnit": { "state": "translated", "value": "Kilomètres (km)" } }, "hi": { "stringUnit": { "state": "translated", "value": "किलोमीटर (किमी)" } }, "ja": { "stringUnit": { "state": "translated", "value": "キロメートル (km)" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "公里 (km)" } } } },
-    "Miles (mi)": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Meilen (mi)" } }, "es": { "stringUnit": { "state": "translated", "value": "Millas (mi)" } }, "fr": { "stringUnit": { "state": "translated", "value": "Miles (mi)" } }, "hi": { "stringUnit": { "state": "translated", "value": "मील (mi)" } }, "ja": { "stringUnit": { "state": "translated", "value": "マイル (mi)" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "英里 (mi)" } } } },
-    "Units": { "localizations": { "de": { "stringUnit": { "state": "translated", "value": "Einheiten" } }, "es": { "stringUnit": { "state": "translated", "value": "Unidades" } }, "fr": { "stringUnit": { "state": "translated", "value": "Unités" } }, "hi": { "stringUnit": { "state": "translated", "value": "इकाइयाँ" } }, "ja": { "stringUnit": { "state": "translated", "value": "単位" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "单位" } } } },
+    "Kilometers (km)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kilometer (km)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kilómetros (km)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kilomètres (km)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "किलोमीटर (किमी)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キロメートル (km)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公里 (km)"
+          }
+        }
+      }
+    },
+    "Miles (mi)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meilen (mi)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Millas (mi)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Miles (mi)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मील (mi)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイル (mi)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英里 (mi)"
+          }
+        }
+      }
+    },
+    "Units": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Units"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unidades"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unités"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einheiten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इकाइयां"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単位"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单位"
+          }
+        }
+      }
+    },
     "Language": {
       "localizations": {
         "de": {
@@ -5785,8 +6582,7 @@
         }
       }
     },
-    "Oct 2023": {
-    },
+    "Oct 2023": {},
     "OK": {
       "localizations": {
         "de": {
@@ -6855,12 +7651,42 @@
     },
     "Signing out will stop any active live share and clear synced rides from this phone. They remain safely in the cloud, and new rides continue to be saved locally. Are you sure you want to sign out?": {
       "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "Beim Abmelden wird eine aktive Live-Freigabe beendet und synchronisierte Fahrten werden von diesem iPhone entfernt. Sie bleiben sicher in der Cloud. Wirklich abmelden?" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Al cerrar sesión se detendrá cualquier uso compartido en directo y se borrarán las rutas sincronizadas de este teléfono. Seguirán en la nube. ¿Quieres cerrar sesión?" } },
-        "fr": { "stringUnit": { "state": "translated", "value": "La déconnexion arrêtera tout partage en direct et supprimera les trajets synchronisés de cet iPhone. Ils resteront dans le cloud. Voulez-vous vous déconnecter ?" } },
-        "hi": { "stringUnit": { "state": "translated", "value": "साइन आउट करने से सक्रिय लाइव शेयर रुक जाएगा और इस फोन से सिंक राइड हट जाएंगी। वे क्लाउड में सुरक्षित रहेंगी। साइन आउट करें?" } },
-        "ja": { "stringUnit": { "state": "translated", "value": "サインアウトするとアクティブなライブ共有が停止し、同期済みライドがこのiPhoneから削除されます。クラウドには残ります。サインアウトしますか？" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "退出登录会停止活动中的实时分享，并从此手机清除已同步的骑行。它们仍保存在云端。确定退出登录吗？" } }
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Abmelden wird eine aktive Live-Freigabe beendet und synchronisierte Fahrten werden von diesem iPhone entfernt. Sie bleiben sicher in der Cloud. Wirklich abmelden?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al cerrar sesión se detendrá cualquier uso compartido en directo y se borrarán las rutas sincronizadas de este teléfono. Seguirán en la nube. ¿Quieres cerrar sesión?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La déconnexion arrêtera tout partage en direct et supprimera les trajets synchronisés de cet iPhone. Ils resteront dans le cloud. Voulez-vous vous déconnecter ?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन आउट करने से सक्रिय लाइव शेयर रुक जाएगा और इस फोन से सिंक राइड हट जाएंगी। वे क्लाउड में सुरक्षित रहेंगी। साइन आउट करें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サインアウトするとアクティブなライブ共有が停止し、同期済みライドがこのiPhoneから削除されます。クラウドには残ります。サインアウトしますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出登录会停止活动中的实时分享，并从此手机清除已同步的骑行。它们仍保存在云端。确定退出登录吗？"
+          }
+        }
       }
     },
     "SPEED": {
@@ -9069,18 +9895,11 @@
       }
     },
     "Open Settings": {
-      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Open Settings"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einstellungen öffnen"
           }
         },
         "es": {
@@ -9093,6 +9912,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ouvrir les réglages"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen öffnen"
           }
         },
         "hi": {
@@ -9117,22 +9942,82 @@
     },
     "%d rides • %@": {
       "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "%d Fahrten • %@" } },
-        "es": { "stringUnit": { "state": "translated", "value": "%d viajes • %@" } },
-        "fr": { "stringUnit": { "state": "translated", "value": "%d trajets • %@" } },
-        "hi": { "stringUnit": { "state": "translated", "value": "%d सवारी • %@" } },
-        "ja": { "stringUnit": { "state": "translated", "value": "%d 件のライド • %@" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%d 次骑行 • %@" } }
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d Fahrten • %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d viajes • %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d trajets • %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d सवारी • %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d 件のライド • %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d 次骑行 • %@"
+          }
+        }
       }
     },
     "%@. %@. %@, %@, %@. %@": {
       "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
-        "es": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
-        "fr": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
-        "hi": { "stringUnit": { "state": "translated", "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@" } },
-        "ja": { "stringUnit": { "state": "translated", "value": "%1$@。%2$@。%3$@、%4$@、%5$@。%6$@" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$@。%2$@。%3$@、%4$@、%5$@。%6$@" } }
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@. %2$@. %3$@, %4$@, %5$@. %6$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@。%2$@。%3$@、%4$@、%5$@。%6$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@。%2$@。%3$@、%4$@、%5$@。%6$@"
+          }
+        }
       }
     },
     "Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.": {
@@ -9182,24 +10067,1510 @@
         }
       }
     },
-    "TrackMe is for adults" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe ist für Erwachsene" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe es para adultos" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe est réservé aux adultes" } },
-        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe वयस्कों के लिए है" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe は成人向けです" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 仅适用于成人" } }
+    "TrackMe is for adults": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe ist für Erwachsene"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe es para adultos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe est réservé aux adultes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe वयस्कों के लिए है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe は成人向けです"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe 仅适用于成人"
+          }
+        }
       }
     },
-    "TrackMe is intended for an adult audience and isn't available to users under 18, per our Privacy Policy. If you believe this is a mistake, please contact us." : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe richtet sich an ein erwachsenes Publikum und ist gemäß unserer Datenschutzrichtlinie nicht für Personen unter 18 Jahren verfügbar. Wenn du glaubst, dass dies ein Fehler ist, kontaktiere uns bitte." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe está destinado a un público adulto y no está disponible para menores de 18 años, según nuestra Política de privacidad. Si crees que se trata de un error, ponte en contacto con nosotros." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe est destiné à un public adulte et n'est pas disponible pour les moins de 18 ans, conformément à notre Politique de confidentialité. Si vous pensez qu'il s'agit d'une erreur, contactez-nous." } },
-        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe वयस्क दर्शकों के लिए है और हमारी गोपनीयता नीति के अनुसार 18 वर्ष से कम उम्र के उपयोगकर्ताओं के लिए उपलब्ध नहीं है। यदि आपको लगता है कि यह गलती है, तो कृपया हमसे संपर्क करें।" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe は成人向けであり、プライバシーポリシーにより18歳未満の方は利用できません。誤りだと思われる場合は、お問い合わせください。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 面向成人用户，根据我们的隐私政策，未满 18 岁的用户无法使用。如果你认为这是错误，请联系我们。" } }
+    "TrackMe is intended for an adult audience and isn't available to users under 18, per our Privacy Policy. If you believe this is a mistake, please contact us.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe richtet sich an ein erwachsenes Publikum und ist gemäß unserer Datenschutzrichtlinie nicht für Personen unter 18 Jahren verfügbar. Wenn du glaubst, dass dies ein Fehler ist, kontaktiere uns bitte."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe está destinado a un público adulto y no está disponible para menores de 18 años, según nuestra Política de privacidad. Si crees que se trata de un error, ponte en contacto con nosotros."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe est destiné à un public adulte et n'est pas disponible pour les moins de 18 ans, conformément à notre Politique de confidentialité. Si vous pensez qu'il s'agit d'une erreur, contactez-nous."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe वयस्क दर्शकों के लिए है और हमारी गोपनीयता नीति के अनुसार 18 वर्ष से कम उम्र के उपयोगकर्ताओं के लिए उपलब्ध नहीं है। यदि आपको लगता है कि यह गलती है, तो कृपया हमसे संपर्क करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe は成人向けであり、プライバシーポリシーにより18歳未満の方は利用できません。誤りだと思われる場合は、お問い合わせください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe 面向成人用户，根据我们的隐私政策，未满 18 岁的用户无法使用。如果你认为这是错误，请联系我们。"
+          }
+        }
+      }
+    },
+    "Help & Feedback": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help & Feedback"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayuda y comentarios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aide et commentaires"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hilfe und Feedback"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मदद और प्रतिक्रिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルプとフィードバック"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帮助与反馈"
+          }
+        }
+      }
+    },
+    "Find quick answers or send an editable support report.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find quick answers or send an editable support report."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encuentra respuestas rápidas o envía un informe editable."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trouvez des réponses rapides ou envoyez un rapport modifiable."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finde schnelle Antworten oder sende einen bearbeitbaren Supportbericht."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "त्वरित उत्तर पाएं या संपादन योग्य सहायता रिपोर्ट भेजें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すぐに答えを確認するか、編集できるサポートレポートを送信します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查找快速答案，或发送可编辑的支持报告。"
+          }
+        }
+      }
+    },
+    "Contact support": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contact support"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contactar con soporte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contacter l'assistance"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support kontaktieren"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सहायता से संपर्क करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サポートに連絡"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联系支持"
+          }
+        }
+      }
+    },
+    "TrackMe support": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe support"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soporte de TrackMe"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistance TrackMe"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe-Support"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe सहायता"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMeサポート"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe 支持"
+          }
+        }
+      }
+    },
+    "Support address and details copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support address and details copied"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dirección y detalles de soporte copiados"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresse et détails d'assistance copiés"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supportadresse und Details kopiert"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सहायता पता और विवरण कॉपी किए गए"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サポートアドレスと詳細をコピーしました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制支持地址和详细信息"
+          }
+        }
+      }
+    },
+    "Opens an editable email draft": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens an editable email draft"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre un borrador de correo editable"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre un brouillon d'e-mail modifiable"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet einen bearbeitbaren E-Mail-Entwurf"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपादन योग्य ईमेल ड्राफ्ट खोलता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集可能なメール下書きを開きます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开可编辑的电子邮件草稿"
+          }
+        }
+      }
+    },
+    "Open Help & Feedback": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Help & Feedback"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir ayuda y comentarios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir l'aide et les commentaires"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hilfe und Feedback öffnen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मदद और प्रतिक्रिया खोलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルプとフィードバックを開く"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开帮助与反馈"
+          }
+        }
+      }
+    },
+    "My ride stopped recording when the screen was off.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My ride stopped recording when the screen was off."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi recorrido dejó de grabarse con la pantalla apagada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mon trajet a cessé d'être enregistré écran éteint."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meine Fahrt wurde bei ausgeschaltetem Bildschirm nicht mehr aufgezeichnet."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्क्रीन बंद होने पर मेरी राइड रिकॉर्ड होना बंद हो गई।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面をオフにするとライドの記録が止まりました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕关闭后我的骑行停止记录。"
+          }
+        }
+      }
+    },
+    "TrackMe drains my battery.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe drains my battery."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe consume mi batería."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe décharge ma batterie."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe leert meinen Akku."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe मेरी बैटरी खत्म करता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMeでバッテリーが減ります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe 很耗电。"
+          }
+        }
+      }
+    },
+    "The distance looks wrong.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The distance looks wrong."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La distancia parece incorrecta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La distance semble incorrecte."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Entfernung scheint falsch."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूरी गलत लगती है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "距離が正しくないようです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "距离看起来不对。"
+          }
+        }
+      }
+    },
+    "Will tracking work without mobile data?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Will tracking work without mobile data?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿El seguimiento funciona sin datos móviles?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le suivi fonctionne-t-il sans données mobiles ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funktioniert die Aufzeichnung ohne mobile Daten?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्या मोबाइल डेटा के बिना ट्रैकिंग चलेगी?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モバイルデータなしで記録できますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有移动数据也能追踪吗？"
+          }
+        }
+      }
+    },
+    "Who can see a live-share link?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who can see a live-share link?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quién puede ver un enlace de uso compartido en vivo?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qui peut voir un lien de partage en direct ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wer kann einen Live-Share-Link sehen?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव शेयर लिंक कौन देख सकता है?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ共有リンクを見られるのは誰ですか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "谁能看到实时共享链接？"
+          }
+        }
+      }
+    },
+    "How do I get my data out, or delete it?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How do I get my data out, or delete it?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cómo exporto mis datos o los elimino?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment exporter ou supprimer mes données ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie exportiere oder lösche ich meine Daten?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मैं अपना डेटा कैसे निकालूं या हटाऊं?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "データを取り出す、または削除するには？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如何导出或删除我的数据？"
+          }
+        }
+      }
+    },
+    "On iPhone, set Location access to Always. Also check Low Power Mode and Background App Refresh in Settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On iPhone, set Location access to Always. Also check Low Power Mode and Background App Refresh in Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En iPhone, configura la ubicación como Siempre. Revisa también el modo de bajo consumo y la actualización en segundo plano."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur iPhone, réglez l'accès à la position sur Toujours. Vérifiez aussi le mode économie d'énergie et l'actualisation en arrière-plan."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stelle auf dem iPhone den Standortzugriff auf Immer. Prüfe auch Stromsparmodus und Hintergrundaktualisierung."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone में स्थान एक्सेस को हमेशा पर सेट करें। लो पावर मोड और बैकग्राउंड ऐप रिफ्रेश भी जांचें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneで位置情報のアクセスを「常に許可」にします。低電力モードとAppのバックグラウンド更新も確認してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 iPhone 上将位置访问设为始终允许，并检查低电量模式和后台 App 刷新。"
+          }
+        }
+      }
+    },
+    "GPS uses power while a ride is recording. The ongoing notification confirms recording is active; auto-pause can reduce unnecessary work.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS uses power while a ride is recording. The ongoing notification confirms recording is active; auto-pause can reduce unnecessary work."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El GPS consume energía durante la grabación. La notificación indica que está activa; la pausa automática reduce trabajo innecesario."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le GPS consomme de l'énergie pendant l'enregistrement. La notification confirme l'activité ; la pause automatique réduit le travail inutile."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS verbraucht beim Aufzeichnen Energie. Die laufende Benachrichtigung bestätigt die Aktivität; automatische Pause spart Arbeit."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइड रिकॉर्ड होने पर GPS बिजली लेता है। नोटिफिकेशन सक्रिय रिकॉर्डिंग दिखाता है; ऑटो-पॉज़ अनावश्यक काम घटाता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライドの記録中はGPSが電力を使います。通知で記録中と確認でき、自動一時停止で不要な処理を減らせます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "骑行记录时 GPS 会耗电。持续通知表示正在记录；自动暂停可减少不必要的工作。"
+          }
+        }
+      }
+    },
+    "GPS drift while stopped, tunnels, and urban canyons can affect distance. GPS post-processing helps; a signal gap is shown as a straight line.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS drift while stopped, tunnels, and urban canyons can affect distance. GPS post-processing helps; a signal gap is shown as a straight line."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La deriva del GPS al parar, los túneles y los cañones urbanos afectan la distancia. El posprocesamiento ayuda; una pérdida de señal aparece como línea recta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La dérive GPS à l'arrêt, les tunnels et les canyons urbains peuvent fausser la distance. Le post-traitement aide ; une coupure apparaît en ligne droite."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS-Drift im Stand, Tunnel und Häuserschluchten können die Entfernung beeinflussen. Nachbearbeitung hilft; eine Lücke erscheint als gerade Linie."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रुकने पर GPS ड्रिफ्ट, सुरंग और ऊंची इमारतें दूरी बदल सकती हैं। पोस्ट-प्रोसेसिंग मदद करती है; सिग्नल गैप सीधी रेखा दिखता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止中のGPSドリフト、トンネル、ビル街は距離に影響します。後処理が役立ち、信号の切れ目は直線で表示されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "静止时的 GPS 漂移、隧道和城市峡谷会影响距离。后处理有帮助；信号中断会显示为直线。"
+          }
+        }
+      }
+    },
+    "Yes. Recording is local-first. A connection is needed only for cloud sync, live sharing, and SOS.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes. Recording is local-first. A connection is needed only for cloud sync, live sharing, and SOS."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sí. La grabación es local. Solo se necesita conexión para sincronizar, compartir en vivo y SOS."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oui. L'enregistrement est local. Une connexion est nécessaire uniquement pour la synchronisation, le partage en direct et le SOS."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ja. Die Aufzeichnung erfolgt lokal. Eine Verbindung ist nur für Cloud-Sync, Live-Share und SOS nötig."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हां। रिकॉर्डिंग पहले स्थानीय होती है। कनेक्शन केवल क्लाउड सिंक, लाइव शेयर और SOS के लिए चाहिए।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "はい。記録はまず端末に保存されます。接続はクラウド同期、ライブ共有、SOSにのみ必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以。记录优先保存在本地。仅云同步、实时共享和 SOS 需要连接。"
+          }
+        }
+      }
+    },
+    "Anyone with the link can see it until the session expires. Only the signed-in owner can start, update, or stop the session.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anyone with the link can see it until the session expires. Only the signed-in owner can start, update, or stop the session."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cualquiera con el enlace puede verlo hasta que expire la sesión. Solo el propietario conectado puede iniciarla, actualizarla o detenerla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toute personne ayant le lien peut le voir jusqu'à l'expiration. Seul le propriétaire connecté peut démarrer, modifier ou arrêter la session."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Person mit dem Link kann ihn bis zum Ablauf sehen. Nur der angemeldete Besitzer kann die Sitzung starten, ändern oder beenden."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक वाला कोई भी व्यक्ति सत्र समाप्त होने तक इसे देख सकता है। केवल साइन-इन मालिक इसे शुरू, बदल या रोक सकता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを知っている人はセッションの期限まで閲覧できます。開始、更新、停止できるのはサインインした所有者だけです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何拥有链接的人都能在会话到期前查看。只有已登录的所有者能开始、更新或停止会话。"
+          }
+        }
+      }
+    },
+    "Open Settings → Account Management to export your data or delete your account and cloud data.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings → Account Management to export your data or delete your account and cloud data."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre Ajustes → Gestión de cuenta para exportar tus datos o eliminar tu cuenta y datos en la nube."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez Réglages → Gestion du compte pour exporter vos données ou supprimer votre compte et vos données cloud."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne Einstellungen → Kontoverwaltung, um Daten zu exportieren oder Konto und Cloud-Daten zu löschen."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डेटा निर्यात या खाता और क्लाउड डेटा हटाने के लिए सेटिंग्स → खाता प्रबंधन खोलें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定 → アカウント管理を開くと、データをエクスポートしたりアカウントとクラウドデータを削除できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开设置 → 账户管理即可导出数据或删除账户和云端数据。"
+          }
+        }
+      }
+    },
+    "Describe the problem above. The details below help us diagnose it — edit or remove anything you don't want to send.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Describe the problem above. The details below help us diagnose it — edit or remove anything you don't want to send."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Describe el problema arriba. Estos datos ayudan a diagnosticarlo; edita o elimina lo que no quieras enviar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Décrivez le problème ci-dessus. Ces détails nous aident à le diagnostiquer ; modifiez ou supprimez ce que vous ne voulez pas envoyer."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beschreibe das Problem oben. Die folgenden Details helfen bei der Diagnose; bearbeite oder entferne, was du nicht senden möchtest."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऊपर समस्या बताएं। नीचे दिए विवरण से निदान में मदद मिलती है; जो भेजना न चाहें उसे संपादित या हटाएं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上に問題を説明してください。以下の詳細は診断に役立ちます。送信したくない内容は編集または削除できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在上方描述问题。以下详情有助于诊断；不想发送的内容可以编辑或删除。"
+          }
+        }
+      }
+    },
+    "— Support details —": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Support details —"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Detalles de soporte —"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Détails d'assistance —"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Supportdetails —"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— सहायता विवरण —"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— サポート詳細 —"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— 支持详情 —"
+          }
+        }
+      }
+    },
+    "App version": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App version"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versión de la app"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version de l'app"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App-Version"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐप संस्करण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリのバージョン"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用版本"
+          }
+        }
+      }
+    },
+    "iOS version": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS version"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versión de iOS"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version d'iOS"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS-Version"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS संस्करण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOSバージョン"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS 版本"
+          }
+        }
+      }
+    },
+    "Device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appareil"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerät"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डिवाइस"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバイス"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备"
+          }
+        }
+      }
+    },
+    "App language": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App language"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idioma de la app"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Langue de l'app"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App-Sprache"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐप भाषा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリの言語"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用语言"
+          }
+        }
+      }
+    },
+    "Device locale": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device locale"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Región del dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Région de l'appareil"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geräteregion"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डिवाइस लोकेल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバイスのロケール"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备区域"
+          }
+        }
+      }
+    },
+    "Location authorization": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location authorization"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autorización de ubicación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autorisation de position"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standortberechtigung"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्थान प्राधिकरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置情報の許可"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置授权"
+          }
+        }
+      }
+    },
+    "Notification authorization": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification authorization"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autorización de notificaciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autorisation de notifications"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benachrichtigungsberechtigung"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सूचना प्राधिकरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知の許可"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知授权"
+          }
+        }
+      }
+    },
+    "Low Power Mode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low Power Mode"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo de bajo consumo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode économie d'énergie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stromsparmodus"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लो पावर मोड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "低電力モード"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "低电量模式"
+          }
+        }
+      }
+    },
+    "Background refresh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Background refresh"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualización en segundo plano"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualisation en arrière-plan"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hintergrundaktualisierung"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैकग्राउंड रिफ्रेश"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appのバックグラウンド更新"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后台刷新"
+          }
+        }
+      }
+    },
+    "Signed in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed in"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sesión iniciada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session ouverte"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Angemeldet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サインイン済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已登录"
+          }
+        }
       }
     }
   },

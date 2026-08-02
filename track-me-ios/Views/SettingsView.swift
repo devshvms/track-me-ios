@@ -365,6 +365,28 @@ struct SettingsView: View {
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
 
+                    // Help & Feedback Card
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(LocalizationHelper.localized("Help & Feedback"))
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Text(LocalizationHelper.localized("Find quick answers or send an editable support report."))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        NavigationLink(destination: HelpFeedbackView()) {
+                            Text(LocalizationHelper.localized("Open Help & Feedback"))
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(BrandColor.primaryFill)
+                                .foregroundColor(.primary)
+                                .cornerRadius(24)
+                        }
+                    }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(16)
+
                     Spacer()
 
                     // Version Text and Check for Updates
