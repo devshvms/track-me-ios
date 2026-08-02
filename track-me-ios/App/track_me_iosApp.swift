@@ -8,11 +8,16 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseAuth
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         FirebaseApp.configure()
+        CrashlyticsErrorLogger.shared.initialize()
+        _ = Auth.auth().addStateDidChangeListener { _, user in
+            CrashlyticsErrorLogger.shared.setUserId(user?.uid)
+        }
         TelemetryManager.shared.initializePostHog()
         return true
     }

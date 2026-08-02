@@ -65,7 +65,8 @@ struct SettingsView: View {
                             Button(action: {
                                 Auth.auth().signInAnonymously { result, error in
                                     if let error = error {
-                                        print("Anonymous sign in error: \(error.localizedDescription)")
+                                        CrashlyticsErrorLogger.shared.log("Anonymous sign in error")
+                                        CrashlyticsErrorLogger.shared.recordError(error)
                                     } else if let authResult = result {
                                         TelemetryManager.shared.identifyUser(userId: authResult.user.uid)
                                         if authResult.additionalUserInfo?.isNewUser == true {

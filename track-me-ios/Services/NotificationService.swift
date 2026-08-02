@@ -15,6 +15,12 @@ enum TransactionalEmailType: String {
 struct NotificationService {
     static let shared = NotificationService()
 
+    private let errorLogger: ErrorLogger
+
+    init(errorLogger: ErrorLogger = CrashlyticsErrorLogger.shared) {
+        self.errorLogger = errorLogger
+    }
+
     private var endpoint: URL? {
         URL(string: "\(APIConfig.baseURL)/api/notify/send")
     }
@@ -39,12 +45,13 @@ struct NotificationService {
             let (_, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 // Never log the recipient — the server already redacts.
-                print("NotificationService: \(type.rawValue) failed (non-2xx)")
+                errorLogger.log("NotificationService \(type.rawValue) failed (non-2xx)")
                 return false
             }
             return true
         } catch {
-            print("NotificationService: \(type.rawValue) failed: \(error.localizedDescription)")
+            errorLogger.log("NotificationService \(type.rawValue) failed")
+            errorLogger.recordError(error)
             return false
         }
     }
