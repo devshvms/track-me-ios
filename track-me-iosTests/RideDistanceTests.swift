@@ -28,6 +28,59 @@ final class RideDistanceTests: XCTestCase {
         )
     }
 
+    func testReconstructedAggregateExcludesPausedSegmentsAndLongTimeGaps() {
+        let base = Date(timeIntervalSince1970: 1_000)
+        let points = [
+            GPSPoint(latitude: 0, longitude: 0, altitude: 0, accuracy: 1, speed: 2, timestamp: base),
+            GPSPoint(latitude: 0, longitude: 0.001, altitude: 0, accuracy: 1, speed: 3, timestamp: base.addingTimeInterval(10)),
+            GPSPoint(latitude: 0, longitude: 0.002, altitude: 0, accuracy: 1, speed: 0, timestamp: base.addingTimeInterval(20), isPaused: true),
+            GPSPoint(latitude: 0, longitude: 0.003, altitude: 0, accuracy: 1, speed: 4, timestamp: base.addingTimeInterval(30)),
+            GPSPoint(latitude: 0, longitude: 0.004, altitude: 0, accuracy: 1, speed: 5, timestamp: base.addingTimeInterval(100))
+        ]
+
+        let aggregate = RideMetrics.reconstructed(from: points)
+
+        XCTAssertEqual(aggregate.distanceMeters, 222.4, accuracy: 1)
+        XCTAssertEqual(aggregate.movingDurationMillis, 10_000)
+        XCTAssertEqual(aggregate.maxSpeedMps, 5)
+        XCTAssertEqual(aggregate.avgSpeedMps, aggregate.distanceMeters / 10, accuracy: 0.001)
+        XCTAssertEqual(aggregate.pointCount, 5)
+    }
+
+    func testLiveAggregateUsesFilteredDistanceAndMovingDuration() {
+        let aggregate = RideAggregateSnapshot.live(
+            distanceMeters: 1_500,
+            movingDurationMillis: 300_000,
+            maxSpeedMps: 12,
+            pointCount: 42
+        )
+
+        XCTAssertEqual(aggregate.distanceMeters, 1_500)
+        XCTAssertEqual(aggregate.movingDurationMillis, 300_000)
+        XCTAssertEqual(aggregate.avgSpeedMps, 5)
+        XCTAssertEqual(aggregate.maxSpeedMps, 12)
+        XCTAssertEqual(aggregate.pointCount, 42)
+    }
+
+    func testRidePresentationPrefersPersistedAggregate() {
+        let ride = Ride(startTime: Date(timeIntervalSince1970: 0))
+        ride.points = [
+            GPSPoint(latitude: 0, longitude: 0, altitude: 0, accuracy: 1, speed: 0, timestamp: .now),
+            GPSPoint(latitude: 0, longitude: 1, altitude: 0, accuracy: 1, speed: 0, timestamp: .now)
+        ]
+        ride.applyAggregate(RideAggregateSnapshot.live(
+            distanceMeters: 2_000,
+            movingDurationMillis: 400_000,
+            maxSpeedMps: 8,
+            pointCount: 20
+        ))
+
+        let metrics = HistoryRideMetrics(ride: ride)
+        XCTAssertEqual(metrics.distanceKm, 2)
+        XCTAssertEqual(metrics.duration, 400)
+        XCTAssertEqual(metrics.avgSpeedKmh, 18)
+    }
+
     func testAverageSpeedGuardsZeroAndNegativeDuration() {
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 1_800), 20.0, accuracy: 0.001)
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 0), 0)

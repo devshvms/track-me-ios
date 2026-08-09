@@ -44,6 +44,30 @@ final class RideRecoveryLogicTests: XCTestCase {
         XCTAssertEqual(RideTitleGenerator.make(startTime: date(hour: 13), points: []), "Afternoon Walk/Run")
     }
 
+    func testSelectedPersonaOverridesSpeedInference() {
+        XCTAssertEqual(
+            RideTitleGenerator.make(startTime: date(hour: 14), persona: .run, maxSpeedKmh: 32),
+            "Afternoon Run"
+        )
+        XCTAssertEqual(
+            RideTitleGenerator.make(startTime: date(hour: 18), persona: .bikeDrive, maxSpeedKmh: 4),
+            "Evening Motorbike Ride"
+        )
+    }
+
+    func testAutoPersonaStillUsesSpeedInference() {
+        XCTAssertEqual(
+            RideTitleGenerator.make(startTime: date(hour: 8), persona: .auto, maxSpeedKmh: 20),
+            "Morning Bike Ride"
+        )
+    }
+
+    func testGeneratedTitleDetectionPreservesCustomNames() {
+        XCTAssertTrue(RideTitleGenerator.isGeneratedTitle("Night Bike Ride"))
+        XCTAssertTrue(RideTitleGenerator.isGeneratedTitle("Morning BikeDrive"))
+        XCTAssertFalse(RideTitleGenerator.isGeneratedTitle("Airport training run"))
+    }
+
     func testRecoveryToastVariants() {
         XCTAssertNil(RideRecoveryManager.toastMessage(for: RecoverySummary(recoveredCount: 0, discardedCount: 0)))
         XCTAssertEqual(RideRecoveryManager.toastMessage(for: RecoverySummary(recoveredCount: 1, discardedCount: 0)),

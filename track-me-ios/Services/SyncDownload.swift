@@ -10,6 +10,39 @@ struct DownloadedRide: Equatable {
     let title: String?
     let persona: String
     let points: [DownloadedPoint]
+    let distanceMeters: Double?
+    let movingDurationMillis: Int64?
+    let maxSpeedMps: Double?
+    let avgSpeedMps: Double?
+    let pointCount: Int?
+
+    var persistedAggregate: RideAggregateSnapshot? {
+        guard let distanceMeters,
+              let movingDurationMillis,
+              let maxSpeedMps,
+              let avgSpeedMps else { return nil }
+        return RideAggregateSnapshot(
+            distanceMeters: RideMetrics.nonNegativeFinite(distanceMeters),
+            movingDurationMillis: max(0, movingDurationMillis),
+            maxSpeedMps: RideMetrics.nonNegativeFinite(maxSpeedMps),
+            avgSpeedMps: RideMetrics.nonNegativeFinite(avgSpeedMps),
+            pointCount: max(0, pointCount ?? points.count)
+        )
+    }
+
+    func aggregate(fallback: RideAggregateSnapshot) -> RideAggregateSnapshot {
+        let distance = distanceMeters.map(RideMetrics.nonNegativeFinite) ?? fallback.distanceMeters
+        let duration = max(0, movingDurationMillis ?? fallback.movingDurationMillis)
+        let average = avgSpeedMps.map(RideMetrics.nonNegativeFinite)
+            ?? (duration > 0 ? distance / (Double(duration) / 1_000) : fallback.avgSpeedMps)
+        return RideAggregateSnapshot(
+            distanceMeters: distance,
+            movingDurationMillis: duration,
+            maxSpeedMps: maxSpeedMps.map(RideMetrics.nonNegativeFinite) ?? fallback.maxSpeedMps,
+            avgSpeedMps: average,
+            pointCount: max(0, pointCount ?? fallback.pointCount)
+        )
+    }
 }
 
 struct DownloadedPoint: Equatable {
@@ -19,6 +52,14 @@ struct DownloadedPoint: Equatable {
 }
 
 extension FirestoreSyncManager {
+    static func decodeDouble(_ value: Any?) -> Double? {
+        (value as? NSNumber)?.doubleValue
+    }
+
+    static func decodeInt64(_ value: Any?) -> Int64? {
+        (value as? NSNumber)?.int64Value
+    }
+
     static func decodeDate(_ value: Any?) -> Date? {
         switch value {
         case let ts as Timestamp:            return ts.dateValue()
@@ -49,12 +90,22 @@ extension FirestoreSyncManager {
                 isPaused:  (p["isPaused"] as? Bool) ?? false
             )
         }
+        let wallDurationMillis = end.map {
+            Int64(max(0, $0.timeIntervalSince(start) * 1_000))
+        }
+        let movingDurationMillis = decodeInt64(data["movingDurationMillis"])
+            ?? wallDurationMillis.map { max(0, $0 - (decodeInt64(data["pauseDuration"]) ?? 0)) }
         return DownloadedRide(
             localId: localId, firestoreId: docId, startTime: start, endTime: end,
             sourceInfo: (data["sourceInfo"] as? String) ?? "Cloud Sync",
             title: data["title"] as? String,
             persona: (data["persona"] as? String) ?? "AUTO",
-            points: points
+            points: points,
+            distanceMeters: decodeDouble(data["distance"]),
+            movingDurationMillis: movingDurationMillis,
+            maxSpeedMps: decodeDouble(data["maxSpeed"]),
+            avgSpeedMps: decodeDouble(data["avgSpeed"]),
+            pointCount: decodeInt64(data["pointCount"]).map(Int.init)
         )
     }
 }

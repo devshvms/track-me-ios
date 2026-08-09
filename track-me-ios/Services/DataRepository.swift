@@ -4,6 +4,7 @@ import SwiftData
 @MainActor
 final class DataRepository {
     static let shared = DataRepository()
+    private static let personaTitleMigrationKey = "ride_persona_title_migration_v1"
     var container: ModelContainer?
 
     // Location callbacks can arrive in batches. Keep their SwiftData work in
@@ -13,6 +14,7 @@ final class DataRepository {
 
     func setup(container: ModelContainer) {
         self.container = container
+        migrateGeneratedPersonaTitlesIfNeeded()
     }
 
     func saveRide(_ ride: Ride) {
@@ -48,15 +50,29 @@ final class DataRepository {
                             sourceInfo: d.sourceInfo, isSynced: true, title: d.title)
             ride.endTime = d.endTime
             ride.persona = d.persona
+            if ride.ridePersona != .auto, RideTitleGenerator.isGeneratedTitle(ride.title) {
+                ride.title = RideTitleGenerator.make(
+                    startTime: ride.startTime,
+                    persona: ride.ridePersona,
+                    maxSpeedKmh: nil
+                )
+                ride.isSynced = false
+            }
             ride.firestoreId = d.firestoreId
             ctx.insert(ride)
+            var importedPoints: [GPSPoint] = []
             for p in d.points {
                 let point = GPSPoint(latitude: p.latitude, longitude: p.longitude,
                                      altitude: p.altitude, accuracy: p.accuracy,
                                      speed: p.speed, timestamp: p.timestamp, isPaused: p.isPaused)
                 point.ride = ride
                 ctx.insert(point)
+                importedPoints.append(point)
             }
+            ride.applyAggregate(
+                d.persistedAggregate
+                    ?? d.aggregate(fallback: RideMetrics.reconstructed(from: importedPoints))
+            )
             inserted += 1
         }
         if inserted > 0 { try? ctx.save() }
@@ -102,7 +118,7 @@ final class DataRepository {
         return false
     }
 
-    func finishRide(rideId: UUID) {
+    func finishRide(rideId: UUID, endedAt: Date, aggregate: RideAggregateSnapshot) {
         guard let container = container else { return }
 
         let pendingWrites = pointWriteChain
@@ -114,10 +130,15 @@ final class DataRepository {
             let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
             do {
                 guard let ride = try context.fetch(descriptor).first else { return }
-                ride.endTime = Date()
+                ride.endTime = max(endedAt, ride.startTime)
+                ride.applyAggregate(aggregate)
 
-                if ride.title == nil || ride.title?.isEmpty == true {
-                    ride.title = RideTitleGenerator.make(startTime: ride.startTime, points: ride.points ?? [])
+                if RideTitleGenerator.isGeneratedTitle(ride.title) {
+                    ride.title = RideTitleGenerator.make(
+                        startTime: ride.startTime,
+                        persona: ride.ridePersona,
+                        maxSpeedKmh: aggregate.maxSpeedMps * 3.6
+                    )
                 }
 
                 try context.save()
@@ -158,7 +179,34 @@ final class DataRepository {
         }
     }
 
-    /// Deletes ALL locally-stored rides, GPS points, and emergency settings/contacts.
+    /// Corrects titles created before persona-aware naming landed. Only known
+    /// generated titles are changed; a title edited by the user is never touched.
+    private func migrateGeneratedPersonaTitlesIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.personaTitleMigrationKey),
+              let context = container?.mainContext else { return }
+
+        let rides = (try? context.fetch(FetchDescriptor<Ride>())) ?? []
+        var changed = false
+        for ride in rides where ride.ridePersona != .auto && RideTitleGenerator.isGeneratedTitle(ride.title) {
+            ride.title = RideTitleGenerator.make(
+                startTime: ride.startTime,
+                persona: ride.ridePersona,
+                points: ride.points ?? []
+            )
+            ride.isSynced = false
+            changed = true
+        }
+
+        do {
+            if changed { try context.save() }
+            defaults.set(true, forKey: Self.personaTitleMigrationKey)
+        } catch {
+            NSLog("TrackMe: failed to migrate generated persona titles: %@", error.localizedDescription)
+        }
+    }
+
+    /// Deletes ALL locally-stored rides, GPS points, and legacy retired emergency records.
     /// Serialized behind any pending point writes so a concurrent background insert can't resurrect a row after the wipe.
     /// Throws if the SwiftData delete/save fails (caller must NOT report success on throw).
     func wipeAllLocalData() async throws {
@@ -178,31 +226,4 @@ final class DataRepository {
         try context.save()
     }
 
-    func getEmergencySettings() -> EmergencySettings {
-        guard let context = container?.mainContext else {
-            return EmergencySettings()
-        }
-        let descriptor = FetchDescriptor<EmergencySettings>()
-        do {
-            if let settings = try context.fetch(descriptor).first {
-                return settings
-            } else {
-                let newSettings = EmergencySettings()
-                context.insert(newSettings)
-                try context.save()
-                return newSettings
-            }
-        } catch {
-            return EmergencySettings()
-        }
-    }
-
-    func disableEmergencySetup() {
-        guard let context = container?.mainContext else { return }
-        let descriptor = FetchDescriptor<EmergencySettings>()
-        if let settings = try? context.fetch(descriptor).first {
-            settings.isSetupComplete = false
-            try? context.save()
-        }
-    }
 }

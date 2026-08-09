@@ -7,24 +7,62 @@ struct RecoverySummary {
     var discardedCount: Int = 0
 }
 
-/// The default ride title ("Morning Bike Ride" etc.). Shared by both the normal
-/// finish path (`DataRepository.finishRide`) and crash recovery so the two can
-/// never drift apart. Titles are stored data, deliberately not localized.
+/// The default ride title ("Morning Run", "Evening Motorbike Ride", etc.). Shared
+/// by normal finalization, migration, and crash recovery so selected personas can
+/// never be relabeled from inferred speed. Titles are stored data, deliberately
+/// not localized.
 enum RideTitleGenerator {
+    /// Legacy AUTO inference entry point retained for recovered/imported data tests.
     static func make(startTime: Date, points: [GPSPoint]) -> String {
-        let maxSpeed = points.map(\.speed).max() ?? 0
-        let maxSpeedKmh = maxSpeed * 3.6
-        let activity = maxSpeedKmh > 15.0 ? "Bike Ride" : "Walk/Run"
+        let maxSpeedKmh = (points.map(\.speed).max() ?? 0) * 3.6
+        return make(startTime: startTime, persona: .auto, maxSpeedKmh: maxSpeedKmh)
+    }
 
-        let hour = Calendar.current.component(.hour, from: startTime)
-        let timeOfDay: String
-        switch hour {
-        case 5...11: timeOfDay = "Morning"
-        case 12...16: timeOfDay = "Afternoon"
-        case 17...20: timeOfDay = "Evening"
-        default: timeOfDay = "Night"
+    static func make(startTime: Date, persona: RidePersona, points: [GPSPoint]) -> String {
+        let maxSpeedKmh = points.map(\.speed).max().map { $0 * 3.6 }
+        return make(startTime: startTime, persona: persona, maxSpeedKmh: maxSpeedKmh)
+    }
+
+    static func make(startTime: Date, persona: RidePersona, maxSpeedKmh: Double?) -> String {
+        let activity: String
+        switch persona {
+        case .walk: activity = "Walk"
+        case .run: activity = "Run"
+        case .cycling: activity = "Cycling Ride"
+        case .bikeDrive: activity = "Motorbike Ride"
+        case .carDrive: activity = "Car Drive"
+        case .auto:
+            guard let maxSpeedKmh else {
+                activity = "Ride"
+                break
+            }
+            activity = maxSpeedKmh > 15.0 ? "Bike Ride" : "Walk/Run"
         }
-        return "\(timeOfDay) \(activity)"
+
+        return "\(timeOfDay(for: startTime)) \(activity)"
+    }
+
+    static func isGeneratedTitle(_ title: String?) -> Bool {
+        guard let title, !title.isEmpty else { return true }
+        let periods = ["Morning", "Afternoon", "Evening", "Night"]
+        let activities = [
+            "Ride", "Bike Ride", "Walk/Run", "Walk", "Run", "Cycling",
+            "Cycling Ride", "BikeDrive", "CarDrive", "Motorbike",
+            "Motorbike Ride", "Car", "Car Drive"
+        ]
+        return periods.contains { period in
+            activities.contains { title == "\(period) \($0)" }
+        }
+    }
+
+    private static func timeOfDay(for startTime: Date) -> String {
+        let hour = Calendar.current.component(.hour, from: startTime)
+        switch hour {
+        case 5...11: return "Morning"
+        case 12...16: return "Afternoon"
+        case 17...20: return "Evening"
+        default: return "Night"
+        }
     }
 }
 
@@ -76,8 +114,13 @@ enum RideRecoveryManager {
 
             // The ride ended when the phone died, not now.
             ride.endTime = lastPoint.timestamp
-            if ride.title == nil || ride.title?.isEmpty == true {
-                ride.title = RideTitleGenerator.make(startTime: ride.startTime, points: points)
+            ride.applyAggregate(RideMetrics.reconstructed(from: points))
+            if RideTitleGenerator.isGeneratedTitle(ride.title) {
+                ride.title = RideTitleGenerator.make(
+                    startTime: ride.startTime,
+                    persona: ride.ridePersona,
+                    points: points
+                )
             }
             summary.recoveredCount += 1
 

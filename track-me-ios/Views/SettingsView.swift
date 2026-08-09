@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var isLoggedOut = Auth.auth().currentUser == nil || Auth.auth().currentUser?.isAnonymous == true
     @State private var isSigningIn = false
     @State private var signingInProvider: SignInProvider?
+    @State private var authStateListenerHandle: AuthStateDidChangeListenerHandle?
 
     @State private var showGpsInfo = false
     @State private var isSyncing = false
@@ -254,14 +255,6 @@ struct SettingsView: View {
                     }
                     .padding()
                     .background(Color(UIColor.secondarySystemGroupedBackground))
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(LocalizationHelper.localized("Intelligent Auto-Pause")).font(.subheadline)
-                                Text(LocalizationHelper.localized("Dynamically pauses the moving timer at traffic signals or stops based on activity speed.")).font(.caption).foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Toggle("", isOn: $isAutoPauseEnabled).labelsHidden().accessibilityLabel(LocalizationHelper.localized("Intelligent auto-pause"))
-                        }
                     .cornerRadius(16)
 
                     // Live Location Sharing Card
@@ -317,7 +310,7 @@ struct SettingsView: View {
                                 .labelsHidden()
                                 .tint(BrandColor.primary)
                                 .accessibilityLabel(LocalizationHelper.localized("Share analytics data"))
-                                .onChange(of: isTelemetryEnabled) { _ in
+                                .onChange(of: isTelemetryEnabled) {
                                     TelemetryManager.shared.updateOptOutStatus()
                                 }
                         }
@@ -331,6 +324,24 @@ struct SettingsView: View {
                         Text("Advanced Settings")
                             .font(.headline)
                             .foregroundColor(.primary)
+
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(LocalizationHelper.localized("Intelligent Auto-Pause"))
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                Text(LocalizationHelper.localized("Dynamically pauses the moving timer at traffic signals or stops based on activity speed."))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $isAutoPauseEnabled)
+                                .labelsHidden()
+                                .tint(BrandColor.primary)
+                                .accessibilityLabel(LocalizationHelper.localized("Intelligent auto-pause"))
+                        }
+
+                        Divider()
 
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
@@ -426,9 +437,15 @@ struct SettingsView: View {
                 Text(LocalizationHelper.formatted("When active, your location, speed, and battery level are shared securely.\n\n• Coordinates are pushed every %@.\n• Max concurrent viewers is determined by server capability (default: 100+ viewers).\n• Sharing automatically stops when the timer expires or you end your ride.", freqText))
             }
             .onAppear {
-                Auth.auth().addStateDidChangeListener { _, user in
+                guard authStateListenerHandle == nil else { return }
+                authStateListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
                     isLoggedOut = (user == nil || user?.isAnonymous == true)
                 }
+            }
+            .onDisappear {
+                guard let authStateListenerHandle else { return }
+                Auth.auth().removeStateDidChangeListener(authStateListenerHandle)
+                self.authStateListenerHandle = nil
             }
         }
         .trackScreen("SettingsView")

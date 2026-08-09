@@ -58,17 +58,6 @@ struct AccountManagementView: View {
                 }
                 .padding(.top, 24)
 
-                // Emergency Setup Button
-                NavigationLink(destination: EmergencySetupView()) {
-                    Text("Configure Emergency Setup")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(BrandColor.primaryFill)
-                        .foregroundColor(BrandColor.onPrimary)
-                        .cornerRadius(24)
-                }
-
                 // Sign Out Button
                 Button(action: { showSignOutWarning = true }) {
                     Text("Sign Out")

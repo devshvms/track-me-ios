@@ -42,7 +42,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var points: [CLLocation] = []
     var currentSpeed: Double = 0.0
     var totalDistance: Double = 0.0
+    var maxSpeedMps: Double = 0.0
     var durationInMillis: TimeInterval = 0
+    var elapsedDurationInMillis: TimeInterval = 0
+    var selectedPersona: RidePersona = .auto
     var isAutoPaused: Bool = false
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
@@ -87,8 +90,17 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // engine for human-powered movement (parity with Android's continuous FGS).
         locationManager.activityType = config.activityType
         locationManager.pausesLocationUpdatesAutomatically = config.pausesLocationUpdatesAutomatically
-        // TODO: derive activityType from RidePersona when persona-aware tracking
-        // lands (.automotiveNavigation/.otherNavigation for drive modes).
+    }
+
+    static func activityType(for persona: RidePersona) -> CLActivityType {
+        switch persona {
+        case .bikeDrive, .carDrive:
+            .automotiveNavigation
+        case .cycling:
+            .otherNavigation
+        case .auto, .walk, .run:
+            .fitness
+        }
     }
 
     private func requestAlwaysUpgradeIfAppropriate() {
@@ -102,7 +114,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         showLocationDeniedRecovery = true
     }
 
-    func startTracking() {
+    func startTracking(persona: RidePersona = .auto) {
+        selectedPersona = persona
         switch LocationStartDecision.action(for: mappedAuth, afterPrimer: false) {
         case .showPrimer:
             pendingTrackingStart = true
@@ -115,6 +128,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             requestAlwaysUpgradeIfAppropriate()
         case .deniedRecovery:
             pendingTrackingStart = false
+            selectedPersona = .auto
             offerDeniedRecovery()
         }
     }
@@ -129,6 +143,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             requestAlwaysUpgradeIfAppropriate()
         case .deniedRecovery:
             pendingTrackingStart = false
+            selectedPersona = .auto
             offerDeniedRecovery()
         case .showPrimer:
             break
@@ -137,6 +152,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     func cancelPendingTrackingStart() {
         pendingTrackingStart = false
+        selectedPersona = .auto
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -147,6 +163,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             requestAlwaysUpgradeIfAppropriate()
         case .denied, .restricted:
             pendingTrackingStart = false
+            selectedPersona = .auto
             offerDeniedRecovery()
         case .notDetermined:
             break
@@ -184,12 +201,22 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             return
         }
 
-        // Open a fresh per-ride SOS suppression window before the ride exists, so an emergency
-        // that is still running carries into it. A restored ride deliberately does NOT call this
-        // (see restoreInterruptedSessionIfNeeded) — it keeps the persisted bit.
+        // Open a fresh legacy-emergency suppression window before the ride exists. A restored ride
+        // deliberately does NOT call this (see restoreInterruptedSessionIfNeeded) — it keeps any
+        // persisted compatibility bit until finalization.
         EmergencyManager.shared.beginRideSession()
 
-        let newRide = Ride()
+        locationManager.activityType = Self.activityType(for: selectedPersona)
+        let rideStartTime = Date()
+        let newRide = Ride(
+            startTime: rideStartTime,
+            title: RideTitleGenerator.make(
+                startTime: rideStartTime,
+                persona: selectedPersona,
+                maxSpeedKmh: nil
+            )
+        )
+        newRide.persona = selectedPersona.rawValue
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
         GroupRideManager.shared.refreshLocationSource()
@@ -202,7 +229,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         points.removeAll(keepingCapacity: false)
         currentSpeed = 0.0
         totalDistance = 0.0
+        maxSpeedMps = 0.0
         durationInMillis = 0
+        elapsedDurationInMillis = 0
         timeSinceLastGps = 0
         lastGpsTimestamp = Date()
 
@@ -214,7 +243,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
 
         startLocationUpdatesAndTimer()
-        RideActivityManager.shared.startActivity(rideId: newRide.id.uuidString, startedAt: Date())
+        RideActivityManager.shared.startActivity(rideId: newRide.id.uuidString, startedAt: rideStartTime)
     }
 
     /// Shared session bring-up used by both a fresh ride and a restored one.
@@ -285,6 +314,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
+            if self.state != .idle {
+                self.elapsedDurationInMillis += 1000
+            }
             if self.state == .tracking || self.state == .gpsLost {
                 let previousAutoPaused = self.isAutoPaused
                 if self.state == .tracking {
@@ -348,25 +380,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 timestamp: $0.timestamp
             )
         }
-        var distance = 0.0
-        if sorted.count > 1 {
-            for i in 1..<sorted.count {
-                let p1 = sorted[i - 1]
-                let p2 = sorted[i]
-
-                let dist = CLLocation(latitude: p1.latitude, longitude: p1.longitude)
-                    .distance(from: CLLocation(latitude: p2.latitude, longitude: p2.longitude))
-
-                if MotionSensorManager.distanceShouldAccumulate(state: .tracking, isPaused: p2.isPaused, dist: dist, effectiveSpeed: p2.speed) {
-                    distance += dist
-                }
-            }
-        }
-        totalDistance = distance
-        durationInMillis = max(0, last.timestamp.timeIntervalSince(ride.startTime)) * 1000
+        let restoredAggregate = RideMetrics.reconstructed(from: sorted)
+        totalDistance = restoredAggregate.distanceMeters
+        durationInMillis = Double(restoredAggregate.movingDurationMillis)
+        elapsedDurationInMillis = max(0, Date().timeIntervalSince(ride.startTime)) * 1000
+        selectedPersona = ride.ridePersona
+        locationManager.activityType = Self.activityType(for: selectedPersona)
         lastGpsTimestamp = last.timestamp
         timeSinceLastGps = Date().timeIntervalSince(last.timestamp)
         currentSpeed = 0.0
+        maxSpeedMps = restoredAggregate.maxSpeedMps
         state = .tracking
 
         startLocationUpdatesAndTimer()
@@ -395,10 +418,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         )
 
         if let id = currentRideId {
-            let endedAt = points.last?.timestamp ?? Date()
-            finalizeSegment(id: id, endedAt: endedAt)
+            finalizeSegment(id: id, endedAt: Date())
         }
         currentRideId = nil
+        elapsedDurationInMillis = 0
+        selectedPersona = .auto
+        locationManager.activityType = LocationSessionConfig.recordingRide.activityType
         GroupRideManager.shared.refreshLocationSource()
 
         // Stop live sharing when the ride ends
@@ -435,7 +460,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pausedElapsed: durationInMillis / 1000
         )
 
-        // Consume the ride-scoped SOS bit just as normal finalization does, but deliberately
+        // Consume the legacy suppression bit just as normal finalization does, but deliberately
         // skip finishRide/ride_completed/reveal generation for an explicit start abort.
         _ = EmergencyManager.shared.consumeRideSuppression()
         DataRepository.shared.deleteRide(rideId: id)
@@ -444,7 +469,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         points.removeAll(keepingCapacity: false)
         currentSpeed = 0
         totalDistance = 0
+        maxSpeedMps = 0
         durationInMillis = 0
+        elapsedDurationInMillis = 0
+        selectedPersona = .auto
+        locationManager.activityType = LocationSessionConfig.recordingRide.activityType
         isAutoPaused = false
         timeSinceLastGps = 0
         lastGpsTimestamp = nil
@@ -538,6 +567,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             } else { isPaused = false }
 
             currentSpeed = effectiveSpeed
+            maxSpeedMps = max(maxSpeedMps, effectiveSpeed)
             if MotionSensorManager.distanceShouldAccumulate(state: accumulationState, isPaused: isPaused, dist: dist, effectiveSpeed: effectiveSpeed) {
                 totalDistance += dist
             }
@@ -593,13 +623,18 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// segment distance/duration. Shared by normal stop and auto-split so the
     /// A1 good-ride hook + telemetry fire identically on both paths.
     private func finalizeSegment(id: UUID, endedAt: Date) {
-        // Consume the single per-ride SOS bit before the junk-ride early return, so a discarded
-        // segment cannot leave the bit set for the next ride. History still records a valid ride,
-        // while the transition prevents B1 from creating a reveal (and therefore B4 from chaining
-        // a review request) after an emergency flow. Parity with Android `finalizeRide`.
+        // Consume the single legacy suppression bit before the junk-ride early return, so a
+        // discarded segment cannot leave it set for the next ride. History still records a valid
+        // ride, while old upgraded data cannot create a reveal unexpectedly.
         let suppressPostRideCelebrations = EmergencyManager.shared.consumeRideSuppression()
 
-        DataRepository.shared.finishRide(rideId: id)
+        let aggregate = RideAggregateSnapshot.live(
+            distanceMeters: totalDistance,
+            movingDurationMillis: durationInMillis,
+            maxSpeedMps: maxSpeedMps,
+            pointCount: points.count
+        )
+        DataRepository.shared.finishRide(rideId: id, endedAt: endedAt, aggregate: aggregate)
         TelemetryManager.shared.trackRideCompleted(
             rideId: id.uuidString,
             durationSeconds: Int(durationInMillis / 1000),
@@ -621,7 +656,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                         streakWeeks: transition.streakWeeks, froze: transition.streakFroze)
                 }
                 if let reveal = RevealSelector.select(transition) {
-                    await RevealCoordinator.shared.put(reveal)
+                    RevealCoordinator.shared.put(reveal)
                 }
             }
         } else {
@@ -632,15 +667,26 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private func splitCurrentRide() {
         guard let oldId = currentRideId else { return }
         let endedAt = points.last?.timestamp ?? Date()
+        let completedDurationInMillis = durationInMillis
+        let completedDistance = totalDistance
 
         // 1. Finalize Part 1 (telemetry + A1 hook + cloud sync via finishRide's unsynced flag).
-        //    This consumes Part 1's SOS suppression bit.
+        //    This consumes Part 1's legacy suppression bit.
         finalizeSegment(id: oldId, endedAt: endedAt)
 
         // 2. Start Part 2 in the SAME session — do NOT stop location/timer/Live Activity.
-        //    Re-open the suppression window so a still-running emergency carries into Part 2.
+        //    Re-open the compatibility window for an interrupted legacy emergency.
         EmergencyManager.shared.beginRideSession()
-        let part2 = Ride(title: (LocalizationHelper.localized("Ride")) + " (" + LocalizationHelper.localized("Part 2") + ")")
+        let part2StartTime = Date()
+        let part2 = Ride(
+            startTime: part2StartTime,
+            title: RideTitleGenerator.make(
+                startTime: part2StartTime,
+                persona: selectedPersona,
+                maxSpeedKmh: nil
+            )
+        )
+        part2.persona = selectedPersona.rawValue
         currentRideId = part2.id
         UserDefaults.standard.set(part2.id.uuidString, forKey: Self.activeRideKey)
         DispatchQueue.main.async { DataRepository.shared.saveRide(part2) }
@@ -649,17 +695,19 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // 3. Reset per-segment live state (THIS is the memory + O(n²) fix).
         points.removeAll(keepingCapacity: false)
         totalDistance = 0.0
+        maxSpeedMps = 0.0
         durationInMillis = 0
+        elapsedDurationInMillis = 0
         splitWarningShown = false
 
         // 4. Roll the Live Activity over to the new ride (keep it visible — no gap).
         RideActivityManager.shared.end(
-            startedAt: endedAt.addingTimeInterval(-durationInMillis / 1000),
-            distanceMeters: 0,
+            startedAt: endedAt.addingTimeInterval(-completedDurationInMillis / 1000),
+            distanceMeters: completedDistance,
             speedMps: 0,
-            pausedElapsed: 0
+            pausedElapsed: completedDurationInMillis / 1000
         )
-        RideActivityManager.shared.startActivity(rideId: part2.id.uuidString, startedAt: Date())
+        RideActivityManager.shared.startActivity(rideId: part2.id.uuidString, startedAt: part2StartTime)
 
         // 5. Keep live sharing linked to the ongoing session (do NOT stop it).
         showAutoSplitNotification()

@@ -1,6 +1,7 @@
 import XCTest
 @testable import track_me_ios
 
+@MainActor
 final class LocationStartDecisionTests: XCTestCase {
     func testActionTruthTable() {
         XCTAssertEqual(LocationStartDecision.action(for: .notDetermined, afterPrimer: false), .showPrimer)

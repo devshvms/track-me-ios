@@ -1,9 +1,7 @@
 import SwiftUI
 import MapKit
-import FirebaseAuth
 import StoreKit
-import SwiftData
-import MessageUI
+import FirebaseAuth
 
 struct HomeView: View {
     @Bindable var trackingManager = TrackingManager.shared
@@ -16,20 +14,13 @@ struct HomeView: View {
     @ObservedObject private var unitSettings = UnitSettings.shared
     @State private var liveSharingManager = LiveSharingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
-    @State private var showLiveShareDialog = false
+    @State private var liveShareSharePayload: LiveShareSharePayload?
     @State private var showGroupSheet = false
     // B1: durable one-shot post-ride reveal, surfaced once on Home.
     @Bindable var revealCoordinator = RevealCoordinator.shared
     // B4: system in-app review request (self-gated by ReviewPromptPolicy).
     @Environment(\.requestReview) private var requestReview
 
-    @Query private var emergencySettingsList: [EmergencySettings]
-    @Query private var emergencyContacts: [EmergencyContact]
-
-    @State private var showEmergencySetup = false
-    @State private var showEmergencyCompose = false
-    @State private var emergencyMessageBody = ""
-    @State private var showShareSheet = false
     @State private var rideStartLaunch = RideStartLaunchState()
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -70,9 +61,6 @@ struct HomeView: View {
                 }
             }
             .mapStyle(mapStyle.mapKitStyle)
-            .mapControls {
-                MapUserLocationButton()
-            }
             .mapScope(mapScope)
             .onMapCameraChange(frequency: .onEnd) { context in
                 mapRegion = context.region
@@ -87,10 +75,10 @@ struct HomeView: View {
                     let timeString = seconds > 60 ? "\(seconds / 60)m \(seconds % 60)s" : "\(seconds)s"
                     Text(LocalizationHelper.formatted("No GPS signal for %@", timeString))
                         .font(.subheadline.bold())
-                        .foregroundColor(BrandColor.onWarning)
+                        .foregroundColor(.white)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(BrandColor.warning)
+                        .background(BrandColor.sos.opacity(0.94))
                         .clipShape(Capsule())
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -107,10 +95,10 @@ struct HomeView: View {
                 if trackingManager.state == .storageLow {
                     Text(LocalizationHelper.localized("Storage almost full — free space to resume"))
                         .font(.subheadline.bold())
-                        .foregroundColor(BrandColor.onWarning)
+                        .foregroundColor(.white)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(BrandColor.warning)
+                        .background(BrandColor.sos.opacity(0.94))
                         .clipShape(Capsule())
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -123,15 +111,7 @@ struct HomeView: View {
                             ).post()
                         }
                 }
-                if trackingManager.isAutoPaused && trackingManager.state == .tracking {
-                    Text(LocalizationHelper.localized("Auto Paused"))
-                        .font(.subheadline.bold()).foregroundColor(.black)
-                        .padding(.vertical, 8).padding(.horizontal, 16)
-                        .background(BrandColor.warning).clipShape(Capsule())
-                        .accessibilityLabel(LocalizationHelper.localized("Auto paused. You stopped moving; recording continues and distance is not counting."))
-                }
-
-                if !networkMonitor.isConnected {
+                if !networkMonitor.isConnected && trackingManager.state == .idle {
                     let shieldText = trackingManager.state != .idle
                         ? "🛡️ Offline Tracking Shield Active • Route Safely Recording"
                         : "🛡️ Offline Tracking Shield • Ready to Record Locally"
@@ -178,22 +158,26 @@ struct HomeView: View {
                 }
 
                 HStack {
-                    MapCompass(scope: mapScope)
-                        .padding(.leading, 16)
-                        .padding(.top, trackingManager.state == .gpsLost ? 16 : 50)
-
                     Spacer()
 
                     VStack(spacing: 16) {
                         MapStyleMenu(selection: $mapStyle) {
                             Image(systemName: "map")
-                                .font(.title2)
-                                .foregroundColor(.primary)
-                                .frame(width: 48, height: 48)
-                                .background(.regularMaterial)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
+                                .trackMeMapControlStyle()
                         }
+
+                        Button {
+                            Haptics.selection()
+                            position = .userLocation(followsHeading: false, fallback: .automatic)
+                        } label: {
+                            Image(systemName: "location.fill")
+                                .trackMeMapControlStyle()
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(LocalizationHelper.localized("Center on my location"))
+
+                        MapCompass(scope: mapScope)
+                            .trackMeMapControlStyle()
 
                         if groupRide.state.isActive {
                             Button(action: { showGroupSheet = true }) {
@@ -216,53 +200,6 @@ struct HomeView: View {
                             .accessibilityValue(LocalizationHelper.formatted("%@ remaining", groupTimeLeftText))
                         }
 
-                        Button(action: {
-                            if groupRide.state.isActive {
-                                ToastManager.shared.show(
-                                    message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
-                                    style: .warning
-                                )
-                            } else {
-                                showLiveShareDialog = true
-                            }
-                        }) {
-                            if liveSharingManager.isActive {
-                                VStack(spacing: 2) {
-                                    Image(systemName: "antenna.radiowaves.left.and.right")
-                                        .font(.system(size: 16, weight: .bold))
-                                    Text(formatDuration(TimeInterval(liveSharingManager.remainingSeconds)))
-                                        // Fixed-size chrome: clamp the environment below rather than
-                                        // scaling this 10pt countdown out of its 48pt touch target.
-                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                }
-                                .foregroundColor(.white)
-                                .frame(width: 48, height: 48)
-                                .background(BrandColor.success.gradient)
-                                .clipShape(Circle())
-                                .shadow(color: BrandColor.success.opacity(0.5), radius: 6)
-                                .dynamicTypeSize(...DynamicTypeSize.xLarge)
-                            } else {
-                                Image(systemName: "location.viewfinder")
-                                    .font(.title2)
-                                    .foregroundColor(.primary)
-                                    .frame(width: 48, height: 48)
-                                    .background(.regularMaterial)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 4)
-                            }
-                        }
-                        .accessibilityLabel(liveSharingManager.isActive
-                            ? LocalizationHelper.localized("Live sharing active")
-                            : LocalizationHelper.localized("Start live location sharing"))
-                        .accessibilityValue(liveSharingManager.isActive
-                            ? LocalizationHelper.formatted("%@ remaining",
-                                formatDuration(TimeInterval(liveSharingManager.remainingSeconds)))
-                            : "")
-                        .sensoryFeedback(trigger: liveSharingManager.isActive) { _, active in
-                            active ? .success : .impact(weight: .light)
-                        }
                     }
                     .padding(.trailing, 16)
                     .padding(.top, trackingManager.state == .gpsLost ? 16 : 50)
@@ -270,110 +207,111 @@ struct HomeView: View {
                 Spacer()
             }
 
-            VStack(spacing: 20) {
-                RideStatsCard(
-                    isTracking: trackingManager.state != .idle,
-                    duration: formatDuration(trackingManager.durationInMillis / 1000),
-                    speedValue: UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit).split(separator: " ").first.map(String.init) ?? "0.0",
-                    speedUnit: UnitFormatter.speedUnitLabel(unitSettings.unit),
-                    speedAccessibilityValue: UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit),
-                    distanceValue: UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit),
-                    distanceUnit: UnitFormatter.distanceUnitLabel(unitSettings.unit),
-                    distanceAccessibilityValue: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit)
-                )
+            VStack(spacing: 10) {
+                if trackingManager.state == .idle {
+                    RadialStartTrackingControl(launchState: $rideStartLaunch) { persona in
+                        trackingManager.startTracking(persona: persona)
+                    }
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
+                } else {
+                    if RideStartAbortPolicy.canOfferPostCommitUndo(
+                        durationInMillis: trackingManager.durationInMillis,
+                        distanceMeters: trackingManager.totalDistance
+                    ) {
+                        Button(role: .destructive) {
+                            guard trackingManager.discardNearEmptyRideStart() else { return }
+                            Haptics.notify(.warning)
+                            TelemetryManager.shared.trackRideStartAborted(method: .postCommitUndo)
+                        } label: {
+                            Label(LocalizationHelper.localized("Cancel"), systemImage: "xmark")
+                                .font(.subheadline.bold())
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(BrandColor.sos)
+                    }
 
-                // SOS Component
-                if trackingManager.state != .idle && Auth.auth().currentUser != nil {
-                    SwipeToTriggerSlider(onTriggered: {
-                        let isSetupComplete = emergencySettingsList.first?.isSetupComplete ?? false
-                        if !EmergencySetupLogic.isSetupComplete(isSetupComplete: isSetupComplete, contactCount: emergencyContacts.count) {
-                            ToastManager.shared.show(
-                                message: LocalizationHelper.localized("Set up emergency contacts to use SOS"),
-                                style: .warning
-                            )
-                            showEmergencySetup = true
-                        } else {
-                            EmergencyManager.shared.startBroadcast()
-                            EmergencyManager.shared.fetchFreshLocation { coordinate in
-                                UIDevice.current.isBatteryMonitoringEnabled = true
-                                let template = emergencySettingsList.first?.messageTemplate ?? "EMERGENCY! My location: [Location Link]"
-                                self.emergencyMessageBody = EmergencyManager.shared.buildEmergencyMessage(
-                                    template: template,
-                                    coordinate: coordinate ?? trackingManager.points.last?.coordinate,
-                                    battery: Float(UIDevice.current.batteryLevel),
-                                    deviceModel: UIDevice.current.model,
-                                    date: Date()
-                                )
-
-                                if MFMessageComposeViewController.canSendText() {
-                                    showEmergencyCompose = true
+                    ActiveRideHUD(
+                        trackingState: trackingManager.state,
+                        persona: trackingManager.selectedPersona,
+                        isAutoPaused: trackingManager.isAutoPaused,
+                        isLiveSharing: liveSharingManager.isActive,
+                        isLiveShareStarting: liveSharingManager.isStarting,
+                        isLiveShareAuthenticated: Auth.auth().currentUser != nil,
+                        isOffline: !networkMonitor.isConnected,
+                        duration: formatDuration(trackingManager.durationInMillis / 1000),
+                        elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
+                        speedLabel: movementMetric.label,
+                        speedValue: movementMetric.value,
+                        speedUnit: movementMetric.unit,
+                        speedAccessibilityValue: movementMetric.accessibilityValue,
+                        distanceValue: UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+                        distanceUnit: UnitFormatter.distanceUnitLabel(unitSettings.unit),
+                        distanceAccessibilityValue: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+                        onPauseToggle: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                if trackingManager.state == .paused || trackingManager.state == .storageLow {
+                                    trackingManager.resumeTracking()
                                 } else {
-                                    showShareSheet = true
+                                    trackingManager.pauseTracking()
                                 }
                             }
+                        },
+                        onStop: {
+                            trackingManager.stopTracking()
+                        },
+                        onStartShare: {
+                            guard Auth.auth().currentUser != nil else {
+                                ToastManager.shared.show(
+                                    message: LocalizationHelper.localized("Sign in to share your live location."),
+                                    style: .warning
+                                )
+                                return
+                            }
+                            guard !groupRide.state.isActive else {
+                                ToastManager.shared.show(
+                                    message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
+                                    style: .warning
+                                )
+                                return
+                            }
+                            liveSharingManager.startSession(durationMinutes: nil)
+                        },
+                        onStopShare: {
+                            liveSharingManager.stopSession()
+                            ToastManager.shared.show(
+                                message: LocalizationHelper.localized("Live sharing stopped"),
+                                style: .info
+                            )
+                        },
+                        onShareLink: {
+                            guard let link = liveSharingManager.shareLink,
+                                  let url = URL(string: link) else { return }
+                            liveShareSharePayload = LiveShareSharePayload(url: url)
+                        },
+                        onCopyLink: {
+                            guard let link = liveSharingManager.shareLink else { return }
+                            UIPasteboard.general.string = link
+                            ToastManager.shared.show(
+                                message: LocalizationHelper.localized("Link copied to clipboard"),
+                                style: .success
+                            )
+                        },
+                        onShareAuthRequired: {
+                            ToastManager.shared.show(
+                                message: LocalizationHelper.localized("Sign in to share your live location."),
+                                style: .warning
+                            )
                         }
-                    })
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal)
+                    )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-
-                if trackingManager.state != .idle && RideStartAbortPolicy.canOfferPostCommitUndo(
-                    durationInMillis: trackingManager.durationInMillis,
-                    distanceMeters: trackingManager.totalDistance
-                ) {
-                    Button(role: .destructive) {
-                        guard trackingManager.discardNearEmptyRideStart() else { return }
-                        Haptics.notify(.warning)
-                        TelemetryManager.shared.trackRideStartAborted(method: .postCommitUndo)
-                    } label: {
-                        Label(LocalizationHelper.localized("Cancel"), systemImage: "xmark")
-                            .font(.subheadline.bold())
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(BrandColor.sos)
-                    .accessibilityHint(LocalizationHelper.localized("Cancel"))
-                }
-
-                // Main Action Buttons
-                HStack(spacing: 24) {
-                    switch trackingManager.state {
-                    case .idle:
-                        AbortableStartTrackingButton(launchState: $rideStartLaunch) {
-                            trackingManager.startTracking()
-                        }
-                    case .tracking, .gpsLost:
-                        TrackingButton(icon: "pause.fill", color: .orange,
-                                       label: LocalizationHelper.localized("Pause tracking")) {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                Haptics.selection()
-                                trackingManager.pauseTracking()
-                            }
-                        }
-                    case .paused, .storageLow:
-                        TrackingButton(icon: "play.fill", color: BrandColor.primaryFill,
-                                       label: LocalizationHelper.localized("Resume tracking")) {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                Haptics.impact(.medium)
-                                trackingManager.resumeTracking()
-                            }
-                        }
-                        TrackingButton(icon: "stop.fill", color: .red,
-                                       label: LocalizationHelper.localized("Stop tracking")) {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                Haptics.impact(.heavy)
-                                trackingManager.stopTracking()
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: trackingManager.state)
             }
-            .padding(.bottom, 30)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
+            .animation(.spring(response: 0.4, dampingFraction: 0.78), value: trackingManager.state)
         }
-        .sheet(isPresented: $showLiveShareDialog) {
-            LiveShareDialog()
+        .sheet(item: $liveShareSharePayload) { payload in
+            ActivityView(activityItems: [payload.url])
         }
         .sheet(isPresented: $showGroupSheet) {
             CommunityView()
@@ -388,7 +326,7 @@ struct HomeView: View {
             PostRideRevealView(reveal: reveal) {
                 revealCoordinator.consume(rideId: reveal.rideId)
                 // B4: dismissing a good-ride reveal is a peak moment — ask an eligible user to
-                // rate. Self-gated; Apple throttles on top. Never after error/SOS/discard.
+                // rate. Self-gated; Apple throttles on top. Never after error/discard.
                 Task {
                     let count = await RideStatsStore.shared.current().totalRides
                     if ReviewPrompter.shouldRequestAndRecord(goodRideCount: count) {
@@ -417,26 +355,6 @@ struct HomeView: View {
         } message: {
             Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
         }
-        .sheet(isPresented: $showEmergencySetup) {
-            EmergencySetupView()
-        }
-        .sheet(isPresented: $showEmergencyCompose) {
-            MessageComposeView(
-                recipients: emergencyContacts.map { $0.phoneNumber },
-                body: emergencyMessageBody,
-                onCompletion: { result in
-                    EmergencyManager.shared.resolveBroadcast(falseAlarm: result == .cancelled || result == .failed)
-                    if result == .sent {
-                        ToastManager.shared.show(message: LocalizationHelper.localized("SOS Sent"), style: .success)
-                    }
-                }
-            )
-        }
-        .sheet(isPresented: $showShareSheet) {
-            ShareSheet(activityItems: [emergencyMessageBody]) { completed in
-                EmergencyManager.shared.resolveBroadcast(falseAlarm: !completed)
-            }
-        }
         .trackScreen("HomeView")
         .onDisappear {
             rideStartLaunch.reset()
@@ -453,6 +371,29 @@ struct HomeView: View {
         } else {
             return String(format: "%02d:%02d", minutes, seconds)
         }
+    }
+
+    private var movementMetric: RideMovementMetric {
+        if trackingManager.selectedPersona == .walk {
+            let value = UnitFormatter.paceValue(mps: trackingManager.currentSpeed, unit: unitSettings.unit)
+            let accessibilityValue = value == "--"
+                ? LocalizationHelper.localized("No current pace")
+                : UnitFormatter.pace(mps: trackingManager.currentSpeed, unit: unitSettings.unit)
+            return RideMovementMetric(
+                label: LocalizationHelper.localized("Pace"),
+                value: value,
+                unit: UnitFormatter.paceUnitLabel(unitSettings.unit),
+                accessibilityValue: accessibilityValue
+            )
+        }
+
+        return RideMovementMetric(
+            label: LocalizationHelper.localized("Speed"),
+            value: UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit)
+                .split(separator: " ").first.map(String.init) ?? "0.0",
+            unit: UnitFormatter.speedUnitLabel(unitSettings.unit),
+            accessibilityValue: UnitFormatter.speed(mps: trackingManager.currentSpeed, unit: unitSettings.unit)
+        )
     }
 
     private var groupTimeLeftText: String {
@@ -501,10 +442,39 @@ struct HomeView: View {
     }
 }
 
-/// The glanceable ride metrics card. Custom sizes stay pixel-identical at the
-/// default Dynamic Type size while scaling with larger settings. The visual
-/// card is intentionally capped at accessibility3: TIME/SPEED/DISTANCE remain
-/// fully exposed through their VoiceOver elements above that visual ceiling.
+private struct RideMovementMetric {
+    let label: String
+    let value: String
+    let unit: String
+    let accessibilityValue: String
+}
+
+private struct TrackMeMapControlModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.title2)
+            .foregroundStyle(.primary)
+            .tint(.primary)
+            .frame(width: 48, height: 48)
+            .background(.regularMaterial, in: Circle())
+            .contentShape(Circle())
+            .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    }
+}
+
+private extension View {
+    func trackMeMapControlStyle() -> some View {
+        modifier(TrackMeMapControlModifier())
+    }
+}
+
+private struct LiveShareSharePayload: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+/// Compact three-column metrics matching the active Android HUD. The visual
+/// card is capped at accessibility3 while every value remains a VoiceOver item.
 internal struct RideStatsCard: View {
     let isTracking: Bool
     let duration: String
@@ -517,9 +487,11 @@ internal struct RideStatsCard: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var body: some View {
-        RideStatsCardContent(
+        RideStatsRow(
             isTracking: isTracking,
             duration: duration,
+            elapsedDuration: nil,
+            speedLabel: LocalizationHelper.localized("Speed"),
             speedValue: speedValue,
             speedUnit: speedUnit,
             speedAccessibilityValue: speedAccessibilityValue,
@@ -527,16 +499,19 @@ internal struct RideStatsCard: View {
             distanceUnit: distanceUnit,
             distanceAccessibilityValue: distanceAccessibilityValue
         )
-        // ScaledMetric reads the environment while its view is built. Applying
-        // the cap to the content view (rather than after it) keeps AX5 from
-        // inflating the visual card before the modifier can clamp it.
+        .padding(.vertical, 14)
+        .padding(.horizontal, 12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.14), radius: 12, x: 0, y: 6)
         .environment(\.dynamicTypeSize, dynamicTypeSize > .accessibility3 ? .accessibility3 : dynamicTypeSize)
     }
 }
 
-private struct RideStatsCardContent: View {
+private struct RideStatsRow: View {
     let isTracking: Bool
     let duration: String
+    let elapsedDuration: String?
+    let speedLabel: String
     let speedValue: String
     let speedUnit: String
     let speedAccessibilityValue: String
@@ -544,75 +519,86 @@ private struct RideStatsCardContent: View {
     let distanceUnit: String
     let distanceAccessibilityValue: String
 
-    @ScaledMetric(relativeTo: .caption) private var timeLabelSize: CGFloat = 12
-    @ScaledMetric(relativeTo: .largeTitle) private var timeValueSize: CGFloat = 40
-    @ScaledMetric(relativeTo: .title) private var dividerHeight: CGFloat = 40
+    @ScaledMetric(relativeTo: .title3) private var dividerHeight: CGFloat = 38
 
     var body: some View {
-        VStack(spacing: 20) {
-            if isTracking {
-                VStack(alignment: .center, spacing: 4) {
-                    Text("TIME")
-                        .font(.system(size: timeLabelSize, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
-                    Text(duration)
-                        .font(.system(size: timeValueSize, weight: .bold, design: .rounded))
-                        .contentTransition(.numericText())
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(LocalizationHelper.localized("Time"))
-                .accessibilityValue(duration)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                RideStatReadout(
+                    label: LocalizationHelper.localized("Distance"),
+                    value: distanceValue,
+                    unit: distanceUnit,
+                    accessibilityValue: distanceAccessibilityValue
+                )
 
-                Divider()
-                    .padding(.horizontal, 20)
+                Divider().frame(height: dividerHeight)
+
+                if isTracking {
+                    DurationStatReadout(
+                        duration: duration,
+                        elapsedDuration: elapsedDuration
+                    )
+                    Divider().frame(height: dividerHeight)
+                }
+
+                RideStatReadout(
+                    label: speedLabel,
+                    value: speedValue,
+                    unit: speedUnit,
+                    accessibilityValue: speedAccessibilityValue
+                )
             }
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 40) {
-                    RideStatReadout(
-                        label: LocalizationHelper.localized("Speed"),
-                        value: speedValue,
-                        unit: speedUnit,
-                        accessibilityValue: speedAccessibilityValue
-                    )
-
+            VStack(spacing: 10) {
+                RideStatReadout(
+                    label: LocalizationHelper.localized("Distance"),
+                    value: distanceValue,
+                    unit: distanceUnit,
+                    accessibilityValue: distanceAccessibilityValue
+                )
+                if isTracking {
                     Divider()
-                        .frame(height: dividerHeight)
-
-                    RideStatReadout(
-                        label: LocalizationHelper.localized("Distance"),
-                        value: distanceValue,
-                        unit: distanceUnit,
-                        accessibilityValue: distanceAccessibilityValue
+                    DurationStatReadout(
+                        duration: duration,
+                        elapsedDuration: elapsedDuration
                     )
                 }
-
-                VStack(spacing: 12) {
-                    RideStatReadout(
-                        label: LocalizationHelper.localized("Speed"),
-                        value: speedValue,
-                        unit: speedUnit,
-                        accessibilityValue: speedAccessibilityValue
-                    )
-                    Divider()
-                    RideStatReadout(
-                        label: LocalizationHelper.localized("Distance"),
-                        value: distanceValue,
-                        unit: distanceUnit,
-                        accessibilityValue: distanceAccessibilityValue
-                    )
-                }
+                Divider()
+                RideStatReadout(
+                    label: speedLabel,
+                    value: speedValue,
+                    unit: speedUnit,
+                    accessibilityValue: speedAccessibilityValue
+                )
             }
         }
-        .padding(.vertical, 20)
-        .padding(.horizontal, 30)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Color.black.opacity(0.15), radius: 15, x: 0, y: 10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-        )
+    }
+}
+
+private struct DurationStatReadout: View {
+    let duration: String
+    let elapsedDuration: String?
+
+    var body: some View {
+        VStack(spacing: 2) {
+            RideStatReadout(
+                label: LocalizationHelper.localized("Duration"),
+                value: duration,
+                unit: "",
+                accessibilityValue: duration
+            )
+            if let elapsedDuration {
+                Text(LocalizationHelper.formatted("Total %@", elapsedDuration))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(LocalizationHelper.localized("Duration"))
+        .accessibilityValue(elapsedDuration.map { "\(duration), total \($0)" } ?? duration)
     }
 }
 
@@ -622,8 +608,8 @@ internal struct RideStatReadout: View {
     let unit: String
     let accessibilityValue: String
 
-    @ScaledMetric(relativeTo: .caption) private var labelSize: CGFloat = 12
-    @ScaledMetric(relativeTo: .title) private var valueSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .caption) private var labelSize: CGFloat = 11
+    @ScaledMetric(relativeTo: .title3) private var valueSize: CGFloat = 23
 
     internal var accessibilityDescriptor: RideStatAccessibilityDescriptor {
         RideStatAccessibilityDescriptor(label: label, value: accessibilityValue)
@@ -631,18 +617,24 @@ internal struct RideStatReadout: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 4) {
-            Text(label.uppercased())
+            Text(label)
                 .font(.system(size: labelSize, weight: .semibold, design: .rounded))
                 .foregroundColor(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: valueSize, weight: .bold, design: .rounded))
                     .contentTransition(.numericText())
-                Text(unit)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
             }
         }
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescriptor.label)
         .accessibilityValue(accessibilityDescriptor.value)
@@ -655,50 +647,552 @@ internal struct RideStatAccessibilityDescriptor: Equatable {
     let value: String
 }
 
-struct TrackingButton: View {
-    var icon: String
-    var color: Color
-    var label: String
-    var action: () -> Void
+private struct ActiveRideHUD: View {
+    let trackingState: TrackingState
+    let persona: RidePersona
+    let isAutoPaused: Bool
+    let isLiveSharing: Bool
+    let isLiveShareStarting: Bool
+    let isLiveShareAuthenticated: Bool
+    let isOffline: Bool
+    let duration: String
+    let elapsedDuration: String
+    let speedLabel: String
+    let speedValue: String
+    let speedUnit: String
+    let speedAccessibilityValue: String
+    let distanceValue: String
+    let distanceUnit: String
+    let distanceAccessibilityValue: String
+    let onPauseToggle: () -> Void
+    let onStop: () -> Void
+    let onStartShare: () -> Void
+    let onStopShare: () -> Void
+    let onShareLink: () -> Void
+    let onCopyLink: () -> Void
+    let onShareAuthRequired: () -> Void
+
+    private var isPaused: Bool {
+        trackingState == .paused || trackingState == .storageLow
+    }
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundColor(.white)
-                .frame(width: 72, height: 72)
-                .background(color.gradient)
-                .clipShape(Circle())
-                .shadow(color: color.opacity(0.4), radius: 10, x: 0, y: 5)
+        VStack(spacing: 8) {
+            RideStatusChips(
+                trackingState: trackingState,
+                persona: persona,
+                isAutoPaused: isAutoPaused,
+                isLiveSharing: isLiveSharing,
+                isOffline: isOffline
+            )
+
+            VStack(spacing: 12) {
+                RideStatsRow(
+                    isTracking: true,
+                    duration: duration,
+                    elapsedDuration: elapsedDuration,
+                    speedLabel: speedLabel,
+                    speedValue: speedValue,
+                    speedUnit: speedUnit,
+                    speedAccessibilityValue: speedAccessibilityValue,
+                    distanceValue: distanceValue,
+                    distanceUnit: distanceUnit,
+                    distanceAccessibilityValue: distanceAccessibilityValue
+                )
+
+                Divider()
+
+                if !isLiveShareAuthenticated {
+                    Text(LocalizationHelper.localized("Sign in to share your live location."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+
+                HStack(spacing: 12) {
+                    UnifiedPauseStopSlider(
+                        isPaused: isPaused,
+                        onPauseToggle: onPauseToggle,
+                        onStop: onStop
+                    )
+
+                    LiveShareActionDrawer(
+                        isActive: isLiveSharing,
+                        isStarting: isLiveShareStarting,
+                        isAuthenticated: isLiveShareAuthenticated,
+                        onStart: onStartShare,
+                        onStop: onStopShare,
+                        onShare: onShareLink,
+                        onCopy: onCopyLink,
+                        onAuthRequired: onShareAuthRequired
+                    )
+                }
+                .frame(height: 54)
+            }
+            .padding(14)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(.white.opacity(0.18), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.18), radius: 14, x: 0, y: 8)
         }
-        .accessibilityLabel(label)
     }
 }
 
-private struct AbortableStartTrackingButton: View {
-    @Binding var launchState: RideStartLaunchState
-    var onCommit: () -> Void
+private struct RideStatusChips: View {
+    let trackingState: TrackingState
+    let persona: RidePersona
+    let isAutoPaused: Bool
+    let isLiveSharing: Bool
+    let isOffline: Bool
+
+    var body: some View {
+        CenteredFlowLayout(spacing: 8) {
+            RideStatusChip(
+                title: LocalizationHelper.localized(persona.displayName),
+                systemImage: persona.systemImage,
+                background: BrandColor.warning,
+                foreground: BrandColor.onWarning
+            )
+
+            if isAutoPaused || trackingState == .paused {
+                RideStatusChip(
+                    title: LocalizationHelper.localized(isAutoPaused ? "Auto Paused" : "Paused"),
+                    systemImage: "pause.fill",
+                    background: BrandColor.warning,
+                    foreground: BrandColor.onWarning
+                )
+            }
+
+            if isLiveSharing {
+                RideStatusChip(
+                    title: LocalizationHelper.localized("Live sharing"),
+                    systemImage: "antenna.radiowaves.left.and.right",
+                    background: BrandColor.cyanBright,
+                    foreground: BrandColor.navy900
+                )
+            }
+
+            if isOffline {
+                RideStatusChip(
+                    title: LocalizationHelper.localized("Offline shield"),
+                    systemImage: "shield.checkered",
+                    background: BrandColor.success,
+                    foreground: .white
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 2)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private struct RideStatusChip: View {
+    let title: String
+    let systemImage: String
+    let background: Color
+    let foreground: Color
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.bold())
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(minHeight: 30)
+            .background(background, in: Capsule())
+            .fixedSize(horizontal: true, vertical: false)
+            .shadow(color: .black.opacity(0.14), radius: 3, y: 2)
+    }
+}
+
+private struct CenteredFlowLayout: Layout {
+    let spacing: CGFloat
+
+    private struct Row {
+        var indices: [Int] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let proposedWidth = proposal.width ?? .infinity
+        let rows = makeRows(maxWidth: proposedWidth, subviews: subviews)
+        let contentWidth = rows.map(\.width).max() ?? 0
+        let contentHeight = rows.map(\.height).reduce(0, +)
+            + spacing * CGFloat(max(0, rows.count - 1))
+        return CGSize(
+            width: proposal.width ?? contentWidth,
+            height: contentHeight
+        )
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let rows = makeRows(maxWidth: bounds.width, subviews: subviews)
+        var y = bounds.minY
+
+        for row in rows {
+            var x = bounds.minX + max(0, (bounds.width - row.width) / 2)
+            for index in row.indices {
+                let size = subviews[index].sizeThatFits(.unspecified)
+                subviews[index].place(
+                    at: CGPoint(x: x, y: y + (row.height - size.height) / 2),
+                    anchor: .topLeading,
+                    proposal: ProposedViewSize(size)
+                )
+                x += size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private func makeRows(maxWidth: CGFloat, subviews: Subviews) -> [Row] {
+        var rows: [Row] = []
+        var row = Row()
+
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let additionalWidth = row.indices.isEmpty ? size.width : spacing + size.width
+            if !row.indices.isEmpty, row.width + additionalWidth > maxWidth {
+                rows.append(row)
+                row = Row()
+            }
+            row.indices.append(index)
+            row.width += row.indices.count == 1 ? size.width : spacing + size.width
+            row.height = max(row.height, size.height)
+        }
+
+        if !row.indices.isEmpty { rows.append(row) }
+        return rows
+    }
+}
+
+internal enum RideStopSliderPolicy {
+    static let completionFraction: CGFloat = 0.75
+
+    static func shouldStop(translation: CGFloat, maxSlide: CGFloat) -> Bool {
+        guard maxSlide > 0 else { return false }
+        return -translation >= maxSlide * completionFraction
+    }
+}
+
+private struct UnifiedPauseStopSlider: View {
+    let isPaused: Bool
+    let onPauseToggle: () -> Void
+    let onStop: () -> Void
+
+    @State private var dragOffset: CGFloat = 0
+    @State private var isStopping = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let halfWidth = proxy.size.width / 2
+
+            ZStack(alignment: .leading) {
+                Capsule().fill(BrandColor.primaryFill)
+
+                Button {
+                    guard !isStopping else { return }
+                    Haptics.impact(.medium)
+                    onPauseToggle()
+                } label: {
+                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                        .font(.title3.bold())
+                        .foregroundStyle(BrandColor.onPrimary)
+                        .frame(width: halfWidth, height: 54)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(LocalizationHelper.localized(isPaused ? "Resume tracking" : "Pause tracking"))
+
+                stopThumb(maxSlide: halfWidth)
+                    .frame(width: halfWidth, height: 54)
+                    .offset(x: halfWidth + dragOffset)
+            }
+            .clipShape(Capsule())
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 54)
+    }
+
+    private func stopThumb(maxSlide: CGFloat) -> some View {
+        ZStack {
+            Capsule().fill(isStopping ? BrandColor.sosDeep : BrandColor.sos)
+            if isStopping {
+                Label(LocalizationHelper.localized("Ride stopped"), systemImage: "stop.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            } else {
+                HStack(spacing: 7) {
+                    Image(systemName: "chevron.left.2")
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                    Image(systemName: "stop.fill")
+                        .font(.body.bold())
+                        .foregroundStyle(BrandColor.sos)
+                        .frame(width: 40, height: 40)
+                        .background(.white, in: Circle())
+                }
+            }
+        }
+        .contentShape(Capsule())
+        .gesture(
+            DragGesture(minimumDistance: 4)
+                .onChanged { value in
+                    guard !isStopping else { return }
+                    dragOffset = min(0, max(-maxSlide, value.translation.width))
+                    if RideStopSliderPolicy.shouldStop(
+                        translation: dragOffset,
+                        maxSlide: maxSlide
+                    ) {
+                        requestStop(maxSlide: maxSlide)
+                    }
+                }
+                .onEnded { _ in
+                    guard !isStopping else { return }
+                    withAnimation(.easeOut(duration: 0.24)) { dragOffset = 0 }
+                }
+        )
+        .onTapGesture {
+            guard !isStopping else { return }
+            Haptics.selection()
+            withAnimation(.easeOut(duration: 0.16)) { dragOffset = -maxSlide * 0.35 }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(180))
+                guard !isStopping else { return }
+                withAnimation(.easeOut(duration: 0.22)) { dragOffset = 0 }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(LocalizationHelper.localized("Stop tracking"))
+        .accessibilityHint(LocalizationHelper.localized("Slide left to stop the ride"))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { requestStop(maxSlide: maxSlide) }
+    }
+
+    private func requestStop(maxSlide: CGFloat) {
+        guard !isStopping else { return }
+        isStopping = true
+        Haptics.notify(.warning)
+        withAnimation(.easeOut(duration: 0.15)) { dragOffset = -maxSlide }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            onStop()
+        }
+    }
+}
+
+private struct LiveShareActionDrawer: View {
+    let isActive: Bool
+    let isStarting: Bool
+    let isAuthenticated: Bool
+    let onStart: () -> Void
+    let onStop: () -> Void
+    let onShare: () -> Void
+    let onCopy: () -> Void
+    let onAuthRequired: () -> Void
+
+    @State private var isOpen = false
 
     var body: some View {
         Button {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                if let token = launchState.pendingToken {
-                    guard launchState.abort(observedToken: token) else { return }
-                    Haptics.notify(.warning)
-                    TelemetryManager.shared.trackRideStartAborted(method: .preCommit)
-                } else {
-                    Haptics.impact(.medium)
-                    launchState.begin()
-                }
+            guard isAuthenticated else {
+                onAuthRequired()
+                return
+            }
+            guard !isStarting else { return }
+            Haptics.selection()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
+                isOpen.toggle()
             }
         } label: {
-            Image(systemName: launchState.isPending ? "xmark" : "play.fill")
-                .font(.system(size: 28, weight: .bold))
+            ZStack(alignment: .topTrailing) {
+                Group {
+                    if isStarting {
+                        ProgressView().tint(BrandColor.navy900)
+                    } else {
+                        Image(systemName: baseSystemImage)
+                            .font(.title3.bold())
+                    }
+                }
+                .foregroundStyle(BrandColor.navy900)
+                .frame(width: 54, height: 54)
+                .background(baseBackground, in: Circle())
+
+                if isActive, !isOpen {
+                    Circle()
+                        .fill(BrandColor.sos)
+                        .frame(width: 11, height: 11)
+                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(baseAccessibilityLabel)
+        .overlay(alignment: .bottom) {
+            if isOpen, isAuthenticated {
+                VStack(spacing: 8) {
+                    if isActive {
+                        drawerButton(
+                            systemImage: "square.and.arrow.up",
+                            label: "Share live link",
+                            background: BrandColor.primaryFill,
+                            foreground: .white,
+                            action: onShare
+                        )
+                        drawerButton(
+                            systemImage: "doc.on.doc",
+                            label: "Copy live link",
+                            background: BrandColor.primaryFill,
+                            foreground: .white,
+                            action: onCopy
+                        )
+                        drawerButton(
+                            systemImage: "stop.fill",
+                            label: "Stop live sharing",
+                            background: Color(.systemRed).opacity(0.18),
+                            foreground: BrandColor.sosText,
+                            action: onStop
+                        )
+                    } else {
+                        drawerButton(
+                            systemImage: "play.fill",
+                            label: "Start live sharing",
+                            background: BrandColor.primaryFill,
+                            foreground: .white,
+                            action: onStart
+                        )
+                    }
+                }
+                .padding(5)
+                .background(.ultraThinMaterial, in: Capsule())
+                .offset(y: -62)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(20)
+            }
+        }
+        .frame(width: 54, height: 54)
+        .zIndex(20)
+        .onChange(of: isStarting) { _, starting in
+            if starting { isOpen = false }
+        }
+        .onChange(of: isActive) { _, _ in
+            isOpen = false
+        }
+    }
+
+    private var baseSystemImage: String {
+        if !isAuthenticated { return "person.crop.circle.badge.exclamationmark" }
+        if isOpen { return "xmark" }
+        return "antenna.radiowaves.left.and.right"
+    }
+
+    private var baseBackground: Color {
+        if !isAuthenticated { return Color(.systemGray3).opacity(0.7) }
+        if isActive || isStarting { return BrandColor.cyanBright }
+        if isOpen { return Color(.systemGray4) }
+        return Color(.systemGray3)
+    }
+
+    private var baseAccessibilityLabel: String {
+        if !isAuthenticated { return LocalizationHelper.localized("Sign in to share your live location.") }
+        if isStarting { return LocalizationHelper.localized("Starting live sharing") }
+        if isOpen { return LocalizationHelper.localized("Close live sharing actions") }
+        if isActive { return LocalizationHelper.localized("Live sharing actions") }
+        return LocalizationHelper.localized("Start live location sharing")
+    }
+
+    private func drawerButton(
+        systemImage: String,
+        label: String,
+        background: Color,
+        foreground: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.impact(.medium)
+            withAnimation(.easeOut(duration: 0.18)) { isOpen = false }
+            action()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.body.bold())
+                .foregroundStyle(foreground)
+                .frame(width: 52, height: 52)
+                .background(background, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(LocalizationHelper.localized(label))
+    }
+}
+
+private struct RadialStartTrackingControl: View {
+    @Binding var launchState: RideStartLaunchState
+    var onCommit: (RidePersona) -> Void
+
+    @State private var isExpanded = false
+    @State private var hoveredPersona: RidePersona?
+    @State private var pendingPersona: RidePersona = .auto
+    @State private var didExceedTouchSlop = false
+    @State private var abortGestureActive = false
+    @State private var gestureStartedOnControl = false
+
+    private let personas: [RidePersona] = [.walk, .run, .cycling, .bikeDrive, .carDrive]
+    private let angles: [Double] = [160, 125, 90, 55, 20]
+    private let radius: CGFloat = 108
+
+    var body: some View {
+        GeometryReader { proxy in
+            let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height - 50)
+
+            ZStack {
+                ForEach(Array(personas.enumerated()), id: \.element) { index, persona in
+                    Image(systemName: persona.systemImage)
+                        .font(.system(size: 23, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 56, height: 56)
+                        .background(
+                            hoveredPersona == persona ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.68),
+                            in: Circle()
+                        )
+                        .overlay {
+                            if hoveredPersona == persona {
+                                Circle().stroke(.white, lineWidth: 2)
+                            }
+                        }
+                        .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
+                        .scaleEffect(hoveredPersona == persona ? 1.16 : 1)
+                        .opacity(isExpanded ? 1 : 0)
+                        .position(optionPosition(index: index, center: center))
+                        .accessibilityHidden(true)
+                }
+
+                VStack(spacing: 3) {
+                    Image(systemName: centerImage)
+                        .font(.system(size: 31, weight: .bold))
+                    if isExpanded, let hoveredPersona {
+                        Text(LocalizationHelper.localized(hoveredPersona.displayName))
+                            .font(.caption2.bold())
+                            .lineLimit(1)
+                    }
+                }
                 .foregroundColor(.white)
-                .frame(width: 72, height: 72)
+                .frame(width: 92, height: 92)
                 .background(BrandColor.primaryFill.gradient)
                 .clipShape(Circle())
-                .scaleEffect(launchState.isPending ? 1.1 : 1)
+                .scaleEffect(launchState.isPending || hoveredPersona != nil ? 1.06 : 1)
                 .shadow(color: BrandColor.primaryFill.opacity(0.4), radius: 10, x: 0, y: 5)
                 .overlay {
                     if launchState.isPending {
@@ -708,17 +1202,131 @@ private struct AbortableStartTrackingButton: View {
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
+                .position(center)
+                .contentShape(Circle())
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .named("radialStart"))
+                        .onChanged { value in
+                            handleDragChanged(value, center: center)
+                        }
+                        .onEnded { value in
+                            handleDragEnded(value, center: center)
+                        }
+                )
+            }
+            .coordinateSpace(name: "radialStart")
         }
+        .frame(width: 300, height: 215)
         .accessibilityLabel(LocalizationHelper.localized(launchState.isPending ? "Cancel" : "Start tracking"))
+        .accessibilityValue(hoveredPersona.map { LocalizationHelper.localized($0.displayName) } ?? "")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityActions {
+            Button(LocalizationHelper.localized("Auto")) { beginLaunch(.auto) }
+            ForEach(personas, id: \.self) { persona in
+                Button(LocalizationHelper.localized(persona.displayName)) { beginLaunch(persona) }
+            }
+        }
         .task(id: launchState.pendingToken) {
             guard let token = launchState.pendingToken else { return }
+            let persona = pendingPersona
             do {
                 try await Task.sleep(for: RideStartAbortPolicy.preCommitDelay)
             } catch {
                 return
             }
             guard launchState.commit(observedToken: token) else { return }
-            onCommit()
+            onCommit(persona)
         }
+    }
+
+    private var centerImage: String {
+        if launchState.isPending { return "xmark" }
+        if let hoveredPersona { return hoveredPersona.systemImage }
+        return isExpanded ? "xmark" : "play.fill"
+    }
+
+    private func optionPosition(index: Int, center: CGPoint) -> CGPoint {
+        let radians = angles[index] * .pi / 180
+        return CGPoint(
+            x: center.x + radius * CGFloat(cos(radians)),
+            y: center.y - radius * CGFloat(sin(radians))
+        )
+    }
+
+    private func handleDragChanged(_ value: DragGesture.Value, center: CGPoint) {
+        if launchState.isPending {
+            guard !abortGestureActive, distance(value.location, center) <= 54,
+                  let token = launchState.pendingToken,
+                  launchState.abort(observedToken: token) else { return }
+            abortGestureActive = true
+            Haptics.notify(.warning)
+            TelemetryManager.shared.trackRideStartAborted(method: .preCommit)
+            return
+        }
+
+        if !gestureStartedOnControl {
+            guard distance(value.startLocation, center) <= 54 else { return }
+            gestureStartedOnControl = true
+        }
+
+        if !isExpanded {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.76)) {
+                isExpanded = true
+            }
+            Haptics.impact(.medium)
+        }
+
+        didExceedTouchSlop = didExceedTouchSlop || distance(value.location, value.startLocation) > 10
+        let nextHovered = personas.enumerated()
+            .map { ($0.element, distance(value.location, optionPosition(index: $0.offset, center: center))) }
+            .filter { $0.1 <= 38 }
+            .min { $0.1 < $1.1 }?.0
+
+        if nextHovered != hoveredPersona {
+            hoveredPersona = nextHovered
+            if nextHovered != nil { Haptics.selection() }
+        }
+    }
+
+    private func handleDragEnded(_ value: DragGesture.Value, center: CGPoint) {
+        if abortGestureActive {
+            abortGestureActive = false
+            resetInteraction()
+            return
+        }
+        guard gestureStartedOnControl else { return }
+        guard !launchState.isPending else { return }
+
+        let selected: RidePersona?
+        if let hoveredPersona {
+            selected = hoveredPersona
+        } else if !didExceedTouchSlop && distance(value.location, center) <= 54 {
+            selected = .auto
+        } else {
+            selected = nil
+        }
+
+        if let selected { beginLaunch(selected) } else { resetInteraction() }
+    }
+
+    private func beginLaunch(_ persona: RidePersona) {
+        guard !launchState.isPending else { return }
+        pendingPersona = persona
+        launchState.begin()
+        resetInteraction()
+        Haptics.impact(.medium)
+    }
+
+    private func resetInteraction() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isExpanded = false
+            hoveredPersona = nil
+        }
+        didExceedTouchSlop = false
+        gestureStartedOnControl = false
+    }
+
+    private func distance(_ lhs: CGPoint, _ rhs: CGPoint) -> CGFloat {
+        hypot(lhs.x - rhs.x, lhs.y - rhs.y)
     }
 }

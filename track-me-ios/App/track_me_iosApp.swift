@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import FirebaseCore
 import FirebaseAuth
+import GoogleSignIn
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
@@ -22,12 +23,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // The age-range request is started from ContentView, where SwiftUI supplies the
         // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
-    }
-
-    func application(_ app: UIApplication,
-                     open url: URL,
-                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        Auth.auth().canHandle(url) || GroupRideManager.shared.handleIncomingURL(url)
     }
 }
 
@@ -66,14 +61,16 @@ struct track_me_iosApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    if !Auth.auth().canHandle(url) {
-                        _ = GroupRideManager.shared.handleIncomingURL(url)
-                    }
+                    if GIDSignIn.sharedInstance.handle(url) { return }
+                    if Auth.auth().canHandle(url) { return }
+                    _ = GroupRideManager.shared.handleIncomingURL(url)
                 }
                 .onAppear {
                     DataRepository.shared.setup(container: sharedModelContainer)
+                    EmergencyDataPurge.shared.purgeOnce(container: sharedModelContainer)
                     Task {
                         await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
+                        RideAggregateBackfill.run(container: sharedModelContainer)
                         // Dismiss any Live Activity left over from a crash/force-quit.
                         RideActivityManager.shared.endOrphanedActivities(
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString

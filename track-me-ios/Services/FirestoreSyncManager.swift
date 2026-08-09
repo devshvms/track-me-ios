@@ -14,13 +14,23 @@ class FirestoreSyncManager {
     func uploadRide(_ ride: Ride) async -> Bool {
         guard let uid = Auth.auth().currentUser?.uid else { return false }
         let rideRef = db.collection("users").document(uid).collection("rides").document(ride.id.uuidString)
+        let aggregate = ride.aggregateSnapshot
         let pointsArray = ride.points?.map { point in
             ["lat": point.latitude, "lng": point.longitude, "altitude": point.altitude,
-             "speed": point.speed, "timestamp": point.timestamp, "isPaused": point.isPaused] as [String: Any]
+             "accuracy": point.accuracy, "speed": point.speed,
+             "timestamp": point.timestamp, "isPaused": point.isPaused] as [String: Any]
         } ?? []
+        let wallDurationMillis = ride.endTime.map {
+            Int64(max(0, $0.timeIntervalSince(ride.startTime) * 1_000))
+        } ?? aggregate.movingDurationMillis
+        let pauseDurationMillis = max(0, wallDurationMillis - aggregate.movingDurationMillis)
         let data: [String: Any] = ["id": ride.id.uuidString, "startTime": ride.startTime,
             "endTime": ride.endTime ?? NSNull(), "sourceInfo": ride.sourceInfo,
-            "title": ride.title ?? "", "persona": ride.persona, "points": pointsArray]
+            "title": ride.title ?? "", "persona": ride.persona,
+            "maxSpeed": aggregate.maxSpeedMps, "distance": aggregate.distanceMeters,
+            "avgSpeed": aggregate.avgSpeedMps, "pauseDuration": pauseDurationMillis,
+            "movingDurationMillis": aggregate.movingDurationMillis,
+            "pointCount": aggregate.pointCount, "points": pointsArray]
         do {
             try await rideRef.setData(data, merge: true)
             await MainActor.run {

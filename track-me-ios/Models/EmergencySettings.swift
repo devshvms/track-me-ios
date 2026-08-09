@@ -1,6 +1,7 @@
 import SwiftData
 import Foundation
 
+/// Legacy SwiftData record retained only long enough to purge pre-retirement stores safely.
 @Model final class EmergencySettings {
     var isSetupComplete: Bool
     var messageTemplate: String

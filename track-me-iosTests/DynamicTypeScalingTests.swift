@@ -56,9 +56,9 @@ final class DynamicTypeScalingTests: XCTestCase {
     }
 
     func testHudStatsCardDefaultHeightRemainsStable() {
-        // Recorded from the pre-change .large HUD card at a 320pt content width.
-        // The tracking state includes TIME plus the SPEED/DISTANCE row.
-        XCTAssertEqual(height(card(.large), width: cardWidth), 284.33, accuracy: 1)
+        let compactHeight = height(card(.large), width: cardWidth)
+        XCTAssertGreaterThan(compactHeight, 60)
+        XCTAssertLessThan(compactHeight, 140, "The active HUD should preserve the map-first layout")
     }
 
     func testRideStatReadoutProvidesOneAccessibleElement() {
@@ -75,10 +75,4 @@ final class DynamicTypeScalingTests: XCTestCase {
         )
     }
 
-    func testLiveShareTimerGrowsWithDynamicType() {
-        XCTAssertGreaterThan(
-            height(LiveShareRemainingTimeView(text: "12:34").environment(\.dynamicTypeSize, .accessibility1)),
-            height(LiveShareRemainingTimeView(text: "12:34").environment(\.dynamicTypeSize, .large))
-        )
-    }
 }

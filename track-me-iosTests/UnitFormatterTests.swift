@@ -11,4 +11,13 @@ final class UnitFormatterTests: XCTestCase {
     }
     func testMetricSpeed() { XCTAssertEqual(UnitFormatter.speed(mps: 10, unit: .metric), "36.0 km/h") }
     func testImperialSpeed() { XCTAssertEqual(UnitFormatter.speed(mps: 10, unit: .imperial), "22.4 mph") }
+    func testMetricWalkingPace() {
+        XCTAssertEqual(UnitFormatter.pace(mps: 1000.0 / 300.0, unit: .metric), "5:00 /km")
+    }
+    func testImperialWalkingPace() {
+        XCTAssertEqual(UnitFormatter.pace(mps: 1609.344 / 480.0, unit: .imperial), "8:00 /mi")
+    }
+    func testStationaryPaceUsesStablePlaceholder() {
+        XCTAssertEqual(UnitFormatter.pace(mps: 0, unit: .metric), "-- /km")
+    }
 }

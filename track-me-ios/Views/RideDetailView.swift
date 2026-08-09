@@ -410,9 +410,10 @@ struct RideDetailView: View {
                 .foregroundColor(.white)
                 .accessibilityAddTraits(.isHeader)
             
-            let totalDistMeters = RideDistance.meters(sortedPoints)
-            let duration = (ride.endTime ?? ride.startTime).timeIntervalSince(ride.startTime)
-            let avgSpeedMps = duration > 0 ? (totalDistMeters / duration) : 0.0
+            let aggregate = ride.aggregateSnapshot
+            let totalDistMeters = aggregate.distanceMeters
+            let duration = Double(aggregate.movingDurationMillis) / 1_000
+            let avgSpeedMps = aggregate.avgSpeedMps
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
             
             HStack {
@@ -420,7 +421,7 @@ struct RideDetailView: View {
                 Spacer()
                 statItem(title: "Duration", value: formatDuration(duration))
                 Spacer()
-                statItem(title: "GPS Tag", value: "\(sortedPoints.count)")
+                statItem(title: "GPS Tag", value: "\(aggregate.pointCount)")
             }
             
             HStack {
@@ -455,7 +456,7 @@ struct RideDetailView: View {
     @ViewBuilder
     var actionButtons: some View {
         HStack {
-            if let image = snapshotImage {
+            if snapshotImage != nil {
                 Button(action: {
                     showImagePreview = true
                 }) {

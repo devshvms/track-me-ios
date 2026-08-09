@@ -17,7 +17,7 @@ enum ReviewPrompter {
 
     /// Returns true if the caller should now fire `requestReview()`. When true, the attempt has
     /// already been recorded and telemetry sent, so it is one attempt per (version, 90-day) window.
-    /// Must only be called at a positive moment — never after error / SOS / storage-low / discard.
+    /// Must only be called at a positive moment — never after error / storage-low / discard.
     static func shouldRequestAndRecord(goodRideCount: Int, defaults: UserDefaults = .standard) -> Bool {
         let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
         let eligible = ReviewPromptPolicy.isEligible(

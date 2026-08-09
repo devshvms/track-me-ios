@@ -11,8 +11,8 @@ nonisolated struct GoodRideSummary {
     let durationMillis: Int64
     /// Filtered ride distance in meters.
     let distanceMeters: Double
-    /// True when SOS was entered at any point during this ride. The ride still contributes to
-    /// history aggregates, but downstream celebratory surfaces must be suppressed.
+    /// Legacy compatibility flag for a ride that entered the retired emergency flow. The ride
+    /// still contributes to history aggregates, but old downstream callers may suppress a reveal.
     /// Parity with Android `GoodRideSummary.suppressPostRideCelebrations`.
     let suppressPostRideCelebrations: Bool
 

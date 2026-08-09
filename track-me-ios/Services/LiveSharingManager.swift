@@ -11,6 +11,7 @@ class LiveSharingManager {
     private let errorLogger: ErrorLogger
 
     var isActive: Bool = false
+    var isStarting: Bool = false
     var isRideLinked: Bool = false
     var sessionId: String?
     var shareLink: String?
@@ -64,8 +65,17 @@ class LiveSharingManager {
     }
 
     func startSession(durationMinutes: Int?) {
+        guard !isActive, !isStarting else { return }
+        guard Auth.auth().currentUser != nil else {
+            ToastManager.shared.show(
+                message: LocalizationHelper.localized("Sign in to share your live location."),
+                style: .warning
+            )
+            return
+        }
         guard let url = URL(string: APIConfig.LiveShare.startSession) else { return }
 
+        isStarting = true
         self.isRideLinked = (durationMinutes == nil)
 
         var request = Self.makeLiveShareRequest(url: url)
@@ -83,6 +93,16 @@ class LiveSharingManager {
 
         withAuthToken(forceRefresh: true) { [weak self] token in
             guard let self = self else { return }
+            guard let token else {
+                DispatchQueue.main.async {
+                    self.isStarting = false
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Your sign-in expired. Please sign in again to share your location."),
+                        style: .error
+                    )
+                }
+                return
+            }
             var authenticatedRequest = request
             self.applyAuth(&authenticatedRequest, token: token)
 
@@ -95,6 +115,7 @@ class LiveSharingManager {
                     self.errorLogger.log("Failed to start live-share session")
                     self.errorLogger.recordError(error)
                     DispatchQueue.main.async {
+                        self.isStarting = false
                         self.handleTransportError(error)
                     }
                     return
@@ -102,6 +123,7 @@ class LiveSharingManager {
 
                 guard let data = data, let statusCode = code else {
                     DispatchQueue.main.async {
+                        self.isStarting = false
                         ToastManager.shared.show(message: LocalizationHelper.localized("Invalid response from server"), style: .error)
                     }
                     return
@@ -110,10 +132,12 @@ class LiveSharingManager {
                 if statusCode != 200 {
                     if statusCode == 401 || statusCode == 403 {
                         DispatchQueue.main.async {
+                            self.isStarting = false
                             ToastManager.shared.show(message: LiveShareError.message(statusCode: statusCode, error: nil), style: .error)
                         }
                     } else {
                         DispatchQueue.main.async {
+                            self.isStarting = false
                             self.handleHTTPError(statusCode)
                         }
                     }
@@ -143,6 +167,7 @@ class LiveSharingManager {
                             self.shareLink = shareLink
                             self.expiresAt = newExpiresAt
                             self.sessionStartTime = Date()
+                            self.isStarting = false
                             self.isActive = true
 
                             TelemetryManager.shared.trackLiveShareStarted(shareId: sessionId, recipientCount: 0)
@@ -159,6 +184,7 @@ class LiveSharingManager {
                         }
                     } else {
                         DispatchQueue.main.async {
+                            self.isStarting = false
                             ToastManager.shared.show(message: LocalizationHelper.localized("Failed to parse sharing session"), style: .error)
                         }
                     }
@@ -166,6 +192,7 @@ class LiveSharingManager {
                     self.errorLogger.log("Failed to parse live-share start-session response")
                     self.errorLogger.recordError(error)
                     DispatchQueue.main.async {
+                        self.isStarting = false
                         ToastManager.shared.show(message: LocalizationHelper.localized("Failed to parse sharing session"), style: .error)
                     }
                 }
@@ -191,6 +218,7 @@ class LiveSharingManager {
                 TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
             }
             self.isActive = false
+            self.isStarting = false
             self.sessionId = nil
             self.shareLink = nil
             self.expiresAt = nil
@@ -213,7 +241,7 @@ class LiveSharingManager {
         await MainActor.run {
             let duration = self.sessionStartTime.map { Int(Date().timeIntervalSince($0)) } ?? 0
             TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
-            self.isActive = false; self.sessionId = nil; self.shareLink = nil; self.expiresAt = nil; self.sessionStartTime = nil
+            self.isActive = false; self.isStarting = false; self.sessionId = nil; self.shareLink = nil; self.expiresAt = nil; self.sessionStartTime = nil
             self.isRetryingAuth = false; self.stopTimers()
         }
     }

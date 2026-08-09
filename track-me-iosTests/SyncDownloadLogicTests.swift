@@ -58,6 +58,10 @@ final class SyncDownloadLogicTests: XCTestCase {
         let data: [String: Any] = [
             "startTime": NSNumber(value: 1_700_000_000_000),
             "endTime": NSNumber(value: 1_700_000_005_000),
+            "distance": NSNumber(value: 1_234.5),
+            "maxSpeed": NSNumber(value: 8.5),
+            "avgSpeed": NSNumber(value: 4.25),
+            "pauseDuration": NSNumber(value: 1_000),
             "points": [
                 [
                     "lat": 12.3,
@@ -74,6 +78,10 @@ final class SyncDownloadLogicTests: XCTestCase {
         XCTAssertNotEqual(ride?.localId.uuidString, docId) // Fresh localId
         XCTAssertEqual(ride?.startTime, Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(ride?.endTime, Date(timeIntervalSince1970: 1_700_000_005))
+        XCTAssertEqual(ride?.distanceMeters, 1_234.5)
+        XCTAssertEqual(ride?.movingDurationMillis, 4_000)
+        XCTAssertEqual(ride?.maxSpeedMps, 8.5)
+        XCTAssertEqual(ride?.avgSpeedMps, 4.25)
 
         let cyclingData = data.merging(["persona": "CYCLING"]) { _, new in new }
         let cyclingRide = FirestoreSyncManager.parseRideDocument(docId: docId, data: cyclingData)

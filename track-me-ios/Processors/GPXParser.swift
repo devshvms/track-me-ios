@@ -62,6 +62,7 @@ class GPXParser: NSObject, XMLParserDelegate {
         )
         ride.endTime = points.last!.timestamp
         ride.points = points
+        ride.applyAggregate(RideMetrics.reconstructed(from: points))
         
         return ride
     }

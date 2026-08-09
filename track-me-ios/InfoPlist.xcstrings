@@ -1,42 +1,159 @@
 {
   "sourceLanguage" : "en",
-  "version" : "1.0",
   "strings" : {
-    "NSLocationWhenInUseUsageDescription" : {
-      "extractionState" : "manual",
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe needs your location to track your rides and calculate your speed and distance." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe necesita tu ubicación para registrar tus recorridos y calcular tu velocidad y distancia." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe a besoin de votre position pour enregistrer vos trajets et calculer votre vitesse et votre distance." } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe benötigt deinen Standort, um deine Fahrten aufzuzeichnen und Geschwindigkeit und Distanz zu berechnen." } },
-        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe को आपकी राइड रिकॉर्ड करने और आपकी गति व दूरी की गणना करने के लिए आपके स्थान की आवश्यकता होती है।" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMeは、ライドを記録し、速度と距離を計算するために位置情報を必要とします。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 需要您的位置来记录骑行并计算速度和距离。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "track-me-ios"
+          }
+        }
       }
     },
     "NSLocationAlwaysAndWhenInUseUsageDescription" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe needs your location to track your rides in the background even when your phone is locked." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe necesita tu ubicación para registrar tus recorridos en segundo plano, incluso cuando el teléfono está bloqueado." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe a besoin de votre position pour enregistrer vos trajets en arrière-plan, même lorsque l’iPhone est verrouillé." } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe benötigt deinen Standort, um deine Fahrten im Hintergrund aufzuzeichnen, auch wenn das iPhone gesperrt ist." } },
-        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe को आपकी राइड को बैकग्राउंड में रिकॉर्ड करने के लिए आपके स्थान की आवश्यकता होती है, भले ही आपका फोन लॉक हो।" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMeは、iPhoneがロック中でもバックグラウンドでライドを記録するために位置情報を必要とします。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 需要您的位置以便在后台记录骑行，即使手机已锁定。" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe benötigt deinen Standort, um deine Fahrten im Hintergrund aufzuzeichnen, auch wenn das iPhone gesperrt ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe needs your location to track your rides in the background even when your phone is locked."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe necesita tu ubicación para registrar tus recorridos en segundo plano, incluso cuando el teléfono está bloqueado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe a besoin de votre position pour enregistrer vos trajets en arrière-plan, même lorsque l’iPhone est verrouillé."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe को आपकी राइड को बैकग्राउंड में रिकॉर्ड करने के लिए आपके स्थान की आवश्यकता होती है, भले ही आपका फोन लॉक हो।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMeは、iPhoneがロック中でもバックグラウンドでライドを記録するために位置情報を必要とします。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe 需要您的位置以便在后台记录骑行，即使手机已锁定。"
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe benötigt deinen Standort, um deine Fahrten aufzuzeichnen und Geschwindigkeit und Distanz zu berechnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe needs your location to track your rides and calculate your speed and distance."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe necesita tu ubicación para registrar tus recorridos y calcular tu velocidad y distancia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe a besoin de votre position pour enregistrer vos trajets et calculer votre vitesse et votre distance."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe को आपकी राइड रिकॉर्ड करने और आपकी गति व दूरी की गणना करने के लिए आपके स्थान की आवश्यकता होती है।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMeは、ライドを記録し、速度と距離を計算するために位置情報を必要とします。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe 需要您的位置来记录骑行并计算速度和距离。"
+          }
+        }
       }
     },
     "NSMotionUsageDescription" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe uses motion data to tell when you've stopped moving so it doesn't add distance while you're standing still." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe utiliza datos de movimiento para saber cuándo te has detenido, de modo que no añada distancia mientras estás parado." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe utilise les données de mouvement pour savoir quand vous vous êtes arrêté afin de ne pas ajouter de distance pendant que vous êtes immobile." } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe verwendet Bewegungsdaten, um zu erkennen, wann du angehalten hast, damit keine Distanz hinzugefügt wird, während du stillstehst." } },
-        "hi" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe यह जानने के लिए मोशन डेटा का उपयोग करता है कि आप कब रुके हैं, ताकि आपके खड़े रहने के दौरान यह दूरी न जोड़े।" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "TrackMeは、モーションデータを使用して、あなたがいつ停止したかを検知し、立ち止まっている間に距離が追加されないようにします。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "TrackMe 使用运动数据来判断您何时停止移动，这样在您静止时就不会增加距离。" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe verwendet Bewegungsdaten, um zu erkennen, wann du angehalten hast, damit keine Distanz hinzugefügt wird, während du stillstehst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe uses motion data to tell when you've stopped moving so it doesn't add distance while you're standing still."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe utiliza datos de movimiento para saber cuándo te has detenido, de modo que no añada distancia mientras estás parado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe utilise les données de mouvement pour savoir quand vous vous êtes arrêté afin de ne pas ajouter de distance pendant que vous êtes immobile."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe यह जानने के लिए मोशन डेटा का उपयोग करता है कि आप कब रुके हैं, ताकि आपके खड़े रहने के दौरान यह दूरी न जोड़े।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMeは、モーションデータを使用して、あなたがいつ停止したかを検知し、立ち止まっている間に距離が追加されないようにします。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TrackMe 使用运动数据来判断您何时停止移动，这样在您静止时就不会增加距离。"
+          }
+        }
       }
     }
-  }
+  },
+  "version" : "1.0"
 }

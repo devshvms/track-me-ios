@@ -18,6 +18,7 @@ struct ContentView: View {
     @Environment(\.requestAgeRange) private var requestAgeRange
     private var trackingManager = TrackingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
+    @Bindable private var emergencyRetirement = EmergencyDataPurge.shared
     @State private var selectedTab: AppTab = .home
 
     var body: some View {
@@ -106,6 +107,16 @@ struct ContentView: View {
             await ageSignalManager.checkAndPersist { gate in
                 try await requestAgeRange(ageGates: gate)
             }
+        }
+        .alert(
+            LocalizationHelper.localized("The SOS button has been removed"),
+            isPresented: $emergencyRetirement.shouldShowRemovalNotice
+        ) {
+            Button(LocalizationHelper.localized("I understand")) {
+                emergencyRetirement.acknowledgeRemovalNotice()
+            }
+        } message: {
+            Text(LocalizationHelper.localized("TrackMe no longer includes in-app SOS or automatic SMS alerts. Your saved emergency contacts were removed from this device. For a real emergency, use your phone's built-in Emergency SOS or call local emergency services."))
         }
     }
 }

@@ -1,6 +1,7 @@
 import XCTest
 @testable import track_me_ios
 
+@MainActor
 final class RideSplitPolicyTests: XCTestCase {
 
     func testEvaluate() {

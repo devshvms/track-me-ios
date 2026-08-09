@@ -51,4 +51,11 @@ final class RideStartAbortPolicyTests: XCTestCase {
         XCTAssertEqual(RideStartAbortMethod.preCommit.rawValue, "pre_commit")
         XCTAssertEqual(RideStartAbortMethod.postCommitUndo.rawValue, "post_commit_undo")
     }
+
+    func testStopSliderRequiresSeventyFivePercentLeftwardTravel() {
+        XCTAssertFalse(RideStopSliderPolicy.shouldStop(translation: -74.9, maxSlide: 100))
+        XCTAssertTrue(RideStopSliderPolicy.shouldStop(translation: -75, maxSlide: 100))
+        XCTAssertFalse(RideStopSliderPolicy.shouldStop(translation: 100, maxSlide: 100))
+        XCTAssertFalse(RideStopSliderPolicy.shouldStop(translation: -100, maxSlide: 0))
+    }
 }

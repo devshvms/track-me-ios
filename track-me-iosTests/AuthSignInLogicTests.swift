@@ -1,8 +1,10 @@
 import XCTest
 import FirebaseAuth
 import AuthenticationServices
+import GoogleSignIn
 @testable import track_me_ios
 
+@MainActor
 final class AuthSignInLogicTests: XCTestCase {
     func testCancellationPredicate_acceptsFirebaseCancellationCodes() {
         XCTAssertTrue(AuthManager.isSignInCancellation(AuthErrorCode.webContextCancelled))
@@ -12,6 +14,14 @@ final class AuthSignInLogicTests: XCTestCase {
         let error = NSError(
             domain: "com.apple.AuthenticationServices.AuthorizationError",
             code: 1001
+        )
+        XCTAssertTrue(AuthManager.isSignInCancellation(error))
+    }
+
+    func testCancellationPredicate_acceptsGoogleCancellation() {
+        let error = NSError(
+            domain: kGIDSignInErrorDomain,
+            code: -5
         )
         XCTAssertTrue(AuthManager.isSignInCancellation(error))
     }

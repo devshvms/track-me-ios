@@ -14,7 +14,7 @@ struct HelpFeedbackView: View {
             (LocalizationHelper.localized("My ride stopped recording when the screen was off."), LocalizationHelper.localized("On iPhone, set Location access to Always. Also check Low Power Mode and Background App Refresh in Settings."), true),
             (LocalizationHelper.localized("TrackMe drains my battery."), LocalizationHelper.localized("GPS uses power while a ride is recording. The ongoing notification confirms recording is active; auto-pause can reduce unnecessary work."), false),
             (LocalizationHelper.localized("The distance looks wrong."), LocalizationHelper.localized("GPS drift while stopped, tunnels, and urban canyons can affect distance. GPS post-processing helps; a signal gap is shown as a straight line."), false),
-            (LocalizationHelper.localized("Will tracking work without mobile data?"), LocalizationHelper.localized("Yes. Recording is local-first. A connection is needed only for cloud sync, live sharing, and SOS."), false),
+            (LocalizationHelper.localized("Will tracking work without mobile data?"), LocalizationHelper.localized("Yes. Recording is local-first. A connection is needed only for cloud sync and live sharing."), false),
             (LocalizationHelper.localized("Who can see a live-share link?"), LocalizationHelper.localized("Anyone with the link can see it until the session expires. Only the signed-in owner can start, update, or stop the session."), false),
             (LocalizationHelper.localized("How do I get my data out, or delete it?"), LocalizationHelper.localized("Open Settings → Account Management to export your data or delete your account and cloud data."), false)
         ]

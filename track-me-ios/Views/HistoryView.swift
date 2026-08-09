@@ -21,7 +21,7 @@ struct HistoryView: View {
             default: matchesSync = true
             }
             
-            let rideDistanceKm = RideDistance.totalKm(ride.points ?? [])
+            let rideDistanceKm = ride.displayDistanceKm
             let matchesDistance = rideDistanceKm >= selectedDistanceThresholdKm
             
             return matchesSync && matchesDistance
@@ -89,7 +89,7 @@ struct HistoryView: View {
                                         .foregroundColor(.secondary)
                                     Spacer()
                                     let totalKm = bucketRides.reduce(0.0) {
-                                        $0 + RideDistance.totalKm($1.points ?? [])
+                                        $0 + $1.displayDistanceKm
                                     }
                                     Text(LocalizationHelper.formatted(
                                         "%d rides • %@",
@@ -229,11 +229,7 @@ struct CompactRideRowView: View {
     }
 
     private var metrics: HistoryRideMetrics {
-        HistoryRideMetrics(
-            points: ride.points ?? [],
-            startTime: ride.startTime,
-            endTime: ride.endTime
-        )
+        HistoryRideMetrics(ride: ride)
     }
 }
 

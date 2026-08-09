@@ -309,8 +309,8 @@ struct CommunityView: View {
         let startDate = Date(timeIntervalSince1970: TimeInterval(millis) / 1000)
         let endDate = Date(timeIntervalSince1970: TimeInterval(groupRide.state.expiresAtMillis) / 1000)
         guard endDate > startDate else { return nil }
-        let location = if let lat = groupRide.state.destinationLat,
-                          let lng = groupRide.state.destinationLng {
+        let location: String? = if let lat = groupRide.state.destinationLat,
+                                  let lng = groupRide.state.destinationLng {
             GroupDestinationLinks.calendarLocation(lat: lat, lng: lng)
         } else {
             nil

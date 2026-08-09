@@ -139,25 +139,7 @@ class TelemetryManager {
         ])
     }
     
-    // MARK: - 5. SOS Usage
-    // PII rule (A1 / TASK-016 + decision_log 2026-07-20): SOS telemetry carries NO precise
-    // lat/lng. Parity with Android's sos_triggered (trigger_method only).
-    func trackSosTriggered(triggerMethod: String) {
-        guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("sos_triggered", properties: [
-            "trigger_method": triggerMethod
-        ])
-    }
-    
-    func trackSosResolved(resolutionTimeSeconds: Int, falseAlarm: Bool) {
-        guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("sos_resolved", properties: [
-            "resolution_time_seconds": resolutionTimeSeconds,
-            "false_alarm": falseAlarm
-        ])
-    }
-    
-    // MARK: - 6. User Authentication
+    // MARK: - 5. User Authentication
     func identifyUser(userId: String) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.identify(userId)
@@ -173,7 +155,7 @@ class TelemetryManager {
         PostHogSDK.shared.capture("user_signed_up")
     }
     
-    // MARK: - 7. App Performance & Errors
+    // MARK: - 6. App Performance & Errors
     func trackAppCrashDetected(errorMessage: String, errorStack: String) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("app_crash_detected", properties: [
@@ -190,7 +172,7 @@ class TelemetryManager {
         ])
     }
     
-    // MARK: - 8. Account & Data Management
+    // MARK: - 7. Account & Data Management
     func trackAccountDeletionRequested(reason: String?) {
         guard shouldTrack() else { return }
         var props: [String: Any] = [:]
@@ -217,7 +199,7 @@ class TelemetryManager {
         ])
     }
 
-    // MARK: - 9. v1.6.0 retention taxonomy (A1)
+    // MARK: - 8. v1.6.0 retention taxonomy (A1)
     // Identical event names + property keys/types to Android's AnalyticsManager. NO PII
     // (no lat/lng, no names/emails/titles). Emitted by the feature layer only when a surface
     // is actually shown/acted on.

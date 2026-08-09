@@ -45,4 +45,17 @@ enum UnitFormatter {
     }
 
     static func speedUnitLabel(_ unit: UnitSystem) -> String { unit == .imperial ? "mph" : "km/h" }
+
+    static func paceValue(mps: Double, unit: UnitSystem) -> String {
+        guard mps >= 0.2 else { return "--" }
+        let metersPerUnit = unit == .imperial ? 1609.344 : 1000.0
+        let totalSeconds = min(Int((metersPerUnit / mps).rounded()), 99 * 60 + 59)
+        return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
+    }
+
+    static func paceUnitLabel(_ unit: UnitSystem) -> String { unit == .imperial ? "/mi" : "/km" }
+
+    static func pace(mps: Double, unit: UnitSystem) -> String {
+        "\(paceValue(mps: mps, unit: unit)) \(paceUnitLabel(unit))"
+    }
 }

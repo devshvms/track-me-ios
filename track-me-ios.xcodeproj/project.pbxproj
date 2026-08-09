@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		161D4F25E3C595034CEE4D3A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 45C95C550C3CC2B63ACAC768 /* FirebaseFirestore */; };
-		CC0000000000000000000002 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000000000000000000003 /* FirebaseCrashlytics */; };
 		16CD17A3EBB12F24F820700D /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 7D46285C00EE50DEBC5E9129 /* PostHog */; };
 		16EA495C2A889D003036CA95 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 188E4B7AA7D5FEEFFF870518 /* GoogleSignIn */; };
 		5AD9D1C64B9610CB9D26BFE1 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AF0297CE298E685F0779A3C6 /* FirebaseCore */; };
@@ -16,6 +15,7 @@
 		BB000000000000000000000E /* RideActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000D /* RideActivityAttributes.swift */; };
 		BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* TrackMeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BB000000000000000000001B /* BrandColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* BrandColor.swift */; };
+		CC0000000000000000000002 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000000000000000000003 /* FirebaseCrashlytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,8 +85,6 @@
 		};
 		AA0000000000000000000009 /* track-me-iosTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "track-me-iosTests";
 			sourceTree = "<group>";
 		};
@@ -317,6 +315,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		CC0000000000000000000004 /* Crashlytics - Upload dSYMs */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -327,9 +326,11 @@
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
 			);
 			name = "Crashlytics - Upload dSYMs";
+			outputPaths = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Debug\" ]; then\n  exit 0\nfi\n\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

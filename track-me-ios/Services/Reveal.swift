@@ -42,12 +42,11 @@ nonisolated enum RevealKind: String, Codable {
 /// bounded outcome a saved ride earns. Priority (highest first, parity with Android):
 /// first ride → distance PR → duration PR → milestone → default. A single strict winner is
 /// chosen so two outcomes never compete. Returns nil for an already-processed replay and for a
-/// ride that entered the SOS flow; junk rides never reach here (excluded by the A1 hook upstream).
+/// legacy retired-emergency ride; junk rides never reach here (excluded by the A1 hook upstream).
 nonisolated enum RevealSelector {
     static func select(_ t: RideStatsTransition) -> Reveal? {
-        // An SOS ride is still part of the user's history, but it must not produce a celebratory
-        // reveal or chain into the App Store review prompt when the reveal is dismissed.
-        // Parity with Android `RevealSelector.select`.
+        // A legacy retired-emergency ride is still part of the user's history, but it must not
+        // produce a celebratory reveal or chain into the App Store review prompt.
         guard !t.alreadyProcessed, !t.suppressPostRideCelebrations else { return nil }
 
         let kind: RevealKind

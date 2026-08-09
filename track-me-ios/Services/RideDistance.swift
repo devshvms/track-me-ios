@@ -6,12 +6,7 @@ enum RideDistance {
     /// Ride points can arrive out of order after a recovery or cloud merge, so
     /// every presentation surface must normalize ordering before accumulating.
     static func totalMeters(_ points: [GPSPoint]) -> Double {
-        guard points.count > 1 else { return 0 }
-        let sorted = points.sorted { $0.timestamp < $1.timestamp }
-        return zip(sorted, sorted.dropFirst()).reduce(0) { total, pair in
-            total + CLLocation(latitude: pair.0.latitude, longitude: pair.0.longitude)
-                .distance(from: CLLocation(latitude: pair.1.latitude, longitude: pair.1.longitude))
-        }
+        RideMetrics.rawDistanceMeters(points)
     }
 
     static func totalKm(_ points: [GPSPoint]) -> Double { totalMeters(points) / 1000 }
@@ -31,6 +26,13 @@ struct HistoryRideMetrics {
         distanceKm = RideDistance.totalKm(points)
         duration = max(0, rawDuration)
         avgSpeedKmh = Self.averageSpeedKmh(distanceKm: distanceKm, duration: duration)
+    }
+
+    init(ride: Ride) {
+        let aggregate = ride.aggregateSnapshot
+        distanceKm = aggregate.distanceMeters / 1_000
+        duration = Double(aggregate.movingDurationMillis) / 1_000
+        avgSpeedKmh = aggregate.avgSpeedMps * 3.6
     }
 
     static func averageSpeedKmh(distanceKm: Double, duration: TimeInterval) -> Double {
