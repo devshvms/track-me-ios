@@ -277,4 +277,45 @@ class TelemetryManager {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("location_updates_resumed")
     }
+
+    // MARK: - 11. Group Ride (v1.7.x)
+    func trackGroupCreated(durationMinutes: Int, maxMembers: Int, hasDestination: Bool, hasStartTime: Bool) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("group_created", properties: [
+            "duration_minutes": durationMinutes,
+            "max_members": maxMembers,
+            "has_destination": hasDestination,
+            "has_start_time": hasStartTime
+        ])
+    }
+
+    func trackGroupMemberJoined(memberCount: Int, viaCode: Bool) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("group_member_joined", properties: [
+            "member_count": memberCount,
+            "via_code": viaCode
+        ])
+    }
+
+    func trackGroupStarted(memberCount: Int) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("group_started", properties: [
+            "member_count": memberCount
+        ])
+    }
+
+    func trackGroupEnded() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("group_ended")
+    }
+
+    func trackGroupLeft() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("group_left")
+    }
+
+    func trackGroupDegraded() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("group_degraded")
+    }
 }

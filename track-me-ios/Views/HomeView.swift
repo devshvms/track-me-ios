@@ -8,13 +8,16 @@ import MessageUI
 struct HomeView: View {
     @Bindable var trackingManager = TrackingManager.shared
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var mapRegion: MKCoordinateRegion?
     @State private var mapStyle: TrackMeMapStyle = .standard
     @Namespace private var mapScope
 
     @Bindable var networkMonitor = NetworkMonitor.shared
     @ObservedObject private var unitSettings = UnitSettings.shared
     @State private var liveSharingManager = LiveSharingManager.shared
+    @Bindable private var groupRide = GroupRideManager.shared
     @State private var showLiveShareDialog = false
+    @State private var showGroupSheet = false
     // B1: durable one-shot post-ride reveal, surfaced once on Home.
     @Bindable var revealCoordinator = RevealCoordinator.shared
     // B4: system in-app review request (self-gated by ReviewPromptPolicy).
@@ -44,12 +47,36 @@ struct HomeView: View {
                             style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round)
                         )
                 }
+                ForEach(visibleGroupPositions) { member in
+                    Annotation(
+                        groupRide.state.roster.first(where: { $0.uid == member.uid })?.displayName ??
+                            LocalizationHelper.localized("Rider"),
+                        coordinate: CLLocationCoordinate2D(latitude: member.lat, longitude: member.lng)
+                    ) {
+                        GroupMemberBadge(
+                            initials: groupRide.state.roster.first(where: { $0.uid == member.uid })?.initials ?? "?",
+                            tint: GroupMemberTint.color(index: groupRide.state.roster.firstIndex(where: { $0.uid == member.uid }) ?? 0),
+                            isStale: isGroupPositionStale(member),
+                            ageText: groupPositionAgeText(member)
+                        )
+                    }
+                }
+                if let lat = groupRide.state.destinationLat, let lng = groupRide.state.destinationLng {
+                    Marker(
+                        LocalizationHelper.localized("Destination"),
+                        systemImage: "flag.checkered",
+                        coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)
+                    )
+                }
             }
             .mapStyle(mapStyle.mapKitStyle)
             .mapControls {
                 MapUserLocationButton()
             }
             .mapScope(mapScope)
+            .onMapCameraChange(frequency: .onEnd) { context in
+                mapRegion = context.region
+            }
             .ignoresSafeArea(edges: .top)
             .accessibilityLabel(LocalizationHelper.localized("Map"))
 
@@ -130,6 +157,26 @@ struct HomeView: View {
                         .accessibilityLabel(shieldA11yLabel)
                 }
 
+                if let notice = groupRide.endNotice {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.2.slash")
+                        Text(groupEndNoticeText(notice))
+                            .font(.subheadline.weight(.semibold))
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 0)
+                        Button(LocalizationHelper.localized("OK")) {
+                            groupRide.acknowledgeEndNotice()
+                        }
+                        .font(.subheadline.bold())
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 12)
+                    .accessibilityElement(children: .combine)
+                }
+
                 HStack {
                     MapCompass(scope: mapScope)
                         .padding(.leading, 16)
@@ -148,7 +195,37 @@ struct HomeView: View {
                                 .shadow(radius: 4)
                         }
 
-                        Button(action: { showLiveShareDialog = true }) {
+                        if groupRide.state.isActive {
+                            Button(action: { showGroupSheet = true }) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.white)
+                                        .frame(width: 48, height: 48)
+                                        .background(BrandColor.primaryFill.gradient)
+                                        .clipShape(Circle())
+                                        .shadow(color: BrandColor.primaryFill.opacity(0.5), radius: 6)
+                                    Text("\(groupRide.state.memberCount)")
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(.white)
+                                        .frame(width: 18, height: 18)
+                                        .background(BrandColor.success, in: Circle())
+                                }
+                            }
+                            .accessibilityLabel(LocalizationHelper.localized("Group sharing active"))
+                            .accessibilityValue(LocalizationHelper.formatted("%@ remaining", groupTimeLeftText))
+                        }
+
+                        Button(action: {
+                            if groupRide.state.isActive {
+                                ToastManager.shared.show(
+                                    message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
+                                    style: .warning
+                                )
+                            } else {
+                                showLiveShareDialog = true
+                            }
+                        }) {
                             if liveSharingManager.isActive {
                                 VStack(spacing: 2) {
                                     Image(systemName: "antenna.radiowaves.left.and.right")
@@ -298,6 +375,9 @@ struct HomeView: View {
         .sheet(isPresented: $showLiveShareDialog) {
             LiveShareDialog()
         }
+        .sheet(isPresented: $showGroupSheet) {
+            CommunityView()
+        }
         .sheet(item: $revealCoordinator.pending, onDismiss: {
             // ANY dismissal — swipe-down (the invited path, we show a drag indicator),
             // interactive, or system — acknowledges the durable one-shot. The "Nice!" button
@@ -372,6 +452,51 @@ struct HomeView: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {
             return String(format: "%02d:%02d", minutes, seconds)
+        }
+    }
+
+    private var groupTimeLeftText: String {
+        let remaining = max(
+            0,
+            Date(timeIntervalSince1970: TimeInterval(groupRide.state.expiresAtMillis) / 1000)
+                .timeIntervalSinceNow
+        )
+        return formatDuration(remaining)
+    }
+
+    private var visibleGroupPositions: [GroupWire.MemberPosition] {
+        guard let mapRegion else { return groupRide.state.positions }
+        let latitudePadding = mapRegion.span.latitudeDelta * 0.15
+        let longitudePadding = mapRegion.span.longitudeDelta * 0.15
+        let minLatitude = mapRegion.center.latitude - mapRegion.span.latitudeDelta / 2 - latitudePadding
+        let maxLatitude = mapRegion.center.latitude + mapRegion.span.latitudeDelta / 2 + latitudePadding
+        let minLongitude = mapRegion.center.longitude - mapRegion.span.longitudeDelta / 2 - longitudePadding
+        let maxLongitude = mapRegion.center.longitude + mapRegion.span.longitudeDelta / 2 + longitudePadding
+        return groupRide.state.positions.filter {
+            $0.lat >= minLatitude && $0.lat <= maxLatitude &&
+            $0.lng >= minLongitude && $0.lng <= maxLongitude
+        }
+    }
+
+    private func isGroupPositionStale(_ position: GroupWire.MemberPosition) -> Bool {
+        let age = Date().timeIntervalSince1970 * 1000 - Double(position.serverTsMillis)
+        return age > Double(max(20, groupRide.state.syncIntervalSec * 2) * 1000)
+    }
+
+    private func groupPositionAgeText(_ position: GroupWire.MemberPosition) -> String? {
+        guard isGroupPositionStale(position) else { return nil }
+        let seconds = max(1, Int((Date().timeIntervalSince1970 * 1000 - Double(position.serverTsMillis)) / 1000))
+        return seconds < 60 ? "\(seconds)s" : "\(seconds / 60)m"
+    }
+
+    private func groupEndNoticeText(_ notice: GroupEndNotice) -> String {
+        switch notice.reason {
+        case .removed:
+            return LocalizationHelper.localized("You're no longer in this group.")
+        case .expired, .ended:
+            return notice.rideStillRecording
+                ? LocalizationHelper.localized("This group has ended. Your ride is still recording.")
+                : LocalizationHelper.localized("This group has ended.")
         }
     }
 }

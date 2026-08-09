@@ -17,6 +17,8 @@ struct ContentView: View {
     @ObservedObject private var ageSignalManager = AgeSignalManager.shared
     @Environment(\.requestAgeRange) private var requestAgeRange
     private var trackingManager = TrackingManager.shared
+    @Bindable private var groupRide = GroupRideManager.shared
+    @State private var selectedTab: AppTab = .home
 
     var body: some View {
         Group {
@@ -25,21 +27,30 @@ struct ContentView: View {
             } else if ageSignalManager.decision == nil {
                 AgeSignalCheckingView()
             } else {
-                TabView {
+                TabView(selection: $selectedTab) {
             HomeView()
                 .tabItem {
                     Label("Home", systemImage: "map.fill")
                 }
+                .tag(AppTab.home)
 
             HistoryView()
                 .tabItem {
                     Label("History", systemImage: "clock.fill")
                 }
+                .tag(AppTab.history)
+
+            CommunityView()
+                .tabItem {
+                    Label(LocalizationHelper.localized("Community"), systemImage: "person.2.fill")
+                }
+                .tag(AppTab.community)
 
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
+                .tag(AppTab.settings)
                 }
             }
         }
@@ -68,6 +79,12 @@ struct ContentView: View {
                 Task { _ = await updateManager.checkForUpdate() }
             }
         }
+        .onChange(of: groupRide.pendingJoinCode) { _, code in
+            if code != nil { selectedTab = .community }
+        }
+        .onChange(of: groupRide.pendingJoinToken) { _, token in
+            if token != nil { selectedTab = .community }
+        }
         .sheet(isPresented: Binding(
             get: { updateManager.updateInfo != nil && trackingManager.state == .idle },
             set: { _ in }
@@ -91,6 +108,13 @@ struct ContentView: View {
             }
         }
     }
+}
+
+private enum AppTab: Hashable {
+    case home
+    case history
+    case community
+    case settings
 }
 
 #Preview {
