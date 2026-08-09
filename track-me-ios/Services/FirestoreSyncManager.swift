@@ -42,26 +42,76 @@ class FirestoreSyncManager {
         }
     }
 
+    /// Upper bound for a Number-typed `startTime`, used only to scope a range filter to the
+    /// Number type group. ~year 2286 in epoch millis, so every real value sorts below it.
+    private static let numericStartTimeCeiling: Int64 = 9_999_999_999_999
+
     // MARK: - Download & Insert Helper
     private func downloadAndInsert(uid: String, limit: Int?, completion: @escaping (Bool) -> Void) {
-        var ref: Query = db.collection("users").document(uid).collection("rides")
-            .order(by: "startTime", descending: true)
-        if let limit = limit {
-            ref = ref.limit(to: limit)
+        let rides = db.collection("users").document(uid).collection("rides")
+
+        guard let limit = limit else {
+            // Full sync: one unfiltered pass already reaches every document regardless of type.
+            runDownload(queries: [rides.order(by: "startTime", descending: true)], completion: completion)
+            return
         }
-        ref.getDocuments { snapshot, error in
-            guard let docs = snapshot?.documents, error == nil else {
-                DispatchQueue.main.async {
-                    completion(false)
+
+        // `startTime` is mixed-type across platforms: iOS uploads a Date (Firestore Timestamp),
+        // Android uploads a Long (Firestore Number). Firestore orders by value type before value,
+        // so under `descending: true` every Timestamp sorts ahead of every Number — a plain
+        // `.limit(to:)` fills the whole window with iOS-written rides and can never reach an
+        // Android-written one. Range filters are scoped to a single type, so querying each type
+        // group separately gets the newest `limit` from both; the results are merged below.
+        let newestTimestampWritten = rides
+            .whereField("startTime", isLessThan: Timestamp(date: .distantFuture))
+            .order(by: "startTime", descending: true)
+            .limit(to: limit)
+
+        let newestNumberWritten = rides
+            .whereField("startTime", isLessThan: FirestoreSyncManager.numericStartTimeCeiling)
+            .order(by: "startTime", descending: true)
+            .limit(to: limit)
+
+        runDownload(queries: [newestTimestampWritten, newestNumberWritten], completion: completion)
+    }
+
+    /// Run every query, merge the parsed rides (deduped by document id), and import the union.
+    /// Everything fetched is imported — trimming back to `limit` would pay for the reads and then
+    /// throw the rides away, only to fetch them again on the next sync.
+    private func runDownload(queries: [Query], completion: @escaping (Bool) -> Void) {
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var parsedById: [String: DownloadedRide] = [:]
+        var anyFailed = false
+
+        for query in queries {
+            group.enter()
+            query.getDocuments { snapshot, error in
+                defer { group.leave() }
+                guard let docs = snapshot?.documents, error == nil else {
+                    lock.lock()
+                    anyFailed = true
+                    lock.unlock()
+                    return
                 }
+                let parsed = docs.compactMap { doc in
+                    FirestoreSyncManager.parseRideDocument(docId: doc.documentID, data: doc.data())
+                }
+                lock.lock()
+                for ride in parsed { parsedById[ride.firestoreId] = ride }
+                lock.unlock()
+            }
+        }
+
+        group.notify(queue: .main) {
+            if anyFailed {
+                completion(false)
                 return
             }
-            let parsed = docs.compactMap { doc in
-                FirestoreSyncManager.parseRideDocument(docId: doc.documentID, data: doc.data())
-            }
+            let merged = parsedById.values.sorted { $0.startTime > $1.startTime }
             Task { @MainActor in
                 let existingIds = DataRepository.shared.existingCloudIds()
-                DataRepository.shared.importDownloadedRides(parsed, existingIds: existingIds)
+                DataRepository.shared.importDownloadedRides(merged, existingIds: existingIds)
                 UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
                 completion(true)
             }

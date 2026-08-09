@@ -192,6 +192,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         let newRide = Ride()
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
+        GroupRideManager.shared.refreshLocationSource()
 
         // Reset live state for a fresh ride.
         storageWarningShown = false
@@ -398,6 +399,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             finalizeSegment(id: id, endedAt: endedAt)
         }
         currentRideId = nil
+        GroupRideManager.shared.refreshLocationSource()
 
         // Stop live sharing when the ride ends
         if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
@@ -438,6 +440,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         _ = EmergencyManager.shared.consumeRideSuppression()
         DataRepository.shared.deleteRide(rideId: id)
         currentRideId = nil
+        GroupRideManager.shared.refreshLocationSource()
         points.removeAll(keepingCapacity: false)
         currentSpeed = 0
         totalDistance = 0
@@ -557,6 +560,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             // 6. Push to Live Sharing Manager
             if LiveSharingManager.shared.isActive {
                 LiveSharingManager.shared.updateLatestLocation(smoothedLocation)
+            }
+
+            if GroupRideManager.shared.state.isActive {
+                GroupRideManager.shared.updateLatestLocation(
+                    smoothedLocation,
+                    moving: effectiveSpeed > 0.5,
+                    riding: currentRideId != nil
+                )
             }
 
             // 7. Auto-Split Evaluation

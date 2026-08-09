@@ -27,7 +27,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ app: UIApplication,
                      open url: URL,
                      options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        Auth.auth().canHandle(url)
+        Auth.auth().canHandle(url) || GroupRideManager.shared.handleIncomingURL(url)
     }
 }
 
@@ -66,7 +66,9 @@ struct track_me_iosApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    _ = Auth.auth().canHandle(url)
+                    if !Auth.auth().canHandle(url) {
+                        _ = GroupRideManager.shared.handleIncomingURL(url)
+                    }
                 }
                 .onAppear {
                     DataRepository.shared.setup(container: sharedModelContainer)
@@ -77,6 +79,7 @@ struct track_me_iosApp: App {
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString
                         )
                         FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                        GroupRideManager.shared.restore()
                         _ = await AppUpdateManager.shared.checkForUpdate()
                     }
                 }

@@ -128,6 +128,9 @@ final class AuthManager {
     }
 
     func signOut() async {
+        if GroupRideManager.shared.state.isActive {
+            await GroupRideManager.shared.leaveGroup()
+        }
         if LiveSharingManager.shared.isActive {
             await LiveSharingManager.shared.endSessionAwaitingAuth(reason: "Signed out")
         }
@@ -143,6 +146,9 @@ final class AuthManager {
 
     func deleteAccountAndData(feedback: String) async throws {
         TelemetryManager.shared.trackAccountDeletionRequested(reason: feedback)
+        if GroupRideManager.shared.state.isActive {
+            await GroupRideManager.shared.leaveGroup()
+        }
         if LiveSharingManager.shared.isActive {
             await LiveSharingManager.shared.endSessionAwaitingAuth(reason: "Account deleted")
         }
