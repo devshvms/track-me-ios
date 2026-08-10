@@ -1,0 +1,58 @@
+name: Automated Release Notes & Release Creation
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  create-release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract App Version Name
+        run: |
+          VERSION=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);/\1/p' track-me-ios.xcodeproj/project.pbxproj | head -1)
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read MARKETING_VERSION from the Xcode project."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Generate Release Notes
+        run: |
+          WHATSNEW="distribution/whatsnew-${VERSION}-en-US.txt"
+          if [ -s "$WHATSNEW" ]; then
+            echo "Using human-written notes from $WHATSNEW"
+            cp "$WHATSNEW" release_notes.md
+          else
+            echo "::warning::$WHATSNEW missing or empty; falling back to the commit log."
+            PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+            {
+              echo "### TrackMe v${VERSION}"
+              echo ""
+              echo "#### Changes"
+              git log "${PREV_TAG}..HEAD" --no-merges --pretty=format:"- %s"
+              echo ""
+            } > release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists; leaving it unchanged."
+          else
+            gh release create "v${VERSION}" \
+              --title "TrackMe v${VERSION}" \
+              --notes-file release_notes.md
+          fi

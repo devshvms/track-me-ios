@@ -1,0 +1,261 @@
+name: App Store Connect Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Upload the validated build to App Store Connect and TestFlight
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-store-connect-release
+  cancel-in-progress: false
+
+jobs:
+  build_and_publish:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      ARCHIVE_PATH: ${{ runner.temp }}/TrackMe.xcarchive
+      EXPORT_PATH: ${{ runner.temp }}/TrackMeExport
+      API_KEY_PATH: ${{ runner.temp }}/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          XCODE_PATH=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' | sort | tail -1)
+          if [ -z "$XCODE_PATH" ]; then
+            echo "::error::The runner does not provide Xcode 26, which is required by the iOS 26.2 deployment target."
+            exit 1
+          fi
+          sudo xcode-select --switch "$XCODE_PATH/Contents/Developer"
+          xcodebuild -version
+
+      - name: Verify Release Secrets
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+          FIREBASE_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          missing=()
+          [ -n "$CERTIFICATE_BASE64" ] || missing+=(APPLE_DISTRIBUTION_CERTIFICATE_BASE64)
+          [ -n "$CERTIFICATE_PASSWORD" ] || missing+=(APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD)
+          [ -n "$ASC_KEY_ID" ] || missing+=(APP_STORE_CONNECT_KEY_ID)
+          [ -n "$ASC_ISSUER_ID" ] || missing+=(APP_STORE_CONNECT_ISSUER_ID)
+          [ -n "$ASC_PRIVATE_KEY_BASE64" ] || missing+=(APP_STORE_CONNECT_PRIVATE_KEY_BASE64)
+          [ -n "$FIREBASE_PLIST_BASE64" ] || missing+=(GOOGLE_SERVICE_INFO_PLIST_BASE64)
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing iOS release secret(s): ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install Apple Distribution Certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/TrackMeDistribution.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/TrackMeSigning.keychain-db"
+          KEYCHAIN_PASSWORD="trackme-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          printf '%s' "$CERTIFICATE_BASE64" | base64 -D > "$CERTIFICATE_PATH"
+          if [ ! -s "$CERTIFICATE_PATH" ]; then
+            echo "::error::APPLE_DISTRIBUTION_CERTIFICATE_BASE64 did not decode to a certificate."
+            exit 1
+          fi
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: Install App Store Connect API Key
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+        run: |
+          mkdir -p "$(dirname "$API_KEY_PATH")"
+          printf '%s' "$ASC_PRIVATE_KEY_BASE64" | base64 -D > "$API_KEY_PATH"
+          chmod 600 "$API_KEY_PATH"
+          if ! grep -q 'BEGIN PRIVATE KEY' "$API_KEY_PATH"; then
+            echo "::error::APP_STORE_CONNECT_PRIVATE_KEY_BASE64 did not decode to an App Store Connect .p8 key."
+            exit 1
+          fi
+
+      - name: Install and Validate Firebase Configuration
+        env:
+          FIREBASE_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          FIREBASE_PLIST="track-me-ios/GoogleService-Info.plist"
+          printf '%s' "$FIREBASE_PLIST_BASE64" | base64 -D > "$FIREBASE_PLIST"
+          plutil -lint "$FIREBASE_PLIST"
+
+          BUNDLE_ID=$(plutil -extract BUNDLE_ID raw "$FIREBASE_PLIST")
+          API_KEY=$(plutil -extract API_KEY raw "$FIREBASE_PLIST")
+          GOOGLE_APP_ID=$(plutil -extract GOOGLE_APP_ID raw "$FIREBASE_PLIST")
+          if [ "$BUNDLE_ID" != "in.shvms.track-me-ios" ] || \
+             [ -z "$API_KEY" ] || \
+             [ "$API_KEY" = "YOUR_FIREBASE_IOS_API_KEY" ] || \
+             [ -z "$GOOGLE_APP_ID" ]; then
+            echo "::error::GoogleService-Info.plist is not the production TrackMe iOS configuration."
+            exit 1
+          fi
+
+      - name: Calculate Version and Build Number
+        run: |
+          VERSION=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);/\1/p' track-me-ios.xcodeproj/project.pbxproj | head -1)
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read MARKETING_VERSION from the Xcode project."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Resolve Swift Packages
+        run: |
+          xcodebuild \
+            -project track-me-ios.xcodeproj \
+            -scheme track-me-ios \
+            -resolvePackageDependencies
+
+      - name: Run Unit Tests
+        run: |
+          SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '
+            [.devices | to_entries[] | select(.key | test("iOS-26"))]
+            | sort_by(.key)
+            | last
+            | .value[]
+            | select(.isAvailable and (.name | startswith("iPhone")))
+            | .udid
+          ' | head -1)
+          if [ -z "$SIMULATOR_ID" ] || [ "$SIMULATOR_ID" = "null" ]; then
+            echo "::error::No available iOS 26 iPhone simulator was found."
+            xcrun simctl list devices available
+            exit 1
+          fi
+          xcodebuild \
+            -project track-me-ios.xcodeproj \
+            -scheme track-me-ios \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -skipMacroValidation \
+            test
+
+      - name: Archive Release
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          xcodebuild \
+            -project track-me-ios.xcodeproj \
+            -scheme track-me-ios \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$API_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            archive
+
+      - name: Validate Archive
+        run: |
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/track-me-ios.app"
+          WIDGET_PATH="$APP_PATH/PlugIns/TrackMeWidgets.appex"
+          test -d "$APP_PATH"
+          test -d "$WIDGET_PATH"
+          test "$(plutil -extract CFBundleShortVersionString raw "$APP_PATH/Info.plist")" = "$VERSION"
+          test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Info.plist")" = "$BUILD_NUMBER"
+          test -f "$APP_PATH/PrivacyInfo.xcprivacy"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign --verify --strict --verbose=2 "$WIDGET_PATH"
+
+      - name: Create Export Options
+        run: |
+          DESTINATION=export
+          if [ "${{ inputs.publish }}" = "true" ]; then
+            DESTINATION=upload
+          fi
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>destination</key>
+            <string>${DESTINATION}</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>5BS87KKKN8</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+          plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Export or Upload Build
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$API_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Upload IPA Artifact
+        if: ${{ inputs.publish == false }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrackMe-${{ env.VERSION }}-${{ env.BUILD_NUMBER }}.ipa
+          path: ${{ env.EXPORT_PATH }}/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Confirm App Store Connect Upload
+        if: ${{ inputs.publish == true }}
+        run: echo "TrackMe ${VERSION} (${BUILD_NUMBER}) was uploaded to App Store Connect and will appear in TestFlight after Apple finishes processing it."
+
+      - name: Remove Temporary Credentials
+        if: always()
+        run: |
+          if [ -n "${KEYCHAIN_PATH:-}" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+          rm -f "$RUNNER_TEMP/TrackMeDistribution.p12"
+          rm -f "$API_KEY_PATH"
+          rm -f track-me-ios/GoogleService-Info.plist
