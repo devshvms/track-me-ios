@@ -12,6 +12,68 @@ struct TelemetryConsentState {
     var isEnabled: Bool { localConsent && remoteAllowed }
 }
 
+enum GroupJoinFailure: String, CaseIterable {
+    case malformedCode = "malformed_code"
+    case expired
+    case groupFull = "group_full"
+    case groupNotFound = "group_not_found"
+    case joinRateLimited = "join_rate_limited"
+    case signedOut = "signed_out"
+    case network
+    case unknown
+}
+
+struct GroupTelemetryEvent {
+    let name: String
+    let properties: [String: Any]?
+}
+
+enum GroupTelemetryContract {
+    static func inviteSent() -> GroupTelemetryEvent {
+        GroupTelemetryEvent(name: "group_invite_sent", properties: nil)
+    }
+
+    static func inviteOpened(viaCode: Bool) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(name: "group_invite_opened", properties: ["via_code": viaCode])
+    }
+
+    static func joinFailed(reason: GroupJoinFailure, viaCode: Bool) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(
+            name: "group_join_failed",
+            properties: ["reason": reason.rawValue, "via_code": viaCode]
+        )
+    }
+
+    static func memberJoined(memberCount: Int, viaCode: Bool) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(
+            name: "group_member_joined",
+            properties: ["member_count": memberCount, "via_code": viaCode]
+        )
+    }
+
+    static func memberRemoved(memberCount: Int) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(name: "group_member_removed", properties: ["member_count": memberCount])
+    }
+
+    static func metaUpdated(hasDestination: Bool, hasStartTime: Bool) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(
+            name: "group_meta_updated",
+            properties: ["has_destination": hasDestination, "has_start_time": hasStartTime]
+        )
+    }
+
+    static var privacySamples: [GroupTelemetryEvent] {
+        [
+            inviteSent(),
+            inviteOpened(viaCode: false),
+            joinFailed(reason: .unknown, viaCode: false),
+            memberJoined(memberCount: 2, viaCode: true),
+            memberRemoved(memberCount: 1),
+            metaUpdated(hasDestination: true, hasStartTime: true)
+        ]
+    }
+}
+
 class TelemetryManager {
     static let shared = TelemetryManager()
     
@@ -31,7 +93,7 @@ class TelemetryManager {
     
     // MARK: - PostHog Setup
     func initializePostHog() {
-        let configuration = PostHogConfig(apiKey: "phc_ohRdDdd3VeXqFJPWefGv8vF3ogo4cUHaw9hrMLvDmP8k", host: "https://eu.posthog.com")
+        let configuration = PostHogConfig(projectToken: "phc_ohRdDdd3VeXqFJPWefGv8vF3ogo4cUHaw9hrMLvDmP8k", host: "https://eu.i.posthog.com")
         // PostHog handles standard properties automatically (OS Version, Screen Dimensions, etc)
         // Opt out automatically if telemetry is disabled
         configuration.optOut = !effectiveState.isEnabled
@@ -67,7 +129,8 @@ class TelemetryManager {
     }
 
     // Call this if the user toggles the local feature flag in Settings.
-    func updateOptOutStatus() {
+    func updateLocalConsent(_ enabled: Bool) {
+        localConsent = enabled
         applyOptState()
     }
 
@@ -272,11 +335,30 @@ class TelemetryManager {
     }
 
     func trackGroupMemberJoined(memberCount: Int, viaCode: Bool) {
-        guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("group_member_joined", properties: [
-            "member_count": memberCount,
-            "via_code": viaCode
-        ])
+        capture(GroupTelemetryContract.memberJoined(memberCount: memberCount, viaCode: viaCode))
+    }
+
+    func trackGroupInviteSent() {
+        capture(GroupTelemetryContract.inviteSent())
+    }
+
+    func trackGroupInviteOpened(viaCode: Bool) {
+        capture(GroupTelemetryContract.inviteOpened(viaCode: viaCode))
+    }
+
+    func trackGroupJoinFailed(reason: GroupJoinFailure, viaCode: Bool) {
+        capture(GroupTelemetryContract.joinFailed(reason: reason, viaCode: viaCode))
+    }
+
+    func trackGroupMemberRemoved(memberCount: Int) {
+        capture(GroupTelemetryContract.memberRemoved(memberCount: memberCount))
+    }
+
+    func trackGroupMetaUpdated(hasDestination: Bool, hasStartTime: Bool) {
+        capture(GroupTelemetryContract.metaUpdated(
+            hasDestination: hasDestination,
+            hasStartTime: hasStartTime
+        ))
     }
 
     func trackGroupStarted(memberCount: Int) {
@@ -299,5 +381,15 @@ class TelemetryManager {
     func trackGroupDegraded() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("group_degraded")
+    }
+
+    func trackOnboardingCompleted(_ outcome: OnboardingOutcome) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("onboarding_completed", properties: outcome.telemetryProperties)
+    }
+
+    private func capture(_ event: GroupTelemetryEvent) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture(event.name, properties: event.properties)
     }
 }

@@ -1,14 +1,23 @@
-import Foundation
-import FirebaseFirestore
 import Combine
+import Foundation
+import StoreKit
 
 struct AppUpdateInfo: Equatable, Identifiable {
-    var id: Int { latestBuild }
-    let latestBuild: Int
+    var id: String { latestVersionName }
     let latestVersionName: String
     let releaseNotes: String
-    let isForceUpdate: Bool
     let updateURL: URL
+}
+
+struct AppStoreLookupResponse: Decodable, Equatable {
+    let resultCount: Int
+    let results: [AppStoreLookupResult]
+}
+
+struct AppStoreLookupResult: Decodable, Equatable {
+    let version: String
+    let releaseNotes: String?
+    let trackViewUrl: String
 }
 
 @MainActor
@@ -17,81 +26,85 @@ final class AppUpdateManager: ObservableObject {
 
     @Published var updateInfo: AppUpdateInfo?
 
-    private let db = Firestore.firestore()
+    private let session: URLSession
+    private let bundle: Bundle
+    private let defaults: UserDefaults
 
-    // Default fallback url before Apple ID is known.
-    // TODO(shvm): App Store numeric ID once enrolled (row 16)
-    private let defaultUpdateURL = URL(string: "https://apps.apple.com/app/idXXXXXXXXXX")!
-
-    private init() {}
+    private init(
+        session: URLSession = .shared,
+        bundle: Bundle = .main,
+        defaults: UserDefaults = .standard
+    ) {
+        self.session = session
+        self.bundle = bundle
+        self.defaults = defaults
+    }
 
     func checkForUpdate(forceCheck: Bool = false) async -> Bool {
+        guard await canCheckForUpdates() else { return false }
+        guard let bundleIdentifier = bundle.bundleIdentifier,
+              let currentVersion = bundle.infoDictionary?["CFBundleShortVersionString"] as? String,
+              let storefront = await Storefront.current,
+              let lookupURL = Self.lookupURL(
+                bundleIdentifier: bundleIdentifier,
+                countryCode: storefront.countryCode
+              ) else {
+            return false
+        }
+
         do {
-            let document = try await db.collection("config").document("app_release").getDocument()
-            guard let data = document.data() else { return false }
-
-            // Read latest details
-            let rawVersionCode = data["latestVersionCode"]
-            let latestVersionCode = (rawVersionCode as? NSNumber)?.intValue ?? (rawVersionCode as? Int) ?? Int(rawVersionCode as? String ?? "") ?? 0
-            
-            let latestVersionName = data["latestVersionName"] as? String ?? ""
-            let releaseNotes = data["releaseNotes"] as? String ?? "A new version of TrackMe is available."
-            
-            let rawForceUpdate = data["isForceUpdate"]
-            let isForceUpdate = (rawForceUpdate as? NSNumber)?.boolValue ?? (rawForceUpdate as? Bool) ?? ((rawForceUpdate as? String)?.lowercased() == "true")
-            let urlString = data["updateUrl"] as? String
-            let updateUrl = (urlString != nil ? URL(string: urlString!) : nil) ?? defaultUpdateURL
-
-            // Read current app details
-            let currentBuildString = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-            let currentBuild = Int(currentBuildString) ?? 1
-            let currentVersionName = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-
-            if AppUpdateManager.isNewerBuild(latestBuild: latestVersionCode, currentBuild: currentBuild, latestName: latestVersionName, currentName: currentVersionName) {
-
-                let dismissedBuild = UserDefaults.standard.integer(forKey: "appUpdate.dismissedBuild")
-                let dismissedAt = UserDefaults.standard.object(forKey: "appUpdate.dismissedAt") as? Date
-
-                if AppUpdateManager.shouldPrompt(
-                    latestBuild: latestVersionCode,
-                    dismissedBuild: dismissedBuild == 0 ? nil : dismissedBuild,
-                    dismissedAt: dismissedAt,
-                    now: Date(),
-                    forceCheck: forceCheck,
-                    isForce: isForceUpdate
-                ) {
-                    self.updateInfo = AppUpdateInfo(
-                        latestBuild: latestVersionCode,
-                        latestVersionName: latestVersionName,
-                        releaseNotes: releaseNotes,
-                        isForceUpdate: isForceUpdate,
-                        updateURL: updateUrl
-                    )
-                    return true
-                }
+            let (data, response) = try await session.data(from: lookupURL)
+            guard let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode) else {
+                return false
             }
-            return false
-        } catch {
-            NSLog("AppUpdateManager: Failed to fetch update info - \(error.localizedDescription)")
-            // Optional future fallback: iTunes Lookup API could be used here if the Firestore doc is absent.
-            return false
-        }
-    }
 
-    func dismissUpdate(build: Int) {
-        UserDefaults.standard.set(build, forKey: "appUpdate.dismissedBuild")
-        UserDefaults.standard.set(Date(), forKey: "appUpdate.dismissedAt")
-        self.updateInfo = nil
-    }
+            let lookup = try JSONDecoder().decode(AppStoreLookupResponse.self, from: data)
+            guard lookup.resultCount > 0,
+                  let offered = lookup.results.first,
+                  Self.isNewerVersion(remote: offered.version, current: currentVersion),
+                  let updateURL = URL(string: offered.trackViewUrl) else {
+                return false
+            }
 
-    static func isNewerBuild(latestBuild: Int, currentBuild: Int, latestName: String, currentName: String) -> Bool {
-        if latestBuild > currentBuild {
+            let dismissedVersion = defaults.string(forKey: Self.dismissedVersionKey)
+            let dismissedAt = defaults.object(forKey: Self.dismissedAtKey) as? Date
+            guard Self.shouldPrompt(
+                latestVersion: offered.version,
+                dismissedVersion: dismissedVersion,
+                dismissedAt: dismissedAt,
+                now: Date(),
+                forceCheck: forceCheck
+            ) else {
+                return false
+            }
+
+            updateInfo = AppUpdateInfo(
+                latestVersionName: offered.version,
+                releaseNotes: offered.releaseNotes ?? LocalizationHelper.localized("A new version of TrackMe is available."),
+                updateURL: updateURL
+            )
             return true
-        } else if latestBuild == currentBuild {
-            // Tie-break with semver
-            return isNewerVersion(remote: latestName, current: currentName)
+        } catch {
+            NSLog("AppUpdateManager: App Store lookup failed - %@", error.localizedDescription)
+            return false
         }
-        return false
+    }
+
+    func dismissUpdate(version: String) {
+        defaults.set(version, forKey: Self.dismissedVersionKey)
+        defaults.set(Date(), forKey: Self.dismissedAtKey)
+        updateInfo = nil
+    }
+
+    static func lookupURL(bundleIdentifier: String, countryCode: String) -> URL? {
+        guard !bundleIdentifier.isEmpty, !countryCode.isEmpty else { return nil }
+        var components = URLComponents(string: "https://itunes.apple.com/lookup")
+        components?.queryItems = [
+            URLQueryItem(name: "bundleId", value: bundleIdentifier),
+            URLQueryItem(name: "country", value: countryCode.uppercased())
+        ]
+        return components?.url
     }
 
     static func isNewerVersion(remote: String, current: String) -> Bool {
@@ -109,23 +122,51 @@ final class AppUpdateManager: ObservableObject {
         return false
     }
 
-    static func shouldPrompt(latestBuild: Int, dismissedBuild: Int?, dismissedAt: Date?, now: Date, forceCheck: Bool, isForce: Bool) -> Bool {
-        if forceCheck || isForce {
-            return true
-        }
-        guard let db = dismissedBuild, let da = dismissedAt else {
-            return true // Never dismissed
-        }
-        if latestBuild != db {
-            return true // A newer build than what was dismissed
-        }
-        if now.timeIntervalSince(da) > 24 * 60 * 60 {
-            return true // More than 24 hours elapsed since dismissal
-        }
-        return false
+    static func shouldPrompt(
+        latestVersion: String,
+        dismissedVersion: String?,
+        dismissedAt: Date?,
+        now: Date,
+        forceCheck: Bool
+    ) -> Bool {
+        if forceCheck { return true }
+        guard let dismissedVersion, let dismissedAt else { return true }
+        if latestVersion != dismissedVersion { return true }
+        return now.timeIntervalSince(dismissedAt) > 24 * 60 * 60
     }
 
-    static func isPlaceholderURLDisabled(url: URL) -> Bool {
-        return url.host == "apps.apple.com" && url.path.contains("idXXXXXXXXXX")
+    static func shouldPerformLookup(
+        isDebugBuild: Bool,
+        isSimulator: Bool,
+        appStoreEnvironment: AppStore.Environment?
+    ) -> Bool {
+        !isDebugBuild && !isSimulator && appStoreEnvironment == .production
     }
+
+    private func canCheckForUpdates() async -> Bool {
+        #if DEBUG || targetEnvironment(simulator)
+        return false
+        #else
+        let environment: AppStore.Environment?
+        do {
+            switch try await AppTransaction.shared {
+            case .verified(let transaction):
+                environment = transaction.environment
+            case .unverified:
+                environment = nil
+            }
+        } catch {
+            environment = nil
+        }
+
+        return Self.shouldPerformLookup(
+            isDebugBuild: false,
+            isSimulator: false,
+            appStoreEnvironment: environment
+        )
+        #endif
+    }
+
+    private static let dismissedVersionKey = "appUpdate.dismissedVersion"
+    private static let dismissedAtKey = "appUpdate.dismissedAt"
 }

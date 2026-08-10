@@ -6,8 +6,7 @@ enum UnitPreference {
     static let key = "unit_system"
     static var current: UnitSystem { UnitSystem(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? deviceDefault }
     static var deviceDefault: UnitSystem {
-        if #available(iOS 16, *) { return Locale.current.measurementSystem == .us || Locale.current.measurementSystem == .uk ? .imperial : .metric }
-        return Locale.current.usesMetricSystem ? .metric : .imperial
+        Locale.current.measurementSystem == .us || Locale.current.measurementSystem == .uk ? .imperial : .metric
     }
 }
 

@@ -2,7 +2,7 @@ import Foundation
 import FirebaseFirestore
 import FirebaseAuth
 
-struct DataExportResponse: Codable {
+nonisolated struct DataExportResponse: Codable {
     let requestId: String?
     let userId: String?
     let status: String
@@ -239,7 +239,7 @@ class DataExportService {
             "clientOS": "iOS",
             "exportFormats": ["GPX", "JSON_ARCHIVE"],
             "metadata": [
-                "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.6.1"
+                "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.7.1"
             ]
         ]
         docRef.setData(data, merge: true) { error in

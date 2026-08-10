@@ -17,6 +17,8 @@ final class EmergencyManager {
         self.defaults = defaults
     }
 
+    nonisolated deinit {}
+
     /// Always false after the emergency trigger was retired. Kept for the calm-moment gate so
     /// older call sites do not accidentally treat a removed flow as active.
     var isEmergencyActive: Bool { false }

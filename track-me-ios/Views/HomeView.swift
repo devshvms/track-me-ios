@@ -22,6 +22,8 @@ struct HomeView: View {
     @Environment(\.requestReview) private var requestReview
 
     @State private var rideStartLaunch = RideStartLaunchState()
+    @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
+    @AppStorage(OnboardingGate.startHintSeenKey) private var legacyStartHintSeen = false
     var body: some View {
         ZStack(alignment: .bottom) {
             Map(position: $position, scope: mapScope) {
@@ -209,7 +211,35 @@ struct HomeView: View {
 
             VStack(spacing: 10) {
                 if trackingManager.state == .idle {
+                    if OnboardingGate.shouldShowStartRideHint(
+                        state: OnboardingState(rawValue: onboardingStateRaw) ?? .legacy,
+                        hintAlreadySeen: legacyStartHintSeen
+                    ) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "hand.draw.fill")
+                                .foregroundStyle(BrandColor.primary)
+                            Text(LocalizationHelper.localized("Press and hold Start, then drag to choose an activity."))
+                                .font(BrandTypography.footnote.weight(.semibold))
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                            Button {
+                                legacyStartHintSeen = true
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .frame(width: 32, height: 32)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(LocalizationHelper.localized("Dismiss"))
+                        }
+                        .padding(.leading, 14)
+                        .padding(.trailing, 8)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: 360)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(.horizontal, 16)
+                    }
                     RadialStartTrackingControl(launchState: $rideStartLaunch) { persona in
+                        legacyStartHintSeen = true
                         trackingManager.startTracking(persona: persona)
                     }
                     .transition(.scale(scale: 0.9).combined(with: .opacity))

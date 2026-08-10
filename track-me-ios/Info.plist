@@ -2,23 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIAppFonts</key>
-	<array>
-		<string>Inter-Variable.ttf</string>
-	</array>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>TrackMe needs your location to track your rides and calculate your speed and distance.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>TrackMe needs your location to track your rides in the background even when your phone is locked.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>TrackMe uses motion data to tell when you've stopped moving so it doesn't add distance while you're standing still.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-		<string>remote-notification</string>
-	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -29,7 +12,6 @@
 				<string>com.googleusercontent.apps.126912105508-aknqk6cn4du3jcjbuhrkeablptpcku5n</string>
 			</array>
 		</dict>
-		<!-- Firebase OAuth callbacks use the app bundle identifier as a scheme. -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -46,6 +28,14 @@
 				<string>trackme</string>
 			</array>
 		</dict>
+	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Inter-Variable.ttf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
 	</array>
 </dict>
 </plist>

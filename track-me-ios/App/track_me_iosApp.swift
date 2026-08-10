@@ -14,6 +14,9 @@ import GoogleSignIn
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // This must be the first launch action. Cleanup and SDK initialization below can write
+        // defaults, which would make a fresh install indistinguishable from an upgrade.
+        OnboardingGate.resolveAtLaunch()
         FirebaseApp.configure()
         CrashlyticsErrorLogger.shared.initialize()
         _ = Auth.auth().addStateDidChangeListener { _, user in

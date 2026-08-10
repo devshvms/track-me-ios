@@ -310,8 +310,8 @@ struct SettingsView: View {
                                 .labelsHidden()
                                 .tint(BrandColor.primary)
                                 .accessibilityLabel(LocalizationHelper.localized("Share analytics data"))
-                                .onChange(of: isTelemetryEnabled) {
-                                    TelemetryManager.shared.updateOptOutStatus()
+                                .onChange(of: isTelemetryEnabled) { _, enabled in
+                                    TelemetryManager.shared.updateLocalConsent(enabled)
                                 }
                         }
                     }

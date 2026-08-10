@@ -5,11 +5,6 @@ struct AppUpdateView: View {
     let onDismiss: () -> Void
     @Environment(\.openURL) private var openURL
 
-    // Check if the URL is the placeholder. If it is, and we're not forced, disable the button.
-    var isLinkDisabled: Bool {
-        return !updateInfo.isForceUpdate && AppUpdateManager.isPlaceholderURLDisabled(url: updateInfo.updateURL)
-    }
-
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "arrow.up.circle.fill")
@@ -42,26 +37,23 @@ struct AppUpdateView: View {
                 Button(action: {
                     openURL(updateInfo.updateURL)
                 }) {
-                    Text(isLinkDisabled ? LocalizationHelper.localized("Coming soon to the App Store") : LocalizationHelper.localized("Update Now"))
+                    Text(LocalizationHelper.localized("Update Now"))
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isLinkDisabled ? Color.gray : Color.cyan)
+                        .background(BrandColor.primaryFill)
                         .cornerRadius(12)
                 }
-                .disabled(isLinkDisabled)
 
-                if !updateInfo.isForceUpdate {
-                    Button(action: {
-                        onDismiss()
-                    }) {
-                        Text(LocalizationHelper.localized("Later"))
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                    }
+                Button(action: {
+                    onDismiss()
+                }) {
+                    Text(LocalizationHelper.localized("Later"))
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding()
                 }
             }
         }
@@ -70,6 +62,5 @@ struct AppUpdateView: View {
         .cornerRadius(24)
         .shadow(radius: 20)
         .padding(24)
-        .interactiveDismissDisabled(updateInfo.isForceUpdate) // for sheet presentation
     }
 }

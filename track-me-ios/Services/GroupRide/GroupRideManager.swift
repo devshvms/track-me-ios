@@ -5,10 +5,40 @@ import Foundation
 import SwiftUI
 import UIKit
 
-struct GroupHttpError: Error, Equatable {
+struct GroupHttpError: LocalizedError, Equatable {
     let statusCode: Int
     let code: String?
     let retryAfter: TimeInterval?
+
+    var errorDescription: String? {
+        switch code {
+        case "GROUP_FULL":
+            LocalizationHelper.localized("This group is full.")
+        case "GROUP_NOT_FOUND":
+            LocalizationHelper.localized("This group could not be found.")
+        case "JOIN_RATE_LIMITED":
+            LocalizationHelper.localized("Too many join attempts. Please wait and try again.")
+        default:
+            nil
+        }
+    }
+}
+
+enum GroupJoinClientError: LocalizedError, Equatable {
+    case malformedCode
+    case expired
+    case signedOut
+
+    var errorDescription: String? {
+        switch self {
+        case .malformedCode:
+            LocalizationHelper.localized("Enter a valid 6-character join code.")
+        case .expired:
+            LocalizationHelper.localized("This invite has expired or the group has ended.")
+        case .signedOut:
+            LocalizationHelper.localized("Sign in to join a group")
+        }
+    }
 }
 
 @Observable
@@ -27,6 +57,7 @@ final class GroupRideManager {
     var endNotice: GroupEndNotice?
     var pendingJoinToken: String?
     var pendingJoinCode: String?
+    var pendingJoinViaCode = true
 
     init(
         store: GroupSessionStore = .shared,
@@ -37,6 +68,8 @@ final class GroupRideManager {
         self.session = session
         self.errorLogger = errorLogger
     }
+
+    nonisolated deinit {}
 
     @discardableResult
     func restore() -> Bool {
@@ -67,25 +100,46 @@ final class GroupRideManager {
 
     func handleIncomingURL(_ url: URL) -> Bool {
         guard url.scheme == "trackme" || url.host == "trackme.shvms.in" else { return false }
+        var accepted = false
         if url.scheme == "trackme", url.host == "group" || url.path == "/group" {
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-            pendingJoinToken = items.first(where: { $0.name == "t" || $0.name == "token" })?.value
-            pendingJoinCode = items.first(where: { $0.name == "c" || $0.name == "code" })?.value
-            return pendingJoinToken != nil || pendingJoinCode != nil
+            let token = items.first(where: { $0.name == "t" || $0.name == "token" })?.value
+            let code = items.first(where: { $0.name == "c" || $0.name == "code" })?.value
+            if let token, !token.isEmpty {
+                pendingJoinToken = token
+                pendingJoinCode = nil
+            } else if let code, !code.isEmpty {
+                pendingJoinToken = nil
+                pendingJoinCode = code
+            }
+            pendingJoinViaCode = false
+            accepted = pendingJoinToken != nil || pendingJoinCode != nil
         }
-        if url.path == "/g" || url.path.hasPrefix("/g/") {
+        if !accepted, (url.path == "/g" || url.path.hasPrefix("/g/")) {
             let fragment = url.fragment
             if let fragment, !fragment.isEmpty {
                 pendingJoinToken = fragment
-                return true
+                pendingJoinCode = nil
+                pendingJoinViaCode = false
+                accepted = true
             }
         }
-        return false
+        if accepted {
+            TelemetryManager.shared.trackGroupInviteOpened(viaCode: false)
+        }
+        return accepted
     }
 
     func inviteShareURL() -> URL? {
         guard let token = state.inviteToken else { return nil }
         return URL(string: "\(APIConfig.baseURL)/g/#\(token)")
+    }
+
+    func noteJoinCodeEdited(_ value: String) {
+        if let pendingJoinCode, value == pendingJoinCode { return }
+        pendingJoinCode = nil
+        pendingJoinToken = nil
+        pendingJoinViaCode = true
     }
 
     func createGroup(
@@ -171,18 +225,39 @@ final class GroupRideManager {
         startSyncLoop()
     }
 
-    func joinByCode(_ rawCode: String) async throws {
-        guard let code = GroupCrypto.normalizeJoinCode(rawCode) else { throw GroupCrypto.Error.invalidJoinCode }
-        let resolved = try GroupWire.parseResolve(try await get(path: "/api/group/resolve?c=\(code)", authenticated: false))
-        guard let wrapped = resolved.wrappedToken else { throw GroupWire.Error.missingField("wrappedToken") }
-        let token = try GroupCrypto.unwrapTokenWithCode(joinCode: code, wrapped: wrapped)
-        try await joinWithToken(token, joinCode: code, groupId: resolved.groupId, viaCode: true)
+    func joinByCode(_ rawCode: String, viaCode: Bool = true) async throws {
+        if viaCode {
+            TelemetryManager.shared.trackGroupInviteOpened(viaCode: true)
+        }
+        do {
+            guard let code = GroupCrypto.normalizeJoinCode(rawCode) else {
+                throw GroupJoinClientError.malformedCode
+            }
+            let resolved = try GroupWire.parseResolve(try await get(path: "/api/group/resolve?c=\(code)", authenticated: false))
+            guard let wrapped = resolved.wrappedToken else { throw GroupJoinClientError.expired }
+            let token = try GroupCrypto.unwrapTokenWithCode(joinCode: code, wrapped: wrapped)
+            try await joinWithToken(token, joinCode: code, groupId: resolved.groupId, viaCode: viaCode)
+        } catch {
+            TelemetryManager.shared.trackGroupJoinFailed(
+                reason: Self.classifyJoinFailure(error),
+                viaCode: viaCode
+            )
+            throw error
+        }
     }
 
     func joinByToken(_ token: String) async throws {
-        let hash = try GroupCrypto.groupTokenHash(token)
-        let resolved = try GroupWire.parseResolve(try await get(path: "/api/group/resolve?t=\(hash)", authenticated: false))
-        try await joinWithToken(token, joinCode: resolved.joinCode ?? "", groupId: resolved.groupId, viaCode: false)
+        do {
+            let hash = try GroupCrypto.groupTokenHash(token)
+            let resolved = try GroupWire.parseResolve(try await get(path: "/api/group/resolve?t=\(hash)", authenticated: false))
+            try await joinWithToken(token, joinCode: resolved.joinCode ?? "", groupId: resolved.groupId, viaCode: false)
+        } catch {
+            TelemetryManager.shared.trackGroupJoinFailed(
+                reason: Self.classifyJoinFailure(error),
+                viaCode: false
+            )
+            throw error
+        }
     }
 
     func startGroup() async throws {
@@ -213,6 +288,10 @@ final class GroupRideManager {
         state.destinationLat = destinationLat
         state.destinationLng = destinationLng
         state.startAtMillis = startAtMillis
+        TelemetryManager.shared.trackGroupMetaUpdated(
+            hasDestination: destinationLat != nil && destinationLng != nil,
+            hasStartTime: startAtMillis != nil
+        )
         GroupReminderScheduler.schedule(
             groupId: groupId,
             groupName: state.groupName ?? "Group Ride",
@@ -225,6 +304,7 @@ final class GroupRideManager {
         _ = try await post(path: "/api/group/remove", body: ["groupId": groupId, "uid": uid])
         state.positions.removeAll { $0.uid == uid }
         state.roster.removeAll { $0.uid == uid }
+        TelemetryManager.shared.trackGroupMemberRemoved(memberCount: state.roster.count)
     }
 
     func leaveGroup() async {
@@ -519,8 +599,30 @@ final class GroupRideManager {
     }
 
     private func currentUser() throws -> User {
-        guard let user = Auth.auth().currentUser else { throw GroupWire.Error.missingField("currentUser") }
+        guard let user = Auth.auth().currentUser else { throw GroupJoinClientError.signedOut }
         return user
+    }
+
+    static func classifyJoinFailure(_ error: Error) -> GroupJoinFailure {
+        if let clientError = error as? GroupJoinClientError {
+            switch clientError {
+            case .malformedCode: return .malformedCode
+            case .expired: return .expired
+            case .signedOut: return .signedOut
+            }
+        }
+        if let httpError = error as? GroupHttpError {
+            switch httpError.code {
+            case "GROUP_FULL": return .groupFull
+            case "GROUP_NOT_FOUND": return .groupNotFound
+            case "JOIN_RATE_LIMITED": return .joinRateLimited
+            default: return .unknown
+            }
+        }
+        if error is URLError || (error as NSError).domain == NSURLErrorDomain {
+            return .network
+        }
+        return .unknown
     }
 
     private func url(_ path: String) throws -> URL {

@@ -20,6 +20,11 @@ struct ContentView: View {
     @Bindable private var groupRide = GroupRideManager.shared
     @Bindable private var emergencyRetirement = EmergencyDataPurge.shared
     @State private var selectedTab: AppTab = .home
+    @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
+
+    private var onboardingState: OnboardingState {
+        OnboardingState(rawValue: onboardingStateRaw) ?? .legacy
+    }
 
     var body: some View {
         Group {
@@ -27,6 +32,11 @@ struct ContentView: View {
                 AgeRestrictedView()
             } else if ageSignalManager.decision == nil {
                 AgeSignalCheckingView()
+            } else if onboardingState == .pending {
+                OnboardingView { outcome in
+                    OnboardingGate.complete(outcome)
+                    onboardingStateRaw = OnboardingState.done.rawValue
+                }
             } else {
                 TabView(selection: $selectedTab) {
             HomeView()
@@ -87,14 +97,12 @@ struct ContentView: View {
             if token != nil { selectedTab = .community }
         }
         .sheet(isPresented: Binding(
-            get: { updateManager.updateInfo != nil && trackingManager.state == .idle },
+            get: { onboardingState != .pending && updateManager.updateInfo != nil && trackingManager.state == .idle },
             set: { _ in }
         )) {
             if let info = updateManager.updateInfo {
-                // A force-update that hijacks a live ride would lose data and is exactly the failure mode we're trying to prevent.
-                // Deliberate divergence from Android's unconditional dialog.
                 AppUpdateView(updateInfo: info) {
-                    updateManager.dismissUpdate(build: info.latestBuild)
+                    updateManager.dismissUpdate(version: info.latestVersionName)
                 }
             }
         }

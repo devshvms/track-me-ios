@@ -11,6 +11,7 @@ struct CommunityView: View {
     @State private var showEditSheet = false
     @State private var memberToRemove: String?
     @State private var showCalendarSheet = false
+    @State private var showInviteShareSheet = false
     @State private var signedInUserID = Auth.auth().currentUser?.uid
     @State private var authListener: AuthStateDidChangeListenerHandle?
 
@@ -41,8 +42,11 @@ struct CommunityView: View {
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        if let url = groupRide.inviteShareURL() {
-                            ShareLink(item: url) {
+                        if inviteShareMessage != nil {
+                            Button {
+                                TelemetryManager.shared.trackGroupInviteSent()
+                                showInviteShareSheet = true
+                            } label: {
                                 Image(systemName: "square.and.arrow.up")
                             }
                             .accessibilityLabel(LocalizationHelper.localized("Share group invite"))
@@ -83,10 +87,16 @@ struct CommunityView: View {
                 await run {
                     try await groupRide.joinByToken(token)
                     groupRide.pendingJoinToken = nil
+                    groupRide.pendingJoinViaCode = true
                 }
             }
             .sheet(isPresented: $showEditSheet) {
                 GroupEditView(groupRide: groupRide)
+            }
+            .sheet(isPresented: $showInviteShareSheet) {
+                if let inviteShareMessage {
+                    ShareSheet(activityItems: [inviteShareMessage])
+                }
             }
             .onAppear {
                 guard authListener == nil else { return }
@@ -134,15 +144,19 @@ struct CommunityView: View {
                 TextField(LocalizationHelper.localized("Join code"), text: $joinCode)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
+                    .onChange(of: joinCode) { _, value in
+                        groupRide.noteJoinCodeEdited(value)
+                    }
                 Button {
                     awaitRun {
-                        try await groupRide.joinByCode(joinCode)
+                        try await groupRide.joinByCode(joinCode, viaCode: groupRide.pendingJoinViaCode)
                         groupRide.pendingJoinCode = nil
+                        groupRide.pendingJoinViaCode = true
                     }
                 } label: {
                     Label(LocalizationHelper.localized("Join group"), systemImage: "person.badge.plus")
                 }
-                .disabled(isBusy || GroupCrypto.normalizeJoinCode(joinCode) == nil)
+                .disabled(isBusy || joinCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } header: {
                 Text(LocalizationHelper.localized("Join"))
             } footer: {
@@ -274,6 +288,16 @@ struct CommunityView: View {
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+
+    private var inviteShareMessage: String? {
+        guard let code = groupRide.state.joinCode,
+              let url = groupRide.inviteShareURL() else { return nil }
+        return LocalizationHelper.formatted(
+            "Join my TrackMe group.\nCode: %@\nLink: %@",
+            code,
+            url.absoluteString
+        )
     }
 
     private var memberRows: [GroupMemberRow] {

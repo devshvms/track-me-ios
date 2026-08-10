@@ -1,0 +1,7 @@
+TrackMe 1.7.1
+
+- A new first-run walkthrough gets location, notifications, and privacy choices set up clearly.
+- Group Ride brings end-to-end encrypted live groups, invite codes and links, destinations, and start reminders.
+- The map-first Home screen now includes activity selection, centered ride status, unified pause/stop controls, and a live-share action drawer.
+- Sign in, ride recovery, history statistics, and update checks are more reliable.
+- In-app SMS/SOS features have been retired in favor of your phone's built-in emergency tools.
