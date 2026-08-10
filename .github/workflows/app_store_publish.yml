@@ -20,14 +20,10 @@ jobs:
   build_and_publish:
     runs-on: macos-latest
     timeout-minutes: 90
-    env:
-      ARCHIVE_PATH: ${{ runner.temp }}/TrackMe.xcarchive
-      EXPORT_PATH: ${{ runner.temp }}/TrackMeExport
-      API_KEY_PATH: ${{ runner.temp }}/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Select Xcode 26
         run: |
@@ -59,6 +55,10 @@ jobs:
             echo "::error::Missing iOS release secret(s): ${missing[*]}"
             exit 1
           fi
+
+          echo "ARCHIVE_PATH=$RUNNER_TEMP/TrackMe.xcarchive" >> "$GITHUB_ENV"
+          echo "EXPORT_PATH=$RUNNER_TEMP/TrackMeExport" >> "$GITHUB_ENV"
+          echo "API_KEY_PATH=$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
 
       - name: Install Apple Distribution Certificate
         env:
