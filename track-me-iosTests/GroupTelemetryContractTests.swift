@@ -42,6 +42,24 @@ final class GroupTelemetryContractTests: XCTestCase {
         XCTAssertNotNil(meta.properties?["has_start_time"] as? Bool)
     }
 
+    func testPresenceStatusAndDirectionsTelemetryExcludeSensitiveValues() {
+        let status = GroupTelemetryContract.statusSet(severity: .alert)
+        XCTAssertEqual(status.name, "group_status_set")
+        XCTAssertEqual(status.properties?["severity"] as? String, "1")
+        XCTAssertFalse(status.properties?.keys.contains("code") ?? true)
+
+        let cleared = GroupTelemetryContract.statusCleared(byUser: true)
+        XCTAssertEqual(cleared.properties?["by_user"] as? Bool, true)
+
+        let directions = GroupTelemetryContract.directionsOpened(ageBucket: .seconds)
+        XCTAssertEqual(directions.properties?["age_bucket"] as? String, "seconds")
+        XCTAssertFalse(directions.properties?.keys.contains("lat") ?? true)
+        XCTAssertFalse(directions.properties?.keys.contains("lng") ?? true)
+
+        let paused = GroupTelemetryContract.presencePaused(durationBucket: "under_2m", cause: .relay)
+        XCTAssertEqual(paused.properties?["cause"] as? String, "relay")
+    }
+
     func testGroupTelemetryPropertyKeysContainNoPrivateData() {
         let forbidden = ["lat", "lng", "coordinate", "group_name", "uid", "member_id", "token", "join_code"]
         for event in GroupTelemetryContract.privacySamples {

@@ -10,22 +10,69 @@ import SwiftData
 import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
+import UserNotifications
 
-class AppDelegate: NSObject, UIApplicationDelegate {
+private enum AppLaunchEnvironment {
+    static let isUnitTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
+    static func configureFirebase() {
+        guard isUnitTesting else {
+            FirebaseApp.configure()
+            return
+        }
+
+        // Hosted unit tests launch the application target, but clean checkouts intentionally do
+        // not contain the gitignored GoogleService-Info.plist. A syntactically valid, non-secret
+        // configuration keeps FirebaseAuth available to views without contacting a real project.
+        let options = FirebaseOptions(
+            googleAppID: "1:000000000000:ios:0000000000000000",
+            gcmSenderID: "000000000000"
+        )
+        options.apiKey = String(repeating: "A", count: 39)
+        options.projectID = "track-me-unit-tests"
+        FirebaseApp.configure(options: options)
+    }
+}
+
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // This must be the first launch action. Cleanup and SDK initialization below can write
         // defaults, which would make a fresh install indistinguishable from an upgrade.
         OnboardingGate.resolveAtLaunch()
-        FirebaseApp.configure()
-        CrashlyticsErrorLogger.shared.initialize()
-        _ = Auth.auth().addStateDidChangeListener { _, user in
-            CrashlyticsErrorLogger.shared.setUserId(user?.uid)
+        AppLaunchEnvironment.configureFirebase()
+        if !AppLaunchEnvironment.isUnitTesting {
+            CrashlyticsErrorLogger.shared.initialize()
+            _ = Auth.auth().addStateDidChangeListener { _, user in
+                CrashlyticsErrorLogger.shared.setUserId(user?.uid)
+            }
+            TelemetryManager.shared.initializePostHog()
         }
-        TelemetryManager.shared.initializePostHog()
+        UNUserNotificationCenter.current().delegate = self
+        GroupStatusAlertCoordinator.shared.registerNotificationCategory()
         // The age-range request is started from ContentView, where SwiftUI supplies the
         // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        Task { @MainActor in
+            switch response.actionIdentifier {
+            case GroupStatusAlertCoordinator.muteActionIdentifier:
+                GroupRideManager.shared.setAlertsMuted(true)
+            case GroupStatusAlertCoordinator.viewActionIdentifier, UNNotificationDefaultActionIdentifier:
+                if response.notification.request.identifier.hasPrefix(GroupStatusAlertCoordinator.notificationPrefix) {
+                    GroupRideManager.shared.requestCommunityNavigation()
+                }
+            default:
+                break
+            }
+            completionHandler()
+        }
     }
 }
 

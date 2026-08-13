@@ -18,6 +18,7 @@ enum GroupCrypto {
         case code
         case roster(uid: String)
         case position(uid: String)
+        case status(uid: String)
 
         var context: String {
             switch self {
@@ -29,6 +30,8 @@ enum GroupCrypto {
                 return "\(GroupCrypto.envelopeVersion):roster:\(uid)"
             case .position(let uid):
                 return "\(GroupCrypto.envelopeVersion):pos:\(uid)"
+            case .status(let uid):
+                return "\(GroupCrypto.envelopeVersion):status:\(uid)"
             }
         }
     }

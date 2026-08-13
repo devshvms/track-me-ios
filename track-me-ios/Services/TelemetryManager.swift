@@ -23,6 +23,14 @@ enum GroupJoinFailure: String, CaseIterable {
     case unknown
 }
 
+enum GroupDirectionsAgeBucket: String, CaseIterable {
+    case now
+    case seconds
+    case minutes
+    case hours
+    case unknown
+}
+
 struct GroupTelemetryEvent {
     let name: String
     let properties: [String: Any]?
@@ -62,6 +70,32 @@ enum GroupTelemetryContract {
         )
     }
 
+    static func statusSet(severity: StatusSeverity) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(name: "group_status_set", properties: ["severity": String(severity.rawValue)])
+    }
+
+    static func statusCleared(byUser: Bool) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(name: "group_status_cleared", properties: ["by_user": byUser])
+    }
+
+    static func statusAlert(_ suffix: String) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(name: "group_status_alert_\(suffix)", properties: nil)
+    }
+
+    static func directionsOpened(ageBucket: GroupDirectionsAgeBucket) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(name: "group_directions_opened", properties: ["age_bucket": ageBucket.rawValue])
+    }
+
+    static func presencePaused(durationBucket: String, cause: GroupPresencePolicy.Cause) -> GroupTelemetryEvent {
+        GroupTelemetryEvent(
+            name: "group_presence_paused",
+            properties: [
+                "duration_bucket": durationBucket,
+                "cause": cause == .local ? "local" : "relay"
+            ]
+        )
+    }
+
     static var privacySamples: [GroupTelemetryEvent] {
         [
             inviteSent(),
@@ -69,7 +103,12 @@ enum GroupTelemetryContract {
             joinFailed(reason: .unknown, viaCode: false),
             memberJoined(memberCount: 2, viaCode: true),
             memberRemoved(memberCount: 1),
-            metaUpdated(hasDestination: true, hasStartTime: true)
+            metaUpdated(hasDestination: true, hasStartTime: true),
+            statusSet(severity: .alert),
+            statusCleared(byUser: true),
+            statusAlert("shown"),
+            directionsOpened(ageBucket: .seconds),
+            presencePaused(durationBucket: "under_2m", cause: .local)
         ]
     }
 }
@@ -381,6 +420,34 @@ class TelemetryManager {
     func trackGroupDegraded() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("group_degraded")
+    }
+
+    func trackGroupStatusSet(severity: StatusSeverity) {
+        capture(GroupTelemetryContract.statusSet(severity: severity))
+    }
+
+    func trackGroupStatusCleared(byUser: Bool) {
+        capture(GroupTelemetryContract.statusCleared(byUser: byUser))
+    }
+
+    func trackGroupStatusAlertShown() {
+        capture(GroupTelemetryContract.statusAlert("shown"))
+    }
+
+    func trackGroupStatusAlertDismissed() {
+        capture(GroupTelemetryContract.statusAlert("dismissed"))
+    }
+
+    func trackGroupStatusAlertMuted() {
+        capture(GroupTelemetryContract.statusAlert("muted"))
+    }
+
+    func trackGroupDirectionsOpened(ageBucket: GroupDirectionsAgeBucket) {
+        capture(GroupTelemetryContract.directionsOpened(ageBucket: ageBucket))
+    }
+
+    func trackGroupPresencePaused(durationBucket: String, cause: GroupPresencePolicy.Cause) {
+        capture(GroupTelemetryContract.presencePaused(durationBucket: durationBucket, cause: cause))
     }
 
     func trackOnboardingCompleted(_ outcome: OnboardingOutcome) {

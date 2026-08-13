@@ -66,6 +66,35 @@ final class BrandColorTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(contrast(BrandColor.onWarning, BrandColor.warning, dark: false), 4.5)
     }
 
+    func testRiderStatusTiersAreDistinctAndTheirGlyphsMeetGraphicalContrast() {
+        let fills: [Color] = [BrandColor.severityAlert, BrandColor.severityCaution, BrandColor.severityInfo]
+        XCTAssertEqual(Set(fills.map { hex($0, dark: false) }).count, 3)
+
+        for severity in StatusSeverity.allCases {
+            XCTAssertGreaterThanOrEqual(
+                contrast(
+                    RiderStatusPresentation.fillForeground(severity),
+                    RiderStatusPresentation.color(severity),
+                    dark: false
+                ),
+                3.0
+            )
+        }
+    }
+
+    func testRiderStatusWordsMeetAAOnLightAndDarkSurfaces() {
+        for severity in StatusSeverity.allCases {
+            XCTAssertGreaterThanOrEqual(
+                contrast(RiderStatusPresentation.textColor(severity), .white, dark: false),
+                4.5
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(RiderStatusPresentation.textColor(severity), darkSurface, dark: true),
+                4.5
+            )
+        }
+    }
+
     func testChartTokensMatchExpectedHuesAndMeetGraphicalContrast() {
         // Chart tokens should be the exact data hues.
         XCTAssertEqual(hex(BrandColor.chartSpeed, dark: false), 0x16A34A)

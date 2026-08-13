@@ -12,6 +12,9 @@ struct CommunityView: View {
     @State private var memberToRemove: String?
     @State private var showCalendarSheet = false
     @State private var showInviteShareSheet = false
+    @State private var showStatusPicker = false
+    @State private var directionsTarget: GroupDirectionsTarget?
+    @State private var groupClockTick = StatusAge.elapsedMillis()
     @State private var signedInUserID = Auth.auth().currentUser?.uid
     @State private var authListener: AuthStateDidChangeListenerHandle?
 
@@ -90,12 +93,61 @@ struct CommunityView: View {
                     groupRide.pendingJoinViaCode = true
                 }
             }
+            .task(id: groupRide.state.isActive) {
+                guard groupRide.state.isActive else { return }
+                while !Task.isCancelled {
+                    groupClockTick = StatusAge.elapsedMillis()
+                    try? await Task.sleep(for: .seconds(1))
+                }
+            }
             .sheet(isPresented: $showEditSheet) {
                 GroupEditView(groupRide: groupRide)
             }
             .sheet(isPresented: $showInviteShareSheet) {
                 if let inviteShareMessage {
                     ShareSheet(activityItems: [inviteShareMessage])
+                }
+            }
+            .sheet(isPresented: $showStatusPicker) {
+                GroupStatusPicker(
+                    currentStatus: groupRide.state.selfStatus,
+                    persona: StatusPersona(ridePersona: TrackingManager.shared.currentRideId == nil ? nil : TrackingManager.shared.selectedPersona),
+                    onSelect: { status in
+                        do {
+                            try groupRide.setStatus(status)
+                            showStatusPicker = false
+                        } catch {
+                            errorMessage = error.localizedDescription
+                        }
+                    },
+                    onClear: {
+                        groupRide.clearStatus()
+                        showStatusPicker = false
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+            .confirmationDialog(
+                LocalizationHelper.localized("Directions to last known point"),
+                isPresented: Binding(
+                    get: { directionsTarget != nil },
+                    set: { if !$0 { directionsTarget = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let target = directionsTarget {
+                    Button(LocalizationHelper.localized("Apple Maps")) {
+                        openDirections(target, provider: .apple)
+                    }
+                    if GroupDirectionsProvider.google.isAvailable {
+                        Button(LocalizationHelper.localized("Google Maps")) {
+                            openDirections(target, provider: .google)
+                        }
+                    }
+                }
+                Button(LocalizationHelper.localized("Cancel"), role: .cancel) {
+                    directionsTarget = nil
                 }
             }
             .onAppear {
@@ -197,29 +249,32 @@ struct CommunityView: View {
                 Text(LocalizationHelper.localized("Group"))
             }
 
-            Section {
-                ForEach(memberRows) { row in
-                    HStack(spacing: 12) {
-                        GroupMemberBadge(initials: row.initials, tint: row.tint)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(row.name)
-                            Text(row.status)
-                                .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
+            if !attentionRows.isEmpty {
+                Section {
+                    ForEach(attentionRows) { row in
+                        rosterRow(row)
                     }
-                    .swipeActions {
-                        if groupRide.state.isLeader && row.id != Auth.auth().currentUser?.uid {
-                            Button(role: .destructive) {
-                                memberToRemove = row.id
-                            } label: {
-                                Label(LocalizationHelper.localized("Remove"), systemImage: "person.crop.circle.badge.minus")
-                            }
+                } header: {
+                    HStack {
+                        Text(LocalizationHelper.localized("Needs the group"))
+                        Spacer()
+                        Button(groupRide.state.alertsMuted
+                            ? LocalizationHelper.localized("Unmute alerts")
+                            : LocalizationHelper.localized("Mute alerts")) {
+                            groupRide.setAlertsMuted(!groupRide.state.alertsMuted)
                         }
+                        .textCase(nil)
+                        .font(.caption.bold())
                     }
                 }
+            }
+
+            Section {
+                ForEach(regularRows) { row in
+                    rosterRow(row)
+                }
             } header: {
-                Text(LocalizationHelper.localized("Roster"))
+                Text(LocalizationHelper.localized("In this group"))
             }
 
             Section {
@@ -232,13 +287,24 @@ struct CommunityView: View {
                 } else {
                     LabeledContent(LocalizationHelper.localized("Destination"), value: "--")
                 }
-                LabeledContent(LocalizationHelper.localized("Start time"), value: startTimeText)
-                if calendarDetails != nil {
-                    Button {
-                        showCalendarSheet = true
-                    } label: {
-                        Label(LocalizationHelper.localized("Add to calendar"), systemImage: "calendar.badge.plus")
+                LabeledContent {
+                    HStack(spacing: 4) {
+                        Text(startTimeText)
+                        if calendarDetails != nil {
+                            Button {
+                                showCalendarSheet = true
+                            } label: {
+                                Image(systemName: "calendar.badge.plus")
+                                    .frame(minWidth: 44, minHeight: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(BrandColor.primary)
+                            .accessibilityLabel(LocalizationHelper.localized("Add to calendar"))
+                        }
                     }
+                } label: {
+                    Text(LocalizationHelper.localized("Start time"))
                 }
             }
 
@@ -275,6 +341,24 @@ struct CommunityView: View {
                 )
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if groupRide.state.isStatusUndoAvailable {
+                HStack(spacing: 12) {
+                    Text(LocalizationHelper.localized("Status will be shared in 4 seconds."))
+                        .font(.subheadline)
+                    Spacer(minLength: 0)
+                    Button(LocalizationHelper.localized("Undo")) {
+                        groupRide.undoPendingAlertStatus()
+                    }
+                    .font(.subheadline.bold())
+                }
+                .padding(.horizontal, 16)
+                .frame(minHeight: 52)
+                .background(.regularMaterial, in: Capsule())
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
+            }
+        }
     }
 
     private var endNoticeView: some View {
@@ -302,19 +386,122 @@ struct CommunityView: View {
 
     private var memberRows: [GroupMemberRow] {
         let positions = Dictionary(uniqueKeysWithValues: groupRide.state.positions.map { ($0.uid, $0) })
-        return groupRide.state.roster.enumerated().map { index, entry in
+        let statuses = Dictionary(uniqueKeysWithValues: groupRide.state.statuses.map { ($0.uid, $0) })
+        let selfUID = Auth.auth().currentUser?.uid
+        let orderedRoster = groupRide.state.roster.sorted { lhs, rhs in
+            if lhs.uid == selfUID { return true }
+            if rhs.uid == selfUID { return false }
+            return lhs.uid < rhs.uid
+        }
+        return orderedRoster.enumerated().map { index, entry in
+            let isSelf = entry.uid == selfUID
             let position = positions[entry.uid]
+            let memberStatus = isSelf
+                ? groupRide.state.selfStatus.map {
+                    GroupWire.MemberStatus(
+                        uid: entry.uid,
+                        status: $0,
+                        serverTsMillis: 0,
+                        ageAnchor: groupRide.state.selfStatusAgeAnchor ?? .unknown(receivedAtElapsedMillis: groupClockTick)
+                    )
+                }
+                : statuses[entry.uid]
+            let positionBucket = position?.ageAnchor.map {
+                StatusAge.bucket(anchor: $0, nowElapsedMillis: groupClockTick, syncIntervalSec: groupRide.state.syncIntervalSec)
+            } ?? .unknown
+            let isFresh = position.map { isPositionFresh($0) } ?? false
+            let activity = activityText(position: position, isSelf: isSelf)
+            let statusLine = statusLine(memberStatus, isSelf: isSelf)
             return GroupMemberRow(
                 id: entry.uid,
                 name: entry.displayName ?? entry.initials ?? LocalizationHelper.localized("Rider"),
                 initials: entry.initials ?? GroupWire.initials(for: entry.displayName) ?? "?",
                 tint: GroupMemberTint.color(index: index),
-                status: statusText(for: position)
+                isSelf: isSelf,
+                activity: activity,
+                statusLine: statusLine,
+                riderStatus: memberStatus?.status,
+                position: position,
+                positionAge: positionBucket,
+                isFresh: isFresh
             )
         }
     }
 
+    private var attentionRows: [GroupMemberRow] {
+        memberRows.filter { !$0.isSelf && $0.riderStatus?.isAlert == true }
+    }
+
+    private var regularRows: [GroupMemberRow] {
+        memberRows.filter { $0.isSelf || $0.riderStatus?.isAlert != true }
+    }
+
+    @ViewBuilder
+    private func rosterRow(_ row: GroupMemberRow) -> some View {
+        GroupRosterRowView(
+            row: row,
+            canRemove: groupRide.state.isLeader && !row.isSelf,
+            onSetStatus: {
+                showStatusPicker = true
+            },
+            onDirections: {
+                guard let position = row.position else { return }
+                directionsTarget = GroupDirectionsTarget(position: position, age: row.positionAge)
+            },
+            onRemove: {
+                memberToRemove = row.id
+            }
+        )
+        .groupAccessibilityAction(
+            enabled: row.isSelf,
+            name: LocalizationHelper.localized("Set status")
+        ) {
+            showStatusPicker = true
+        }
+        .groupAccessibilityAction(
+            enabled: row.position != nil && !row.isSelf,
+            name: directionsLabel(for: row)
+        ) {
+            if let position = row.position {
+                directionsTarget = GroupDirectionsTarget(position: position, age: row.positionAge)
+            }
+        }
+        .groupAccessibilityAction(
+            enabled: groupRide.state.isLeader && !row.isSelf,
+            name: LocalizationHelper.localized("Remove")
+        ) {
+            memberToRemove = row.id
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if let position = row.position, !row.isSelf {
+                Button {
+                    directionsTarget = GroupDirectionsTarget(position: position, age: row.positionAge)
+                } label: {
+                    Label(directionsLabel(for: row), systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+                }
+                .tint(BrandColor.primary)
+            }
+            if groupRide.state.isLeader && !row.isSelf {
+                Button(role: .destructive) {
+                    memberToRemove = row.id
+                } label: {
+                    Label(LocalizationHelper.localized("Remove"), systemImage: "person.crop.circle.badge.minus")
+                }
+            }
+        }
+    }
+
+    private func directionsLabel(for row: GroupMemberRow) -> String {
+        guard let age = GroupAgePresentation.text(row.positionAge) else {
+            return LocalizationHelper.localized("Directions")
+        }
+        return "\(LocalizationHelper.localized("Directions")) · \(age)"
+    }
+
     private var timeLeftText: String {
+        guard groupRide.state.hasStarted else {
+            return LocalizationHelper.localized("Not started")
+        }
         let seconds = max(0, Int(Date(timeIntervalSince1970: TimeInterval(groupRide.state.expiresAtMillis) / 1000).timeIntervalSinceNow))
         if seconds == 0 { return "--" }
         let hours = seconds / 3600
@@ -348,15 +535,71 @@ struct CommunityView: View {
         )
     }
 
-    private func statusText(for position: GroupWire.MemberPosition?) -> String {
+    private func activityText(position: GroupWire.MemberPosition?, isSelf: Bool) -> String {
+        if isSelf {
+            let base = TrackingManager.shared.currentRideId != nil
+                ? LocalizationHelper.localized("Riding")
+                : LocalizationHelper.localized("Joined, not started")
+            guard let ack = groupRide.state.lastOwnPositionAckElapsedMillis else {
+                return base
+            }
+            let age = max(0, groupClockTick - ack)
+            guard age >= Int64(max(1, groupRide.state.syncIntervalSec)) * 1_000 else { return base }
+            let bucket = StatusAge.bucket(ageMillis: age, syncIntervalSec: groupRide.state.syncIntervalSec)
+            return GroupAgePresentation.text(bucket).map {
+                LocalizationHelper.formatted("Last shared %@", $0)
+            } ?? base
+        }
         guard let position else { return LocalizationHelper.localized("No recent location") }
-        let ageMillis = Date().timeIntervalSince1970 * 1000 - Double(position.serverTsMillis)
-        if ageMillis > Double(max(20, groupRide.state.syncIntervalSec * 2) * 1000) {
+        guard let anchor = position.ageAnchor, anchor.isKnown else {
             return LocalizationHelper.localized("No recent location")
         }
-        return position.riding
+        let base = position.riding
             ? LocalizationHelper.localized("Riding")
             : LocalizationHelper.localized("Joined, not started")
+        let bucket = StatusAge.bucket(anchor: anchor, nowElapsedMillis: groupClockTick, syncIntervalSec: groupRide.state.syncIntervalSec)
+        return GroupAgePresentation.text(bucket).map { "\(base) · \($0)" } ?? base
+    }
+
+    private func statusLine(_ memberStatus: GroupWire.MemberStatus?, isSelf: Bool) -> String? {
+        guard let memberStatus else { return nil }
+        let label = RiderStatusPresentation.label(for: memberStatus.status)
+        if isSelf {
+            if groupRide.state.isClearingStatus {
+                return "\(label) · \(LocalizationHelper.localized("Clearing…"))"
+            }
+            if !groupRide.state.isSelfStatusAcknowledged {
+                return "\(label) · \(LocalizationHelper.localized("Not sent yet"))"
+            }
+        }
+        let bucket = StatusAge.bucket(
+            anchor: memberStatus.ageAnchor,
+            nowElapsedMillis: groupClockTick,
+            syncIntervalSec: groupRide.state.syncIntervalSec
+        )
+        return GroupAgePresentation.text(bucket, includesAgo: false).map { "\(label) · \($0)" } ?? label
+    }
+
+    private func isPositionFresh(_ position: GroupWire.MemberPosition) -> Bool {
+        guard let anchor = position.ageAnchor, anchor.isKnown else { return false }
+        let age = StatusAge.currentAgeMillis(anchor: anchor, nowElapsedMillis: groupClockTick)
+        return age < Int64(max(20, groupRide.state.syncIntervalSec * 2)) * 1_000
+    }
+
+    private func openDirections(_ target: GroupDirectionsTarget, provider: GroupDirectionsProvider) {
+        directionsTarget = nil
+        guard let url = provider.url(lat: target.position.lat, lng: target.position.lng) else {
+            ToastManager.shared.show(message: LocalizationHelper.localized("No maps app is available."), style: .warning)
+            return
+        }
+        let ageBucket = GroupAgePresentation.telemetryBucket(target.age)
+        UIApplication.shared.open(url) { opened in
+            if opened {
+                TelemetryManager.shared.trackGroupDirectionsOpened(ageBucket: ageBucket)
+            } else {
+                ToastManager.shared.show(message: LocalizationHelper.localized("No maps app is available."), style: .warning)
+            }
+        }
     }
 
     private func endNoticeText(_ notice: GroupEndNotice) -> String {
@@ -410,17 +653,19 @@ private struct GroupEditView: View {
                     Text(LocalizationHelper.localized("Leave both fields blank to clear the destination."))
                 }
 
-                Section {
-                    Toggle(LocalizationHelper.localized("Scheduled start"), isOn: $hasStartTime)
-                    if hasStartTime {
-                        DatePicker(
-                            LocalizationHelper.localized("Start time"),
-                            selection: $startTime,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
+                if !groupRide.state.hasStarted {
+                    Section {
+                        Toggle(LocalizationHelper.localized("Scheduled start"), isOn: $hasStartTime)
+                        if hasStartTime {
+                            DatePicker(
+                                LocalizationHelper.localized("Start time"),
+                                selection: $startTime,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                        }
+                    } footer: {
+                        Text(LocalizationHelper.localized("A scheduled start sends a reminder only. Sharing never starts automatically."))
                     }
-                } footer: {
-                    Text(LocalizationHelper.localized("A scheduled start sends a reminder only. Sharing never starts automatically."))
                 }
             }
             .navigationTitle(LocalizationHelper.localized("Edit group"))
@@ -465,7 +710,9 @@ private struct GroupEditView: View {
     }
 
     private var scheduledStartIsValid: Bool {
-        !hasStartTime || startTime < Date(timeIntervalSince1970: TimeInterval(groupRide.state.expiresAtMillis) / 1000)
+        groupRide.state.hasStarted
+            || !hasStartTime
+            || startTime < Date(timeIntervalSince1970: TimeInterval(groupRide.state.expiresAtMillis) / 1000)
     }
 
     private func save() async {
@@ -474,7 +721,9 @@ private struct GroupEditView: View {
         do {
             let lat = fixedLocaleDouble(latText)
             let lng = fixedLocaleDouble(lngText)
-            let millis = hasStartTime ? Int64(startTime.timeIntervalSince1970 * 1000) : nil
+            let millis = groupRide.state.hasStarted
+                ? groupRide.state.startAtMillis
+                : (hasStartTime ? Int64(startTime.timeIntervalSince1970 * 1000) : nil)
             try await groupRide.updateMeta(destinationLat: lat, destinationLng: lng, startAtMillis: millis)
             dismiss()
         } catch {
@@ -494,7 +743,224 @@ private struct GroupMemberRow: Identifiable {
     let name: String
     let initials: String
     let tint: Color
-    let status: String
+    let isSelf: Bool
+    let activity: String
+    let statusLine: String?
+    let riderStatus: RiderStatus?
+    let position: GroupWire.MemberPosition?
+    let positionAge: StatusAge.Bucket
+    let isFresh: Bool
+}
+
+private struct GroupRosterRowView: View {
+    let row: GroupMemberRow
+    let canRemove: Bool
+    let onSetStatus: () -> Void
+    let onDirections: () -> Void
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            GroupMemberBadge(
+                initials: row.initials,
+                tint: row.tint,
+                isStale: !row.isSelf && !row.isFresh,
+                status: row.riderStatus
+            )
+            .frame(width: 44)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(row.isSelf ? LocalizationHelper.localized("You") : row.name)
+                    .font(.body.weight(.semibold))
+                    .lineLimit(1)
+
+                if let statusLine = row.statusLine, let riderStatus = row.riderStatus {
+                    statusChip(statusLine, status: riderStatus)
+                } else if row.isSelf {
+                    Button(action: onSetStatus) {
+                        Label(LocalizationHelper.localized("Set status"), systemImage: "plus")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(BrandColor.primary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(BrandColor.primary.opacity(0.10), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHidden(true)
+                }
+
+                Text(row.activity)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if !row.isSelf {
+                HStack(spacing: 8) {
+                    if row.position != nil {
+                        Button(action: onDirections) {
+                            Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(
+                                    row.isFresh ? BrandColor.primary : Color.secondary.opacity(0.55),
+                                    in: Circle()
+                                )
+                                .saturation(row.isFresh ? 1 : 0)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHidden(true)
+                    }
+
+                    if canRemove {
+                        Button(action: onRemove) {
+                            Image(systemName: "person.crop.circle.badge.minus")
+                                .font(.system(size: 19, weight: .semibold))
+                                .foregroundStyle(BrandColor.sosText)
+                                .frame(width: 44, height: 44)
+                                .background(BrandColor.sos.opacity(0.10), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHidden(true)
+                    }
+                }
+            }
+        }
+        .frame(minHeight: 64)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(row.isSelf ? LocalizationHelper.localized("Opens your status choices") : "")
+    }
+
+    @ViewBuilder
+    private func statusChip(_ text: String, status: RiderStatus) -> some View {
+        let isMuted = !row.isSelf && !row.isFresh
+        let color = isMuted ? Color.secondary : RiderStatusPresentation.textColor(status.severity)
+
+        if row.isSelf {
+            Button(action: onSetStatus) {
+                statusChipContent(text, status: status, color: color, isMuted: isMuted)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHidden(true)
+        } else {
+            statusChipContent(text, status: status, color: color, isMuted: isMuted)
+        }
+    }
+
+    private func statusChipContent(
+        _ text: String,
+        status: RiderStatus,
+        color: Color,
+        isMuted: Bool
+    ) -> some View {
+        Label(text, systemImage: RiderStatusPresentation.systemImage(status.severity))
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(color.opacity(isMuted ? 0.08 : 0.10), in: Capsule())
+            .accessibilityHidden(true)
+    }
+
+    private var accessibilityLabel: String {
+        var parts = [row.isSelf ? LocalizationHelper.localized("You") : row.name]
+        if let statusLine = row.statusLine, let status = row.riderStatus {
+            parts.append("\(RiderStatusPresentation.severityName(status.severity)): \(statusLine)")
+        } else if row.isSelf {
+            parts.append(LocalizationHelper.localized("No status set"))
+        }
+        parts.append(row.activity)
+        if row.position != nil, let age = GroupAgePresentation.text(row.positionAge) {
+            parts.append(LocalizationHelper.formatted("Directions to a last known point updated %@", age))
+        }
+        return parts.joined(separator: ", ")
+    }
+}
+
+private struct GroupStatusPicker: View {
+    let currentStatus: RiderStatus?
+    let persona: StatusPersona
+    let onSelect: (RiderStatus) -> Void
+    let onClear: () -> Void
+
+    private var options: [RiderStatus] {
+        var values = RiderStatusCatalog.options(for: persona)
+        if let currentStatus, !values.contains(where: { $0.raw == currentStatus.raw }) {
+            values.insert(currentStatus, at: 0)
+        }
+        return values
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(options) { status in
+                    Button {
+                        guard status.raw != currentStatus?.raw else { return }
+                        onSelect(status)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 12) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(RiderStatusPresentation.color(status.severity))
+                                    .frame(width: ruleWidth(status.severity), height: 34)
+                                Label(
+                                    RiderStatusPresentation.label(for: status),
+                                    systemImage: RiderStatusPresentation.systemImage(status.severity)
+                                )
+                                .foregroundStyle(.primary)
+                                Spacer()
+                                if status.raw == currentStatus?.raw {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(BrandColor.primary)
+                                }
+                            }
+                            if status.isAlert {
+                                Text(LocalizationHelper.localized("This tells the people in this group. It does not contact emergency services. They'll see it when their app next syncs."))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        }
+                        .frame(minHeight: 48)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(RiderStatusPresentation.severityName(status.severity)), \(RiderStatusPresentation.label(for: status))")
+                    .accessibilityValue(status.raw == currentStatus?.raw ? LocalizationHelper.localized("Selected") : "")
+                }
+
+                if currentStatus != nil {
+                    Button(action: onClear) {
+                        Label(LocalizationHelper.localized("None"), systemImage: "circle.slash")
+                            .frame(minHeight: 48)
+                    }
+                    .accessibilityLabel(LocalizationHelper.localized("Clear status"))
+                }
+            }
+            .navigationTitle(LocalizationHelper.localized("Your status"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func ruleWidth(_ severity: StatusSeverity) -> CGFloat {
+        switch severity {
+        case .info: 2
+        case .caution: 4
+        case .alert: 6
+        }
+    }
+}
+
+private struct GroupDirectionsTarget: Identifiable {
+    let id = UUID()
+    let position: GroupWire.MemberPosition
+    let age: StatusAge.Bucket
 }
 
 private struct CalendarDetails: Identifiable {
@@ -510,6 +976,7 @@ struct GroupMemberBadge: View {
     let tint: Color
     var isStale = false
     var ageText: String?
+    var status: RiderStatus? = nil
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -530,6 +997,18 @@ struct GroupMemberBadge: View {
                     .background(.black.opacity(0.72), in: Capsule())
                     .offset(x: 8, y: 6)
             }
+
+            if let status {
+                Image(systemName: RiderStatusPresentation.systemImage(status.severity))
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundStyle(RiderStatusPresentation.fillForeground(status.severity))
+                    .frame(width: 16, height: 16)
+                    .background(RiderStatusPresentation.color(status.severity), in: Circle())
+                    .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                    .shadow(color: .black.opacity(0.65), radius: 1, y: 1)
+                    .offset(x: 7, y: -25)
+                    .saturation(isStale ? 0 : 1)
+            }
         }
         .accessibilityHidden(true)
     }
@@ -546,5 +1025,16 @@ enum GroupMemberTint {
 
     static func color(index: Int) -> Color {
         colors[index % colors.count]
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func groupAccessibilityAction(enabled: Bool, name: String, action: @escaping () -> Void) -> some View {
+        if enabled {
+            accessibilityAction(named: Text(name), action)
+        } else {
+            self
+        }
     }
 }

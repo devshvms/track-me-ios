@@ -52,12 +52,35 @@ final class GroupRideManager {
     private var backoff = GroupBackoff()
     private var syncTask: Task<Void, Never>?
     private var pendingPosition: String?
+    private var pendingStatus: PendingStatusChange?
+    private var statusUndoTask: Task<Void, Never>?
+    private var statusUndoSnapshot: StatusUndoSnapshot?
+    private var isSyncInFlight = false
+    private var presencePauseStartedElapsedMillis: Int64?
+    private var presencePauseCause: GroupPresencePolicy.Cause?
+    private var lastPositionFixTimestamp: Date?
+
+    private enum PendingStatusChange: Equatable {
+        case set(envelope: String)
+        case clear
+    }
+
+    private struct StatusUndoSnapshot {
+        let status: RiderStatus?
+        let ageAnchor: StatusAge.Anchor?
+        let acknowledged: Bool
+        let isClearing: Bool
+        let pending: PendingStatusChange?
+    }
 
     var state = GroupSessionState()
     var endNotice: GroupEndNotice?
     var pendingJoinToken: String?
     var pendingJoinCode: String?
     var pendingJoinViaCode = true
+    /// Kept outside session state so a notification tap cannot be erased by
+    /// restore/teardown replacing the current session snapshot.
+    var communityNavigationRequest = 0
 
     init(
         store: GroupSessionStore = .shared,
@@ -76,17 +99,24 @@ final class GroupRideManager {
         guard let restored = store.load() else { return false }
         do {
             groupKey = try GroupCrypto.deriveGroupKey(token: restored.token)
+            let nowElapsed = StatusAge.elapsedMillis()
             state = GroupSessionState(
                 status: .degraded,
                 groupId: restored.record.groupId,
                 joinCode: restored.record.joinCode,
                 inviteToken: restored.token,
                 isLeader: restored.record.isLeader,
+                hasStarted: restored.record.hasStarted,
                 expiresAtMillis: restored.record.expiresAtMillis,
                 maxMembers: restored.record.maxMembers,
                 rev: restored.record.rev,
-                degradedSince: Date()
+                degradedSince: Date(),
+                joinedAtElapsedMillis: nowElapsed,
+                lastSuccessfulSyncElapsedMillis: nowElapsed,
+                lastSyncFailureKind: .serviceUnavailable,
+                alertsMuted: restored.record.alertsMuted
             )
+            try restoreStatus(restored.record.status)
             refreshLocationSource()
             startSyncLoop()
             return true
@@ -178,6 +208,7 @@ final class GroupRideManager {
         ]
         let response = try await post(path: "/api/group/create", body: body)
         let created = try GroupWire.parseCreate(response)
+        let joinedAtElapsed = StatusAge.elapsedMillis()
         try store.save(
             record: GroupSessionStore.Record(
                 groupId: created.groupId,
@@ -185,7 +216,8 @@ final class GroupRideManager {
                 isLeader: true,
                 expiresAtMillis: created.expiresAtMillis,
                 maxMembers: created.maxMembers,
-                rev: created.rev
+                rev: created.rev,
+                hasStarted: created.state == "LIVE"
             ),
             token: token
         )
@@ -200,6 +232,7 @@ final class GroupRideManager {
             destinationLng: destinationLng,
             startAtMillis: startAtMillis,
             isLeader: true,
+            hasStarted: created.state == "LIVE",
             expiresAtMillis: created.expiresAtMillis,
             maxMembers: created.maxMembers,
             rev: created.rev,
@@ -212,7 +245,9 @@ final class GroupRideManager {
                     photoUrl: user.photoURL?.absoluteString
                 )
             ],
-            joinedAtMillis: Int64(Date().timeIntervalSince1970 * 1000)
+            joinedAtMillis: Int64(Date().timeIntervalSince1970 * 1000),
+            joinedAtElapsedMillis: joinedAtElapsed,
+            lastSuccessfulSyncElapsedMillis: joinedAtElapsed
         )
         GroupReminderScheduler.schedule(groupId: created.groupId, groupName: groupName, startAtMillis: startAtMillis)
         refreshLocationSource()
@@ -261,8 +296,50 @@ final class GroupRideManager {
     }
 
     func startGroup() async throws {
-        try await setState("LIVE")
+        guard let groupId = state.groupId, let key = groupKey else {
+            throw GroupWire.Error.missingField("groupId or groupKey")
+        }
+
+        var body: [String: Any] = ["groupId": groupId, "state": "LIVE"]
+        var automaticStartAtMillis: Int64?
+        if state.startAtMillis == nil {
+            let startedAtMillis = Int64(Date().timeIntervalSince1970 * 1_000)
+            let metaPlain = try GroupWire.encodeMeta(
+                name: state.groupName ?? "Group Ride",
+                ownerDisplayName: Auth.auth().currentUser?.displayName,
+                destLat: state.destinationLat,
+                destLng: state.destinationLng,
+                startAtMillis: startedAtMillis
+            )
+            body["meta"] = try GroupCrypto.seal(key: key, plaintext: metaPlain, purpose: .meta)
+            automaticStartAtMillis = startedAtMillis
+        }
+
+        let started = try GroupWire.parseState(
+            try await post(path: "/api/group/state", body: body),
+            key: key
+        )
         state.status = .live
+        state.hasStarted = true
+        if let expiresAtMillis = started.expiresAtMillis {
+            state.expiresAtMillis = expiresAtMillis
+        }
+        if let acceptedMeta = started.meta {
+            state.groupName = acceptedMeta.name
+            state.destinationLat = acceptedMeta.destLat
+            state.destinationLng = acceptedMeta.destLng
+            state.startAtMillis = acceptedMeta.startAtMillis
+        } else if let automaticStartAtMillis, started.metaUpdated {
+            // Backward-compatible fallback for a rollout relay that acknowledges the write but
+            // does not yet echo the accepted encrypted meta.
+            state.startAtMillis = automaticStartAtMillis
+        }
+        if let rev = started.rev { state.rev = rev }
+        store.updateLifecycle(
+            expiresAtMillis: state.expiresAtMillis,
+            hasStarted: true,
+            rev: started.rev
+        )
         TelemetryManager.shared.trackGroupStarted(memberCount: state.memberCount)
     }
 
@@ -276,26 +353,27 @@ final class GroupRideManager {
         guard state.isLeader, let groupId = state.groupId, let key = groupKey else {
             throw GroupWire.Error.missingField("groupId")
         }
+        let effectiveStartAtMillis = state.hasStarted ? state.startAtMillis : startAtMillis
         let metaPlain = try GroupWire.encodeMeta(
             name: state.groupName ?? "Group Ride",
             ownerDisplayName: Auth.auth().currentUser?.displayName,
             destLat: destinationLat,
             destLng: destinationLng,
-            startAtMillis: startAtMillis
+            startAtMillis: effectiveStartAtMillis
         )
         let envelope = try GroupCrypto.seal(key: key, plaintext: metaPlain, purpose: .meta)
         _ = try await post(path: "/api/group/meta", body: ["groupId": groupId, "meta": envelope])
         state.destinationLat = destinationLat
         state.destinationLng = destinationLng
-        state.startAtMillis = startAtMillis
+        state.startAtMillis = effectiveStartAtMillis
         TelemetryManager.shared.trackGroupMetaUpdated(
             hasDestination: destinationLat != nil && destinationLng != nil,
-            hasStartTime: startAtMillis != nil
+            hasStartTime: effectiveStartAtMillis != nil
         )
         GroupReminderScheduler.schedule(
             groupId: groupId,
             groupName: state.groupName ?? "Group Ride",
-            startAtMillis: startAtMillis
+            startAtMillis: effectiveStartAtMillis
         )
     }
 
@@ -303,6 +381,7 @@ final class GroupRideManager {
         guard state.isLeader, let groupId = state.groupId else { throw GroupWire.Error.missingField("groupId") }
         _ = try await post(path: "/api/group/remove", body: ["groupId": groupId, "uid": uid])
         state.positions.removeAll { $0.uid == uid }
+        state.statuses.removeAll { $0.uid == uid }
         state.roster.removeAll { $0.uid == uid }
         TelemetryManager.shared.trackGroupMemberRemoved(memberCount: state.roster.count)
     }
@@ -323,11 +402,12 @@ final class GroupRideManager {
             return
         }
         let horizontalAccuracy = location.horizontalAccuracy
-        guard horizontalAccuracy >= 0, horizontalAccuracy <= 150 else {
-            pendingPosition = nil
-            state.isSharingPosition = false
-            return
-        }
+        guard horizontalAccuracy >= 0, horizontalAccuracy <= 150 else { return }
+        let fixAge = Date().timeIntervalSince(location.timestamp)
+        let maximumAcceptedAge = TimeInterval(max(30, state.syncIntervalSec * 2))
+        guard fixAge >= -60, fixAge <= maximumAcceptedAge else { return }
+        if let lastPositionFixTimestamp, location.timestamp <= lastPositionFixTimestamp { return }
+        lastPositionFixTimestamp = location.timestamp
         do {
             let plain = try GroupWire.encodePosition(
                 lat: location.coordinate.latitude,
@@ -350,6 +430,132 @@ final class GroupRideManager {
         endNotice = nil
     }
 
+    func setStatus(_ status: RiderStatus) throws {
+        guard state.isActive else { throw GroupWire.Error.missingField("activeGroup") }
+        if state.selfStatus?.raw == status.raw, !state.isClearingStatus { return }
+
+        statusUndoTask?.cancel()
+        statusUndoTask = nil
+        statusUndoSnapshot = nil
+
+        let setAtElapsed = StatusAge.elapsedMillis()
+        if status.isAlert {
+            statusUndoSnapshot = StatusUndoSnapshot(
+                status: state.selfStatus,
+                ageAnchor: state.selfStatusAgeAnchor,
+                acknowledged: state.isSelfStatusAcknowledged,
+                isClearing: state.isClearingStatus,
+                pending: pendingStatus
+            )
+            state.selfStatus = status
+            state.selfStatusAgeAnchor = StatusAge.Anchor(
+                ageAtReceiptMillis: 0,
+                receivedAtElapsedMillis: setAtElapsed,
+                isKnown: true
+            )
+            state.isSelfStatusAcknowledged = false
+            state.isClearingStatus = false
+            state.isStatusUndoAvailable = true
+            statusUndoTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(4))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    self?.commitStatusSet(
+                        status,
+                        setAtElapsedMillis: setAtElapsed,
+                        ageKnown: true,
+                        trackTelemetry: true
+                    )
+                }
+            }
+        } else {
+            commitStatusSet(
+                status,
+                setAtElapsedMillis: setAtElapsed,
+                ageKnown: true,
+                trackTelemetry: true
+            )
+        }
+        statusConfirmationHaptic()
+    }
+
+    func undoPendingAlertStatus() {
+        guard state.isStatusUndoAvailable, let snapshot = statusUndoSnapshot else { return }
+        statusUndoTask?.cancel()
+        statusUndoTask = nil
+        statusUndoSnapshot = nil
+        state.selfStatus = snapshot.status
+        state.selfStatusAgeAnchor = snapshot.ageAnchor
+        state.isSelfStatusAcknowledged = snapshot.acknowledged
+        state.isClearingStatus = snapshot.isClearing
+        state.isStatusUndoAvailable = false
+        pendingStatus = snapshot.pending
+        statusConfirmationHaptic()
+    }
+
+    func clearStatus() {
+        guard state.isActive, state.selfStatus != nil else { return }
+        statusUndoTask?.cancel()
+        statusUndoTask = nil
+        statusUndoSnapshot = nil
+        state.isStatusUndoAvailable = false
+        state.isClearingStatus = true
+        state.isSelfStatusAcknowledged = false
+        pendingStatus = .clear
+        persistCurrentStatus(pendingOperation: .clear)
+        statusConfirmationHaptic()
+        TelemetryManager.shared.trackGroupStatusCleared(byUser: true)
+        requestImmediateSync()
+    }
+
+    func setAlertsMuted(_ muted: Bool) {
+        state.alertsMuted = muted
+        store.updateAlertsMuted(muted)
+        if muted { TelemetryManager.shared.trackGroupStatusAlertMuted() }
+    }
+
+    func requestCommunityNavigation() {
+        communityNavigationRequest &+= 1
+    }
+
+    func presencePill(nowElapsedMillis: Int64 = StatusAge.elapsedMillis()) -> GroupPresencePolicy.Pill {
+        let statusAge = state.selfStatusAgeAnchor.map {
+            StatusAge.bucket(anchor: $0, nowElapsedMillis: nowElapsedMillis, syncIntervalSec: state.syncIntervalSec)
+        } ?? .unknown
+        return GroupPresencePolicy.evaluate(.init(
+            sessionActive: state.isActive,
+            lastSuccessfulSyncElapsedMillis: state.lastSuccessfulSyncElapsedMillis,
+            lastOwnPositionAckElapsedMillis: state.lastOwnPositionAckElapsedMillis,
+            lastFailureKind: state.lastSyncFailureKind,
+            isSharingPosition: state.isSharingPosition,
+            isRideRecording: TrackingManager.shared.currentRideId != nil,
+            selfStatus: state.selfStatus,
+            selfStatusAge: statusAge,
+            selfStatusAcknowledged: state.isSelfStatusAcknowledged,
+            isClearingStatus: state.isClearingStatus,
+            syncIntervalSec: state.syncIntervalSec,
+            nowElapsedMillis: nowElapsedMillis
+        ))
+    }
+
+    func observePresencePill(
+        _ pill: GroupPresencePolicy.Pill,
+        nowElapsedMillis: Int64 = StatusAge.elapsedMillis()
+    ) {
+        let cause: GroupPresencePolicy.Cause? = switch pill {
+        case .paused(let cause, _, _), .pausedWithPendingStatus(let cause, _, _, _): cause
+        default: nil
+        }
+        if let cause {
+            if presencePauseStartedElapsedMillis == nil {
+                presencePauseStartedElapsedMillis = nowElapsedMillis
+            }
+            presencePauseCause = cause
+        } else {
+            finishPresencePause(nowElapsedMillis: nowElapsedMillis)
+        }
+    }
+
     private func joinWithToken(_ token: String, joinCode: String, groupId: String, viaCode: Bool) async throws {
         let user = try currentUser()
         let key = try GroupCrypto.deriveGroupKey(token: token)
@@ -365,6 +571,7 @@ final class GroupRideManager {
             "viaCode": viaCode
         ]
         let joined = try GroupWire.parseJoin(try await post(path: "/api/group/join", body: body), key: key)
+        let joinedAtElapsed = StatusAge.elapsedMillis()
         try store.save(
             record: GroupSessionStore.Record(
                 groupId: joined.groupId,
@@ -372,7 +579,8 @@ final class GroupRideManager {
                 isLeader: false,
                 expiresAtMillis: joined.expiresAtMillis,
                 maxMembers: joined.maxMembers,
-                rev: joined.rev
+                rev: joined.rev,
+                hasStarted: joined.state == "LIVE"
             ),
             token: token
         )
@@ -387,11 +595,14 @@ final class GroupRideManager {
             destinationLng: joined.meta?.destLng,
             startAtMillis: joined.meta?.startAtMillis,
             isLeader: false,
+            hasStarted: joined.state == "LIVE",
             expiresAtMillis: joined.expiresAtMillis,
             maxMembers: joined.maxMembers,
             rev: joined.rev,
             syncIntervalSec: joined.syncIntervalSec,
-            joinedAtMillis: Int64(Date().timeIntervalSince1970 * 1000)
+            joinedAtMillis: Int64(Date().timeIntervalSince1970 * 1000),
+            joinedAtElapsedMillis: joinedAtElapsed,
+            lastSuccessfulSyncElapsedMillis: joinedAtElapsed
         )
         GroupReminderScheduler.schedule(
             groupId: joined.groupId,
@@ -417,7 +628,11 @@ final class GroupRideManager {
 
     @MainActor
     private func syncOnce() async {
-        guard state.isActive, let groupId = state.groupId, let key = groupKey else { return }
+        guard !isSyncInFlight, state.isActive, let groupId = state.groupId, let key = groupKey else { return }
+        isSyncInFlight = true
+        defer { isSyncInFlight = false }
+        let sentPosition = pendingPosition
+        let sentStatus = pendingStatus
         do {
             var body: [String: Any] = [
                 "groupId": groupId,
@@ -425,10 +640,18 @@ final class GroupRideManager {
                 "foreground": UIApplication.shared.applicationState == .active,
                 "rev": state.roster.isEmpty ? -1 : state.rev
             ]
-            if let pendingPosition { body["pos"] = pendingPosition }
+            if let sentPosition { body["pos"] = sentPosition }
+            switch sentStatus {
+            case .set(let envelope):
+                body.merge(GroupWire.statusRequestFields(for: .set(envelope: envelope))) { _, new in new }
+            case .clear:
+                body.merge(GroupWire.statusRequestFields(for: .clear)) { _, new in new }
+            case nil:
+                break
+            }
             let data = try await post(path: "/api/group/sync", body: body)
             let result = try GroupWire.parseSync(data, key: key, selfUid: try currentUser().uid)
-            apply(sync: result)
+            apply(sync: result, sentPosition: sentPosition, sentStatus: sentStatus)
             backoff.reset()
         } catch let error as GroupHttpError {
             await handleSyncHTTPError(error)
@@ -438,19 +661,108 @@ final class GroupRideManager {
     }
 
     @MainActor
-    private func apply(sync: GroupWire.SyncResult) {
+    private func apply(
+        sync: GroupWire.SyncResult,
+        sentPosition: String?,
+        sentStatus: PendingStatusChange?
+    ) {
         if sync.state == "ENDED" {
             teardown(notice: GroupEndNotice(reason: .ended, rideStillRecording: TrackingManager.shared.currentRideId != nil))
             return
         }
+        let previousExpiry = state.expiresAtMillis
+        let wasStarted = state.hasStarted
         state.status = statusFor(sync.state)
+        state.hasStarted = sync.state == "LIVE"
         state.expiresAtMillis = sync.expiresAtMillis
         state.rev = sync.rev
         state.maxMembers = sync.maxMembers
         state.syncIntervalSec = sync.nextSyncInSec
         state.positions = sync.positions
+        let acceptedAtElapsed = StatusAge.elapsedMillis()
+        state.lastSuccessfulSyncElapsedMillis = acceptedAtElapsed
+        state.lastSyncFailureKind = nil
         state.consecutiveFailures = 0
         state.degradedSince = nil
+        if previousExpiry != state.expiresAtMillis || wasStarted != state.hasStarted {
+            store.updateLifecycle(
+                expiresAtMillis: state.expiresAtMillis,
+                hasStarted: state.hasStarted
+            )
+        }
+
+        if let sentPosition,
+           sync.selfPositionAck?.envelope == sentPosition {
+            state.lastOwnPositionAckElapsedMillis = acceptedAtElapsed
+            if pendingPosition == sentPosition { pendingPosition = nil }
+        }
+
+        if sync.statusesFieldPresent {
+            let receivedStatusUIDs = Set(sync.statuses.map(\.uid))
+            let effectiveStatuses = sync.statuses + state.statuses.filter {
+                sync.unreadableStatusUIDs.contains($0.uid) && !receivedStatusUIDs.contains($0.uid)
+            }
+            let alertRoster: [GroupWire.RosterEntry]
+            if let currentRoster = sync.roster {
+                let currentUIDs = Set(currentRoster.map(\.uid))
+                alertRoster = currentRoster + state.roster.filter { !currentUIDs.contains($0.uid) }
+            } else {
+                alertRoster = state.roster
+            }
+            GroupStatusAlertCoordinator.shared.process(
+                previous: state.statuses,
+                current: effectiveStatuses,
+                positions: sync.positions,
+                roster: alertRoster,
+                groupName: state.groupName,
+                joinedAtElapsedMillis: state.joinedAtElapsedMillis,
+                syncIntervalSec: state.syncIntervalSec,
+                alertsMuted: state.alertsMuted
+            )
+            state.statuses = effectiveStatuses
+        }
+
+        switch sentStatus {
+        case .set(let envelope)
+            where pendingStatus == sentStatus && sync.selfStatusAck?.envelope == envelope:
+            state.selfStatus = sync.selfStatus?.status ?? state.selfStatus
+            state.selfStatusAgeAnchor = sync.selfStatus?.ageAnchor ?? state.selfStatusAgeAnchor
+            state.isSelfStatusAcknowledged = true
+            state.isClearingStatus = false
+            state.lastStatusAckElapsedMillis = acceptedAtElapsed
+            if pendingStatus == sentStatus { pendingStatus = nil }
+            persistCurrentStatus(pendingOperation: nil)
+        case .clear
+            where pendingStatus == sentStatus && sync.statusesFieldPresent && sync.selfStatus == nil:
+            state.lastStatusAckElapsedMillis = acceptedAtElapsed
+            state.selfStatus = nil
+            state.selfStatusAgeAnchor = nil
+            state.isSelfStatusAcknowledged = true
+            state.isClearingStatus = false
+            if pendingStatus == sentStatus { pendingStatus = nil }
+            store.updateStatus(nil)
+        default:
+            if pendingStatus == nil, let selfStatus = sync.selfStatus {
+                state.selfStatus = selfStatus.status
+                state.selfStatusAgeAnchor = selfStatus.ageAnchor
+                state.isSelfStatusAcknowledged = true
+                if let envelope = sync.selfStatusAck?.envelope {
+                    persistAcknowledgedSelfStatus(
+                        selfStatus,
+                        envelope: envelope,
+                        acceptedAtElapsedMillis: acceptedAtElapsed
+                    )
+                }
+            } else if pendingStatus == nil,
+                      sync.statusesFieldPresent,
+                      state.selfStatus != nil,
+                      let stored = store.load()?.record.status,
+                      let envelope = stored.envelope {
+                pendingStatus = .set(envelope: envelope)
+                state.isSelfStatusAcknowledged = false
+                persistCurrentStatus(pendingOperation: .set)
+            }
+        }
         if let roster = sync.roster {
             state.roster = roster
             store.updateRev(sync.rev)
@@ -469,8 +781,8 @@ final class GroupRideManager {
                 )
             }
         }
-        if !sync.undecryptable.isEmpty {
-            errorLogger.log("GroupRide: skipped undecryptable member envelopes")
+        if !sync.undecryptable.isEmpty || !sync.unreadableStatusUIDs.isEmpty {
+            errorLogger.log("GroupRide: skipped unreadable member envelopes")
         }
     }
 
@@ -485,6 +797,8 @@ final class GroupRideManager {
             }
         } else if GroupBackoff.isRetryable(statusCode: error.statusCode, code: error.code) {
             await enterDegraded(error: error, retryAfter: error.retryAfter)
+        } else {
+            await enterDegraded(error: error)
         }
     }
 
@@ -494,21 +808,50 @@ final class GroupRideManager {
         state.status = .degraded
         state.degradedSince = state.degradedSince ?? Date()
         state.consecutiveFailures += 1
+        state.lastSyncFailureKind = classifySyncFailure(error)
         TelemetryManager.shared.trackGroupDegraded()
         let delay = backoff.nextDelay(retryAfter: retryAfter)
         try? await Task.sleep(for: .seconds(delay))
     }
 
     private func teardown(notice: GroupEndNotice?) {
+        let groupEnded = notice?.reason == .ended || notice?.reason == .expired
+        if state.selfStatus != nil,
+           !state.isStatusUndoAvailable,
+           groupEnded {
+            TelemetryManager.shared.trackGroupStatusCleared(byUser: false)
+        }
+        finishPresencePause(nowElapsedMillis: StatusAge.elapsedMillis())
         syncTask?.cancel()
         syncTask = nil
         GroupPresenceLocationProvider.shared.stop()
         GroupReminderScheduler.cancel()
+        GroupStatusAlertCoordinator.shared.removeSessionNotifications()
         store.clear()
         groupKey = nil
         pendingPosition = nil
+        pendingStatus = nil
+        lastPositionFixTimestamp = nil
+        statusUndoTask?.cancel()
+        statusUndoTask = nil
+        statusUndoSnapshot = nil
         state = GroupSessionState()
         endNotice = notice
+    }
+
+    private func finishPresencePause(nowElapsedMillis: Int64) {
+        guard let started = presencePauseStartedElapsedMillis,
+              let cause = presencePauseCause else { return }
+        let duration = max(0, nowElapsedMillis - started)
+        let bucket: String
+        switch duration {
+        case ..<120_000: bucket = "under_2m"
+        case ..<600_000: bucket = "2_to_10m"
+        default: bucket = "10m_plus"
+        }
+        TelemetryManager.shared.trackGroupPresencePaused(durationBucket: bucket, cause: cause)
+        presencePauseStartedElapsedMillis = nil
+        presencePauseCause = nil
     }
 
     private func setState(_ next: String) async throws {
@@ -640,5 +983,170 @@ final class GroupRideManager {
         let level = UIDevice.current.batteryLevel
         guard level >= 0 else { return nil }
         return Int((level * 100).rounded())
+    }
+
+    private func commitStatusSet(
+        _ status: RiderStatus,
+        setAtElapsedMillis: Int64,
+        ageKnown: Bool,
+        trackTelemetry: Bool
+    ) {
+        guard state.isActive, let key = groupKey, let uid = Auth.auth().currentUser?.uid else { return }
+        do {
+            let nowElapsed = StatusAge.elapsedMillis()
+            let ageSeconds = ageKnown ? max(0, nowElapsed - setAtElapsedMillis) / 1_000 : nil
+            let plain = try GroupWire.encodeStatus(status, statusAgeSeconds: ageSeconds)
+            let envelope = try GroupCrypto.seal(key: key, plaintext: plain, purpose: .status(uid: uid))
+            pendingStatus = .set(envelope: envelope)
+            state.selfStatus = status
+            state.selfStatusAgeAnchor = ageKnown
+                ? StatusAge.Anchor(
+                    ageAtReceiptMillis: max(0, nowElapsed - setAtElapsedMillis),
+                    receivedAtElapsedMillis: nowElapsed,
+                    isKnown: true
+                )
+                : .unknown(receivedAtElapsedMillis: nowElapsed)
+            state.isSelfStatusAcknowledged = false
+            state.isClearingStatus = false
+            state.isStatusUndoAvailable = false
+            statusUndoSnapshot = nil
+            statusUndoTask = nil
+            let wallNow = Int64(Date().timeIntervalSince1970 * 1_000)
+            store.updateStatus(.init(
+                raw: status.raw,
+                envelope: envelope,
+                setAtElapsedMillis: ageKnown ? setAtElapsedMillis : nil,
+                bootEpochAtSetMillis: ageKnown ? StatusAge.bootEpochMillis(wallNowMillis: wallNow, elapsedMillis: nowElapsed) : nil,
+                pendingOperation: .set,
+                acknowledged: false
+            ))
+            if trackTelemetry {
+                TelemetryManager.shared.trackGroupStatusSet(severity: status.severity)
+            }
+            requestImmediateSync()
+        } catch {
+            errorLogger.recordError(error)
+        }
+    }
+
+    private func restoreStatus(_ stored: GroupSessionStore.StoredStatus?) throws {
+        guard let stored, let status = RiderStatusCodec.parse(stored.raw) else { return }
+        let nowElapsed = StatusAge.elapsedMillis()
+        let wallNow = Int64(Date().timeIntervalSince1970 * 1_000)
+        let currentBoot = StatusAge.bootEpochMillis(wallNowMillis: wallNow, elapsedMillis: nowElapsed)
+        let ageKnown = stored.setAtElapsedMillis != nil && stored.bootEpochAtSetMillis.map {
+            !StatusAge.bootEpochChanged(stored: $0, current: currentBoot)
+        } == true
+
+        state.selfStatus = status
+        state.selfStatusAgeAnchor = if ageKnown, let setAt = stored.setAtElapsedMillis {
+            StatusAge.Anchor(
+                ageAtReceiptMillis: max(0, nowElapsed - setAt),
+                receivedAtElapsedMillis: nowElapsed,
+                isKnown: true
+            )
+        } else {
+            .unknown(receivedAtElapsedMillis: nowElapsed)
+        }
+        state.isSelfStatusAcknowledged = stored.acknowledged
+
+        if stored.pendingOperation == .clear {
+            pendingStatus = .clear
+            state.isClearingStatus = true
+            state.isSelfStatusAcknowledged = false
+        } else if ageKnown, let envelope = stored.envelope, stored.pendingOperation == .set {
+            pendingStatus = .set(envelope: envelope)
+            state.isSelfStatusAcknowledged = false
+        } else if !ageKnown {
+            commitStatusSet(
+                status,
+                setAtElapsedMillis: nowElapsed,
+                ageKnown: false,
+                trackTelemetry: false
+            )
+        }
+    }
+
+    private func persistCurrentStatus(pendingOperation: GroupSessionStore.StatusOperation?) {
+        guard let status = state.selfStatus else {
+            store.updateStatus(nil)
+            return
+        }
+        let existing = store.load()?.record.status
+        let envelope: String? = switch pendingStatus {
+        case .set(let envelope): envelope
+        default: existing?.envelope
+        }
+        store.updateStatus(.init(
+            raw: status.raw,
+            envelope: envelope,
+            setAtElapsedMillis: existing?.setAtElapsedMillis,
+            bootEpochAtSetMillis: existing?.bootEpochAtSetMillis,
+            pendingOperation: pendingOperation,
+            acknowledged: state.isSelfStatusAcknowledged
+        ))
+    }
+
+    private func persistAcknowledgedSelfStatus(
+        _ memberStatus: GroupWire.MemberStatus,
+        envelope: String,
+        acceptedAtElapsedMillis: Int64
+    ) {
+        let age = memberStatus.ageAnchor.isKnown
+            ? StatusAge.currentAgeMillis(
+                anchor: memberStatus.ageAnchor,
+                nowElapsedMillis: acceptedAtElapsedMillis
+            )
+            : nil
+        let setAtElapsedMillis = age.map { value -> Int64 in
+            let (result, overflow) = acceptedAtElapsedMillis.subtractingReportingOverflow(value)
+            return overflow ? Int64.min : result
+        }
+        let wallNow = Int64(Date().timeIntervalSince1970 * 1_000)
+        store.updateStatus(.init(
+            raw: memberStatus.status.raw,
+            envelope: envelope,
+            setAtElapsedMillis: setAtElapsedMillis,
+            bootEpochAtSetMillis: setAtElapsedMillis == nil
+                ? nil
+                : StatusAge.bootEpochMillis(
+                    wallNowMillis: wallNow,
+                    elapsedMillis: acceptedAtElapsedMillis
+                ),
+            pendingOperation: nil,
+            acknowledged: true
+        ))
+    }
+
+    private func requestImmediateSync() {
+        Task { [weak self] in await self?.syncOnce() }
+    }
+
+    private func classifySyncFailure(_ error: Error) -> GroupSyncFailureKind {
+        if !NetworkMonitor.shared.isConnected { return .noInternet }
+        if let http = error as? GroupHttpError {
+            if http.statusCode == 401 { return .auth }
+            if http.statusCode == 408 || http.statusCode == 429 || http.statusCode >= 500 {
+                return .serviceUnavailable
+            }
+            return .protocolFailure
+        }
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .internationalRoamingOff,
+                 .dataNotAllowed, .callIsActive:
+                return .noInternet
+            case .timedOut, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+                return .serviceUnavailable
+            default:
+                return .protocolFailure
+            }
+        }
+        return .protocolFailure
+    }
+
+    private func statusConfirmationHaptic() {
+        guard UIApplication.shared.applicationState == .active else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 }

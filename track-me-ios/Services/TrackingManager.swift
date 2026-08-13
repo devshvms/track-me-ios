@@ -156,6 +156,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if GroupRideManager.shared.state.isActive,
+           mappedAuth == .denied || mappedAuth == .restricted {
+            GroupRideManager.shared.updateLatestLocation(nil, moving: false, riding: currentRideId != nil)
+        }
         guard pendingTrackingStart else { return }
         switch mappedAuth {
         case .whenInUse, .always:

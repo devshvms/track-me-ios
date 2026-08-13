@@ -50,6 +50,8 @@ enum BrandColor {
 
     /// SOS / destructive / error.
     static let sos = redSos
+    /// Top-tier rider status. Kept distinct from the retired emergency/SOS product language.
+    static let severityAlert = redSos
     /// A deeper SOS red for the fully-armed slider state.
     static let sosDeep = Color(hex: 0xB30000)
 
@@ -63,6 +65,12 @@ enum BrandColor {
 
     /// Warning (GPS lost, paused, pending/processing).
     static let warning = amberWarn
+    static let severityCaution = amberWarn
+    static let severityInfo = cyanBright
+    /// Adaptive foregrounds for status words on app surfaces. Badge/pill fills keep
+    /// the brighter scan colours above; text uses contrast-safe variants.
+    static let severityCautionText = dynamic(light: 0x92400E, dark: 0xFBBF24)
+    static let severityInfoText = primary
 
     // MARK: Data-visualization series (data encoding, not brand or state)
     static let chartSpeed = greenGo

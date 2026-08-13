@@ -16,6 +16,8 @@ struct HomeView: View {
     @Bindable private var groupRide = GroupRideManager.shared
     @State private var liveShareSharePayload: LiveShareSharePayload?
     @State private var showGroupSheet = false
+    @State private var selectedGroupMember: GroupWire.MemberPosition?
+    @State private var groupClockTick = StatusAge.elapsedMillis()
     // B1: durable one-shot post-ride reveal, surfaced once on Home.
     @Bindable var revealCoordinator = RevealCoordinator.shared
     // B4: system in-app review request (self-gated by ReviewPromptPolicy).
@@ -46,12 +48,19 @@ struct HomeView: View {
                             LocalizationHelper.localized("Rider"),
                         coordinate: CLLocationCoordinate2D(latitude: member.lat, longitude: member.lng)
                     ) {
-                        GroupMemberBadge(
-                            initials: groupRide.state.roster.first(where: { $0.uid == member.uid })?.initials ?? "?",
-                            tint: GroupMemberTint.color(index: groupRide.state.roster.firstIndex(where: { $0.uid == member.uid }) ?? 0),
-                            isStale: isGroupPositionStale(member),
-                            ageText: groupPositionAgeText(member)
-                        )
+                        Button {
+                            selectedGroupMember = member
+                        } label: {
+                            GroupMemberBadge(
+                                initials: groupRide.state.roster.first(where: { $0.uid == member.uid })?.initials ?? "?",
+                                tint: GroupMemberTint.color(index: groupRide.state.roster.firstIndex(where: { $0.uid == member.uid }) ?? 0),
+                                isStale: isGroupPositionStale(member),
+                                ageText: groupPositionAgeText(member),
+                                status: groupStatus(for: member.uid)?.status
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(groupMarkerAccessibilityLabel(member))
                     }
                 }
                 if let lat = groupRide.state.destinationLat, let lng = groupRide.state.destinationLng {
@@ -72,6 +81,19 @@ struct HomeView: View {
 
             // Top UI (Map Style, GPS Warning & Offline Tracking Shield)
             VStack(spacing: 8) {
+                if groupRide.state.isActive {
+                    let presencePill = groupRide.presencePill(nowElapsedMillis: groupClockTick)
+                    GroupPresencePillView(
+                        pill: presencePill,
+                        onOpenCommunity: { showGroupSheet = true },
+                        onClearStatus: { groupRide.clearStatus() }
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.top, 50)
+                    .onChange(of: presencePill, initial: true) { _, current in
+                        groupRide.observePresencePill(current, nowElapsedMillis: groupClockTick)
+                    }
+                }
                 if trackingManager.state == .gpsLost || (trackingManager.state == .tracking && trackingManager.timeSinceLastGps > 10.0) {
                     let seconds = Int(trackingManager.timeSinceLastGps)
                     let timeString = seconds > 60 ? "\(seconds / 60)m \(seconds % 60)s" : "\(seconds)s"
@@ -113,7 +135,7 @@ struct HomeView: View {
                             ).post()
                         }
                 }
-                if !networkMonitor.isConnected && trackingManager.state == .idle {
+                if !networkMonitor.isConnected && trackingManager.state == .idle && !groupRide.state.isActive {
                     let shieldText = trackingManager.state != .idle
                         ? "🛡️ Offline Tracking Shield Active • Route Safely Recording"
                         : "🛡️ Offline Tracking Shield • Ready to Record Locally"
@@ -199,7 +221,7 @@ struct HomeView: View {
                                 }
                             }
                             .accessibilityLabel(LocalizationHelper.localized("Group sharing active"))
-                            .accessibilityValue(LocalizationHelper.formatted("%@ remaining", groupTimeLeftText))
+                            .accessibilityValue(groupTimeLeftAccessibilityValue)
                         }
 
                     }
@@ -267,7 +289,7 @@ struct HomeView: View {
                         isLiveSharing: liveSharingManager.isActive,
                         isLiveShareStarting: liveSharingManager.isStarting,
                         isLiveShareAuthenticated: Auth.auth().currentUser != nil,
-                        isOffline: !networkMonitor.isConnected,
+                        isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
                         duration: formatDuration(trackingManager.durationInMillis / 1000),
                         elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
                         speedLabel: movementMetric.label,
@@ -346,6 +368,16 @@ struct HomeView: View {
         .sheet(isPresented: $showGroupSheet) {
             CommunityView()
         }
+        .sheet(item: $selectedGroupMember) { member in
+            GroupMemberDetailSheet(
+                member: member,
+                name: groupRide.state.roster.first(where: { $0.uid == member.uid })?.displayName
+                    ?? LocalizationHelper.localized("Rider"),
+                status: groupStatus(for: member.uid)?.status,
+                age: positionAgeBucket(member),
+                isFresh: isGroupPositionFresh(member)
+            )
+        }
         .sheet(item: $revealCoordinator.pending, onDismiss: {
             // ANY dismissal — swipe-down (the invited path, we show a drag indicator),
             // interactive, or system — acknowledges the durable one-shot. The "Nice!" button
@@ -386,6 +418,13 @@ struct HomeView: View {
             Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
         }
         .trackScreen("HomeView")
+        .task(id: groupRide.state.isActive) {
+            guard groupRide.state.isActive else { return }
+            while !Task.isCancelled {
+                groupClockTick = StatusAge.elapsedMillis()
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
         .onDisappear {
             rideStartLaunch.reset()
         }
@@ -435,6 +474,13 @@ struct HomeView: View {
         return formatDuration(remaining)
     }
 
+    private var groupTimeLeftAccessibilityValue: String {
+        guard groupRide.state.hasStarted else {
+            return LocalizationHelper.localized("Not started")
+        }
+        return LocalizationHelper.formatted("%@ remaining", groupTimeLeftText)
+    }
+
     private var visibleGroupPositions: [GroupWire.MemberPosition] {
         guard let mapRegion else { return groupRide.state.positions }
         let latitudePadding = mapRegion.span.latitudeDelta * 0.15
@@ -450,14 +496,44 @@ struct HomeView: View {
     }
 
     private func isGroupPositionStale(_ position: GroupWire.MemberPosition) -> Bool {
-        let age = Date().timeIntervalSince1970 * 1000 - Double(position.serverTsMillis)
-        return age > Double(max(20, groupRide.state.syncIntervalSec * 2) * 1000)
+        !isGroupPositionFresh(position)
     }
 
     private func groupPositionAgeText(_ position: GroupWire.MemberPosition) -> String? {
         guard isGroupPositionStale(position) else { return nil }
-        let seconds = max(1, Int((Date().timeIntervalSince1970 * 1000 - Double(position.serverTsMillis)) / 1000))
-        return seconds < 60 ? "\(seconds)s" : "\(seconds / 60)m"
+        return GroupAgePresentation.text(positionAgeBucket(position), includesAgo: false)
+    }
+
+    private func isGroupPositionFresh(_ position: GroupWire.MemberPosition) -> Bool {
+        guard let anchor = position.ageAnchor, anchor.isKnown else { return false }
+        let age = StatusAge.currentAgeMillis(anchor: anchor, nowElapsedMillis: groupClockTick)
+        return age < Int64(max(20, groupRide.state.syncIntervalSec * 2)) * 1_000
+    }
+
+    private func positionAgeBucket(_ position: GroupWire.MemberPosition) -> StatusAge.Bucket {
+        guard let anchor = position.ageAnchor else { return .unknown }
+        return StatusAge.bucket(
+            anchor: anchor,
+            nowElapsedMillis: groupClockTick,
+            syncIntervalSec: groupRide.state.syncIntervalSec
+        )
+    }
+
+    private func groupStatus(for uid: String) -> GroupWire.MemberStatus? {
+        groupRide.state.statuses.first { $0.uid == uid }
+    }
+
+    private func groupMarkerAccessibilityLabel(_ member: GroupWire.MemberPosition) -> String {
+        let name = groupRide.state.roster.first(where: { $0.uid == member.uid })?.displayName
+            ?? LocalizationHelper.localized("Rider")
+        var parts = [name]
+        if let status = groupStatus(for: member.uid)?.status {
+            parts.append(RiderStatusPresentation.label(for: status))
+        }
+        if let age = GroupAgePresentation.text(positionAgeBucket(member)) {
+            parts.append(LocalizationHelper.formatted("Updated %@", age))
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func groupEndNoticeText(_ notice: GroupEndNotice) -> String {

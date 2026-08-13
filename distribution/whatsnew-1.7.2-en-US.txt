@@ -1,0 +1,9 @@
+TrackMe 1.7.2
+
+- See when each group rider last shared their location and get directions to their last known point.
+- Share a rider status such as a short break, fuel stop, vehicle issue, tired, or need help.
+- Important group statuses are easier to spot on the map and in the Community roster.
+- Group connectivity messaging now distinguishes your connection from temporary sharing-service issues.
+- Group ride time now begins when the leader starts the group, with cleaner destination, start-time, calendar, and member controls.
+
+Rider statuses are shared only with the group. “Need help” does not contact emergency services.

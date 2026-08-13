@@ -59,6 +59,16 @@ final class GroupPresenceLocationProvider: NSObject, @preconcurrency CLLocationM
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let authorized = manager.authorizationStatus == .authorizedAlways ||
+            manager.authorizationStatus == .authorizedWhenInUse
+        if !authorized {
+            if isRunning {
+                isRunning = false
+                manager.stopUpdatingLocation()
+            }
+            GroupRideManager.shared.updateLatestLocation(nil, moving: false, riding: false)
+            return
+        }
         guard !isRunning,
               GroupRideManager.shared.state.isActive,
               TrackingManager.shared.currentRideId == nil else { return }

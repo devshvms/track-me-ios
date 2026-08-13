@@ -96,6 +96,9 @@ struct ContentView: View {
         .onChange(of: groupRide.pendingJoinToken) { _, token in
             if token != nil { selectedTab = .community }
         }
+        .onChange(of: groupRide.communityNavigationRequest) { _, _ in
+            selectedTab = .community
+        }
         .sheet(isPresented: Binding(
             get: { onboardingState != .pending && updateManager.updateInfo != nil && trackingManager.state == .idle },
             set: { _ in }

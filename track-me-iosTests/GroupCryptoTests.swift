@@ -83,6 +83,23 @@ final class GroupCryptoTests: XCTestCase {
         )
     }
 
+    func testStatusAssociatedDataBindsEnvelopeToMember() throws {
+        let key = try GroupCrypto.deriveGroupKey(token: "Zm9vYmFyYmF6cXV4MTIzNA")
+        let envelope = try GroupCrypto.seal(
+            key: key,
+            plaintext: #"{"st":"1GNH","stAge":420}"#,
+            purpose: .status(uid: "uid-alice")
+        )
+
+        XCTAssertEqual(GroupCrypto.Purpose.status(uid: "uid-alice").context, "v1:status:uid-alice")
+        XCTAssertNoThrow(
+            try GroupCrypto.open(key: key, envelope: envelope, purpose: .status(uid: "uid-alice"))
+        )
+        XCTAssertThrowsError(
+            try GroupCrypto.open(key: key, envelope: envelope, purpose: .status(uid: "uid-bob"))
+        )
+    }
+
     func testJoinCodeNormalization() {
         XCTAssertEqual(GroupCrypto.normalizeJoinCode("ab c-12o"), "ABC120")
         XCTAssertEqual(GroupCrypto.normalizeJoinCode("il0u00"), nil)
