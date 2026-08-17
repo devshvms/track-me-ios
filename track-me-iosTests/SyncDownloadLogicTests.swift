@@ -157,10 +157,10 @@ final class SyncDownloadLogicTests: XCTestCase {
     }
 
     func testChunkDocumentIdsAreFixedWidthAndLexicallyOrdered() {
-        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(0), "000000")
-        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(1), "000001")
-        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(10), "000010")
-        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(1_000), "001000")
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(0), "000")
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(1), "001")
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(10), "010")
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(1_000), "1000")
 
         let ids = [0, 1, 10, 1_000].map(FirestoreSyncManager.chunkDocumentId)
         XCTAssertEqual(ids, ids.sorted())

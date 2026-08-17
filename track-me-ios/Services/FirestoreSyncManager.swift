@@ -59,12 +59,6 @@ private actor DownloadAccumulator {
     }
 }
 
-private let firestoreChunkIdentifierWidth = 6
-
-private func firestoreChunkDocumentId(_ index: Int) -> String {
-    String(format: "%0*d", firestoreChunkIdentifierWidth, max(0, index))
-}
-
 private func decodeFirestoreDouble(_ value: Any?) -> Double? {
     (value as? NSNumber)?.doubleValue
 }
@@ -105,7 +99,7 @@ class FirestoreSyncManager {
     let db = Firestore.firestore()
 
     static let lastSyncTimestampKey = "last_sync_time"
-    static let pointsPerChunk = 1_000
+    static let pointsPerChunk = RideChunkingContract.chunkSize
     private let rideOperationGate = RideOperationGate()
 
     // MARK: - Sync Local -> Remote (Chunked Ride)
@@ -133,9 +127,7 @@ class FirestoreSyncManager {
         let aggregate = ride.aggregateSnapshot
         let points = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
         let pointPayloads = points.map(Self.pointPayload)
-        let chunks = stride(from: 0, to: pointPayloads.count, by: Self.pointsPerChunk).map { start in
-            Array(pointPayloads[start ..< min(start + Self.pointsPerChunk, pointPayloads.count)])
-        }
+        let chunks = RideChunkingContract.partition(pointPayloads)
         let chunkCount = chunks.count
         let wallDurationMillis = ride.endTime.map {
             Int64(max(0, $0.timeIntervalSince(ride.startTime) * 1_000))
@@ -154,7 +146,7 @@ class FirestoreSyncManager {
             "pauseDuration": pauseDurationMillis,
             "movingDurationMillis": aggregate.movingDurationMillis,
             "pointCount": aggregate.pointCount,
-            "chunkCount": chunkCount,
+            RideChunkingContract.chunkCountField: chunkCount,
             "contentHash": Self.contentHash(points)
         ]
 
@@ -175,7 +167,8 @@ class FirestoreSyncManager {
         if let previousChunkCount, previousChunkCount > chunkCount {
             try await commitDeleteBatches(
                 childRefs: (chunkCount ..< previousChunkCount).map {
-                    rideRef.collection("points").document(Self.chunkDocumentId($0))
+                    rideRef.collection(RideChunkingContract.pointsSubcollection)
+                        .document(Self.chunkDocumentId($0))
                 },
                 parentRef: nil
             )
@@ -197,7 +190,7 @@ class FirestoreSyncManager {
         rideRef: DocumentReference,
         ride: Ride
     ) async throws {
-        let maxChildrenWithParent = 499
+        let maxChildrenWithParent = RideChunkingContract.deleteBatchLimit - 1
         if chunks.isEmpty {
             let batch = db.batch()
             batch.setData(parentData, forDocument: rideRef)
@@ -211,8 +204,12 @@ class FirestoreSyncManager {
             let count = min(remaining, maxChildrenWithParent)
             let batch = db.batch()
             for index in next ..< next + count {
-                let chunkRef = rideRef.collection("points").document(Self.chunkDocumentId(index))
-                batch.setData(["points": chunks[index]], forDocument: chunkRef)
+                let chunkRef = rideRef.collection(RideChunkingContract.pointsSubcollection)
+                    .document(Self.chunkDocumentId(index))
+                batch.setData(
+                    [RideChunkingContract.chunkPointsField: chunks[index]],
+                    forDocument: chunkRef
+                )
             }
             let isFinalBatch = next + count == chunks.count
             if isFinalBatch {
@@ -243,7 +240,7 @@ class FirestoreSyncManager {
     }
 
     static func chunkDocumentId(_ index: Int) -> String {
-        firestoreChunkDocumentId(index)
+        RideChunkingContract.chunkDocumentId(index)
     }
 
     private static func contentHash(_ points: [GPSPoint]) -> String {
@@ -332,9 +329,12 @@ class FirestoreSyncManager {
         fallbackChunkCount: Int
     ) async throws -> Int {
         let parent = try await rideRef.getDocument()
-        let parentChunkCount = parent.data().flatMap { Self.decodeInt64($0["chunkCount"]) }
+        let parentChunkCount = parent.data()
+            .flatMap { Self.decodeInt64($0[RideChunkingContract.chunkCountField]) }
             .map { max(0, Int($0)) }
-        let childSnapshot = try await rideRef.collection("points").getDocuments()
+        let childSnapshot = try await rideRef
+            .collection(RideChunkingContract.pointsSubcollection)
+            .getDocuments()
         let childRefs = childSnapshot.documents.map(\.reference)
         let knownChunkCount = parentChunkCount ?? (fallbackChunkCount > 0 ? fallbackChunkCount : childRefs.count)
         try await commitDeleteBatches(childRefs: childRefs, parentRef: rideRef)
@@ -345,7 +345,9 @@ class FirestoreSyncManager {
         childRefs: [DocumentReference],
         parentRef: DocumentReference?
     ) async throws {
-        let maxChildrenPerBatch = parentRef == nil ? 500 : 499
+        let maxChildrenPerBatch = parentRef == nil
+            ? RideChunkingContract.deleteBatchLimit
+            : RideChunkingContract.deleteBatchLimit - 1
         if childRefs.isEmpty {
             if let parentRef {
                 let batch = db.batch()
@@ -476,7 +478,7 @@ class FirestoreSyncManager {
     /// present; a partial upload stays invisible rather than looking complete.
     private func parseCloudRide(_ doc: QueryDocumentSnapshot) async throws -> DownloadedRide? {
         let data = doc.data()
-        guard let rawChunkCount = Self.decodeInt64(data["chunkCount"]) else {
+        guard let rawChunkCount = Self.decodeInt64(data[RideChunkingContract.chunkCountField]) else {
             return Self.parseRideDocument(docId: doc.documentID, data: data)
         }
         let chunkCount = max(0, Int(rawChunkCount))
@@ -488,11 +490,14 @@ class FirestoreSyncManager {
         try await withThrowingTaskGroup(of: (Int, [DownloadedPoint]?).self) { group in
             for index in 0 ..< chunkCount {
                 group.addTask {
-                    let chunkRef = doc.reference.collection("points")
-                        .document(firestoreChunkDocumentId(index))
+                    let chunkRef = doc.reference.collection(RideChunkingContract.pointsSubcollection)
+                        .document(Self.chunkDocumentId(index))
                     let snapshot = try await chunkRef.getDocument()
                     guard snapshot.exists else { return (index, nil) }
-                    return (index, parseFirestorePoints(snapshot.data()?["points"]))
+                    return (
+                        index,
+                        parseFirestorePoints(snapshot.data()?[RideChunkingContract.chunkPointsField])
+                    )
                 }
             }
             for try await (index, points) in group {
@@ -659,7 +664,9 @@ class FirestoreSyncManager {
         let ridesRef = db.collection("users").document(uid).collection("rides")
         let snapshot = try await ridesRef.getDocuments()
         for doc in snapshot.documents {
-            let chunks = try await doc.reference.collection("points").getDocuments()
+            let chunks = try await doc.reference
+                .collection(RideChunkingContract.pointsSubcollection)
+                .getDocuments()
             // Account deletion uses the same children-before-parent batches as
             // single-ride deletion; a parent-only delete would strand location
             // data in an unreachable subcollection (§2).
