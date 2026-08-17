@@ -9,7 +9,14 @@ final class Ride {
     var sourceInfo: String
     var isBroadcasted: Bool
     var isSynced: Bool
+    /// Keeps a cloud delete durable until its batch is acknowledged. This is
+    /// deliberately local-only: the uploader must not resurrect a ride while
+    /// its deletion is queued (scope 1.7.3 §2, client-side cascade).
+    var pendingDelete: Bool = false
     var firestoreId: String?
+    /// The last committed cloud shape. It lets an offline delete reconstruct
+    /// the child path without fetching the parent first.
+    var cloudChunkCount: Int?
     var title: String?
     var persona: String = "AUTO"
 

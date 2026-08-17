@@ -199,28 +199,32 @@ class TelemetryManager {
     }
     
     // MARK: - 3. Rides Tracking
-    // PII rule (A1 / TASK-016): ride events carry NO precise lat/lng. Parity with Android,
-    // whose `ride_started` sends only `ride_id`.
-    func trackRideStarted(rideId: String) {
+    // Scope 1.7.3 §0.8: telemetry must not carry a ride identifier or values
+    // that fingerprint one. Keep lifecycle events deliberately aggregate-free.
+    func trackRideStarted() {
         guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("ride_started", properties: [
-            "ride_id": rideId
-        ])
+        PostHogSDK.shared.capture("ride_started")
     }
-    
-    func trackRideCompleted(rideId: String, durationSeconds: Int, distanceKm: Double) {
+
+    func trackRideCompleted() {
         guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("ride_completed", properties: [
-            "ride_id": rideId,
-            "duration_seconds": durationSeconds,
-            "distance_km": distanceKm
-        ])
+        PostHogSDK.shared.capture("ride_completed")
     }
 
     func trackRideStartAborted(method: RideStartAbortMethod) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("ride_start_aborted", properties: [
             "method": method.rawValue
+        ])
+    }
+
+    /// Scope 1.7.3 §2 telemetry contract: failures carry only a coarse cause
+    /// and operation shape, never a ride id, point count, timestamp, or route.
+    func trackRideDeleteFailed(cause: RideDeletionFailureCause, operation: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("ride_delete_failed", properties: [
+            "cause": cause.rawValue,
+            "operation": operation
         ])
     }
     

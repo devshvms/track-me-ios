@@ -59,6 +59,7 @@ final class DataRepository {
                 ride.isSynced = false
             }
             ride.firestoreId = d.firestoreId
+            ride.cloudChunkCount = d.chunkCount
             ctx.insert(ride)
             var importedPoints: [GPSPoint] = []
             for p in d.points {
@@ -177,6 +178,41 @@ final class DataRepository {
                 NSLog("TrackMe: failed to discard near-empty ride: %@", error.localizedDescription)
             }
         }
+    }
+
+    /// Marks a ride before any remote delete is attempted. The flag survives a
+    /// process death and blocks upload, closing the resurrection window described
+    /// in scope 1.7.3 §2 (pendingDelete → cloud batch → local delete).
+    func markRidePendingDelete(rideId: UUID) -> Bool {
+        guard let context = container?.mainContext else { return false }
+        let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
+        guard let ride = try? context.fetch(descriptor).first else { return false }
+        ride.pendingDelete = true
+        do {
+            try context.save()
+            return true
+        } catch {
+            context.rollback()
+            NSLog("TrackMe: failed to mark ride pending delete: %@", error.localizedDescription)
+            return false
+        }
+    }
+
+    func restorePendingDelete(rideId: UUID) {
+        guard let context = container?.mainContext else { return }
+        let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
+        guard let ride = try? context.fetch(descriptor).first else { return }
+        ride.pendingDelete = false
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            NSLog("TrackMe: failed to restore ride after rejected delete: %@", error.localizedDescription)
+        }
+    }
+
+    func pendingDeleteRides() -> [Ride] {
+        allRides().filter(\.pendingDelete)
     }
 
     /// Corrects titles created before persona-aware naming landed. Only known

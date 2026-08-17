@@ -99,6 +99,9 @@ struct ContentView: View {
         .onChange(of: groupRide.communityNavigationRequest) { _, _ in
             selectedTab = .community
         }
+        .onChange(of: groupRide.mapFocusRequest) { _, _ in
+            selectedTab = .home
+        }
         .sheet(isPresented: Binding(
             get: { onboardingState != .pending && updateManager.updateInfo != nil && trackingManager.state == .idle },
             set: { _ in }

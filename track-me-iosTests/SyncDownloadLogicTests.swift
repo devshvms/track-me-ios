@@ -4,6 +4,40 @@ import FirebaseFirestore
 
 final class SyncDownloadLogicTests: XCTestCase {
 
+    func testCloudDocumentIdUsesDownloadedDocumentId() {
+        let localId = UUID()
+        XCTAssertEqual(
+            FirestoreSyncManager.cloudDocumentId(
+                localId: localId,
+                firestoreId: "android-cloud-document",
+                isSynced: true
+            ),
+            "android-cloud-document"
+        )
+    }
+
+    func testCloudDocumentIdFallsBackForLegacySyncedIOSRide() {
+        let localId = UUID()
+        XCTAssertEqual(
+            FirestoreSyncManager.cloudDocumentId(
+                localId: localId,
+                firestoreId: nil,
+                isSynced: true
+            ),
+            localId.uuidString
+        )
+    }
+
+    func testCloudDocumentIdIsNilForLocalOnlyRide() {
+        XCTAssertNil(
+            FirestoreSyncManager.cloudDocumentId(
+                localId: UUID(),
+                firestoreId: nil,
+                isSynced: false
+            )
+        )
+    }
+
     func testDecodeDate() {
         // 1. Timestamp
         let ts = Timestamp(date: Date(timeIntervalSince1970: 1000))
@@ -120,5 +154,54 @@ final class SyncDownloadLogicTests: XCTestCase {
         let ride = FirestoreSyncManager.parseRideDocument(docId: "123", data: data)
         XCTAssertEqual(ride?.points.count, 1) // only 1 valid point
         XCTAssertEqual(ride?.points[0].latitude, 2.0)
+    }
+
+    func testChunkDocumentIdsAreFixedWidthAndLexicallyOrdered() {
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(0), "000")
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(1), "001")
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(10), "010")
+        XCTAssertEqual(FirestoreSyncManager.chunkDocumentId(1_000), "1000")
+
+        let ids = [0, 1, 10, 1_000].map(FirestoreSyncManager.chunkDocumentId)
+        XCTAssertEqual(ids, ids.sorted())
+    }
+
+    func testChunkedRideMetadataUsesReassembledPointsAndHonoursChunkCount() {
+        let data: [String: Any] = [
+            "id": UUID().uuidString,
+            "startTime": Timestamp(date: Date(timeIntervalSince1970: 100)),
+            "chunkCount": 2,
+            "pointCount": 2
+        ]
+        let points = [
+            DownloadedPoint(
+                latitude: 1,
+                longitude: 2,
+                altitude: 3,
+                accuracy: 4,
+                speed: 5,
+                timestamp: Date(timeIntervalSince1970: 101),
+                isPaused: false
+            ),
+            DownloadedPoint(
+                latitude: 6,
+                longitude: 7,
+                altitude: 8,
+                accuracy: 9,
+                speed: 10,
+                timestamp: Date(timeIntervalSince1970: 102),
+                isPaused: true
+            )
+        ]
+
+        let ride = FirestoreSyncManager.parseRideDocument(
+            docId: "chunked-ride",
+            data: data,
+            points: points,
+            chunkCount: 2
+        )
+
+        XCTAssertEqual(ride?.chunkCount, 2)
+        XCTAssertEqual(ride?.points, points)
     }
 }
