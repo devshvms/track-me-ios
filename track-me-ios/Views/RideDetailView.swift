@@ -33,6 +33,7 @@ struct RideDetailView: View {
     // Dialogs
     @State private var showDeleteConfirm = false
     @State private var showImagePreview = false
+    @State private var isDeletingRide = false
     
     private var sortedPoints: [GPSPoint] {
         guard let points = ride.points, !points.isEmpty else { return [] }
@@ -232,12 +233,67 @@ struct RideDetailView: View {
                 title: Text("Delete Ride"),
                 message: Text("Are you sure you want to delete this ride? This action cannot be undone."),
                 primaryButton: .destructive(Text("Delete")) {
-                    modelContext.delete(ride)
-                    try? modelContext.save()
-                    dismiss()
+                    deleteRide()
                 },
                 secondaryButton: .cancel()
             )
+        }
+    }
+
+    @MainActor
+    private func deleteRide() {
+        guard !isDeletingRide else { return }
+        isDeletingRide = true
+
+        Task { @MainActor in
+            do {
+                let outcome = try await FirestoreSyncManager.shared.deleteRideFromCloudIfNeeded(ride)
+                if outcome == .queued {
+                    isDeletingRide = false
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("This ride will be removed when you're back online."),
+                        style: .info
+                    )
+                    dismiss()
+                    return
+                }
+            } catch let error as RideCloudDeletionError {
+                isDeletingRide = false
+                let message: String
+                switch error {
+                case .signInRequired:
+                    message = "Sign in to delete this synced ride from all devices."
+                case .rejected:
+                    message = "Couldn't delete this ride from the cloud. Check your connection and try again."
+                }
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized(message),
+                    style: .error
+                )
+                return
+            } catch {
+                isDeletingRide = false
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized("Couldn't delete this ride from the cloud. Check your connection and try again."),
+                    style: .error
+                )
+                return
+            }
+
+            modelContext.delete(ride)
+            do {
+                try modelContext.save()
+                dismiss()
+            } catch {
+                modelContext.rollback()
+                isDeletingRide = false
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized(
+                        "Couldn't delete this ride from this device. Please try again."
+                    ),
+                    style: .error
+                )
+            }
         }
     }
     
@@ -475,6 +531,7 @@ struct RideDetailView: View {
             }) {
                 actionButton(icon: "trash", text: "Delete", color: BrandColor.sos, textColor: BrandColor.sosText)
             }
+            .disabled(isDeletingRide)
         }
         .padding(.horizontal)
         .sheet(isPresented: $showImagePreview) {

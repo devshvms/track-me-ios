@@ -78,9 +78,17 @@ final class GroupRideManager {
     var pendingJoinToken: String?
     var pendingJoinCode: String?
     var pendingJoinViaCode = true
+    /// Never persisted or sent on the wire. The route tail is presentation
+    /// state rebuilt from newer server timestamps during this session (§3).
+    private(set) var headingTails: [String: [GroupHeadingPoint]] = [:]
+    private var latestHeadingServerTimestamps: [String: Int64] = [:]
     /// Kept outside session state so a notification tap cannot be erased by
     /// restore/teardown replacing the current session snapshot.
     var communityNavigationRequest = 0
+    /// One-shot cross-tab navigation argument. It is intentionally not part of
+    /// GroupSessionStore: it is a UI event, not group data (§4).
+    var pendingMapFocusUID: String?
+    var mapFocusRequest = 0
 
     init(
         store: GroupSessionStore = .shared,
@@ -93,6 +101,94 @@ final class GroupRideManager {
     }
 
     nonisolated deinit {}
+
+    func requestMapFocus(uid: String) {
+        pendingMapFocusUID = uid
+        mapFocusRequest &+= 1
+    }
+
+    func consumeMapFocusUID() -> String? {
+        defer { pendingMapFocusUID = nil }
+        return pendingMapFocusUID
+    }
+
+    private static let headingTailWindowMillis: Int64 = 60_000
+    private static let headingTailMaximumPoints = 10
+
+    private func recordHeadingTails(
+        positions: [GroupWire.MemberPosition],
+        selfUID: String,
+        receivedAtElapsedMillis: Int64
+    ) {
+        let currentUIDs = Set(positions.map(\.uid))
+        headingTails = headingTails.filter { currentUIDs.contains($0.key) && $0.key != selfUID }
+        latestHeadingServerTimestamps = latestHeadingServerTimestamps.filter {
+            currentUIDs.contains($0.key) && $0.key != selfUID
+        }
+
+        for position in positions where position.uid != selfUID {
+            guard position.moving, position.riding else {
+                headingTails[position.uid] = []
+                latestHeadingServerTimestamps[position.uid] = position.serverTsMillis
+                continue
+            }
+            guard position.serverTsMillis > (latestHeadingServerTimestamps[position.uid] ?? Int64.min) else {
+                // Idempotent sync responses must not manufacture a stationary
+                // tail by repeating the same position (§3).
+                continue
+            }
+            latestHeadingServerTimestamps[position.uid] = position.serverTsMillis
+            var points = headingTails[position.uid, default: []]
+            points.append(
+                GroupHeadingPoint(
+                    uid: position.uid,
+                    latitude: position.lat,
+                    longitude: position.lng,
+                    serverTsMillis: position.serverTsMillis,
+                    receivedAtElapsedMillis: receivedAtElapsedMillis
+                )
+            )
+            points = points
+                .filter { receivedAtElapsedMillis - $0.receivedAtElapsedMillis <= Self.headingTailWindowMillis }
+                .suffix(Self.headingTailMaximumPoints)
+                .map { $0 }
+            headingTails[position.uid] = points
+        }
+    }
+
+    func headingTailSegments(
+        nowElapsedMillis: Int64,
+        selfUID: String?
+    ) -> [GroupHeadingTailSegment] {
+        let movingByUID = Dictionary(uniqueKeysWithValues: state.positions.map { ($0.uid, $0) })
+        return headingTails
+            .filter { $0.key != selfUID }
+            .flatMap { uid, points in
+                guard let current = movingByUID[uid], current.moving, current.riding,
+                      let anchor = current.ageAnchor, anchor.isKnown,
+                      StatusAge.currentAgeMillis(anchor: anchor, nowElapsedMillis: nowElapsedMillis)
+                        < Int64(max(20, state.syncIntervalSec * 2)) * 1_000 else {
+                    return [GroupHeadingTailSegment]()
+                }
+                let livePoints = points.filter {
+                    nowElapsedMillis - $0.receivedAtElapsedMillis <= Self.headingTailWindowMillis
+                }
+                guard livePoints.count >= 2 else { return [GroupHeadingTailSegment]() }
+                let oldestToNewest = livePoints
+                return (0 ..< oldestToNewest.count - 1).map { index in
+                    let start = oldestToNewest[index]
+                    let end = oldestToNewest[index + 1]
+                    let ageFraction = Double(index) / Double(max(1, oldestToNewest.count - 2))
+                    return GroupHeadingTailSegment(
+                        uid: uid,
+                        start: start.coordinate,
+                        end: end.coordinate,
+                        opacity: 0.16 + (0.84 * ageFraction),
+                        lineWidth: 2.0 + (3.0 * ageFraction)
+                    )
+                }
+            }
+    }
 
     @discardableResult
     func restore() -> Bool {
@@ -650,8 +746,9 @@ final class GroupRideManager {
                 break
             }
             let data = try await post(path: "/api/group/sync", body: body)
-            let result = try GroupWire.parseSync(data, key: key, selfUid: try currentUser().uid)
-            apply(sync: result, sentPosition: sentPosition, sentStatus: sentStatus)
+            let selfUID = try currentUser().uid
+            let result = try GroupWire.parseSync(data, key: key, selfUid: selfUID)
+            apply(sync: result, sentPosition: sentPosition, sentStatus: sentStatus, selfUID: selfUID)
             backoff.reset()
         } catch let error as GroupHttpError {
             await handleSyncHTTPError(error)
@@ -664,7 +761,8 @@ final class GroupRideManager {
     private func apply(
         sync: GroupWire.SyncResult,
         sentPosition: String?,
-        sentStatus: PendingStatusChange?
+        sentStatus: PendingStatusChange?,
+        selfUID: String
     ) {
         if sync.state == "ENDED" {
             teardown(notice: GroupEndNotice(reason: .ended, rideStillRecording: TrackingManager.shared.currentRideId != nil))
@@ -680,6 +778,11 @@ final class GroupRideManager {
         state.syncIntervalSec = sync.nextSyncInSec
         state.positions = sync.positions
         let acceptedAtElapsed = StatusAge.elapsedMillis()
+        recordHeadingTails(
+            positions: sync.positions,
+            selfUID: selfUID,
+            receivedAtElapsedMillis: acceptedAtElapsed
+        )
         state.lastSuccessfulSyncElapsedMillis = acceptedAtElapsed
         state.lastSyncFailureKind = nil
         state.consecutiveFailures = 0
@@ -832,6 +935,8 @@ final class GroupRideManager {
         pendingPosition = nil
         pendingStatus = nil
         lastPositionFixTimestamp = nil
+        headingTails.removeAll()
+        latestHeadingServerTimestamps.removeAll()
         statusUndoTask?.cancel()
         statusUndoTask = nil
         statusUndoSnapshot = nil

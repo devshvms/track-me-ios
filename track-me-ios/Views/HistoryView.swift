@@ -179,9 +179,13 @@ struct CompactRideRowView: View {
 
                     Spacer()
 
-                    Image(systemName: ride.isSynced ? "checkmark.icloud.fill" : "exclamationmark.icloud")
+                    Image(systemName: ride.pendingDelete
+                        ? "clock.arrow.circlepath"
+                        : ride.isSynced ? "checkmark.icloud.fill" : "exclamationmark.icloud")
                         .font(.caption)
-                        .foregroundColor(ride.isSynced ? BrandColor.success : .orange)
+                        .foregroundColor(ride.pendingDelete
+                            ? .orange
+                            : ride.isSynced ? BrandColor.success : .orange)
                 }
 
                 HStack(spacing: 12) {
@@ -214,9 +218,14 @@ struct CompactRideRowView: View {
     private var accessibilityDescription: String {
         let title = ride.title ?? LocalizationHelper.localized("TrackMe Ride")
         let time = ride.startTime.formatted(date: .abbreviated, time: .shortened)
-        let syncState = ride.isSynced
-            ? LocalizationHelper.localized("Synced")
-            : LocalizationHelper.localized("Not yet synced")
+        let syncState: String
+        if ride.pendingDelete {
+            syncState = LocalizationHelper.localized("Removal queued; will finish when you're online")
+        } else if ride.isSynced {
+            syncState = LocalizationHelper.localized("Synced")
+        } else {
+            syncState = LocalizationHelper.localized("Not yet synced")
+        }
         return LocalizationHelper.formatted(
             "%@. %@. %@, %@, %@. %@",
             title,
