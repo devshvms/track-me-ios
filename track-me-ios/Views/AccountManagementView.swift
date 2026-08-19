@@ -87,7 +87,7 @@ struct AccountManagementView: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(status == "COMPLETED" ? BrandColor.success.opacity(0.2) : BrandColor.warning.opacity(0.2))
-                                .foregroundColor(status == "COMPLETED" ? BrandColor.success : BrandColor.warning)
+                                .foregroundColor(status == "COMPLETED" ? BrandColor.success : BrandColor.warningText)
                                 .clipShape(Capsule())
                         }
                     }

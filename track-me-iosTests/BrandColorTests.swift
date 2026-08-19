@@ -66,6 +66,24 @@ final class BrandColorTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(contrast(BrandColor.onWarning, BrandColor.warning, dark: false), 4.5)
     }
 
+    func testWarningForegroundMeetsAAOnAppSurfaces() {
+        // Warning amber is a fill token; warningText is the adaptive foreground
+        // for labels rendered directly on the app's light/dark surfaces.
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.warningText, .white, dark: false), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.warningText, darkSurface, dark: true), 4.5)
+    }
+
+    func testWarningForegroundUsesAdaptiveTone40() {
+        XCTAssertEqual(hex(BrandColor.warningText, dark: false), 0x855300)
+        XCTAssertEqual(hex(BrandColor.warningText, dark: true), 0xFFB960)
+    }
+
+    func testConstantWarningFailsAAAsLightSurfaceText_regressionGuard() {
+        // Documents why warningText exists: amberWarn is intentionally retained
+        // for fills, but is not safe as normal text on a light surface.
+        XCTAssertLessThan(contrast(BrandColor.warning, .white, dark: false), 4.5)
+    }
+
     func testRiderStatusTiersAreDistinctAndTheirGlyphsMeetGraphicalContrast() {
         let fills: [Color] = [BrandColor.severityAlert, BrandColor.severityCaution, BrandColor.severityInfo]
         XCTAssertEqual(Set(fills.map { hex($0, dark: false) }).count, 3)

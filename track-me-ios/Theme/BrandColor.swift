@@ -4,12 +4,18 @@ import SwiftUI
 /// member of BOTH the app and the `TrackMeWidgets` extension so the Live Activity
 /// stays on-brand.
 ///
-/// Discipline (mirrors Android C1, commit 944b038, and BRAND_SYSTEM.md):
+/// Discipline (mirrors Android C1 and BRAND_SYSTEM.md):
 /// brand-action controls bind to CYAN (`primary` / `primaryFill`). Green is NEVER
 /// brand — it means "active / running / success" only. Red = SOS/destructive,
 /// amber = warning. Semantic roles are strictly decoupled from the brand action
 /// token so a "go/success" green can never masquerade as a primary CTA (the bug
 /// that shipped a green Start button in 1.5.x while every store asset was cyan).
+///
+/// iOS deliberately retains this hand-picked palette in 1.8.0. Android now has
+/// generated tonal ramps and is scheduled to regenerate them with the official
+/// Material Color Utilities; copying its interim values here would make parity
+/// unstable. The platforms share the seed and semantic contract, not exact tone
+/// values. Revisit this decision after Android's regeneration lands.
 ///
 /// Colors are built with a dynamic `UIColor` provider (Any/Dark variants) so they
 /// resolve correctly in light/dark and render in WidgetKit — no asset-catalog
@@ -67,9 +73,12 @@ enum BrandColor {
     static let warning = amberWarn
     static let severityCaution = amberWarn
     static let severityInfo = cyanBright
-    /// Adaptive foregrounds for status words on app surfaces. Badge/pill fills keep
-    /// the brighter scan colours above; text uses contrast-safe variants.
-    static let severityCautionText = dynamic(light: 0x92400E, dark: 0xFBBF24)
+    /// Adaptive foreground for warning text on app surfaces. Keep `warning` for
+    /// fills/backgrounds; amber is sub-AA as normal text on a light surface.
+    static let warningText = dynamic(light: 0x855300, dark: 0xFFB960)
+    /// Compatibility name for caution status words; all warning foregrounds use
+    /// the same semantic token.
+    static let severityCautionText = warningText
     static let severityInfoText = primary
 
     // MARK: Data-visualization series (data encoding, not brand or state)
