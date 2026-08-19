@@ -59,15 +59,15 @@ private actor DownloadAccumulator {
     }
 }
 
-private func decodeFirestoreDouble(_ value: Any?) -> Double? {
+nonisolated func decodeFirestoreDouble(_ value: Any?) -> Double? {
     (value as? NSNumber)?.doubleValue
 }
 
-private func decodeFirestoreInt64(_ value: Any?) -> Int64? {
+nonisolated func decodeFirestoreInt64(_ value: Any?) -> Int64? {
     (value as? NSNumber)?.int64Value
 }
 
-private func decodeFirestoreDate(_ value: Any?) -> Date? {
+nonisolated func decodeFirestoreDate(_ value: Any?) -> Date? {
     switch value {
     case let ts as Timestamp: return ts.dateValue()
     case let d as Date: return d
@@ -78,7 +78,7 @@ private func decodeFirestoreDate(_ value: Any?) -> Date? {
     }
 }
 
-private func parseFirestorePoints(_ value: Any?) -> [DownloadedPoint] {
+nonisolated func parseFirestorePoints(_ value: Any?) -> [DownloadedPoint] {
     let rawPoints = value as? [[String: Any]] ?? []
     return rawPoints.compactMap { p in
         guard let ts = decodeFirestoreDate(p["timestamp"]) else { return nil }
@@ -239,7 +239,7 @@ class FirestoreSyncManager {
         ]
     }
 
-    static func chunkDocumentId(_ index: Int) -> String {
+    nonisolated static func chunkDocumentId(_ index: Int) -> String {
         RideChunkingContract.chunkDocumentId(index)
     }
 

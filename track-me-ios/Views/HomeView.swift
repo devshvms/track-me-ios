@@ -318,7 +318,7 @@ struct HomeView: View {
                         isAutoPaused: trackingManager.isAutoPaused,
                         isLiveSharing: liveSharingManager.isActive,
                         isLiveShareStarting: liveSharingManager.isStarting,
-                        isLiveShareAuthenticated: AppRuntime.isAppStoreCapture || Auth.auth().currentUser != nil,
+                        isLiveShareAuthenticated: Auth.auth().currentUser != nil,
                         isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
                         duration: formatDuration(trackingManager.durationInMillis / 1000),
                         elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
@@ -342,7 +342,7 @@ struct HomeView: View {
                             trackingManager.stopTracking()
                         },
                         onStartShare: {
-                            guard AppRuntime.isAppStoreCapture || Auth.auth().currentUser != nil else {
+                            guard Auth.auth().currentUser != nil else {
                                 ToastManager.shared.show(
                                     message: LocalizationHelper.localized("Sign in to share your live location."),
                                     style: .warning

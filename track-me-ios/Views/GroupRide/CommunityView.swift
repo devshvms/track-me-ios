@@ -16,9 +16,7 @@ struct CommunityView: View {
     @State private var showStatusPicker = false
     @State private var directionsTarget: GroupDirectionsTarget?
     @State private var groupClockTick = StatusAge.elapsedMillis()
-    @State private var signedInUserID = AppRuntime.isAppStoreCapture
-        ? "capture-owner"
-        : Auth.auth().currentUser?.uid
+    @State private var signedInUserID = Auth.auth().currentUser?.uid
     @State private var authListener: AuthStateDidChangeListenerHandle?
 
     var body: some View {
@@ -154,7 +152,6 @@ struct CommunityView: View {
                 }
             }
             .onAppear {
-                guard !AppRuntime.isAppStoreCapture else { return }
                 guard authListener == nil else { return }
                 authListener = Auth.auth().addStateDidChangeListener { _, user in
                     Task { @MainActor in
