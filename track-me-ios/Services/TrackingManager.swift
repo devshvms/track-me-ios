@@ -71,7 +71,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var timer: Timer?
     private var pendingTrackingStart = false
     private var storageWarningShown = false
-    private var splitWarningShown = false
     private var lastStorageCheck = Date.distantPast
 
     override init() {
@@ -201,7 +200,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         // Reset live state for a fresh ride.
         storageWarningShown = false
-        splitWarningShown = false
         lastStorageCheck = Date.distantPast
         state = .tracking
         points.removeAll(keepingCapacity: false)
@@ -213,7 +211,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timeSinceLastGps = 0
         lastGpsTimestamp = Date()
 
-        TelemetryManager.shared.trackRideStarted(rideId: newRide.id.uuidString)
+        TelemetryManager.shared.trackRideStarted()
 
         // Save initially on main thread
         DispatchQueue.main.async {
@@ -426,7 +424,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timer?.invalidate()
         timer = nil
         storageWarningShown = false
-        splitWarningShown = false
         state = .idle
         UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["StorageLow"])
@@ -578,28 +575,17 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 )
             }
 
-            // 7. Auto-Split Evaluation
-            switch RideSplitPolicy.evaluate(pointCount: points.count, alreadyWarned: splitWarningShown) {
-            case .warn:
-                splitWarningShown = true
-                showLongRideWarningNotification()
-            case .split:
-                splitCurrentRide()
-                return // stop processing this batch; Part 2 handles the next fix
-            case .none:
-                break
-            }
         }
 
-        // 7. Live Activity (throttled; forced when we just regained GPS).
+        // Live Activity (throttled; forced when we just regained GPS).
         updateLiveActivity(force: recoveredFromGpsLost)
     }
 
-    // MARK: - Auto-Split & Finalization Helpers
+    // MARK: - Finalization Helpers
 
     /// Finalize the ride identified by `id` using the authoritative in-memory
-    /// segment distance/duration. Shared by normal stop and auto-split so the
-    /// A1 good-ride hook + telemetry fire identically on both paths.
+    /// segment distance/duration. Keeping finalization in one path ensures the
+    /// A1 good-ride hook and telemetry fire consistently when recording stops.
     private func finalizeSegment(id: UUID, endedAt: Date) {
         // Consume the single legacy suppression bit before the junk-ride early return, so a
         // discarded segment cannot leave it set for the next ride. History still records a valid
@@ -613,10 +599,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pointCount: points.count
         )
         DataRepository.shared.finishRide(rideId: id, endedAt: endedAt, aggregate: aggregate)
-        TelemetryManager.shared.trackRideCompleted(
-            rideId: id.uuidString,
-            durationSeconds: Int(durationInMillis / 1000),
-            distanceKm: totalDistance / 1000.0)
+        TelemetryManager.shared.trackRideCompleted()
 
         let isJunk = totalDistance < 10.0 && durationInMillis < 2 * 60 * 1000
         if !isJunk {
@@ -642,70 +625,4 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    private func splitCurrentRide() {
-        guard let oldId = currentRideId else { return }
-        let endedAt = points.last?.timestamp ?? Date()
-        let completedDurationInMillis = durationInMillis
-        let completedDistance = totalDistance
-
-        // 1. Finalize Part 1 (telemetry + A1 hook + cloud sync via finishRide's unsynced flag).
-        //    This consumes Part 1's legacy suppression bit.
-        finalizeSegment(id: oldId, endedAt: endedAt)
-
-        // 2. Start Part 2 in the SAME session — do NOT stop location/timer/Live Activity.
-        //    Re-open the compatibility window for an interrupted legacy emergency.
-        EmergencyManager.shared.beginRideSession()
-        let part2StartTime = Date()
-        let part2 = Ride(
-            startTime: part2StartTime,
-            title: RideTitleGenerator.make(
-                startTime: part2StartTime,
-                persona: selectedPersona,
-                maxSpeedKmh: nil
-            )
-        )
-        part2.persona = selectedPersona.rawValue
-        currentRideId = part2.id
-        UserDefaults.standard.set(part2.id.uuidString, forKey: Self.activeRideKey)
-        DispatchQueue.main.async { DataRepository.shared.saveRide(part2) }
-        TelemetryManager.shared.trackRideStarted(rideId: part2.id.uuidString)
-
-        // 3. Reset per-segment live state (THIS is the memory + O(n²) fix).
-        points.removeAll(keepingCapacity: false)
-        totalDistance = 0.0
-        maxSpeedMps = 0.0
-        durationInMillis = 0
-        elapsedDurationInMillis = 0
-        splitWarningShown = false
-
-        // 4. Roll the Live Activity over to the new ride (keep it visible — no gap).
-        RideActivityManager.shared.end(
-            startedAt: endedAt.addingTimeInterval(-completedDurationInMillis / 1000),
-            distanceMeters: completedDistance,
-            speedMps: 0,
-            pausedElapsed: completedDurationInMillis / 1000
-        )
-        RideActivityManager.shared.startActivity(rideId: part2.id.uuidString, startedAt: part2StartTime)
-
-        // 5. Keep live sharing linked to the ongoing session (do NOT stop it).
-        showAutoSplitNotification()
-    }
-
-    private func showLongRideWarningNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = LocalizationHelper.localized("Long Ride")
-        content.body = LocalizationHelper.localized("Approaching the limit. Your ride will split automatically at 9,000 points.")
-        content.sound = .default
-        let request = UNNotificationRequest(identifier: "LongRideWarning", content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
-    }
-
-    private func showAutoSplitNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = LocalizationHelper.localized("Ride Auto-Split")
-        content.body = LocalizationHelper.localized("Your ride reached 9,000 points and was split automatically.")
-        content.sound = .default
-        let request = UNNotificationRequest(identifier: "RideAutoSplit", content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
-    }
 }

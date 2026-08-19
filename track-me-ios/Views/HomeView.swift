@@ -7,6 +7,8 @@ struct HomeView: View {
     @Bindable var trackingManager = TrackingManager.shared
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var mapRegion: MKCoordinateRegion?
+    @SceneStorage("home.camera_follow_mode") private var cameraFollowMode = true
+    @State private var hasFollowCameraPosition = false
     @State private var mapStyle: TrackMeMapStyle = .standard
     @Namespace private var mapScope
 
@@ -40,6 +42,19 @@ struct HomeView: View {
                                 endPoint: .trailing
                             ),
                             style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round)
+                        )
+                }
+                ForEach(visibleHeadingTailSegments) { segment in
+                    MapPolyline(coordinates: [segment.start, segment.end])
+                        .stroke(
+                            GroupMemberTint.color(
+                                index: groupRide.state.roster.firstIndex(where: { $0.uid == segment.uid }) ?? 0
+                            ).opacity(segment.opacity),
+                            style: StrokeStyle(
+                                lineWidth: segment.lineWidth,
+                                lineCap: .round,
+                                lineJoin: .round
+                            )
                         )
                 }
                 ForEach(visibleGroupPositions) { member in
@@ -76,6 +91,21 @@ struct HomeView: View {
             .onMapCameraChange(frequency: .onEnd) { context in
                 mapRegion = context.region
             }
+            // MapKit's SwiftUI API does not expose a camera-move reason like
+            // Maps Compose. These gestures are the public signal available on
+            // iOS; programmatic follow/recenter changes do not clear the mode.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { _ in clearCameraFollow() }
+            )
+            .simultaneousGesture(
+                MagnificationGesture()
+                    .onChanged { _ in clearCameraFollow() }
+            )
+            .simultaneousGesture(
+                RotationGesture()
+                    .onChanged { _ in clearCameraFollow() }
+            )
             .ignoresSafeArea(edges: .top)
             .accessibilityLabel(LocalizationHelper.localized("Map"))
 
@@ -192,7 +222,7 @@ struct HomeView: View {
 
                         Button {
                             Haptics.selection()
-                            position = .userLocation(followsHeading: false, fallback: .automatic)
+                            rearmCameraFollow()
                         } label: {
                             Image(systemName: "location.fill")
                                 .trackMeMapControlStyle()
@@ -288,7 +318,7 @@ struct HomeView: View {
                         isAutoPaused: trackingManager.isAutoPaused,
                         isLiveSharing: liveSharingManager.isActive,
                         isLiveShareStarting: liveSharingManager.isStarting,
-                        isLiveShareAuthenticated: Auth.auth().currentUser != nil,
+                        isLiveShareAuthenticated: AppRuntime.isAppStoreCapture || Auth.auth().currentUser != nil,
                         isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
                         duration: formatDuration(trackingManager.durationInMillis / 1000),
                         elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
@@ -312,7 +342,7 @@ struct HomeView: View {
                             trackingManager.stopTracking()
                         },
                         onStartShare: {
-                            guard Auth.auth().currentUser != nil else {
+                            guard AppRuntime.isAppStoreCapture || Auth.auth().currentUser != nil else {
                                 ToastManager.shared.show(
                                     message: LocalizationHelper.localized("Sign in to share your live location."),
                                     style: .warning
@@ -418,6 +448,21 @@ struct HomeView: View {
         .onDisappear {
             rideStartLaunch.reset()
         }
+        .onChange(of: trackingManager.points.count) { _, _ in
+            updateFollowCamera()
+        }
+        .onChange(of: trackingManager.state) { oldState, newState in
+            if oldState == .idle && newState != .idle {
+                // A new/restored recording begins in follow mode. Once the
+                // rider gestures, only the recenter control can re-arm it (§0.1).
+                cameraFollowMode = true
+                hasFollowCameraPosition = false
+                updateFollowCamera()
+            }
+        }
+        .onChange(of: groupRide.mapFocusRequest) { _, _ in
+            focusPendingGroupMember()
+        }
     }
 
     private func formatDuration(_ timeInterval: TimeInterval) -> String {
@@ -469,6 +514,68 @@ struct HomeView: View {
             return LocalizationHelper.localized("Not started")
         }
         return LocalizationHelper.formatted("%@ remaining", groupTimeLeftText)
+    }
+
+    private var defaultFollowSpan: MKCoordinateSpan {
+        MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+    }
+
+    private func clearCameraFollow() {
+        cameraFollowMode = false
+    }
+
+    private func rearmCameraFollow() {
+        cameraFollowMode = true
+        hasFollowCameraPosition = false
+        guard let coordinate = trackingManager.points.last?.coordinate else {
+            position = .userLocation(followsHeading: false, fallback: .automatic)
+            return
+        }
+
+        // Recenter is the one control allowed to re-arm follow. As on Android,
+        // it may choose the deliberate recenter zoom; subsequent follow fixes
+        // preserve that span (§0.3 / §1).
+        let region = MKCoordinateRegion(center: coordinate, span: defaultFollowSpan)
+        mapRegion = region
+        position = .region(region)
+        hasFollowCameraPosition = true
+    }
+
+    private func updateFollowCamera() {
+        guard cameraFollowMode,
+              trackingManager.state != .idle,
+              let coordinate = trackingManager.points.last?.coordinate else { return }
+
+        let span = hasFollowCameraPosition ? (mapRegion?.span ?? defaultFollowSpan) : defaultFollowSpan
+        let region = MKCoordinateRegion(center: coordinate, span: span)
+        position = .region(region)
+        mapRegion = region
+        hasFollowCameraPosition = true
+    }
+
+    private func focusPendingGroupMember() {
+        guard let uid = groupRide.consumeMapFocusUID() else { return }
+        guard let member = groupRide.state.positions.first(where: { $0.uid == uid }) else {
+            ToastManager.shared.show(
+                message: LocalizationHelper.localized("This rider has no current location to show."),
+                style: .info
+            )
+            return
+        }
+
+        clearCameraFollow()
+        let coordinate = CLLocationCoordinate2D(latitude: member.lat, longitude: member.lng)
+        let region = MKCoordinateRegion(center: coordinate, span: mapRegion?.span ?? defaultFollowSpan)
+        mapRegion = region
+        position = .region(region)
+    }
+
+    private var visibleHeadingTailSegments: [GroupHeadingTailSegment] {
+        let selfUID = Auth.auth().currentUser?.uid
+        return groupRide.headingTailSegments(
+            nowElapsedMillis: groupClockTick,
+            selfUID: selfUID
+        )
     }
 
     private var visibleGroupPositions: [GroupWire.MemberPosition] {

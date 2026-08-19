@@ -15,6 +15,7 @@ struct DownloadedRide: Equatable {
     let maxSpeedMps: Double?
     let avgSpeedMps: Double?
     let pointCount: Int?
+    let chunkCount: Int?
 
     var persistedAggregate: RideAggregateSnapshot? {
         guard let distanceMeters,
@@ -53,43 +54,56 @@ struct DownloadedPoint: Equatable {
 
 extension FirestoreSyncManager {
     static func decodeDouble(_ value: Any?) -> Double? {
-        (value as? NSNumber)?.doubleValue
+        decodeFirestoreDouble(value)
     }
 
     static func decodeInt64(_ value: Any?) -> Int64? {
-        (value as? NSNumber)?.int64Value
+        decodeFirestoreInt64(value)
     }
 
     static func decodeDate(_ value: Any?) -> Date? {
-        switch value {
-        case let ts as Timestamp:            return ts.dateValue()
-        case let d  as Date:                 return d
-        case let n  as NSNumber:
-            let x = n.doubleValue
-            return Date(timeIntervalSince1970: x >= 1_000_000_000_000 ? x / 1000.0 : x)
-        default:                             return nil
-        }
+        decodeFirestoreDate(value)
     }
 
     static func parseRideDocument(docId: String, data: [String: Any]) -> DownloadedRide? {
+        let points = parsePoints(data["points"])
+        let chunkCount = decodeInt64(data["chunkCount"]).map { max(0, Int($0)) }
+        return makeDownloadedRide(docId: docId, data: data, points: points, chunkCount: chunkCount)
+    }
+
+    /// Builds the same ride metadata as the legacy array parser, but with
+    /// points reassembled by the sync layer from the `points/{chunk}` children.
+    /// Keeping this conversion here means SwiftData and every post-download
+    /// consumer still receive one flat ride, regardless of cloud shape.
+    static func parseRideDocument(
+        docId: String,
+        data: [String: Any],
+        points: [DownloadedPoint],
+        chunkCount: Int
+    ) -> DownloadedRide? {
+        makeDownloadedRide(
+            docId: docId,
+            data: data,
+            points: points,
+            chunkCount: max(0, chunkCount)
+        )
+    }
+
+    static func parsePoints(_ value: Any?) -> [DownloadedPoint] {
+        parseFirestorePoints(value)
+    }
+
+    private static func makeDownloadedRide(
+        docId: String,
+        data: [String: Any],
+        points: [DownloadedPoint],
+        chunkCount: Int?
+    ) -> DownloadedRide? {
         guard let start = decodeDate(data["startTime"]) else { return nil }
         let end = decodeDate(data["endTime"])
         let localId = (data["id"] as? String).flatMap(UUID.init(uuidString:))
             ?? UUID(uuidString: docId)
             ?? UUID()
-        let rawPoints = data["points"] as? [[String: Any]] ?? []
-        let points: [DownloadedPoint] = rawPoints.compactMap { p in
-            guard let ts = decodeDate(p["timestamp"]) else { return nil }
-            return DownloadedPoint(
-                latitude:  (p["lat"] as? Double) ?? 0,
-                longitude: (p["lng"] as? Double) ?? 0,
-                altitude:  (p["altitude"] as? Double) ?? 0,
-                accuracy:  (p["accuracy"] as? Double) ?? 0,
-                speed:     (p["speed"] as? Double) ?? 0,
-                timestamp: ts,
-                isPaused:  (p["isPaused"] as? Bool) ?? false
-            )
-        }
         let wallDurationMillis = end.map {
             Int64(max(0, $0.timeIntervalSince(start) * 1_000))
         }
@@ -105,7 +119,8 @@ extension FirestoreSyncManager {
             movingDurationMillis: movingDurationMillis,
             maxSpeedMps: decodeDouble(data["maxSpeed"]),
             avgSpeedMps: decodeDouble(data["avgSpeed"]),
-            pointCount: decodeInt64(data["pointCount"]).map(Int.init)
+            pointCount: decodeInt64(data["pointCount"]).map(Int.init),
+            chunkCount: chunkCount
         )
     }
 }

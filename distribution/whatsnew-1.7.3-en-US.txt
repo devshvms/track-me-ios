@@ -1,0 +1,8 @@
+TrackMe 1.7.3
+
+- Keep long rides together with more reliable cloud sync across devices.
+- Follow your position on the map, or pan, zoom, and rotate to explore; tap recenter to follow again.
+- Tap a rider in the Community roster to open Home focused on that rider.
+- See a short heading trail for other riders during a live group ride.
+- Delete synced rides safely, including when offline; pending deletions retry when connectivity returns.
+- Improved recording safety so a ride is never recorded while the app shows no active ride.

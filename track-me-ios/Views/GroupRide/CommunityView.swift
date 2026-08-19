@@ -4,6 +4,7 @@ import SwiftUI
 
 struct CommunityView: View {
     @Bindable private var groupRide = GroupRideManager.shared
+    @Environment(\.dismiss) private var dismiss
     @State private var groupName = "Sunday Riders"
     @State private var joinCode = ""
     @State private var isBusy = false
@@ -15,7 +16,9 @@ struct CommunityView: View {
     @State private var showStatusPicker = false
     @State private var directionsTarget: GroupDirectionsTarget?
     @State private var groupClockTick = StatusAge.elapsedMillis()
-    @State private var signedInUserID = Auth.auth().currentUser?.uid
+    @State private var signedInUserID = AppRuntime.isAppStoreCapture
+        ? "capture-owner"
+        : Auth.auth().currentUser?.uid
     @State private var authListener: AuthStateDidChangeListenerHandle?
 
     var body: some View {
@@ -151,6 +154,7 @@ struct CommunityView: View {
                 }
             }
             .onAppear {
+                guard !AppRuntime.isAppStoreCapture else { return }
                 guard authListener == nil else { return }
                 authListener = Auth.auth().addStateDidChangeListener { _, user in
                     Task { @MainActor in
@@ -387,7 +391,7 @@ struct CommunityView: View {
     private var memberRows: [GroupMemberRow] {
         let positions = Dictionary(uniqueKeysWithValues: groupRide.state.positions.map { ($0.uid, $0) })
         let statuses = Dictionary(uniqueKeysWithValues: groupRide.state.statuses.map { ($0.uid, $0) })
-        let selfUID = Auth.auth().currentUser?.uid
+        let selfUID = signedInUserID
         let orderedRoster = groupRide.state.roster.sorted { lhs, rhs in
             if lhs.uid == selfUID { return true }
             if rhs.uid == selfUID { return false }
@@ -447,6 +451,20 @@ struct CommunityView: View {
             onDirections: {
                 guard let position = row.position else { return }
                 directionsTarget = GroupDirectionsTarget(position: position, age: row.positionAge)
+            },
+            onShowOnMap: {
+                guard row.position != nil else {
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("This rider has no current location to show."),
+                        style: .info
+                    )
+                    return
+                }
+                groupRide.requestMapFocus(uid: row.id)
+                // When Community is presented as Home's sheet, return to the
+                // map after dispatching the one-shot focus request. In the
+                // Community tab this dismiss is a harmless no-op (§4).
+                dismiss()
             },
             onRemove: {
                 memberToRemove = row.id
@@ -757,44 +775,20 @@ private struct GroupRosterRowView: View {
     let canRemove: Bool
     let onSetStatus: () -> Void
     let onDirections: () -> Void
+    let onShowOnMap: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            GroupMemberBadge(
-                initials: row.initials,
-                tint: row.tint,
-                isStale: !row.isSelf && !row.isFresh,
-                status: row.riderStatus
-            )
-            .frame(width: 44)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(row.isSelf ? LocalizationHelper.localized("You") : row.name)
-                    .font(.body.weight(.semibold))
-                    .lineLimit(1)
-
-                if let statusLine = row.statusLine, let riderStatus = row.riderStatus {
-                    statusChip(statusLine, status: riderStatus)
-                } else if row.isSelf {
-                    Button(action: onSetStatus) {
-                        Label(LocalizationHelper.localized("Set status"), systemImage: "plus")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(BrandColor.primary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(BrandColor.primary.opacity(0.10), in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHidden(true)
+            if row.isSelf {
+                leadingContent
+            } else {
+                Button(action: onShowOnMap) {
+                    leadingContent
                 }
-
-                Text(row.activity)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
             if !row.isSelf {
                 HStack(spacing: 8) {
@@ -832,7 +826,58 @@ private struct GroupRosterRowView: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(row.isSelf ? LocalizationHelper.localized("Opens your status choices") : "")
+        .accessibilityHint(
+            row.isSelf
+                ? LocalizationHelper.localized("Opens your status choices")
+                : row.position == nil
+                    ? LocalizationHelper.localized("No current location is available")
+                    : LocalizationHelper.localized("Shows this rider on the map")
+        )
+        .accessibilityAction(
+            named: Text(row.isSelf
+                ? LocalizationHelper.localized("Set status")
+                : LocalizationHelper.localized("Show on map"))
+        ) {
+            row.isSelf ? onSetStatus() : onShowOnMap()
+        }
+    }
+
+    @ViewBuilder
+    private var leadingContent: some View {
+        GroupMemberBadge(
+            initials: row.initials,
+            tint: row.tint,
+            isStale: !row.isSelf && !row.isFresh,
+            status: row.riderStatus
+        )
+        .frame(width: 44)
+
+        VStack(alignment: .leading, spacing: 6) {
+            Text(row.isSelf ? LocalizationHelper.localized("You") : row.name)
+                .font(.body.weight(.semibold))
+                .lineLimit(1)
+
+            if let statusLine = row.statusLine, let riderStatus = row.riderStatus {
+                statusChip(statusLine, status: riderStatus)
+            } else if row.isSelf {
+                Button(action: onSetStatus) {
+                    Label(LocalizationHelper.localized("Set status"), systemImage: "plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(BrandColor.primary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(BrandColor.primary.opacity(0.10), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+            }
+
+            Text(row.activity)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
