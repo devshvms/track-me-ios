@@ -226,7 +226,7 @@ struct CommunityView: View {
             if let notice = groupRide.endNotice {
                 Section {
                     Text(endNoticeText(notice))
-                        .foregroundStyle(BrandColor.warning)
+                        .foregroundStyle(BrandColor.warningText)
                     Button(LocalizationHelper.localized("OK")) {
                         groupRide.acknowledgeEndNotice()
                     }
@@ -239,11 +239,11 @@ struct CommunityView: View {
                 LabeledContent(LocalizationHelper.localized("Time left"), value: timeLeftText)
                 if groupRide.state.status == .degraded {
                     Text(LocalizationHelper.localized("Group sharing is temporarily unavailable — retrying."))
-                        .foregroundStyle(BrandColor.warning)
+                        .foregroundStyle(BrandColor.warningText)
                 }
                 if !groupRide.state.isSharingPosition {
                     Text(LocalizationHelper.localized("You're not sharing your location. Others can't see you."))
-                        .foregroundStyle(BrandColor.warning)
+                        .foregroundStyle(BrandColor.warningText)
                 }
             } header: {
                 Text(LocalizationHelper.localized("Group"))

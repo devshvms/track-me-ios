@@ -168,7 +168,7 @@ struct OnboardingView: View {
 
     private var permissionsPage: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(LocalizationHelper.localized("Two things TrackMe needs"))
+            Text(LocalizationHelper.localized("Permissions, when you need them"))
                 .font(BrandTypography.title2)
                 .accessibilityAddTraits(.isHeader)
 
@@ -177,33 +177,29 @@ struct OnboardingView: View {
             OnboardingPermissionCard(
                 systemImage: "location.fill",
                 title: "Location",
-                body: "TrackMe uses precise location in the background while a ride is recording or a live group is sharing, so your route stays continuous when the screen is off.",
-                badge: "Required",
+                body: "Location is needed to record a ride or share your position with a live group. TrackMe will ask when you start your first ride.",
+                badge: "Needed for rides",
                 status: permissions.locationStatusText,
                 isGranted: permissions.locationGranted,
-                actionLabel: permissions.locationActionLabel,
-                action: permissions.requestLocation
+                pendingStatus: "Asked when you start a ride"
             )
 
             OnboardingPermissionCard(
                 systemImage: "bell.fill",
                 title: "Notifications",
-                body: "For group start reminders and important ride status alerts.",
-                badge: "Recommended",
+                body: "Notifications can provide group start reminders and important ride status alerts. TrackMe asks only when a feature needs them.",
+                badge: "Optional",
                 status: permissions.notificationsGranted ? "Allowed" : nil,
                 isGranted: permissions.notificationsGranted,
-                actionLabel: "Allow notifications",
-                action: permissions.requestNotifications
+                pendingStatus: "Asked when relevant"
             )
 
-            if permissions.locationDenied {
-                Text(LocalizationHelper.localized("Without location, TrackMe can't record a ride. You can allow it later in Settings."))
-                    .font(BrandTypography.footnote)
-                    .foregroundStyle(BrandColor.sosText)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(BrandColor.sos.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-            }
+            Text(LocalizationHelper.localized("You can continue without granting access. If you decline location later, you can still use TrackMe's non-recording features and enable location in Settings at any time."))
+                .font(BrandTypography.footnote)
+                .foregroundStyle(.secondary)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -344,8 +340,7 @@ private struct OnboardingPermissionCard: View {
     let badge: String
     let status: String?
     let isGranted: Bool
-    let actionLabel: String
-    let action: () -> Void
+    let pendingStatus: String
 
     init(
         systemImage: String,
@@ -354,8 +349,7 @@ private struct OnboardingPermissionCard: View {
         badge: String,
         status: String?,
         isGranted: Bool,
-        actionLabel: String,
-        action: @escaping () -> Void
+        pendingStatus: String
     ) {
         self.systemImage = systemImage
         self.title = title
@@ -363,8 +357,7 @@ private struct OnboardingPermissionCard: View {
         self.badge = badge
         self.status = status
         self.isGranted = isGranted
-        self.actionLabel = actionLabel
-        self.action = action
+        self.pendingStatus = pendingStatus
     }
 
     var body: some View {
@@ -391,10 +384,9 @@ private struct OnboardingPermissionCard: View {
                     .font(BrandTypography.footnote.weight(.semibold))
                     .foregroundStyle(BrandColor.success)
             } else {
-                Button(LocalizationHelper.localized(actionLabel), action: action)
-                    .buttonStyle(.borderedProminent)
-                    .tint(BrandColor.primaryFill)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Label(LocalizationHelper.localized(pendingStatus), systemImage: "clock")
+                    .font(BrandTypography.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(16)
@@ -419,35 +411,11 @@ private final class OnboardingPermissionModel: NSObject, ObservableObject, CLLoc
         locationStatus == .authorizedAlways || locationStatus == .authorizedWhenInUse
     }
 
-    var locationDenied: Bool {
-        locationStatus == .denied || locationStatus == .restricted
-    }
-
     var locationStatusText: String? {
         switch locationStatus {
         case .authorizedAlways: "Always allowed"
         case .authorizedWhenInUse: "Allowed while using"
         default: nil
-        }
-    }
-
-    var locationActionLabel: String {
-        locationDenied ? "Open Settings" : "Allow location"
-    }
-
-    func requestLocation() {
-        if locationDenied {
-            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-            UIApplication.shared.open(url)
-        } else {
-            locationManager.requestAlwaysAuthorization()
-        }
-    }
-
-    func requestNotifications() {
-        Task {
-            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
-            await refreshNotifications()
         }
     }
 
