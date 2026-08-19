@@ -1,0 +1,7 @@
+TrackMe 1.8.0
+
+- Keep long rides together with more reliable cloud sync and safer offline deletion across devices.
+- Follow your position on the map or explore freely, then recenter when you are ready.
+- Focus on a rider from Community and see a short heading trail during live Group Rides.
+- Permission requests now appear only when you start a ride or use the feature that needs them; onboarding simply explains each permission.
+- Improved recording safeguards, warning readability, accessibility, and interface polish.
