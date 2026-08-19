@@ -49,7 +49,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var isAutoPaused: Bool = false
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
-    var showLocationPermissionExplanation = false
     var showLocationDeniedRecovery = false
     
     private static let askedAlwaysKey = "hasRequestedAlwaysUpgrade"
@@ -116,10 +115,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     func startTracking(persona: RidePersona = .auto) {
         selectedPersona = persona
-        switch LocationStartDecision.action(for: mappedAuth, afterPrimer: false) {
-        case .showPrimer:
-            pendingTrackingStart = true
-            showLocationPermissionExplanation = true
+        switch LocationStartDecision.action(for: mappedAuth) {
         case .requestWhenInUse:
             pendingTrackingStart = true
             locationManager.requestWhenInUseAuthorization()
@@ -131,28 +127,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             selectedPersona = .auto
             offerDeniedRecovery()
         }
-    }
-
-    func continueAfterLocationExplanation() {
-        pendingTrackingStart = true
-        switch LocationStartDecision.action(for: mappedAuth, afterPrimer: true) {
-        case .requestWhenInUse:
-            locationManager.requestWhenInUseAuthorization()
-        case .begin:
-            beginTracking()
-            requestAlwaysUpgradeIfAppropriate()
-        case .deniedRecovery:
-            pendingTrackingStart = false
-            selectedPersona = .auto
-            offerDeniedRecovery()
-        case .showPrimer:
-            break
-        }
-    }
-
-    func cancelPendingTrackingStart() {
-        pendingTrackingStart = false
-        selectedPersona = .auto
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {

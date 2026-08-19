@@ -397,16 +397,6 @@ struct HomeView: View {
                 }
             }
         }
-        .alert("Location access for safe tracking", isPresented: $trackingManager.showLocationPermissionExplanation) {
-            Button("Continue") {
-                trackingManager.continueAfterLocationExplanation()
-            }
-            Button("Not now", role: .cancel) {
-                trackingManager.cancelPendingTrackingStart()
-            }
-        } message: {
-            Text("TrackMe records your route locally first and needs location access while you are moving. Allowing Always access lets an active track continue when your phone is locked.")
-        }
         .alert("Location access needed", isPresented: $trackingManager.showLocationDeniedRecovery) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
