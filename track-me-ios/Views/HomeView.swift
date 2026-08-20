@@ -850,7 +850,7 @@ internal struct RideStatAccessibilityDescriptor: Equatable {
     let value: String
 }
 
-private struct ActiveRideHUD: View {
+struct ActiveRideHUD: View {
     let trackingState: TrackingState
     let persona: RidePersona
     let isAutoPaused: Bool
@@ -1091,7 +1091,7 @@ internal enum RideStopSliderPolicy {
     }
 }
 
-private struct UnifiedPauseStopSlider: View {
+struct UnifiedPauseStopSlider: View {
     let isPaused: Bool
     let onPauseToggle: () -> Void
     let onStop: () -> Void
@@ -1198,7 +1198,7 @@ private struct UnifiedPauseStopSlider: View {
     }
 }
 
-private struct LiveShareActionDrawer: View {
+struct LiveShareActionDrawer: View {
     let isActive: Bool
     let isStarting: Bool
     let isAuthenticated: Bool
@@ -1341,7 +1341,7 @@ private struct LiveShareActionDrawer: View {
     }
 }
 
-private struct RadialStartTrackingControl: View {
+struct RadialStartTrackingControl: View {
     @Binding var launchState: RideStartLaunchState
     var onCommit: (RidePersona) -> Void
 

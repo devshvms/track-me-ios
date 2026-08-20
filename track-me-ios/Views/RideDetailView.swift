@@ -1,16 +1,6 @@
 import SwiftUI
 import MapKit
-import Charts
 import SwiftData
-
-struct NormalizedPoint: Identifiable {
-    let id = UUID()
-    let timestamp: Date
-    let speedNormalized: Double
-    let altitudeNormalized: Double
-    let rawSpeed: Double
-    let rawAltitude: Double
-}
 
 struct RideDetailView: View {
     @Bindable var ride: Ride
@@ -54,46 +44,6 @@ struct RideDetailView: View {
         return distances
     }
     
-    private var normalizedPoints: [NormalizedPoint] {
-        let pts = sortedPoints
-        guard !pts.isEmpty else { return [] }
-        
-        let speeds = pts.map { $0.speed * 3.6 } // km/h
-        let alts = pts.map { $0.altitude }
-        
-        let rawMinSpeed = speeds.min() ?? 0
-        let rawMaxSpeed = speeds.max() ?? 0
-        let speedRange = rawMaxSpeed > rawMinSpeed ? (rawMaxSpeed - rawMinSpeed) : 1.0
-        let minSpeed = rawMinSpeed - speedRange * 0.1
-        let maxSpeed = rawMaxSpeed + speedRange * 0.1
-        
-        let rawMinAlt = alts.min() ?? 0
-        let rawMaxAlt = alts.max() ?? 0
-        let altRange = rawMaxAlt > rawMinAlt ? (rawMaxAlt - rawMinAlt) : 1.0
-        let minAlt = rawMinAlt - altRange * 0.1
-        let maxAlt = rawMaxAlt + altRange * 0.1
-        
-        return pts.enumerated().map { (index, pt) in
-            let s = speeds[index]
-            let a = alts[index]
-            return NormalizedPoint(
-                timestamp: pt.timestamp,
-                speedNormalized: (s - minSpeed) / (maxSpeed - minSpeed),
-                altitudeNormalized: (a - minAlt) / (maxAlt - minAlt),
-                rawSpeed: s,
-                rawAltitude: a
-            )
-        }
-    }
-
-    private var chartSamples: [ChartSample] {
-        sortedPoints.map {
-            ChartSample(timestamp: $0.timestamp,
-                        speedMetersPerSecond: $0.speed,
-                        altitudeMeters: $0.altitude)
-        }
-    }
-    
     private var maxGForce: Double {
         let pts = sortedPoints
         guard pts.count > 1 else { return 0.0 }
@@ -120,7 +70,10 @@ struct RideDetailView: View {
                 if !sortedPoints.isEmpty {
                     // Analytics Section
                     VStack(spacing: 16) {
-                        combinedChart
+                        CombinedMetricLineChart(
+                            points: sortedPoints,
+                            scrubIndex: scrubIndex
+                        )
                             .padding(.horizontal)
                             .padding(.top, 16)
                         
@@ -356,96 +309,6 @@ struct RideDetailView: View {
         }
     }
     
-    @ViewBuilder
-    var combinedChart: some View {
-        let pts = normalizedPoints
-        let gaps = ChartAccessibility.signalGaps(for: chartSamples)
-        Chart {
-            // Keep gap bands behind the metric lines and derive them from the
-            // same samples used by the VoiceOver summary.
-            ForEach(Array(gaps.enumerated()), id: \.offset) { _, gap in
-                RectangleMark(
-                    xStart: .value("Gap start", gap.start),
-                    xEnd: .value("Gap end", gap.end)
-                )
-                .foregroundStyle(Color.red.opacity(0.30))
-            }
-
-            ForEach(pts) { pt in
-                LineMark(
-                    x: .value("Time", pt.timestamp),
-                    y: .value("Value", pt.speedNormalized)
-                )
-                .foregroundStyle(by: .value("Metric", "Speed"))
-                .lineStyle(StrokeStyle(lineWidth: 2))
-            }
-            
-            ForEach(pts) { pt in
-                LineMark(
-                    x: .value("Time", pt.timestamp),
-                    y: .value("Value", pt.altitudeNormalized)
-                )
-                .foregroundStyle(by: .value("Metric", "Altitude"))
-                .lineStyle(StrokeStyle(lineWidth: 2))
-            }
-            
-            if let idx = scrubIndex, idx < pts.count {
-                RuleMark(x: .value("Selected", pts[idx].timestamp))
-                    .foregroundStyle(Color.gray.opacity(0.8))
-                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [5]))
-                
-                PointMark(
-                    x: .value("Selected", pts[idx].timestamp),
-                    y: .value("Value", pts[idx].speedNormalized)
-                )
-                .foregroundStyle(by: .value("Metric", "Speed"))
-                .annotation(position: .top, alignment: .center) {
-                    Text(UnitFormatter.speed(mps: pts[idx].rawSpeed, unit: unitSettings.unit))
-                        // The chart summary/scrubber remains the primary VoiceOver path;
-                        // keep these visual annotations readable without covering the plot.
-                        .font(.caption2.bold())
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(BrandColor.chartSpeed)
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                }
-                
-                PointMark(
-                    x: .value("Selected", pts[idx].timestamp),
-                    y: .value("Value", pts[idx].altitudeNormalized)
-                )
-                .foregroundStyle(by: .value("Metric", "Altitude"))
-                .annotation(position: .bottom, alignment: .center) {
-                    Text(String(format: "%.1f m", pts[idx].rawAltitude))
-                        .font(.caption2.bold())
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(BrandColor.chartAltitude)
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                }
-            }
-        }
-        .chartForegroundStyleScale([
-            "Speed": BrandColor.chartSpeed,
-            "Altitude": BrandColor.chartAltitude
-        ])
-        .chartLegend(position: .top, alignment: .leading)
-        .frame(height: 200)
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .padding()
-        .background(Color(UIColor.darkGray))
-        .cornerRadius(12)
-        // Swift Charts' default per-point audio graph is meaningless with
-        // hundreds of points; speak a single summary sentence instead.
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(ChartAccessibility.description(points: sortedPoints, unit: unitSettings.unit))
-    }
-
     /// Spoken value for the timeline scrubber at the given sample index.
     private func scrubberAccessibilityValue(index: Int) -> String {
         guard index >= 0, index < sortedPoints.count else { return "" }
