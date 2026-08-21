@@ -117,6 +117,14 @@ struct track_me_iosApp: App {
                 }
                 .onAppear {
                     DataRepository.shared.setup(container: sharedModelContainer)
+                    let state = OnboardingState(
+                        rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
+                    ) ?? .legacy
+                    try? OnboardingSampleRideSeeder.seedIfNeeded(
+                        context: sharedModelContainer.mainContext,
+                        onboardingState: state,
+                        title: LocalizationHelper.localized("Sample ride")
+                    )
                     EmergencyDataPurge.shared.purgeOnce(container: sharedModelContainer)
                     Task {
                         await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)

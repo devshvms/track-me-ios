@@ -16,6 +16,7 @@ struct ContentView: View {
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @ObservedObject private var ageSignalManager = AgeSignalManager.shared
     @Environment(\.requestAgeRange) private var requestAgeRange
+    @Environment(\.modelContext) private var modelContext
     private var trackingManager = TrackingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
     @Bindable private var emergencyRetirement = EmergencyDataPurge.shared
@@ -36,6 +37,11 @@ struct ContentView: View {
                 OnboardingView { outcome in
                     OnboardingGate.complete(outcome)
                     onboardingStateRaw = OnboardingState.done.rawValue
+                    try? OnboardingSampleRideSeeder.seedIfNeeded(
+                        context: modelContext,
+                        onboardingState: .done,
+                        title: LocalizationHelper.localized("Sample ride")
+                    )
                 }
             } else {
                 TabView(selection: $selectedTab) {

@@ -137,13 +137,23 @@ struct RideDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                if isEditingTitle {
-                    TextField("Ride Name", text: $editTitleText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(minWidth: 150)
-                } else {
-                    Text(ride.title ?? "Ride Details")
-                        .font(.headline)
+                HStack(spacing: 8) {
+                    if isEditingTitle {
+                        TextField("Ride Name", text: $editTitleText)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(minWidth: 150)
+                    } else {
+                        Text(ride.title ?? "Ride Details")
+                            .font(.headline)
+                    }
+                    if ride.isSample {
+                        Text(LocalizationHelper.localized("Sample"))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(BrandColor.primary)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(BrandColor.primary.opacity(0.12), in: Capsule())
+                    }
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {

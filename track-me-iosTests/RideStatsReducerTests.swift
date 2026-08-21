@@ -61,6 +61,23 @@ final class RideStatsReducerTests: XCTestCase {
         XCTAssertEqual(after, stats)
     }
 
+    func testSampleRideIsExcludedFromEveryAggregate() {
+        let before = RideStats()
+        let sample = GoodRideSummary(
+            rideId: "sample",
+            finishedAtMillis: millis(2026, 7, 20),
+            durationMillis: 540_000,
+            distanceMeters: 1_931.4,
+            isSample: true
+        )
+
+        let (after, transition) = RideStatsReducer.reduce(before, sample, cal())
+
+        XCTAssertEqual(after, before)
+        XCTAssertTrue(transition.alreadyProcessed)
+        XCTAssertFalse(after.processedRideIds.contains(sample.rideId))
+    }
+
     func testMilestoneFiresOnThreshold() {
         var stats = RideStats()
         var last: Int? = nil

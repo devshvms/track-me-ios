@@ -19,6 +19,8 @@ final class Ride {
     var cloudChunkCount: Int?
     var title: String?
     var persona: String = "AUTO"
+    /// Local first-run fixture. It behaves like a ride in History but never syncs or counts.
+    var isSample: Bool = false
 
     // Finalized, filtered metrics. Optional fields keep the SwiftData migration
     // additive for rides recorded before aggregate persistence was introduced.

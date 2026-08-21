@@ -102,9 +102,23 @@ class FirestoreSyncManager {
     static let pointsPerChunk = RideChunkingContract.chunkSize
     private let rideOperationGate = RideOperationGate()
 
+    nonisolated static func isRideEligibleForCloudSync(
+        isSample: Bool,
+        pendingDelete: Bool
+    ) -> Bool {
+        !isSample && !pendingDelete
+    }
+
     // MARK: - Sync Local -> Remote (Chunked Ride)
     @discardableResult
     func uploadRide(_ ride: Ride) async -> Bool {
+        let isEligible = await MainActor.run {
+            Self.isRideEligibleForCloudSync(
+                isSample: ride.isSample,
+                pendingDelete: ride.pendingDelete
+            )
+        }
+        guard isEligible else { return false }
         guard let uid = Auth.auth().currentUser?.uid else { return false }
         let rideRef = db.collection("users").document(uid).collection("rides").document(ride.id.uuidString)
         let key = rideRef.path
@@ -528,7 +542,12 @@ class FirestoreSyncManager {
         Task { @MainActor in
             self.processPendingDeletions()
             let localRides = DataRepository.shared.allRides()
-            let unsynced = localRides.filter { !$0.isSynced && !$0.pendingDelete }
+            let unsynced = localRides.filter {
+                !$0.isSynced && Self.isRideEligibleForCloudSync(
+                    isSample: $0.isSample,
+                    pendingDelete: $0.pendingDelete
+                )
+            }
 
             if unsynced.isEmpty {
                 self.downloadAndInsert(uid: uid, limit: limit, completion: completion)
@@ -569,7 +588,12 @@ class FirestoreSyncManager {
         }
 
         // 1. Upload unsynced local rides
-        let unsynced = localRides.filter { !$0.isSynced && !$0.pendingDelete }
+        let unsynced = localRides.filter {
+            !$0.isSynced && Self.isRideEligibleForCloudSync(
+                isSample: $0.isSample,
+                pendingDelete: $0.pendingDelete
+            )
+        }
 
         if unsynced.isEmpty {
             self.downloadAndInsert(uid: uid, limit: nil, completion: completion)

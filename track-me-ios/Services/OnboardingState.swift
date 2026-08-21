@@ -73,6 +73,11 @@ enum OnboardingGate {
 
         defaults.set(state.rawValue, forKey: stateKey)
         defaults.set(currentVersion, forKey: lastVersionKey)
+        OnboardingSampleRideSeeder.initialize(
+            defaults: defaults,
+            onboardingState: state,
+            wasUpdated: wasUpdated
+        )
         return state
     }
 
@@ -96,6 +101,9 @@ enum OnboardingGate {
         defaults: UserDefaults,
         telemetry: OnboardingTelemetryClient
     ) {
+        // Request first. A process death here leaves onboarding pending, and the seeder refuses to
+        // run until a later completion marks the gate done.
+        OnboardingSampleRideSeeder.request(defaults: defaults)
         defaults.set(outcome.analyticsOptIn, forKey: "enableTelemetry")
         telemetry.updateLocalConsent(outcome.analyticsOptIn)
         telemetry.trackOnboardingCompleted(outcome)

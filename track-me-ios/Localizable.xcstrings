@@ -18775,6 +18775,16 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开示例行程。" } }
       }
     },
+    "Sample" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beispiel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Muestra" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Exemple" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "नमूना" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サンプル" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "示例" } }
+      }
+    },
     "Sample ride" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Beispiel-Tour" } },

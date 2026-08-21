@@ -77,8 +77,20 @@ struct HistoryView: View {
                         if let bucketRides = groupedRides[bucket], !bucketRides.isEmpty {
                             Section {
                                 ForEach(bucketRides) { ride in
-                                    NavigationLink(destination: RideDetailView(ride: ride)) {
-                                        CompactRideRowView(ride: ride)
+                                    HStack(spacing: 8) {
+                                        NavigationLink(destination: RideDetailView(ride: ride)) {
+                                            CompactRideRowView(ride: ride)
+                                        }
+                                        if ride.isSample {
+                                            Button(role: .destructive) {
+                                                deleteSampleRide(ride)
+                                            } label: {
+                                                Image(systemName: "trash")
+                                                    .frame(width: 44, height: 44)
+                                            }
+                                            .buttonStyle(.borderless)
+                                            .accessibilityLabel(LocalizationHelper.localized("Delete Ride"))
+                                        }
                                     }
                                     .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                                 }
@@ -159,6 +171,21 @@ struct HistoryView: View {
         FirestoreSyncManager.shared.syncRide(ride)
         ToastManager.shared.show(message: LocalizationHelper.localized("GPX Imported Successfully"), style: .success)
     }
+
+    /// Sample-only one-tap deletion. Its terminal seed marker intentionally remains `.seeded`.
+    private func deleteSampleRide(_ ride: Ride) {
+        guard ride.isSample else { return }
+        modelContext.delete(ride)
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            ToastManager.shared.show(
+                message: LocalizationHelper.localized("Couldn't delete this ride from this device. Please try again."),
+                style: .error
+            )
+        }
+    }
     
 }
 
@@ -177,11 +204,22 @@ struct CompactRideRowView: View {
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
 
+                    if ride.isSample {
+                        Text(LocalizationHelper.localized("Sample"))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(BrandColor.primary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(BrandColor.primary.opacity(0.12), in: Capsule())
+                    }
+
                     Spacer()
 
-                    Image(systemName: ride.pendingDelete
-                        ? "clock.arrow.circlepath"
-                        : ride.isSynced ? "checkmark.icloud.fill" : "exclamationmark.icloud")
+                    Image(systemName: ride.isSample
+                        ? "iphone"
+                        : ride.pendingDelete
+                            ? "clock.arrow.circlepath"
+                            : ride.isSynced ? "checkmark.icloud.fill" : "exclamationmark.icloud")
                         .font(.caption)
                         .foregroundColor(ride.pendingDelete
                             ? .orange
@@ -219,7 +257,9 @@ struct CompactRideRowView: View {
         let title = ride.title ?? LocalizationHelper.localized("TrackMe Ride")
         let time = ride.startTime.formatted(date: .abbreviated, time: .shortened)
         let syncState: String
-        if ride.pendingDelete {
+        if ride.isSample {
+            syncState = LocalizationHelper.localized("Sample")
+        } else if ride.pendingDelete {
             syncState = LocalizationHelper.localized("Removal queued; will finish when you're online")
         } else if ride.isSynced {
             syncState = LocalizationHelper.localized("Synced")
