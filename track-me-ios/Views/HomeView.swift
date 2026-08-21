@@ -1343,6 +1343,9 @@ struct LiveShareActionDrawer: View {
 
 struct RadialStartTrackingControl: View {
     @Binding var launchState: RideStartLaunchState
+    var onAbort: (RideStartAbortMethod) -> Void = {
+        TelemetryManager.shared.trackRideStartAborted(method: $0)
+    }
     var onCommit: (RidePersona) -> Void
 
     @State private var isExpanded = false
@@ -1463,7 +1466,7 @@ struct RadialStartTrackingControl: View {
                   launchState.abort(observedToken: token) else { return }
             abortGestureActive = true
             Haptics.notify(.warning)
-            TelemetryManager.shared.trackRideStartAborted(method: .preCommit)
+            onAbort(.preCommit)
             return
         }
 

@@ -36,6 +36,7 @@ struct OnboardingView: View {
     @State private var usedSkip = false
     @State private var startedAt = Date()
     @State private var analyticsWasChanged = false
+    @State private var selectedDemoPersona: RidePersona = .cycling
     @State private var analyticsOptIn = AnalyticsDefault.startsOn(
         primaryCountryCode: nil,
         localeCountryCode: Locale.current.region?.identifier
@@ -135,19 +136,25 @@ struct OnboardingView: View {
                 )
             }
         case .ride:
-            VStack(alignment: .leading, spacing: 24) {
-                RideGestureOnboardingArt()
+            VStack(alignment: .leading, spacing: 20) {
                 PageCopy(
                     title: "Press and hold to start",
                     body: "Hold the Start button, then drag to pick how you're moving - Auto, Walk, Run, Cycling, Bike or Car. Let go, and TrackMe begins recording your route, distance and pace."
                 )
+                RideOnboardingDemo(
+                    selectedPersona: $selectedDemoPersona,
+                    onCompleted: { move(to: .history) }
+                )
             }
         case .history:
-            VStack(alignment: .leading, spacing: 24) {
-                HistoryOnboardingArt()
+            VStack(alignment: .leading, spacing: 20) {
                 PageCopy(
                     title: "Every ride is kept",
                     body: "Finished rides land in History with your route, distance, time and pace. Open one to inspect or replay it, or pick two rides to compare side by side."
+                )
+                HistoryOnboardingDemo(
+                    selectedPersona: $selectedDemoPersona,
+                    onCompleted: { move(to: .together) }
                 )
             }
         case .together:

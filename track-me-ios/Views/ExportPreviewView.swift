@@ -4,6 +4,8 @@ import MapKit
 struct ExportPreviewView: View {
     let ride: Ride
     let snapshotImage: UIImage
+    let demoMode: Bool
+    let onDemoSave: (() -> Void)?
     
     @State private var showTitle = true
     @State private var showDate = true
@@ -30,9 +32,16 @@ struct ExportPreviewView: View {
         var snapshotSize: CGSize { CGSize(width: 800, height: 800 / aspect) }
     }
 
-    init(ride: Ride, snapshotImage: UIImage) {
+    init(
+        ride: Ride,
+        snapshotImage: UIImage,
+        demoMode: Bool = false,
+        onDemoSave: (() -> Void)? = nil
+    ) {
         self.ride = ride
         self.snapshotImage = snapshotImage
+        self.demoMode = demoMode
+        self.onDemoSave = onDemoSave
         _renderedImage = State(initialValue: snapshotImage)
     }
 
@@ -60,17 +69,25 @@ struct ExportPreviewView: View {
                 Toggle(LocalizationHelper.localized("Show date"), isOn: $showDate)
                 Toggle(LocalizationHelper.localized("Show duration"), isOn: $showDuration)
                 Toggle(LocalizationHelper.localized("Show distance"), isOn: $showDistance)
-                Toggle(LocalizationHelper.localized("Privacy trim (200 m)"), isOn: $privacyTrim)
+                if !demoMode {
+                    Toggle(LocalizationHelper.localized("Privacy trim (200 m)"), isOn: $privacyTrim)
+                }
                 Toggle(LocalizationHelper.localized("Dark overlay"), isOn: $darkOverlay)
             }
             .frame(height: 190)
             .cornerRadius(16)
             .padding(.horizontal)
             
-            Button(action: shareImage) {
+            Button {
+                if demoMode {
+                    saveDemo()
+                } else {
+                    shareImage()
+                }
+            } label: {
                 HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Text(LocalizationHelper.localized("Share image"))
+                    Image(systemName: demoMode ? "checkmark" : "square.and.arrow.up")
+                    Text(LocalizationHelper.localized(demoMode ? "Save" : "Share image"))
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -81,55 +98,61 @@ struct ExportPreviewView: View {
             }
             .padding(.horizontal)
 
-            Button(action: exportVideo) {
-                HStack {
-                    if isExportingVideo {
-                        ProgressView(value: videoExportProgress)
-                            .progressViewStyle(.linear)
-                            .frame(width: 28)
-                    } else {
-                        Image(systemName: "video.fill")
+            if !demoMode {
+                Button(action: exportVideo) {
+                    HStack {
+                        if isExportingVideo {
+                            ProgressView(value: videoExportProgress)
+                                .progressViewStyle(.linear)
+                                .frame(width: 28)
+                        } else {
+                            Image(systemName: "video.fill")
+                        }
+                        Text(isExportingVideo
+                             ? String(format: LocalizationHelper.localized("Exporting… %d%%"), Int(videoExportProgress * 100))
+                             : LocalizationHelper.localized("Export video"))
                     }
-                    Text(isExportingVideo
-                         ? String(format: LocalizationHelper.localized("Exporting… %d%%"), Int(videoExportProgress * 100))
-                         : LocalizationHelper.localized("Export video"))
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(hasEnoughPointsForVideo ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.4))
+                    .cornerRadius(12)
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(hasEnoughPointsForVideo ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.4))
-                .cornerRadius(12)
-            }
-            .disabled(!hasEnoughPointsForVideo)
-            .padding(.horizontal)
-            if !hasEnoughPointsForVideo {
-                Text(LocalizationHelper.localized("Not enough GPS points to export video"))
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
+                .disabled(!hasEnoughPointsForVideo)
+                .padding(.horizontal)
+                if !hasEnoughPointsForVideo {
+                    Text(LocalizationHelper.localized("Not enough GPS points to export video"))
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                }
             }
             Spacer(minLength: 8)
         }
-        .navigationTitle("Export Preview")
+        .navigationTitle(LocalizationHelper.localized("Export Preview"))
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(UIColor.systemGroupedBackground))
         .sheet(isPresented: $isShowingShareSheet) {
             ActivityView(activityItems: shareItems)
         }
         .onChange(of: selectedRatio) { _, ratio in
+            guard !demoMode else { return }
             ratioDebounce?.cancel()
             let work = DispatchWorkItem { regenerateSnapshot(for: ratio) }
             ratioDebounce = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
         }
         .onChange(of: privacyTrim) { _, _ in
+            guard !demoMode else { return }
             ratioDebounce?.cancel()
             let work = DispatchWorkItem { regenerateSnapshot(for: selectedRatio) }
             ratioDebounce = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
         }
-        .onAppear { regenerateSnapshot(for: selectedRatio) }
+        .onAppear {
+            if !demoMode { regenerateSnapshot(for: selectedRatio) }
+        }
         .onDisappear { videoExportTask?.cancel() }
     }
     
@@ -192,6 +215,11 @@ struct ExportPreviewView: View {
             shareItems = [uiImage]
             isShowingShareSheet = true
         }
+    }
+
+    @MainActor
+    private func saveDemo() {
+        onDemoSave?()
     }
 
     private var hasEnoughPointsForVideo: Bool {
