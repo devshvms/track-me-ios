@@ -67,7 +67,12 @@ final class OnboardingDemoFixtureTests: XCTestCase {
         let longitudes = points.map(\.longitude)
         let altitudes = points.map(\.altitude)
 
-        XCTAssertEqual(routeDistance, OnboardingDemoFixture.distanceMeters, accuracy: 1.0)
+        // Cross-checked with an independent spherical haversine, so the tolerance has to
+        // absorb the sphere-vs-ellipsoid difference: the fixture measures with
+        // CLLocation.distance (WGS84 geodesic), which reads ~0.075% longer over this
+        // route — 6.5 m across 8.6 km. The old +/-1 m was calibrated for a 1.9 km
+        // synthetic route where the two methods effectively agreed.
+        XCTAssertEqual(routeDistance, OnboardingDemoFixture.distanceMeters, accuracy: routeDistance * 0.001)
         let maxLatitude = try XCTUnwrap(latitudes.max())
         let minLatitude = try XCTUnwrap(latitudes.min())
         let maxLongitude = try XCTUnwrap(longitudes.max())
@@ -79,8 +84,13 @@ final class OnboardingDemoFixtureTests: XCTestCase {
         let altitudeRange = maxAltitude - minAltitude
         XCTAssertGreaterThan(latitudeRange, 0.004)
         XCTAssertGreaterThan(longitudeRange, 0.005)
-        XCTAssertGreaterThanOrEqual(altitudeRange, 15)
-        XCTAssertTrue(points.allSatisfy { $0.speed > 0 && (3...8).contains($0.accuracy) })
+        // The demo ride is a real recording (demo_ride.gpx) and the simulator scenario it
+        // was captured against supplies no terrain, so every fix sits at 0 m. Asserted
+        // explicitly rather than loosened, so a future re-recording that DOES carry
+        // elevation trips this line instead of silently changing the demo.
+        XCTAssertEqual(altitudeRange, 0, accuracy: 0.0001, "recorded scenario carries no elevation")
+        // Recorded accuracy spans 5..50 m, wider than the old synthetic samples' tidy 3..8 m.
+        XCTAssertTrue(points.allSatisfy { $0.speed > 0 && (3...60).contains($0.accuracy) })
     }
 
     private func haversineMeters(from first: GPSPoint, to second: GPSPoint) -> Double {
