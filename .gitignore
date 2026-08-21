@@ -36,3 +36,13 @@ fastlane/test_output
 
 # Firebase config (real file is local-only; see GoogleService-Info.example.plist)
 track-me-ios/GoogleService-Info.plist
+
+# Signing and API credentials — never commit these.
+# The App Store Connect key is issued once and cannot be re-downloaded; the
+# certificate and provisioning profiles are account-bound. CI reads all of them
+# from GitHub Actions secrets, so nothing here needs to be in the repo.
+*.p8
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision
