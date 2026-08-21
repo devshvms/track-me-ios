@@ -36,6 +36,9 @@ struct ContentView: View {
             } else if onboardingState == .pending {
                 OnboardingView { outcome in
                     OnboardingGate.complete(outcome)
+                    // Land on Home with a real default, without turning the CTA into a location
+                    // permission trap or starting a recording before the user's next gesture.
+                    trackingManager.selectedPersona = outcome.selectedPersona
                     onboardingStateRaw = OnboardingState.done.rawValue
                     try? OnboardingSampleRideSeeder.seedIfNeeded(
                         context: modelContext,

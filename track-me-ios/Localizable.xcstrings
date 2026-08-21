@@ -14693,49 +14693,49 @@
         }
       }
     },
-    "Start using TrackMe" : {
+    "Start my first ride" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TrackMe starten"
+            "value" : "Meine erste Fahrt starten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start using TrackMe"
+            "value" : "Start my first ride"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Empezar a usar TrackMe"
+            "value" : "Iniciar mi primer viaje"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Commencer à utiliser TrackMe"
+            "value" : "Démarrer mon premier trajet"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TrackMe इस्तेमाल शुरू करें"
+            "value" : "मेरी पहली राइड शुरू करें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TrackMe を始める"
+            "value" : "最初のライドを始める"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开始使用 TrackMe"
+            "value" : "开始我的第一次行程"
           }
         }
       }

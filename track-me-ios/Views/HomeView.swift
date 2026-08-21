@@ -290,7 +290,10 @@ struct HomeView: View {
                         .background(.regularMaterial, in: Capsule())
                         .padding(.horizontal, 16)
                     }
-                    RadialStartTrackingControl(launchState: $rideStartLaunch) { persona in
+                    RadialStartTrackingControl(
+                        launchState: $rideStartLaunch,
+                        preselectedPersona: trackingManager.selectedPersona
+                    ) { persona in
                         legacyStartHintSeen = true
                         trackingManager.startTracking(persona: persona)
                     }
@@ -1341,8 +1344,21 @@ struct LiveShareActionDrawer: View {
     }
 }
 
+nonisolated enum RadialStartPersonaPolicy {
+    static func selection(
+        hovered: RidePersona?,
+        didDrag: Bool,
+        releasedInsideCenter: Bool,
+        preselected: RidePersona
+    ) -> RidePersona? {
+        if let hovered { return hovered }
+        return !didDrag && releasedInsideCenter ? preselected : nil
+    }
+}
+
 struct RadialStartTrackingControl: View {
     @Binding var launchState: RideStartLaunchState
+    var preselectedPersona: RidePersona = .auto
     var onAbort: (RideStartAbortMethod) -> Void = {
         TelemetryManager.shared.trackRideStartAborted(method: $0)
     }
@@ -1388,8 +1404,8 @@ struct RadialStartTrackingControl: View {
                 VStack(spacing: 3) {
                     Image(systemName: centerImage)
                         .font(.system(size: 31, weight: .bold))
-                    if isExpanded, let hoveredPersona {
-                        Text(LocalizationHelper.localized(hoveredPersona.displayName))
+                    if let centerLabelPersona {
+                        Text(LocalizationHelper.localized(centerLabelPersona.displayName))
                             .font(.caption2.bold())
                             .lineLimit(1)
                     }
@@ -1424,7 +1440,9 @@ struct RadialStartTrackingControl: View {
         }
         .frame(width: 300, height: 215)
         .accessibilityLabel(LocalizationHelper.localized(launchState.isPending ? "Cancel" : "Start tracking"))
-        .accessibilityValue(hoveredPersona.map { LocalizationHelper.localized($0.displayName) } ?? "")
+        .accessibilityValue(LocalizationHelper.localized(
+            (hoveredPersona ?? preselectedPersona).displayName
+        ))
         .accessibilityAddTraits(.isButton)
         .accessibilityActions {
             Button(LocalizationHelper.localized("Auto")) { beginLaunch(.auto) }
@@ -1448,7 +1466,14 @@ struct RadialStartTrackingControl: View {
     private var centerImage: String {
         if launchState.isPending { return "xmark" }
         if let hoveredPersona { return hoveredPersona.systemImage }
-        return isExpanded ? "xmark" : "play.fill"
+        if isExpanded { return "xmark" }
+        return preselectedPersona == .auto ? "play.fill" : preselectedPersona.systemImage
+    }
+
+    private var centerLabelPersona: RidePersona? {
+        if launchState.isPending { return nil }
+        if let hoveredPersona { return hoveredPersona }
+        return !isExpanded && preselectedPersona != .auto ? preselectedPersona : nil
     }
 
     private func optionPosition(index: Int, center: CGPoint) -> CGPoint {
@@ -1503,14 +1528,12 @@ struct RadialStartTrackingControl: View {
         guard gestureStartedOnControl else { return }
         guard !launchState.isPending else { return }
 
-        let selected: RidePersona?
-        if let hoveredPersona {
-            selected = hoveredPersona
-        } else if !didExceedTouchSlop && distance(value.location, center) <= 54 {
-            selected = .auto
-        } else {
-            selected = nil
-        }
+        let selected = RadialStartPersonaPolicy.selection(
+            hovered: hoveredPersona,
+            didDrag: didExceedTouchSlop,
+            releasedInsideCenter: distance(value.location, center) <= 54,
+            preselected: preselectedPersona
+        )
 
         if let selected { beginLaunch(selected) } else { resetInteraction() }
     }

@@ -52,6 +52,18 @@ final class RideStartAbortPolicyTests: XCTestCase {
         XCTAssertEqual(RideStartAbortMethod.postCommitUndo.rawValue, "post_commit_undo")
     }
 
+    func testPlainTapHonorsOnboardingPersonaPreselection() {
+        XCTAssertEqual(
+            RadialStartPersonaPolicy.selection(
+                hovered: nil,
+                didDrag: false,
+                releasedInsideCenter: true,
+                preselected: .cycling
+            ),
+            .cycling
+        )
+    }
+
     func testStopSliderRequiresSeventyFivePercentLeftwardTravel() {
         XCTAssertFalse(RideStopSliderPolicy.shouldStop(translation: -74.9, maxSlide: 100))
         XCTAssertTrue(RideStopSliderPolicy.shouldStop(translation: -75, maxSlide: 100))
