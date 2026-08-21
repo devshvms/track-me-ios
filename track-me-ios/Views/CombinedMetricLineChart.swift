@@ -6,7 +6,8 @@ private struct NormalizedMetricPoint: Identifiable {
     let timestamp: Date
     let speedNormalized: Double
     let altitudeNormalized: Double
-    let rawSpeed: Double
+    /// Metres per second. NOT km/h — `UnitFormatter.speed(mps:)` does that conversion.
+    let rawSpeedMetersPerSecond: Double
     let rawAltitude: Double
 }
 
@@ -44,8 +45,12 @@ struct CombinedMetricLineChart: View {
                 timestamp: point.timestamp,
                 speedNormalized: (speeds[index] - minSpeed) / (maxSpeed - minSpeed),
                 altitudeNormalized: (altitudes[index] - minAltitude) / (maxAltitude - minAltitude),
-                // Preserve RideDetailView's existing annotation input while extracting the view.
-                rawSpeed: speeds[index],
+                // Metres per second, deliberately: `speeds` above is already km/h, and the
+                // annotation hands this to `UnitFormatter.speed(mps:)`, which converts again.
+                // Passing the km/h value there multiplied speed by 3.6 twice — a bike at 7.6 m/s
+                // rendered as "98.2 km/h". The old synthetic fixture topped out at 4.13 m/s, which
+                // mis-rendered as a believable 53 km/h, which is why this survived review.
+                rawSpeedMetersPerSecond: points[index].speed,
                 rawAltitude: point.altitude
             )
         }
@@ -106,7 +111,7 @@ struct CombinedMetricLineChart: View {
                 )
                 .foregroundStyle(by: .value("Metric", "Speed"))
                 .annotation(position: .top, alignment: .center) {
-                    Text(UnitFormatter.speed(mps: point.rawSpeed, unit: unitSettings.unit))
+                    Text(UnitFormatter.speed(mps: point.rawSpeedMetersPerSecond, unit: unitSettings.unit))
                         // The chart summary/scrubber remains the primary VoiceOver path; keep these
                         // visual annotations readable without covering the plot.
                         .font(.caption2.bold())
