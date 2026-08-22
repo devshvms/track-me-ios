@@ -132,7 +132,7 @@ struct HomeView: View {
                         .foregroundColor(.white)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(BrandColor.sos.opacity(0.94))
+                        .background(BrandColor.destructive.opacity(0.94))
                         .clipShape(Capsule())
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -152,7 +152,7 @@ struct HomeView: View {
                         .foregroundColor(.white)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(BrandColor.sos.opacity(0.94))
+                        .background(BrandColor.destructive.opacity(0.94))
                         .clipShape(Capsule())
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -312,7 +312,7 @@ struct HomeView: View {
                                 .font(.subheadline.bold())
                         }
                         .buttonStyle(.bordered)
-                        .tint(BrandColor.sos)
+                        .tint(BrandColor.destructive)
                     }
 
                     ActiveRideHUD(
@@ -1134,7 +1134,7 @@ struct UnifiedPauseStopSlider: View {
 
     private func stopThumb(maxSlide: CGFloat) -> some View {
         ZStack {
-            Capsule().fill(isStopping ? BrandColor.sosDeep : BrandColor.sos)
+            Capsule().fill(isStopping ? BrandColor.destructiveDeep : BrandColor.destructive)
             if isStopping {
                 Label(LocalizationHelper.localized("Ride stopped"), systemImage: "stop.fill")
                     .font(.caption.bold())
@@ -1148,7 +1148,7 @@ struct UnifiedPauseStopSlider: View {
                         .foregroundStyle(.white)
                     Image(systemName: "stop.fill")
                         .font(.body.bold())
-                        .foregroundStyle(BrandColor.sos)
+                        .foregroundStyle(BrandColor.destructive)
                         .frame(width: 40, height: 40)
                         .background(.white, in: Circle())
                 }
@@ -1240,7 +1240,7 @@ struct LiveShareActionDrawer: View {
 
                 if isActive, !isOpen {
                     Circle()
-                        .fill(BrandColor.sos)
+                        .fill(BrandColor.destructive)
                         .frame(width: 11, height: 11)
                         .overlay(Circle().stroke(.white, lineWidth: 1.5))
                 }
@@ -1270,7 +1270,7 @@ struct LiveShareActionDrawer: View {
                             systemImage: "stop.fill",
                             label: "Stop live sharing",
                             background: Color(.systemRed).opacity(0.18),
-                            foreground: BrandColor.sosText,
+                            foreground: BrandColor.destructiveText,
                             action: onStop
                         )
                     } else {

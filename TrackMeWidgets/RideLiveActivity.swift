@@ -29,9 +29,15 @@ struct RideLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    if let status = RideActivityFormat.statusLine(context.state) {
-                        Label(status, systemImage: RideActivityFormat.statusIcon(context.state))
-                            .font(.caption).foregroundStyle(.secondary)
+                    RideActivityAlertRow(
+                        text: RideActivityFormat.bottomLine(context.state),
+                        isAlert: context.state.alertSignal == .raised,
+                        systemImage: RideActivityFormat.bottomIcon(context.state)
+                    )
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    if let memberCount = RideActivityFormat.memberCountLine(context.state) {
+                        RideActivityMemberCountPill(text: memberCount)
                     }
                 }
             } compactLeading: {
@@ -42,7 +48,7 @@ struct RideLiveActivity: Widget {
                     .font(.caption2).monospacedDigit()
             } minimal: {
                 Image(systemName: RideActivityFormat.statusIcon(context.state))
-                    .foregroundStyle(RideActivityFormat.statusTint(context.state))
+                    .foregroundStyle(RideActivityFormat.minimalStatusTint(context.state))
             }
             .keylineTint(BrandColor.primary)
         }
@@ -63,8 +69,17 @@ private struct RideLockScreenView: View {
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                if let status = RideActivityFormat.statusLine(state) {
-                    Text(status).font(.caption).foregroundStyle(.secondary)
+                Text(RideActivityFormat.rideStatusLine(state))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if let alert = RideActivityFormat.alertLine(state) {
+                    RideActivityAlertRow(
+                        text: alert,
+                        isAlert: true,
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                } else if let memberCount = RideActivityFormat.memberCountLine(state) {
+                    RideActivityMemberCountPill(text: memberCount)
                 }
             }
             Spacer()
@@ -83,8 +98,44 @@ private struct RideLockScreenView: View {
     }
 }
 
-/// Shared formatting so the Lock Screen and Dynamic Island can't diverge.
-enum RideActivityFormat {
+private struct RideActivityAlertRow: View {
+    let text: String
+    let isAlert: Bool
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+                .foregroundStyle(isAlert ? BrandColor.destructive : Color.secondary)
+            // The complete user-provided name is handed to Text. SwiftUI's
+            // layout truncates only at Character boundaries; never pre-truncate
+            // by UTF-8/UTF-16 offsets, which can split a grapheme.
+            Text(text)
+                .foregroundStyle(isAlert ? Color.white : Color.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .allowsTightening(true)
+        }
+        .font(.caption)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct RideActivityMemberCountPill: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(BrandColor.primary)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(BrandColor.primary.opacity(0.18), in: Capsule())
+    }
+}
+
+extension RideActivityFormat {
     /// Auto-ticking duration when running; a frozen value when paused so the
     /// timer never depends on update delivery.
     @ViewBuilder
@@ -95,22 +146,6 @@ enum RideActivityFormat {
             Text(timerInterval: state.startedAt...Date(timeIntervalSinceNow: 8 * 3600),
                  countsDown: false)
         }
-    }
-
-    static func distance(_ state: RideActivityAttributes.ContentState) -> String {
-        let km = state.distanceMeters / 1000
-        return "\(km.formatted(.number.precision(.fractionLength(2)))) km"
-    }
-
-    static func speed(_ state: RideActivityAttributes.ContentState) -> String {
-        let kmh = max(0, state.speedMps) * 3.6
-        return "\(kmh.formatted(.number.precision(.fractionLength(1)))) km/h"
-    }
-
-    static func statusLine(_ state: RideActivityAttributes.ContentState) -> String? {
-        if state.isPaused { return String(localized: "Paused") }
-        if state.isGpsLost { return String(localized: "Searching for GPS…") }
-        return String(localized: "Recording ride")
     }
 
     static func statusIcon(_ state: RideActivityAttributes.ContentState) -> String {
@@ -127,11 +162,14 @@ enum RideActivityFormat {
         return BrandColor.primary
     }
 
-    private static func frozenDuration(_ seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
-        return h > 0
-            ? String(format: "%d:%02d:%02d", h, m, s)
-            : String(format: "%02d:%02d", m, s)
+    static func minimalStatusTint(_ state: RideActivityAttributes.ContentState) -> Color {
+        state.alertSignal == .raised ? BrandColor.destructive : statusTint(state)
+    }
+
+    static func bottomIcon(_ state: RideActivityAttributes.ContentState) -> String {
+        if state.alertSignal == .raised { return "exclamationmark.triangle.fill" }
+        if state.isGpsLost { return "location.slash.fill" }
+        if state.isPaused { return "pause.circle.fill" }
+        return "record.circle"
     }
 }

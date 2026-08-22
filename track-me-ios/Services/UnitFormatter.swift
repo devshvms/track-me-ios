@@ -57,4 +57,24 @@ enum UnitFormatter {
     static func pace(mps: Double, unit: UnitSystem) -> String {
         "\(paceValue(mps: mps, unit: unit)) \(paceUnitLabel(unit))"
     }
+
+    /// Duration for a shared image: "2hr 4min", "8min", "45s".
+    ///
+    /// Not `HH:MM:SS`. A stopwatch readout is right while a ride is running, where the seconds are
+    /// moving and you are watching them. On a finished ride it asks the reader to parse `00:13:06`
+    /// into "thirteen minutes" — three fields, two of them usually zero, in the one place the
+    /// picture has least room and least of the reader's attention.
+    ///
+    /// Mirrors Android's `compactDuration` exactly, including the sub-minute case: a blank where a
+    /// duration should be reads as a bug rather than as a very short ride.
+    static func shareDuration(seconds: Double) -> String {
+        let total = max(0, Int(seconds))
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 && minutes > 0 { return "\(hours)hr \(minutes)min" }
+        if hours > 0 { return "\(hours)hr" }
+        if minutes > 0 { return "\(minutes)min" }
+        return "\(secs)s"
+    }
 }

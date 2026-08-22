@@ -809,9 +809,9 @@ private struct GroupRosterRowView: View {
                         Button(action: onRemove) {
                             Image(systemName: "person.crop.circle.badge.minus")
                                 .font(.system(size: 19, weight: .semibold))
-                                .foregroundStyle(BrandColor.sosText)
+                                .foregroundStyle(BrandColor.destructiveText)
                                 .frame(width: 44, height: 44)
-                                .background(BrandColor.sos.opacity(0.10), in: Circle())
+                                .background(BrandColor.destructive.opacity(0.10), in: Circle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityHidden(true)

@@ -1,0 +1,126 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ — %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ — %2$@" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ — %2$@" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ — %2$@" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ — %2$@" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ — %2$@" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ — %2$@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ — %2$@" } }
+      }
+    },
+    "%d riding" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%d unterwegs" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d riding" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%d en ruta" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%d en route" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "%d सवार" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "%d人で走行中" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 人骑行中" } }
+      }
+    },
+    "Crashed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gestürzt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Crashed" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Accidente" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Chute" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "दुर्घटना हुई" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "転倒" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发生摔车" } }
+      }
+    },
+    "Distance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Distanz" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Distance" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Distancia" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Distance" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "दूरी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "距離" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "距离" } }
+      }
+    },
+    "Need help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Brauche Hilfe" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Need help" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Necesito ayuda" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Besoin d’aide" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "मदद चाहिए" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "助けが必要" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "需要帮助" } }
+      }
+    },
+    "Paused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Pausiert" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Paused" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "En pausa" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "En pause" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "रुका हुआ" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "一時停止中" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已暂停" } }
+      }
+    },
+    "Recording ride" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Tour wird aufgezeichnet" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recording ride" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Grabando recorrido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Trajet en cours d’enregistrement" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "राइड रिकॉर्ड हो रही है" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライドを記録中" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在记录骑行" } }
+      }
+    },
+    "Searching for GPS…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "GPS wird gesucht…" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Searching for GPS…" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Buscando GPS…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Recherche du GPS…" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "GPS खोज रहे हैं…" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPSを検索中…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在搜索 GPS…" } }
+      }
+    },
+    "Speed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Geschwindigkeit" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Speed" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Velocidad" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vitesse" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "गति" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "速度" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "速度" } }
+      }
+    },
+    "Status needs attention" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Status braucht Aufmerksamkeit" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Status needs attention" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El estado requiere atención" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le statut nécessite une attention" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "स्टेटस पर ध्यान चाहिए" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "注意が必要なステータス" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "状态需要关注" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}
