@@ -1,0 +1,6 @@
+TrackMe 1.8.2
+
+- The walkthrough now lets you try the app rather than watch it: pick how you move, start a ride, share a link and finish, all on the real controls.
+- History is no longer empty on day one. A sample ride is already there to open, scrub and share, and you can delete it whenever you like.
+- Finish the walkthrough and you land on your first ride, with the activity you picked already selected.
+- Rebuilt intro screens: sharper, quicker, and readable in both light and dark.
