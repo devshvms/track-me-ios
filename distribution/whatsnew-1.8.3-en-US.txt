@@ -1,0 +1,4 @@
+TrackMe 1.8.3
+
+- Version alignment with Android 1.8.3. No functional changes on iOS.
+- Everything from 1.8.2: try the app during the walkthrough instead of watching it, a sample ride waiting in History on day one, and rebuilt intro screens.
