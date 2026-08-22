@@ -7,7 +7,6 @@ struct ExportPreviewView: View {
     let demoMode: Bool
     let onDemoSave: (() -> Void)?
     
-    @State private var showTitle = true
     @State private var showDate = true
     @State private var showDuration = true
     @State private var showDistance = true
@@ -65,7 +64,6 @@ struct ExportPreviewView: View {
                 Picker(LocalizationHelper.localized("Image ratio"), selection: $selectedRatio) {
                     ForEach(ExportRatio.allCases) { ratio in Text(ratio.rawValue).tag(ratio) }
                 }.pickerStyle(.segmented)
-                Toggle(LocalizationHelper.localized("Show ride title"), isOn: $showTitle)
                 Toggle(LocalizationHelper.localized("Show date"), isOn: $showDate)
                 Toggle(LocalizationHelper.localized("Show duration"), isOn: $showDuration)
                 Toggle(LocalizationHelper.localized("Show distance"), isOn: $showDistance)
@@ -165,18 +163,20 @@ struct ExportPreviewView: View {
                 .aspectRatio(selectedRatio.aspect, contentMode: .fit)
                 .clipped()
             
+            // Figures only — no ride title. It is a name the sharer already knows and the viewer
+            // gets from the caption, and it cost a fifth of the frame to repeat. Android removed it
+            // in 1.8.0 and shvm confirmed the same for iOS on 2026-08-22 (SCOPE_1.8.4 §8).
+            //
+            // This panel is rendered by `ImageRenderer(content: exportFrame)` in `shareImage()`, so
+            // the preview and the file are literally the same view. That is why iOS never had
+            // Android's drift defect, and it is worth preserving: do not add a second code path that
+            // draws this panel for export.
             VStack(alignment: .leading, spacing: 6) {
-                    if showTitle {
-                        Text(ride.title ?? LocalizationHelper.localized("TrackMe Ride"))
-                            .font(.title2).bold()
-                            .foregroundColor(darkOverlay ? .white : .black)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
                     let aggregate = ride.aggregateSnapshot
                     let duration = Double(aggregate.movingDurationMillis) / 1_000
                     let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .none)
-                    let fields = [showDate ? dateStr : nil, showDuration ? String(format: "%02d:%02d:%02d", Int(duration) / 3600, (Int(duration) % 3600) / 60, Int(duration) % 60) : nil, showDistance ? UnitFormatter.distance(meters: aggregate.distanceMeters, unit: unitSettings.unit) : nil].compactMap { $0 }
+                    // Compact, matching Android: "17min", never "00:17:00" — see `shareDuration`.
+                    let fields = [showDate ? dateStr : nil, showDuration ? UnitFormatter.shareDuration(seconds: duration) : nil, showDistance ? UnitFormatter.distance(meters: aggregate.distanceMeters, unit: unitSettings.unit) : nil].compactMap { $0 }
                     if !fields.isEmpty {
                         Text(fields.joined(separator: " • "))
                             .font(.subheadline)
@@ -187,6 +187,8 @@ struct ExportPreviewView: View {
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // The panel hugs its figures: a VStack takes only the height its content needs, so
+                // one figure yields a one-line band. Android had to be taught this; SwiftUI gives it.
                 .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
         }
         .frame(width: 350, height: 350 / selectedRatio.aspect)
