@@ -454,6 +454,12 @@ class TelemetryManager {
         capture(GroupTelemetryContract.presencePaused(durationBucket: durationBucket, cause: cause))
     }
 
+    /// SCOPE_1.8.4 §5.3 — the pure contract admits only method/outcome properties.
+    func trackVoiceEvent(_ event: VoiceTelemetryEvent) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture(event.name, properties: event.properties)
+    }
+
     func trackOnboardingCompleted(_ outcome: OnboardingOutcome) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("onboarding_completed", properties: outcome.telemetryProperties)

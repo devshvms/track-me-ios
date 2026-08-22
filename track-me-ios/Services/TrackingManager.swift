@@ -128,6 +128,29 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// Starts a ride only when the command can complete without presenting permission UI.
+    ///
+    /// App Intents execute while another app may own the screen. Asking for location permission
+    /// from that background execution would neither be headless nor reliably actionable, so Siri
+    /// reports the command as unavailable until the rider has granted permission in TrackMe. The
+    /// voice path also suppresses the normal tracking-notification permission request.
+    @MainActor
+    @discardableResult
+    func startTrackingFromVoice(persona: RidePersona) -> Bool {
+        guard state == .idle, currentRideId == nil else { return false }
+        guard mappedAuth == .whenInUse || mappedAuth == .always else { return false }
+
+        // Do not call startTracking here: its normal in-app path may request the Always upgrade.
+        // Siri must never present permission UI over the rider's navigation app.
+        selectedPersona = persona
+        beginTracking(allowsPermissionPrompts: false)
+        let didStart = state != .idle && currentRideId != nil
+        if !didStart {
+            selectedPersona = .auto
+        }
+        return didStart
+    }
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         if GroupRideManager.shared.state.isActive,
            mappedAuth == .denied || mappedAuth == .restricted {
@@ -166,7 +189,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         TelemetryManager.shared.trackLocationUpdatesResumed()
     }
 
-    private func beginTracking() {
+    private func beginTracking(allowsPermissionPrompts: Bool = true) {
         pendingTrackingStart = false
 
         // Refuse to start if the device can't reliably persist points.
@@ -218,17 +241,19 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             DataRepository.shared.saveRide(newRide)
         }
 
-        startLocationUpdatesAndTimer()
+        startLocationUpdatesAndTimer(allowsPermissionPrompts: allowsPermissionPrompts)
         RideActivityManager.shared.startActivity(rideId: newRide.id.uuidString, startedAt: rideStartTime)
     }
 
     /// Shared session bring-up used by both a fresh ride and a restored one.
-    private func startLocationUpdatesAndTimer() {
+    private func startLocationUpdatesAndTimer(allowsPermissionPrompts: Bool = true) {
         locationManager.startUpdatingLocation()
         if MotionSensorManager.isMotionFusionEnabled {
             motionSensor.startListening()
         }
-        requestTrackingNotification()
+        if allowsPermissionPrompts {
+            requestTrackingNotification()
+        }
         startDurationTimer()
     }
 
