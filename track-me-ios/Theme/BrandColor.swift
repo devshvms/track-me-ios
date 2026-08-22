@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Discipline (mirrors Android C1 and BRAND_SYSTEM.md):
 /// brand-action controls bind to CYAN (`primary` / `primaryFill`). Green is NEVER
-/// brand — it means "active / running / success" only. Red = SOS/destructive,
+/// brand — it means "active / running / success" only. Red = destructive/error,
 /// amber = warning. Semantic roles are strictly decoupled from the brand action
 /// token so a "go/success" green can never masquerade as a primary CTA (the bug
 /// that shipped a green Start button in 1.5.x while every store asset was cyan).
@@ -28,7 +28,7 @@ enum BrandColor {
     static let navy800 = Color(hex: 0x181A20)
     static let navy700 = Color(hex: 0x23272F)
     static let greenGo = Color(hex: 0x16A34A)
-    static let redSos = Color(hex: 0xDC2626)
+    static let redDestructive = Color(hex: 0xDC2626)
     static let redTextDark = Color(hex: 0xF87171) // AA error/destructive TEXT on dark surfaces
     static let amberWarn = Color(hex: 0xF59E0B)
 
@@ -54,20 +54,21 @@ enum BrandColor {
     /// Foreground for content on `warning` (amber). Navy is AA on amber; white is not.
     static let onWarning = navy900
 
-    /// SOS / destructive / error.
-    static let sos = redSos
+    /// Destructive / error. Renamed from `sos` in 1.8.4 (TASK-197) — SOS was retired in
+    /// 1.6.4/1.6.5 and the old name made every call site read as an emergency surface.
+    static let destructive = redDestructive
     /// Top-tier rider status. Kept distinct from the retired emergency/SOS product language.
-    static let severityAlert = redSos
-    /// A deeper SOS red for the fully-armed slider state.
-    static let sosDeep = Color(hex: 0xB30000)
+    static let severityAlert = redDestructive
+    /// A deeper red for the fully-armed destructive state.
+    static let destructiveDeep = Color(hex: 0xB30000)
 
-    /// SOS / destructive / error as FOREGROUND TEXT. Adapts to the surface so
+    /// Destructive / error as FOREGROUND TEXT. Adapts to the surface so
     /// error text is WCAG AA in BOTH appearances: deep red (#DC2626, 4.8:1 on
     /// white) on light, brightened red (#F87171, ~6.2:1 on navy) on dark. This is
     /// the iOS mirror of Android's adaptive Material `error` role (RedSos light /
     /// RedTextDark dark, theme/Color.kt + Theme.kt). Use for any red LABEL; keep
-    /// `sos` for fills, strokes, `.tint` markers, and the SOS slider thumb.
-    static let sosText = dynamic(light: 0xDC2626, dark: 0xF87171)
+    /// `destructive` for fills, strokes, `.tint` markers, and the SOS slider thumb.
+    static let destructiveText = dynamic(light: 0xDC2626, dark: 0xF87171)
 
     /// Warning (GPS lost, paused, pending/processing).
     static let warning = amberWarn

@@ -286,7 +286,7 @@ struct RideDetailView: View {
                     .tint(BrandColor.primary)
                 
                 Marker("Finish", coordinate: coordinates.last!)
-                    .tint(BrandColor.sos)
+                    .tint(BrandColor.destructive)
                 
                 if let idx = scrubIndex, idx < coordinates.count {
                     Annotation("Scrubber", coordinate: coordinates[idx]) {
@@ -402,7 +402,7 @@ struct RideDetailView: View {
             Button(action: {
                 showDeleteConfirm = true
             }) {
-                actionButton(icon: "trash", text: "Delete", color: BrandColor.sos, textColor: BrandColor.sosText)
+                actionButton(icon: "trash", text: "Delete", color: BrandColor.destructive, textColor: BrandColor.destructiveText)
             }
             .disabled(isDeletingRide)
         }

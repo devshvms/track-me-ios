@@ -199,10 +199,10 @@ struct AccountManagementView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(Color.clear)
-                                    .foregroundColor(BrandColor.sosText)
+                                    .foregroundColor(BrandColor.destructiveText)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 24)
-                                            .stroke(BrandColor.sos.opacity(0.5), lineWidth: 1)
+                                            .stroke(BrandColor.destructive.opacity(0.5), lineWidth: 1)
                                     )
                             }
 
@@ -211,8 +211,8 @@ struct AccountManagementView: View {
                                     .font(.subheadline).bold()
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(BrandColor.sos.opacity(0.15))
-                                    .foregroundColor(BrandColor.sosText)
+                                    .background(BrandColor.destructive.opacity(0.15))
+                                    .foregroundColor(BrandColor.destructiveText)
                                     .cornerRadius(24)
                             }
                         }
