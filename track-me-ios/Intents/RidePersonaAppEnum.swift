@@ -3,11 +3,11 @@ import AppIntents
 /// The App Intents representation is deliberately the shipped model enum itself. Its raw values
 /// are the cross-platform wire contract and must never be renamed for Siri copy.
 extension RidePersona: AppEnum {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+    nonisolated static var typeDisplayRepresentation: TypeDisplayRepresentation {
         TypeDisplayRepresentation(name: "Mode")
     }
 
-    static var caseDisplayRepresentations: [RidePersona: DisplayRepresentation] {
+    nonisolated static var caseDisplayRepresentations: [RidePersona: DisplayRepresentation] {
         [
             .auto: DisplayRepresentation(title: "Auto", image: .init(systemName: "sparkles")),
             .walk: DisplayRepresentation(
