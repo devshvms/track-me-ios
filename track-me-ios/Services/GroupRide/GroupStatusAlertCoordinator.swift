@@ -45,6 +45,7 @@ final class GroupStatusAlertCoordinator {
     }
 
     func removeSessionNotifications() {
+        RideActivityManager.shared.clearGroupPresentation()
         Task { @MainActor in
             let center = UNUserNotificationCenter.current()
             let deliveredIdentifiers = await center.deliveredNotifications()
@@ -85,6 +86,12 @@ final class GroupStatusAlertCoordinator {
             shownLedger: originalLedger,
             elapsedSinceJoinMillis: max(0, nowElapsed - joinedAtElapsedMillis),
             alertsMuted: alertsMuted
+        )
+
+        updateLiveActivityPresentation(
+            decision: decision,
+            positions: positions,
+            roster: roster
         )
 
         for transition in decision.alerts {
@@ -129,6 +136,41 @@ final class GroupStatusAlertCoordinator {
         guard let anchor = position.ageAnchor else { return false }
         let age = StatusAge.currentAgeMillis(anchor: anchor, nowElapsedMillis: nowElapsed)
         return age < Int64(max(20, syncIntervalSec * 2)) * 1_000
+    }
+
+    /// Converts the alert policy's already-filtered ledger into aggregate Live
+    /// Activity state. This never forwards a uid, group id, position, distance,
+    /// or direction. Repeated syncs are coalesced by RideActivityManager.
+    private func updateLiveActivityPresentation(
+        decision: GroupStatusAlertPolicy.Decision,
+        positions: [GroupWire.MemberPosition],
+        roster: [GroupWire.RosterEntry]
+    ) {
+        let memberCount = max(1, max(roster.count, positions.count + 1))
+        let newlyRaised = decision.alerts.last
+        let retainedAlert: GroupStatusAlertPolicy.Transition? = decision.ledger
+            .sorted { $0.key < $1.key }
+            .compactMap { uid, rawStatus in
+                RiderStatusCodec.parse(rawStatus).map {
+                    GroupStatusAlertPolicy.Transition(uid: uid, status: $0)
+                }
+            }
+            .first
+        let raised = newlyRaised ?? retainedAlert
+
+        if let raised {
+            RideActivityManager.shared.updateGroupPresentation(
+                memberCount: memberCount,
+                alertSignal: .raised,
+                memberName: memberName(uid: raised.uid, roster: roster),
+                statusCode: raised.status.raw
+            )
+        } else {
+            RideActivityManager.shared.updateGroupPresentation(
+                memberCount: memberCount,
+                alertSignal: decision.resolutions.isEmpty ? .none : .resolved
+            )
+        }
     }
 
     private func memberName(uid: String, roster: [GroupWire.RosterEntry]) -> String {
