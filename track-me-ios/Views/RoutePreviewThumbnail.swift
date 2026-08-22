@@ -3,6 +3,18 @@ import CoreLocation
 
 struct RoutePreviewThumbnail: View {
     let points: [GPSPoint]
+    let previewSize: CGSize
+    let scrubIndex: Int?
+
+    init(
+        points: [GPSPoint],
+        size: CGSize = CGSize(width: 80, height: 60),
+        scrubIndex: Int? = nil
+    ) {
+        self.points = points
+        self.previewSize = size
+        self.scrubIndex = scrubIndex
+    }
     
     var body: some View {
         ZStack {
@@ -57,6 +69,24 @@ struct RoutePreviewThumbnail: View {
                         with: .color(.blue),
                         style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
                     )
+
+                    if let scrubIndex, coordinates.indices.contains(scrubIndex) {
+                        let coordinate = coordinates[scrubIndex]
+                        let normalizedX = CGFloat((coordinate.longitude - minLon) / lonDelta)
+                        let normalizedY = CGFloat(1.0 - (coordinate.latitude - minLat) / latDelta)
+                        let marker = CGPoint(
+                            x: paddingX + normalizedX * drawWidth,
+                            y: paddingY + normalizedY * drawHeight
+                        )
+                        context.fill(
+                            Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)),
+                            with: .color(.white)
+                        )
+                        context.fill(
+                            Path(ellipseIn: CGRect(x: marker.x - 4.5, y: marker.y - 4.5, width: 9, height: 9)),
+                            with: .color(BrandColor.primary)
+                        )
+                    }
                 }
             } else {
                 Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
@@ -64,7 +94,7 @@ struct RoutePreviewThumbnail: View {
                     .font(.system(size: 20))
             }
         }
-        .frame(width: 80, height: 60)
+        .frame(width: previewSize.width, height: previewSize.height)
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

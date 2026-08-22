@@ -34,5 +34,17 @@ fastlane/test_output
 # OS X
 .DS_Store
 
-# Firebase config (real file is local-only; see GoogleService-Info.example.plist)
+# Firebase config. Local-only and never committed; CI restores it from the
+# GOOGLE_SERVICE_INFO_PLIST_BASE64 secret. It must sit in track-me-ios/ because
+# FirebaseApp.configure() reads it out of the app bundle at runtime.
 track-me-ios/GoogleService-Info.plist
+
+# Signing and API credentials — never commit these.
+# The App Store Connect key is issued once and cannot be re-downloaded; the
+# certificate and provisioning profiles are account-bound. CI reads all of them
+# from GitHub Actions secrets, so nothing here needs to be in the repo.
+*.p8
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision

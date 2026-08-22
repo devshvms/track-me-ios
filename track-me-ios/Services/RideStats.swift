@@ -11,6 +11,8 @@ nonisolated struct GoodRideSummary {
     let durationMillis: Int64
     /// Filtered ride distance in meters.
     let distanceMeters: Double
+    /// Local first-run samples are replayable/exportable but never enter retention aggregates.
+    let isSample: Bool
     /// Legacy compatibility flag for a ride that entered the retired emergency flow. The ride
     /// still contributes to history aggregates, but old downstream callers may suppress a reveal.
     /// Parity with Android `GoodRideSummary.suppressPostRideCelebrations`.
@@ -23,12 +25,14 @@ nonisolated struct GoodRideSummary {
         finishedAtMillis: Int64,
         durationMillis: Int64,
         distanceMeters: Double,
+        isSample: Bool = false,
         suppressPostRideCelebrations: Bool = false
     ) {
         self.rideId = rideId
         self.finishedAtMillis = finishedAtMillis
         self.durationMillis = durationMillis
         self.distanceMeters = distanceMeters
+        self.isSample = isSample
         self.suppressPostRideCelebrations = suppressPostRideCelebrations
     }
 }
@@ -220,8 +224,9 @@ nonisolated enum RideStatsReducer {
         let finishedDate = Date(timeIntervalSince1970: Double(summary.finishedAtMillis) / 1000.0)
         let weekStart = WeekKey.weekStartEpochDay(finishedDate, calendar: calendar)
 
-        // Idempotency: already folded in -> no-op.
-        if old.processedRideIds.contains(summary.rideId) {
+        // Exclusion/idempotency -> no-op. Samples deliberately stay out of processedRideIds;
+        // their terminal seed state, not stats persistence, owns deletion permanence.
+        if summary.isSample || old.processedRideIds.contains(summary.rideId) {
             let noOp = RideStatsTransition(
                 rideId: summary.rideId,
                 alreadyProcessed: true,

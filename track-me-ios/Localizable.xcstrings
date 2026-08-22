@@ -14693,49 +14693,49 @@
         }
       }
     },
-    "Start using TrackMe" : {
+    "Start my first ride" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TrackMe starten"
+            "value" : "Meine erste Fahrt starten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start using TrackMe"
+            "value" : "Start my first ride"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Empezar a usar TrackMe"
+            "value" : "Iniciar mi primer viaje"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Commencer à utiliser TrackMe"
+            "value" : "Démarrer mon premier trajet"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TrackMe इस्तेमाल शुरू करें"
+            "value" : "मेरी पहली राइड शुरू करें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TrackMe を始める"
+            "value" : "最初のライドを始める"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开始使用 TrackMe"
+            "value" : "开始我的第一次行程"
           }
         }
       }
@@ -18693,6 +18693,146 @@
             "value" : "你的状态"
           }
         }
+      }
+    },
+    "Customize export" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Export anpassen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Personalizar exportación" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Personnaliser l’export" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "निर्यात अनुकूलित करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "エクスポートを調整" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自定义导出" } }
+      }
+    },
+    "Customize the export, then save the demo." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Passe den Export an und speichere die Demo." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Personaliza la exportación y guarda la demostración." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Personnalisez l’export, puis enregistrez la démonstration." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "निर्यात को अनुकूलित करें, फिर डेमो सहेजें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "エクスポートを調整してデモを保存します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自定义导出，然后保存演示。" } }
+      }
+    },
+    "Demo only — nothing was shared or saved." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nur Demo: Es wurde nichts geteilt oder gespeichert." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Solo demostración: no se compartió ni guardó nada." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Démonstration uniquement : rien n’a été partagé ni enregistré." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "केवल डेमो: कुछ भी शेयर या सहेजा नहीं गया।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "デモのため、共有も保存もされていません。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅为演示：未分享或保存任何内容。" } }
+      }
+    },
+    "Drag to choose how you're moving." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ziehe, um deine Aktivität auszuwählen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Arrastra para elegir cómo te mueves." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Faites glisser pour choisir votre activité." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अपनी गतिविधि चुनने के लिए खींचें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ドラッグしてアクティビティを選びます。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "拖动以选择你的活动方式。" } }
+      }
+    },
+    "In a real ride, Copy link would copy its private live-sharing URL." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bei einer echten Tour würde Link kopieren die private Live-URL kopieren." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "En un viaje real, Copiar enlace copiaría su URL privada de ubicación en vivo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lors d’un vrai trajet, Copier le lien copierait son URL privée de partage en direct." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "वास्तविक राइड में लिंक कॉपी करने पर निजी लाइव-शेयरिंग URL कॉपी होगा।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "実際のライドでは、リンクをコピーすると非公開のライブ共有 URL がコピーされます。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在真实行程中，复制链接会复制其私密实时共享网址。" } }
+      }
+    },
+    "Open live sharing and start a demo session." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Öffne Live-Teilen und starte eine Demo-Sitzung." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre Compartir en vivo e inicia una sesión de demostración." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ouvrez le partage en direct et démarrez une session de démonstration." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लाइव शेयरिंग खोलें और डेमो सत्र शुरू करें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライブ共有を開き、デモセッションを開始します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开实时共享并开始演示会话。" } }
+      }
+    },
+    "Open live sharing and try Copy link." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Öffne Live-Teilen und probiere Link kopieren aus." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre Compartir en vivo y prueba Copiar enlace." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ouvrez le partage en direct et essayez Copier le lien." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लाइव शेयरिंग खोलें और लिंक कॉपी करके देखें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ライブ共有を開き、「リンクをコピー」を試します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开实时共享并尝试复制链接。" } }
+      }
+    },
+    "Open the sample ride." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Öffne die Beispiel-Tour." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre el viaje de muestra." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ouvrez le trajet d’exemple." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "नमूना राइड खोलें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サンプルライドを開きます。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开示例行程。" } }
+      }
+    },
+    "Sample" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beispiel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Muestra" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Exemple" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "नमूना" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サンプル" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "示例" } }
+      }
+    },
+    "Sample ride" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beispiel-Tour" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Viaje de muestra" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Trajet d’exemple" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "नमूना राइड" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サンプルライド" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "示例行程" } }
+      }
+    },
+    "Scrub the route to inspect speed and elevation." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Spule durch die Route, um Tempo und Höhe zu prüfen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desplaza la ruta para ver la velocidad y la elevación." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Parcourez le trajet pour examiner la vitesse et l’altitude." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "गति और ऊँचाई देखने के लिए मार्ग को स्क्रब करें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ルートをスクラブして速度と高度を確認します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "拖动路线以查看速度和海拔。" } }
+      }
+    },
+    "Scroll down and tap Share." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Scrolle nach unten und tippe auf Teilen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desplázate hacia abajo y toca Compartir." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Faites défiler vers le bas et touchez Partager." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "नीचे स्क्रॉल करें और शेयर पर टैप करें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "下へスクロールして「共有」をタップします。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "向下滚动并点按分享。" } }
+      }
+    },
+    "Skip step" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schritt überspringen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Omitir paso" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Passer l’étape" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "चरण छोड़ें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "このステップをスキップ" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "跳过此步骤" } }
+      }
+    },
+    "Slide left to stop the demo ride." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wische nach links, um die Demo-Fahrt zu stoppen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desliza a la izquierda para detener el viaje de demostración." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Faites glisser vers la gauche pour arrêter le trajet de démonstration." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "डेमो राइड रोकने के लिए बाईं ओर स्लाइड करें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "左へスライドしてデモライドを停止します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "向左滑动以停止演示行程。" } }
       }
     },
     "Your week in review" : {

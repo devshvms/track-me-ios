@@ -35,18 +35,19 @@ jobs:
           sudo xcode-select --switch "$XCODE_PATH/Contents/Developer"
           xcodebuild -version
 
+      # Signing is done by App Store Connect, not by a certificate we carry: both
+      # `archive` and `-exportArchive` below run with `-allowProvisioningUpdates`
+      # and the API key, and ExportOptions sets `signingStyle: automatic`. The
+      # team's distribution certificate is cloud-managed and cannot be exported
+      # as a .p12 at all, so requiring one here only ever blocked the release.
       - name: Verify Release Secrets
         env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
           FIREBASE_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
         run: |
           missing=()
-          [ -n "$CERTIFICATE_BASE64" ] || missing+=(APPLE_DISTRIBUTION_CERTIFICATE_BASE64)
-          [ -n "$CERTIFICATE_PASSWORD" ] || missing+=(APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD)
           [ -n "$ASC_KEY_ID" ] || missing+=(APP_STORE_CONNECT_KEY_ID)
           [ -n "$ASC_ISSUER_ID" ] || missing+=(APP_STORE_CONNECT_ISSUER_ID)
           [ -n "$ASC_PRIVATE_KEY_BASE64" ] || missing+=(APP_STORE_CONNECT_PRIVATE_KEY_BASE64)
@@ -59,39 +60,6 @@ jobs:
           echo "ARCHIVE_PATH=$RUNNER_TEMP/TrackMe.xcarchive" >> "$GITHUB_ENV"
           echo "EXPORT_PATH=$RUNNER_TEMP/TrackMeExport" >> "$GITHUB_ENV"
           echo "API_KEY_PATH=$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
-
-      - name: Install Apple Distribution Certificate
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
-        run: |
-          CERTIFICATE_PATH="$RUNNER_TEMP/TrackMeDistribution.p12"
-          KEYCHAIN_PATH="$RUNNER_TEMP/TrackMeSigning.keychain-db"
-          KEYCHAIN_PASSWORD="trackme-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-
-          printf '%s' "$CERTIFICATE_BASE64" | base64 -D > "$CERTIFICATE_PATH"
-          if [ ! -s "$CERTIFICATE_PATH" ]; then
-            echo "::error::APPLE_DISTRIBUTION_CERTIFICATE_BASE64 did not decode to a certificate."
-            exit 1
-          fi
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" \
-            -P "$CERTIFICATE_PASSWORD" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "$KEYCHAIN_PATH"
-          security set-key-partition-list \
-            -S apple-tool:,apple: \
-            -k "$KEYCHAIN_PASSWORD" \
-            "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH"
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
-
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
       - name: Install App Store Connect API Key
         env:
@@ -253,9 +221,5 @@ jobs:
       - name: Remove Temporary Credentials
         if: always()
         run: |
-          if [ -n "${KEYCHAIN_PATH:-}" ]; then
-            security delete-keychain "$KEYCHAIN_PATH" || true
-          fi
-          rm -f "$RUNNER_TEMP/TrackMeDistribution.p12"
           rm -f "$API_KEY_PATH"
           rm -f track-me-ios/GoogleService-Info.plist

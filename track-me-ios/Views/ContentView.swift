@@ -16,6 +16,7 @@ struct ContentView: View {
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @ObservedObject private var ageSignalManager = AgeSignalManager.shared
     @Environment(\.requestAgeRange) private var requestAgeRange
+    @Environment(\.modelContext) private var modelContext
     private var trackingManager = TrackingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
     @Bindable private var emergencyRetirement = EmergencyDataPurge.shared
@@ -35,7 +36,15 @@ struct ContentView: View {
             } else if onboardingState == .pending {
                 OnboardingView { outcome in
                     OnboardingGate.complete(outcome)
+                    // Land on Home with a real default, without turning the CTA into a location
+                    // permission trap or starting a recording before the user's next gesture.
+                    trackingManager.selectedPersona = outcome.selectedPersona
                     onboardingStateRaw = OnboardingState.done.rawValue
+                    try? OnboardingSampleRideSeeder.seedIfNeeded(
+                        context: modelContext,
+                        onboardingState: .done,
+                        title: LocalizationHelper.localized("Sample ride")
+                    )
                 }
             } else {
                 TabView(selection: $selectedTab) {

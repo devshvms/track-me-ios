@@ -11,9 +11,18 @@ struct OnboardingOutcome {
     let furthestPage: Int
     let usedSkip: Bool
     let seconds: Int
+    /// `-1` means never visited; `0` means visited for less than one second.
+    let welcomeDwellSeconds: Int
+    let rideDwellSeconds: Int
+    let historyDwellSeconds: Int
+    let togetherDwellSeconds: Int
+    let permissionsDwellSeconds: Int
+    let readyDwellSeconds: Int
     let analyticsOptIn: Bool
     let locationGranted: Bool
     let notificationsGranted: Bool
+    /// Local handoff only; deliberately omitted from telemetry properties.
+    let selectedPersona: RidePersona
 
     var telemetryProperties: [String: Any] {
         [
@@ -21,10 +30,71 @@ struct OnboardingOutcome {
             "furthest_page": furthestPage,
             "used_skip": usedSkip,
             "seconds": seconds,
+            "dwell_welcome_seconds": welcomeDwellSeconds,
+            "dwell_ride_seconds": rideDwellSeconds,
+            "dwell_history_seconds": historyDwellSeconds,
+            "dwell_together_seconds": togetherDwellSeconds,
+            "dwell_permissions_seconds": permissionsDwellSeconds,
+            "dwell_ready_seconds": readyDwellSeconds,
             "analytics_opt_in": analyticsOptIn,
             "location_granted": locationGranted,
             "notifications_granted": notificationsGranted
         ]
+    }
+}
+
+/// In-memory, monotonic page timing. No intermediate value is persisted or transmitted.
+nonisolated final class OnboardingDwellAccumulator {
+    private var totals: [TimeInterval]
+    private var visited: [Bool]
+    private var activePage: Int?
+    private var segmentStartedAt: TimeInterval?
+    private var isRunning = true
+
+    init(pageCount: Int) {
+        precondition(pageCount > 0)
+        totals = Array(repeating: 0, count: pageCount)
+        visited = Array(repeating: false, count: pageCount)
+    }
+
+    func enter(page: Int, at now: TimeInterval) {
+        precondition(totals.indices.contains(page))
+        if activePage == page, segmentStartedAt != nil { return }
+        closeSegment(at: now)
+        activePage = page
+        visited[page] = true
+        segmentStartedAt = isRunning ? now : nil
+    }
+
+    func pause(at now: TimeInterval) {
+        closeSegment(at: now)
+        segmentStartedAt = nil
+        isRunning = false
+    }
+
+    func resume(page: Int, at now: TimeInterval) {
+        precondition(totals.indices.contains(page))
+        isRunning = true
+        if activePage != page {
+            closeSegment(at: now)
+            activePage = page
+            segmentStartedAt = nil
+        }
+        visited[page] = true
+        if segmentStartedAt == nil { segmentStartedAt = now }
+    }
+
+    func snapshotSeconds(at now: TimeInterval) -> [Int] {
+        var snapshot = totals
+        if let activePage, let segmentStartedAt {
+            snapshot[activePage] += max(0, now - segmentStartedAt)
+        }
+        return snapshot.indices.map { visited[$0] ? Int(snapshot[$0].rounded(.down)) : -1 }
+    }
+
+    private func closeSegment(at now: TimeInterval) {
+        guard let activePage, let segmentStartedAt else { return }
+        totals[activePage] += max(0, now - segmentStartedAt)
     }
 }
 
@@ -73,6 +143,11 @@ enum OnboardingGate {
 
         defaults.set(state.rawValue, forKey: stateKey)
         defaults.set(currentVersion, forKey: lastVersionKey)
+        OnboardingSampleRideSeeder.initialize(
+            defaults: defaults,
+            onboardingState: state,
+            wasUpdated: wasUpdated
+        )
         return state
     }
 
@@ -96,6 +171,9 @@ enum OnboardingGate {
         defaults: UserDefaults,
         telemetry: OnboardingTelemetryClient
     ) {
+        // Request first. A process death here leaves onboarding pending, and the seeder refuses to
+        // run until a later completion marks the gate done.
+        OnboardingSampleRideSeeder.request(defaults: defaults)
         defaults.set(outcome.analyticsOptIn, forKey: "enableTelemetry")
         telemetry.updateLocalConsent(outcome.analyticsOptIn)
         telemetry.trackOnboardingCompleted(outcome)

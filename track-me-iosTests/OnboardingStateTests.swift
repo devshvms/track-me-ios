@@ -75,9 +75,16 @@ final class OnboardingCompletionTests: XCTestCase {
             furthestPage: 5,
             usedSkip: true,
             seconds: 31,
+            welcomeDwellSeconds: 2,
+            rideDwellSeconds: 8,
+            historyDwellSeconds: -1,
+            togetherDwellSeconds: -1,
+            permissionsDwellSeconds: 5,
+            readyDwellSeconds: 3,
             analyticsOptIn: true,
             locationGranted: true,
-            notificationsGranted: false
+            notificationsGranted: false,
+            selectedPersona: .cycling
         )
 
         OnboardingGate.complete(outcome, defaults: defaults, telemetry: telemetry)
@@ -85,7 +92,25 @@ final class OnboardingCompletionTests: XCTestCase {
         XCTAssertEqual(telemetry.calls, ["consent:true", "capture:true"])
         XCTAssertEqual(defaults.string(forKey: OnboardingGate.stateKey), OnboardingState.done.rawValue)
         XCTAssertEqual(outcome.telemetryProperties["attempts"] as? Int, 2)
+        XCTAssertEqual(outcome.telemetryProperties["dwell_history_seconds"] as? Int, -1)
         XCTAssertEqual(outcome.telemetryProperties["analytics_opt_in"] as? Bool, true)
+        XCTAssertNil(outcome.telemetryProperties["selected_persona"])
+    }
+}
+
+final class OnboardingDwellAccumulatorTests: XCTestCase {
+    func testSkippedPagesDifferFromQuickVisitsAndBackgroundTimeIsExcluded() {
+        let dwell = OnboardingDwellAccumulator(pageCount: 6)
+        dwell.enter(page: 0, at: 0)
+        dwell.enter(page: 1, at: 1.5)
+        XCTAssertEqual(dwell.snapshotSeconds(at: 1.9), [1, 0, -1, -1, -1, -1])
+
+        dwell.pause(at: 1.9)
+        dwell.enter(page: 2, at: 20)
+        XCTAssertEqual(dwell.snapshotSeconds(at: 50), [1, 0, 0, -1, -1, -1])
+
+        dwell.resume(page: 2, at: 50)
+        XCTAssertEqual(dwell.snapshotSeconds(at: 51.2), [1, 0, 1, -1, -1, -1])
     }
 }
 

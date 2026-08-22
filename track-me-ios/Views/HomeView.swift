@@ -290,7 +290,10 @@ struct HomeView: View {
                         .background(.regularMaterial, in: Capsule())
                         .padding(.horizontal, 16)
                     }
-                    RadialStartTrackingControl(launchState: $rideStartLaunch) { persona in
+                    RadialStartTrackingControl(
+                        launchState: $rideStartLaunch,
+                        preselectedPersona: trackingManager.selectedPersona
+                    ) { persona in
                         legacyStartHintSeen = true
                         trackingManager.startTracking(persona: persona)
                     }
@@ -850,7 +853,7 @@ internal struct RideStatAccessibilityDescriptor: Equatable {
     let value: String
 }
 
-private struct ActiveRideHUD: View {
+struct ActiveRideHUD: View {
     let trackingState: TrackingState
     let persona: RidePersona
     let isAutoPaused: Bool
@@ -1091,7 +1094,7 @@ internal enum RideStopSliderPolicy {
     }
 }
 
-private struct UnifiedPauseStopSlider: View {
+struct UnifiedPauseStopSlider: View {
     let isPaused: Bool
     let onPauseToggle: () -> Void
     let onStop: () -> Void
@@ -1198,7 +1201,7 @@ private struct UnifiedPauseStopSlider: View {
     }
 }
 
-private struct LiveShareActionDrawer: View {
+struct LiveShareActionDrawer: View {
     let isActive: Bool
     let isStarting: Bool
     let isAuthenticated: Bool
@@ -1341,8 +1344,24 @@ private struct LiveShareActionDrawer: View {
     }
 }
 
-private struct RadialStartTrackingControl: View {
+nonisolated enum RadialStartPersonaPolicy {
+    static func selection(
+        hovered: RidePersona?,
+        didDrag: Bool,
+        releasedInsideCenter: Bool,
+        preselected: RidePersona
+    ) -> RidePersona? {
+        if let hovered { return hovered }
+        return !didDrag && releasedInsideCenter ? preselected : nil
+    }
+}
+
+struct RadialStartTrackingControl: View {
     @Binding var launchState: RideStartLaunchState
+    var preselectedPersona: RidePersona = .auto
+    var onAbort: (RideStartAbortMethod) -> Void = {
+        TelemetryManager.shared.trackRideStartAborted(method: $0)
+    }
     var onCommit: (RidePersona) -> Void
 
     @State private var isExpanded = false
@@ -1385,8 +1404,8 @@ private struct RadialStartTrackingControl: View {
                 VStack(spacing: 3) {
                     Image(systemName: centerImage)
                         .font(.system(size: 31, weight: .bold))
-                    if isExpanded, let hoveredPersona {
-                        Text(LocalizationHelper.localized(hoveredPersona.displayName))
+                    if let centerLabelPersona {
+                        Text(LocalizationHelper.localized(centerLabelPersona.displayName))
                             .font(.caption2.bold())
                             .lineLimit(1)
                     }
@@ -1421,7 +1440,9 @@ private struct RadialStartTrackingControl: View {
         }
         .frame(width: 300, height: 215)
         .accessibilityLabel(LocalizationHelper.localized(launchState.isPending ? "Cancel" : "Start tracking"))
-        .accessibilityValue(hoveredPersona.map { LocalizationHelper.localized($0.displayName) } ?? "")
+        .accessibilityValue(LocalizationHelper.localized(
+            (hoveredPersona ?? preselectedPersona).displayName
+        ))
         .accessibilityAddTraits(.isButton)
         .accessibilityActions {
             Button(LocalizationHelper.localized("Auto")) { beginLaunch(.auto) }
@@ -1445,7 +1466,14 @@ private struct RadialStartTrackingControl: View {
     private var centerImage: String {
         if launchState.isPending { return "xmark" }
         if let hoveredPersona { return hoveredPersona.systemImage }
-        return isExpanded ? "xmark" : "play.fill"
+        if isExpanded { return "xmark" }
+        return preselectedPersona == .auto ? "play.fill" : preselectedPersona.systemImage
+    }
+
+    private var centerLabelPersona: RidePersona? {
+        if launchState.isPending { return nil }
+        if let hoveredPersona { return hoveredPersona }
+        return !isExpanded && preselectedPersona != .auto ? preselectedPersona : nil
     }
 
     private func optionPosition(index: Int, center: CGPoint) -> CGPoint {
@@ -1463,7 +1491,7 @@ private struct RadialStartTrackingControl: View {
                   launchState.abort(observedToken: token) else { return }
             abortGestureActive = true
             Haptics.notify(.warning)
-            TelemetryManager.shared.trackRideStartAborted(method: .preCommit)
+            onAbort(.preCommit)
             return
         }
 
@@ -1500,14 +1528,12 @@ private struct RadialStartTrackingControl: View {
         guard gestureStartedOnControl else { return }
         guard !launchState.isPending else { return }
 
-        let selected: RidePersona?
-        if let hoveredPersona {
-            selected = hoveredPersona
-        } else if !didExceedTouchSlop && distance(value.location, center) <= 54 {
-            selected = .auto
-        } else {
-            selected = nil
-        }
+        let selected = RadialStartPersonaPolicy.selection(
+            hovered: hoveredPersona,
+            didDrag: didExceedTouchSlop,
+            releasedInsideCenter: distance(value.location, center) <= 54,
+            preselected: preselectedPersona
+        )
 
         if let selected { beginLaunch(selected) } else { resetInteraction() }
     }

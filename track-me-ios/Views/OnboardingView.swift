@@ -36,6 +36,10 @@ struct OnboardingView: View {
     @State private var usedSkip = false
     @State private var startedAt = Date()
     @State private var analyticsWasChanged = false
+    @State private var selectedDemoPersona: RidePersona = .cycling
+    @State private var dwellTracker = OnboardingDwellAccumulator(
+        pageCount: OnboardingPage.allCases.count
+    )
     @State private var analyticsOptIn = AnalyticsDefault.startsOn(
         primaryCountryCode: nil,
         localeCountryCode: Locale.current.region?.identifier
@@ -64,6 +68,14 @@ struct OnboardingView: View {
                 attempts = OnboardingGate.recordAttempt()
                 startedAt = Date()
             }
+            furthestPage = max(furthestPage, page.rawValue)
+            let now = ProcessInfo.processInfo.systemUptime
+            if scenePhase == .active {
+                dwellTracker.resume(page: page.rawValue, at: now)
+            } else {
+                dwellTracker.enter(page: page.rawValue, at: now)
+                dwellTracker.pause(at: now)
+            }
             await permissions.refreshNotifications()
             guard !analyticsWasChanged, let storefront = await Storefront.current else { return }
             analyticsOptIn = AnalyticsDefault.startsOn(
@@ -73,8 +85,11 @@ struct OnboardingView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
+                dwellTracker.resume(page: page.rawValue, at: ProcessInfo.processInfo.systemUptime)
                 permissions.refreshLocation()
                 Task { await permissions.refreshNotifications() }
+            } else {
+                dwellTracker.pause(at: ProcessInfo.processInfo.systemUptime)
             }
         }
     }
@@ -128,31 +143,45 @@ struct OnboardingView: View {
         switch page {
         case .welcome:
             VStack(alignment: .leading, spacing: 28) {
-                WelcomeOnboardingArt()
+                OnboardingClip(kind: .welcome, isActive: page == .welcome) {
+                    WelcomeOnboardingArt()
+                }
+                .aspectRatio(2, contentMode: .fit)
+                .frame(maxWidth: .infinity)
                 PageCopy(
                     title: "Your rides, private by default",
                     body: "TrackMe records where you go and shares it only when you choose to. Here's the 40-second tour."
                 )
             }
         case .ride:
-            VStack(alignment: .leading, spacing: 24) {
-                RideGestureOnboardingArt()
+            VStack(alignment: .leading, spacing: 20) {
                 PageCopy(
                     title: "Press and hold to start",
                     body: "Hold the Start button, then drag to pick how you're moving - Auto, Walk, Run, Cycling, Bike or Car. Let go, and TrackMe begins recording your route, distance and pace."
                 )
+                RideOnboardingDemo(
+                    selectedPersona: $selectedDemoPersona,
+                    onCompleted: { move(to: .history) }
+                )
             }
         case .history:
-            VStack(alignment: .leading, spacing: 24) {
-                HistoryOnboardingArt()
+            VStack(alignment: .leading, spacing: 20) {
                 PageCopy(
                     title: "Every ride is kept",
                     body: "Finished rides land in History with your route, distance, time and pace. Open one to inspect or replay it, or pick two rides to compare side by side."
                 )
+                HistoryOnboardingDemo(
+                    selectedPersona: $selectedDemoPersona,
+                    onCompleted: { move(to: .together) }
+                )
             }
         case .together:
             VStack(alignment: .leading, spacing: 24) {
-                TogetherOnboardingArt()
+                OnboardingClip(kind: .together, isActive: page == .together) {
+                    TogetherOnboardingArt()
+                }
+                .aspectRatio(2, contentMode: .fit)
+                .frame(maxWidth: .infinity)
                 PageCopy(
                     title: "Ride together, on one map",
                     body: "In Community, create a group and share the code or link. Everyone who joins moves on the same map, live. Sharing with just one person? Send a live link so they can follow in a browser without the app.",
@@ -280,12 +309,13 @@ struct OnboardingView: View {
         switch page {
         case .welcome: "Take the tour"
         case .permissions: "Continue"
-        case .ready: "Start using TrackMe"
+        case .ready: "Start my first ride"
         default: "Next"
         }
     }
 
     private func move(to next: OnboardingPage) {
+        dwellTracker.enter(page: next.rawValue, at: ProcessInfo.processInfo.systemUptime)
         withAnimation(.easeInOut(duration: 0.2)) {
             page = next
             furthestPage = max(furthestPage, next.rawValue)
@@ -293,14 +323,22 @@ struct OnboardingView: View {
     }
 
     private func finish() {
+        let pageDwell = dwellTracker.snapshotSeconds(at: ProcessInfo.processInfo.systemUptime)
         onFinish(OnboardingOutcome(
             attempts: max(1, attempts),
             furthestPage: max(furthestPage, page.rawValue),
             usedSkip: usedSkip,
             seconds: max(0, Int(Date().timeIntervalSince(startedAt))),
+            welcomeDwellSeconds: pageDwell[OnboardingPage.welcome.rawValue],
+            rideDwellSeconds: pageDwell[OnboardingPage.ride.rawValue],
+            historyDwellSeconds: pageDwell[OnboardingPage.history.rawValue],
+            togetherDwellSeconds: pageDwell[OnboardingPage.together.rawValue],
+            permissionsDwellSeconds: pageDwell[OnboardingPage.permissions.rawValue],
+            readyDwellSeconds: pageDwell[OnboardingPage.ready.rawValue],
             analyticsOptIn: analyticsOptIn,
             locationGranted: permissions.locationGranted,
-            notificationsGranted: permissions.notificationsGranted
+            notificationsGranted: permissions.notificationsGranted,
+            selectedPersona: selectedDemoPersona
         ))
     }
 }
@@ -445,7 +483,7 @@ private struct WelcomeOnboardingArt: View {
                 .font(.system(size: 58, weight: .semibold))
                 .foregroundStyle(BrandColor.primary)
         }
-        .frame(height: 190)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityHidden(true)
     }
 }
@@ -523,8 +561,7 @@ private struct TogetherOnboardingArt: View {
                 .padding(.horizontal, 38)
                 .zIndex(-1)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 180)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityHidden(true)
     }
 
