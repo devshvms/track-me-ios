@@ -40,7 +40,7 @@ final class BrandColorTests: XCTestCase {
 
     func testSemanticTokenHexesMatchBrandSystem() {
         XCTAssertEqual(hex(BrandColor.success, dark: false), 0x16A34A)
-        XCTAssertEqual(hex(BrandColor.sos, dark: false), 0xDC2626)
+        XCTAssertEqual(hex(BrandColor.destructive, dark: false), 0xDC2626)
         XCTAssertEqual(hex(BrandColor.warning, dark: false), 0xF59E0B)
     }
 
@@ -129,24 +129,24 @@ final class BrandColorTests: XCTestCase {
     private var darkSurface: Color { Color(hex: 0x181A20) }
 
     func testSosTextAdaptsDeepLightBrightDark() {
-        XCTAssertEqual(hex(BrandColor.sosText, dark: false), 0xDC2626, "sosText is deep red on light")
-        XCTAssertEqual(hex(BrandColor.sosText, dark: true), 0xF87171, "sosText brightens on dark for AA")
+        XCTAssertEqual(hex(BrandColor.destructiveText, dark: false), 0xDC2626, "destructiveText is deep red on light")
+        XCTAssertEqual(hex(BrandColor.destructiveText, dark: true), 0xF87171, "destructiveText brightens on dark for AA")
     }
 
     func testSosTextMeetsAAOnDarkSurface() {
         // Brightened red on navy dark surface clears AA (4.5:1) for normal text (~6.3:1).
-        XCTAssertGreaterThanOrEqual(contrast(BrandColor.sosText, darkSurface, dark: true), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.destructiveText, darkSurface, dark: true), 4.5)
     }
 
     func testConstantSosFailsAAAsTextOnDark_regressionGuard() {
-        // Documents WHY sosText exists: the constant sos red is sub-AA as dark-mode
-        // TEXT (~3.6:1). If someone later makes `sos` itself adaptive, this fails and
+        // Documents WHY destructiveText exists: the constant destructive red is sub-AA as dark-mode
+        // TEXT (~3.6:1). If someone later makes `destructive` itself adaptive, this fails and
         // forces a conscious merge decision.
-        XCTAssertLessThan(contrast(BrandColor.sos, darkSurface, dark: true), 4.5)
+        XCTAssertLessThan(contrast(BrandColor.destructive, darkSurface, dark: true), 4.5)
     }
 
     func testSosTextStillAAOnLightWhite() {
         // Light path must not regress: deep red on white stays AA (~4.83:1).
-        XCTAssertGreaterThanOrEqual(contrast(BrandColor.sosText, .white, dark: false), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(BrandColor.destructiveText, .white, dark: false), 4.5)
     }
 }

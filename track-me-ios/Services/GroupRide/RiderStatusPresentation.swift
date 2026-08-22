@@ -66,7 +66,7 @@ enum RiderStatusPresentation {
 
     static func textColor(_ severity: StatusSeverity) -> Color {
         switch severity {
-        case .alert: BrandColor.sosText
+        case .alert: BrandColor.destructiveText
         case .caution: BrandColor.severityCautionText
         case .info: BrandColor.severityInfoText
         }

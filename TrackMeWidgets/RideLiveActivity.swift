@@ -106,7 +106,7 @@ private struct RideActivityAlertRow: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: systemImage)
-                .foregroundStyle(isAlert ? BrandColor.sos : Color.secondary)
+                .foregroundStyle(isAlert ? BrandColor.destructive : Color.secondary)
             // The complete user-provided name is handed to Text. SwiftUI's
             // layout truncates only at Character boundaries; never pre-truncate
             // by UTF-8/UTF-16 offsets, which can split a grapheme.
@@ -163,7 +163,7 @@ extension RideActivityFormat {
     }
 
     static func minimalStatusTint(_ state: RideActivityAttributes.ContentState) -> Color {
-        state.alertSignal == .raised ? BrandColor.sos : statusTint(state)
+        state.alertSignal == .raised ? BrandColor.destructive : statusTint(state)
     }
 
     static func bottomIcon(_ state: RideActivityAttributes.ContentState) -> String {
