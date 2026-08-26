@@ -63,6 +63,11 @@ struct RideDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // Summary Section
+                rideSummaryCard
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+
                 // Map Section
                 mapView
                     .frame(height: 320)
@@ -119,8 +124,9 @@ struct RideDetailView: View {
                                 .accessibilityHidden(true)
                         }
                         
-                        // Ride Stats Card
-                        rideStatsCard
+                        // Recording details stay after the route and chart so diagnostics remain
+                        // available without competing with the summary a rider reads first.
+                        recordingDetailsCard
                             .padding(.horizontal)
                         
                         // Action Buttons
@@ -334,7 +340,7 @@ struct RideDetailView: View {
     }
     
     @ViewBuilder
-    var rideStatsCard: some View {
+    var rideSummaryCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Ride Stats")
                 .font(.title2).bold()
@@ -346,7 +352,6 @@ struct RideDetailView: View {
             let duration = Double(aggregate.movingDurationMillis) / 1_000
             let avgSpeedMps = aggregate.avgSpeedMps
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
-            let gapCount = ChartAccessibility.signalGaps(points: sortedPoints).count
             let usesPace = ride.ridePersona == .walk || ride.ridePersona == .run
             
             HStack {
@@ -366,7 +371,18 @@ struct RideDetailView: View {
                 Spacer()
                 statItem(title: "Start Time", value: dateStr)
             }
+        }
+        .padding(20)
+        .background(Color(UIColor.darkGray))
+        .cornerRadius(16)
+    }
 
+    @ViewBuilder
+    var recordingDetailsCard: some View {
+        let aggregate = ride.aggregateSnapshot
+        let gapCount = ChartAccessibility.signalGaps(points: sortedPoints).count
+
+        VStack(alignment: .leading, spacing: 16) {
             DisclosureGroup(isExpanded: $showRecordingDetails) {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
