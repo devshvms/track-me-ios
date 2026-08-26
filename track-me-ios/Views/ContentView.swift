@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import DeclaredAgeRange
+import UIKit
 
 struct ContentView: View {
     // B2: shared foreground trigger (scenePhase) — parity with Android MainActivity.onResume.
@@ -51,6 +52,7 @@ struct ContentView: View {
                 .tag(AppTab.settings)
         }
         .onChange(of: selectedTab) { _, _ in tabScrollToTopRequest += 1 }
+        .background(TabBarReselectObserver { tabScrollToTopRequest += 1 })
     }
 
     var body: some View {
@@ -152,6 +154,65 @@ private enum AppTab: Hashable {
     case history
     case community
     case settings
+}
+
+/// SwiftUI's TabView does not publish a selection change when the active item is tapped again.
+/// Observe the UIKit tab bar only for that reselect gesture; ordinary content taps are untouched.
+private struct TabBarReselectObserver: UIViewRepresentable {
+    let onReselect: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onReselect: onReselect) }
+    func makeUIView(context: Context) -> UIView { UIView(frame: .zero) }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        context.coordinator.onReselect = onReselect
+        DispatchQueue.main.async {
+            guard let tabBar = Self.findTabBar(from: view), context.coordinator.tabBar !== tabBar else { return }
+            if let oldTabBar = context.coordinator.tabBar, let gesture = context.coordinator.gesture {
+                oldTabBar.removeGestureRecognizer(gesture)
+            }
+            let gesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tabBarTapped(_:)))
+            gesture.cancelsTouchesInView = false
+            tabBar.addGestureRecognizer(gesture)
+            context.coordinator.tabBar = tabBar
+            context.coordinator.gesture = gesture
+        }
+    }
+
+    private static func findTabBar(from view: UIView) -> UITabBar? {
+        var responder: UIResponder? = view
+        while let next = responder?.next {
+            if let controller = next as? UITabBarController { return controller.tabBar }
+            responder = next
+        }
+        if let rootView = view.window?.rootViewController?.view {
+            return findTabBar(in: rootView)
+        }
+        return nil
+    }
+
+    private static func findTabBar(in view: UIView) -> UITabBar? {
+        if let tabBar = view as? UITabBar { return tabBar }
+        for child in view.subviews {
+            if let tabBar = findTabBar(in: child) { return tabBar }
+        }
+        return nil
+    }
+
+    final class Coordinator: NSObject {
+        var onReselect: () -> Void
+        weak var tabBar: UITabBar?
+        weak var gesture: UITapGestureRecognizer?
+
+        init(onReselect: @escaping () -> Void) { self.onReselect = onReselect }
+
+        @objc func tabBarTapped(_ gesture: UITapGestureRecognizer) {
+            guard let tabBar else { return }
+            let point = gesture.location(in: tabBar)
+            guard tabBar.bounds.contains(point), tabBar.selectedItem != nil else { return }
+            onReselect()
+        }
+    }
 }
 
 #Preview {
