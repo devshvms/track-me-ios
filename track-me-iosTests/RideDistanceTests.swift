@@ -81,6 +81,28 @@ final class RideDistanceTests: XCTestCase {
         XCTAssertEqual(metrics.avgSpeedKmh, 18)
     }
 
+    func testHistoryMetricsKeepAverageSpeedConsistentWithPauseExcludedDuration() {
+        let ride = Ride(startTime: Date(timeIntervalSince1970: 0))
+        let activeDurationMillis: Int64 = 300_000
+        let distanceMeters = 5_000.0
+        ride.applyAggregate(RideAggregateSnapshot.live(
+            distanceMeters: distanceMeters,
+            movingDurationMillis: TimeInterval(activeDurationMillis),
+            maxSpeedMps: 8,
+            pointCount: 42
+        ))
+
+        let metrics = HistoryRideMetrics(ride: ride)
+
+        XCTAssertEqual(metrics.duration, 300, accuracy: 0.001)
+        XCTAssertEqual(metrics.avgSpeedKmh, 60, accuracy: 0.001)
+        XCTAssertEqual(
+            metrics.avgSpeedKmh,
+            metrics.distanceKm / (metrics.duration / 3_600),
+            accuracy: 0.001
+        )
+    }
+
     func testAverageSpeedGuardsZeroAndNegativeDuration() {
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 1_800), 20.0, accuracy: 0.001)
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 0), 0)
