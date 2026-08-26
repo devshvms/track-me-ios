@@ -32,6 +32,7 @@ final class Ride {
     var maxSpeedMps: Double?
     var avgSpeedMps: Double?
     var pointCount: Int?
+    var elevationGainMeters: Double? = nil
     /// Persisted dashboard qualification; the metadata version distinguishes a reconciled false
     /// from a legacy row that has not been inspected yet.
     var qualifiesForStats: Bool = false
@@ -72,7 +73,8 @@ extension Ride {
                 movingDurationMillis: max(0, movingDurationMillis),
                 maxSpeedMps: RideMetrics.nonNegativeFinite(maxSpeedMps),
                 avgSpeedMps: RideMetrics.nonNegativeFinite(avgSpeedMps),
-                pointCount: max(0, pointCount)
+                pointCount: max(0, pointCount),
+                elevationGainMeters: elevationGainMeters
             )
         }
 
@@ -86,7 +88,8 @@ extension Ride {
             movingDurationMillis: duration,
             maxSpeedMps: maxSpeedMps.map(RideMetrics.nonNegativeFinite) ?? fallback.maxSpeedMps,
             avgSpeedMps: average,
-            pointCount: max(0, pointCount ?? fallback.pointCount)
+            pointCount: max(0, pointCount ?? fallback.pointCount),
+            elevationGainMeters: elevationGainMeters ?? fallback.elevationGainMeters
         )
     }
 
@@ -98,5 +101,6 @@ extension Ride {
         maxSpeedMps = aggregate.maxSpeedMps
         avgSpeedMps = aggregate.avgSpeedMps
         pointCount = aggregate.pointCount
+        elevationGainMeters = aggregate.elevationGainMeters
     }
 }

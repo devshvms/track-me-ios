@@ -626,7 +626,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             distanceMeters: totalDistance,
             movingDurationMillis: durationInMillis,
             maxSpeedMps: maxSpeedMps,
-            pointCount: points.count
+            pointCount: points.count,
+            elevationGainMeters: RideMetrics.elevationGainMeters(fromLocations: points)
         )
         DataRepository.shared.finishRide(rideId: id, endedAt: endedAt, aggregate: aggregate)
         TelemetryManager.shared.trackRideCompleted()

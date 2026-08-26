@@ -16,6 +16,7 @@ struct DownloadedRide: Equatable {
     let maxSpeedMps: Double?
     let avgSpeedMps: Double?
     let pointCount: Int?
+    let elevationGainMeters: Double?
     let chunkCount: Int?
 
     var persistedAggregate: RideAggregateSnapshot? {
@@ -28,7 +29,8 @@ struct DownloadedRide: Equatable {
             movingDurationMillis: max(0, movingDurationMillis),
             maxSpeedMps: RideMetrics.nonNegativeFinite(maxSpeedMps),
             avgSpeedMps: RideMetrics.nonNegativeFinite(avgSpeedMps),
-            pointCount: max(0, pointCount ?? points.count)
+            pointCount: max(0, pointCount ?? points.count),
+            elevationGainMeters: elevationGainMeters
         )
     }
 
@@ -42,7 +44,8 @@ struct DownloadedRide: Equatable {
             movingDurationMillis: duration,
             maxSpeedMps: maxSpeedMps.map(RideMetrics.nonNegativeFinite) ?? fallback.maxSpeedMps,
             avgSpeedMps: average,
-            pointCount: max(0, pointCount ?? fallback.pointCount)
+            pointCount: max(0, pointCount ?? fallback.pointCount),
+            elevationGainMeters: elevationGainMeters ?? fallback.elevationGainMeters
         )
     }
 }
@@ -122,6 +125,7 @@ extension FirestoreSyncManager {
             maxSpeedMps: decodeDouble(data["maxSpeed"]),
             avgSpeedMps: decodeDouble(data["avgSpeed"]),
             pointCount: decodeInt64(data["pointCount"]).map(Int.init),
+            elevationGainMeters: decodeDouble(data["elevationGainMeters"]),
             chunkCount: chunkCount
         )
     }

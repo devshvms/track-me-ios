@@ -161,6 +161,7 @@ class FirestoreSyncManager {
             "pauseDuration": pauseDurationMillis,
             "movingDurationMillis": aggregate.movingDurationMillis,
             "pointCount": aggregate.pointCount,
+            "elevationGainMeters": aggregate.elevationGainMeters ?? NSNull(),
             RideChunkingContract.chunkCountField: chunkCount,
             "contentHash": Self.contentHash(points)
         ]

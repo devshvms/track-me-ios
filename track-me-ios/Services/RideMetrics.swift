@@ -8,12 +8,14 @@ nonisolated struct RideAggregateSnapshot: Equatable {
     let maxSpeedMps: Double
     let avgSpeedMps: Double
     let pointCount: Int
+    let elevationGainMeters: Double?
 
     static func live(
         distanceMeters: Double,
         movingDurationMillis: TimeInterval,
         maxSpeedMps: Double,
-        pointCount: Int
+        pointCount: Int,
+        elevationGainMeters: Double? = nil
     ) -> RideAggregateSnapshot {
         let distance = RideMetrics.nonNegativeFinite(distanceMeters)
         let duration = Int64(max(0, movingDurationMillis.rounded()))
@@ -24,7 +26,8 @@ nonisolated struct RideAggregateSnapshot: Equatable {
             movingDurationMillis: duration,
             maxSpeedMps: maxSpeed,
             avgSpeedMps: average,
-            pointCount: max(0, pointCount)
+            pointCount: max(0, pointCount),
+            elevationGainMeters: elevationGainMeters
         )
     }
 }
@@ -51,7 +54,8 @@ nonisolated enum RideMetrics {
                 movingDurationMillis: 0,
                 maxSpeedMps: 0,
                 avgSpeedMps: 0,
-                pointCount: 0
+                pointCount: 0,
+                elevationGainMeters: nil
             )
         }
 
@@ -78,8 +82,37 @@ nonisolated enum RideMetrics {
             movingDurationMillis: movingDurationMillis,
             maxSpeedMps: maxSpeedMps,
             avgSpeedMps: nonNegativeFinite(average),
-            pointCount: sorted.count
+            pointCount: sorted.count,
+            elevationGainMeters: elevationGainMeters(from: sorted)
         )
+    }
+
+    /// Computes ascent from a centered, edge-truncated five-point moving average.
+    /// Fewer than ten finite altitudes are too sparse to support an elevation cell.
+    static func elevationGainMeters(from points: [GPSPoint]) -> Double? {
+        calculateElevationGain(points.map { ElevationSample(altitude: $0.altitude, timestamp: $0.timestamp) })
+    }
+
+    static func elevationGainMeters(fromLocations locations: [CLLocation]) -> Double? {
+        calculateElevationGain(locations.map { ElevationSample(altitude: $0.altitude, timestamp: $0.timestamp) })
+    }
+
+    private static func calculateElevationGain(_ samples: [ElevationSample]) -> Double? {
+        let altitudes = samples
+            .filter { $0.altitude.isFinite }
+            .sorted { $0.timestamp < $1.timestamp }
+            .map(\.altitude)
+        guard altitudes.count >= 10 else { return nil }
+
+        let smoothed = altitudes.indices.map { index in
+            let start = max(0, index - 2)
+            let end = min(altitudes.count - 1, index + 2)
+            return altitudes[start...end].reduce(0, +) / Double(end - start + 1)
+        }
+        return zip(smoothed, smoothed.dropFirst()).reduce(0) { total, pair in
+            let delta = pair.1 - pair.0
+            return total + (delta >= 2 ? delta : 0)
+        }
     }
 
     nonisolated static func nonNegativeFinite(_ value: Double) -> Double {
@@ -89,5 +122,29 @@ nonisolated enum RideMetrics {
     private static func distance(from first: GPSPoint, to second: GPSPoint) -> Double {
         CLLocation(latitude: first.latitude, longitude: first.longitude)
             .distance(from: CLLocation(latitude: second.latitude, longitude: second.longitude))
+    }
+
+    private struct ElevationSample {
+        let altitude: Double
+        let timestamp: Date
+    }
+}
+extension RideMetrics {
+    static func elevationGainMeters(from points: [CLLocation]) -> Double? {
+        let altitudes = points
+            .filter { $0.altitude.isFinite }
+            .sorted { $0.timestamp < $1.timestamp }
+            .map(\.altitude)
+        guard altitudes.count >= 10 else { return nil }
+
+        let smoothed = altitudes.indices.map { index in
+            let start = max(0, index - 2)
+            let end = min(altitudes.count - 1, index + 2)
+            return altitudes[start...end].reduce(0, +) / Double(end - start + 1)
+        }
+        return zip(smoothed, smoothed.dropFirst()).reduce(0) { total, pair in
+            let delta = pair.1 - pair.0
+            return total + (delta >= 2 ? delta : 0)
+        }
     }
 }

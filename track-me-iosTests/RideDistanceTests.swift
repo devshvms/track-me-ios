@@ -103,10 +103,39 @@ final class RideDistanceTests: XCTestCase {
         )
     }
 
+    func testElevationGainNeedsTenValidAltitudePoints() {
+        XCTAssertNil(RideMetrics.elevationGainMeters(from: elevationPoints([0, 100, 0, 100, 0, 100, 0, 100, 0])))
+    }
+
+    func testElevationGainSuppressesNoisyFlatRoute() {
+        let noisyFlat = [100.0, 100.8, 99.7, 100.6, 99.9, 100.5, 99.6, 100.7, 99.8, 100.4]
+
+        XCTAssertEqual(RideMetrics.elevationGainMeters(from: elevationPoints(noisyFlat)) ?? -1, 0, accuracy: 0.001)
+    }
+
+    func testElevationGainUsesSmoothedAscentVector() {
+        let climbWithDescent = [0.0, 0.0, 0.0, 0.0, 0.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+
+        XCTAssertEqual(RideMetrics.elevationGainMeters(from: elevationPoints(climbWithDescent)) ?? -1, 100, accuracy: 0.001)
+    }
+
     func testAverageSpeedGuardsZeroAndNegativeDuration() {
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 1_800), 20.0, accuracy: 0.001)
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 0), 0)
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: -1), 0)
+    }
+
+    private func elevationPoints(_ altitudes: [Double]) -> [GPSPoint] {
+        altitudes.enumerated().map { index, altitude in
+            GPSPoint(
+                latitude: 0,
+                longitude: Double(index) / 10_000,
+                altitude: altitude,
+                accuracy: 5,
+                speed: 1,
+                timestamp: Date(timeIntervalSince1970: Double(index))
+            )
+        }
     }
 
     func testHistoryMetricDurationFormatting() {
