@@ -84,6 +84,7 @@ struct track_me_iosApp: App {
         let schema = Schema([
             Ride.self,
             GPSPoint.self,
+            HomeDashboardIndex.self,
             EmergencyContact.self,
             EmergencySettings.self
         ])
@@ -117,6 +118,7 @@ struct track_me_iosApp: App {
                 }
                 .onAppear {
                     DataRepository.shared.setup(container: sharedModelContainer)
+                    HomeDashboardRepository.shared.configure(container: sharedModelContainer)
                     let state = OnboardingState(
                         rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
                     ) ?? .legacy
@@ -128,7 +130,7 @@ struct track_me_iosApp: App {
                     EmergencyDataPurge.shared.purgeOnce(container: sharedModelContainer)
                     Task {
                         await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
-                        RideAggregateBackfill.run(container: sharedModelContainer)
+                        await HomeDashboardRepository.shared.prepare()
                         // Dismiss any Live Activity left over from a crash/force-quit.
                         RideActivityManager.shared.endOrphanedActivities(
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString

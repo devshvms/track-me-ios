@@ -17,10 +17,18 @@ final class DataRepository {
         migrateGeneratedPersonaTitlesIfNeeded()
     }
 
-    func saveRide(_ ride: Ride) {
-        guard let context = container?.mainContext else { return }
+    @discardableResult
+    func saveRide(_ ride: Ride) -> Bool {
+        guard let context = container?.mainContext else { return false }
         context.insert(ride)
-        try? context.save()
+        do {
+            try context.save()
+            return true
+        } catch {
+            context.rollback()
+            NSLog("TrackMe: failed to persist ride start: %@", error.localizedDescription)
+            return false
+        }
     }
 
     func allRides() -> [Ride] {
@@ -60,6 +68,7 @@ final class DataRepository {
             }
             ride.firestoreId = d.firestoreId
             ride.cloudChunkCount = d.chunkCount
+            ride.startZoneId = d.startZoneId
             ctx.insert(ride)
             var importedPoints: [GPSPoint] = []
             for p in d.points {
@@ -74,9 +83,13 @@ final class DataRepository {
                 d.persistedAggregate
                     ?? d.aggregate(fallback: RideMetrics.reconstructed(from: importedPoints))
             )
+            ride.refreshDashboardMetadata()
             inserted += 1
         }
-        if inserted > 0 { try? ctx.save() }
+        if inserted > 0 {
+            try? ctx.save()
+            HomeDashboardRepository.shared.invalidate()
+        }
     }
     func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool) {
         guard let container = container else { return }
@@ -133,6 +146,7 @@ final class DataRepository {
                 guard let ride = try context.fetch(descriptor).first else { return }
                 ride.endTime = max(endedAt, ride.startTime)
                 ride.applyAggregate(aggregate)
+                ride.refreshDashboardMetadata()
 
                 if RideTitleGenerator.isGeneratedTitle(ride.title) {
                     ride.title = RideTitleGenerator.make(
@@ -143,6 +157,7 @@ final class DataRepository {
                 }
 
                 try context.save()
+                HomeDashboardRepository.shared.invalidate()
 
                 // Fire and forget cloud sync
                 FirestoreSyncManager.shared.syncRide(ride)
@@ -174,6 +189,7 @@ final class DataRepository {
                 guard let ride = try context.fetch(descriptor).first else { return }
                 context.delete(ride)
                 try context.save()
+                HomeDashboardRepository.shared.invalidate()
             } catch {
                 NSLog("TrackMe: failed to discard near-empty ride: %@", error.localizedDescription)
             }
@@ -188,8 +204,10 @@ final class DataRepository {
         let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
         guard let ride = try? context.fetch(descriptor).first else { return false }
         ride.pendingDelete = true
+        ride.refreshDashboardMetadata()
         do {
             try context.save()
+            HomeDashboardRepository.shared.invalidate()
             return true
         } catch {
             context.rollback()
@@ -203,8 +221,10 @@ final class DataRepository {
         let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
         guard let ride = try? context.fetch(descriptor).first else { return }
         ride.pendingDelete = false
+        ride.refreshDashboardMetadata()
         do {
             try context.save()
+            HomeDashboardRepository.shared.invalidate()
         } catch {
             context.rollback()
             NSLog("TrackMe: failed to restore ride after rejected delete: %@", error.localizedDescription)
@@ -260,6 +280,7 @@ final class DataRepository {
         try? context.delete(model: EmergencyContact.self)
         try? context.delete(model: EmergencySettings.self)
         try context.save()
+        HomeDashboardRepository.shared.resetAfterWipe()
     }
 
 }

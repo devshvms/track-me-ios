@@ -246,6 +246,7 @@ struct RideDetailView: View {
             modelContext.delete(ride)
             do {
                 try modelContext.save()
+                HomeDashboardRepository.shared.invalidate()
                 dismiss()
             } catch {
                 modelContext.rollback()

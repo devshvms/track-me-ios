@@ -9,6 +9,7 @@ struct DownloadedRide: Equatable {
     let sourceInfo: String
     let title: String?
     let persona: String
+    let startZoneId: String?
     let points: [DownloadedPoint]
     let distanceMeters: Double?
     let movingDurationMillis: Int64?
@@ -114,6 +115,7 @@ extension FirestoreSyncManager {
             sourceInfo: (data["sourceInfo"] as? String) ?? "Cloud Sync",
             title: data["title"] as? String,
             persona: (data["persona"] as? String) ?? "AUTO",
+            startZoneId: data["startZoneId"] as? String,
             points: points,
             distanceMeters: decodeDouble(data["distance"]),
             movingDurationMillis: movingDurationMillis,

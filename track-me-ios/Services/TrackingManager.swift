@@ -217,6 +217,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             )
         )
         newRide.persona = selectedPersona.rawValue
+        newRide.startZoneId = TimeZone.current.identifier
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
         GroupRideManager.shared.refreshLocationSource()
@@ -238,7 +239,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         // Save initially on main thread
         DispatchQueue.main.async {
-            DataRepository.shared.saveRide(newRide)
+            if DataRepository.shared.saveRide(newRide) {
+                // Selection and permission attempts are intentionally not persisted. This changes
+                // only after the recording row commits locally.
+                DashboardPersonaPreference.recordCommittedStart(newRide.ridePersona)
+            }
         }
 
         startLocationUpdatesAndTimer(allowsPermissionPrompts: allowsPermissionPrompts)

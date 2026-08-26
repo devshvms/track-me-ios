@@ -87,6 +87,11 @@ enum RideRecoveryManager {
             container: container,
             activeRideId: TrackingManager.shared.currentRideId
         )
+        if summary.recoveredCount > 0 || summary.discardedCount > 0 {
+            await MainActor.run {
+                HomeDashboardRepository.shared.invalidate()
+            }
+        }
         if let message = toastMessage(for: summary) {
             ToastManager.shared.show(message: message, style: .info)
         }
@@ -115,6 +120,7 @@ enum RideRecoveryManager {
             // The ride ended when the phone died, not now.
             ride.endTime = lastPoint.timestamp
             ride.applyAggregate(RideMetrics.reconstructed(from: points))
+            ride.refreshDashboardMetadata()
             if RideTitleGenerator.isGeneratedTitle(ride.title) {
                 ride.title = RideTitleGenerator.make(
                     startTime: ride.startTime,
