@@ -246,15 +246,10 @@ struct HomeView: View {
 
             VStack(spacing: 10) {
                 if trackingManager.state == .idle {
-                    DashboardPersonaDock(
-                        selectedPersona: selectedDashboardPersona,
-                        suggestedPersonas: suggestedDashboardPersonas,
-                        onSelectPersona: selectDashboardPersona,
-                        onOpenAll: { showDashboardPersonaPicker = true }
-                    )
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
-                        preselectedPersona: selectedDashboardPersona
+                        preselectedPersona: selectedDashboardPersona,
+                        onOpenAllPersonas: { showDashboardPersonaPicker = true }
                     ) { persona in
                         legacyStartHintSeen = true
                         let method = dashboardSelectionCameFromPicker || persona != selectedDashboardPersona
@@ -613,15 +608,6 @@ struct HomeView: View {
 
     private func groupRosterIndex(for uid: String) -> Int {
         groupRide.state.roster.firstIndex(where: { $0.uid == uid }) ?? 0
-    }
-
-    private var suggestedDashboardPersonas: [RidePersona] {
-        let common = dashboard.summary?.personaCounts.map(\.persona) ?? []
-        var result: [RidePersona] = []
-        for persona in [selectedDashboardPersona] + common + RidePersona.allCases {
-            if !result.contains(persona) { result.append(persona) }
-        }
-        return Array(result.prefix(3))
     }
 
     private func selectDashboardPersona(_ persona: RidePersona) {
@@ -1640,16 +1626,14 @@ nonisolated enum RadialStartPersonaPolicy {
 struct RadialStartTrackingControl: View {
     @Binding var launchState: RideStartLaunchState
     var preselectedPersona: RidePersona = .auto
-    var onAbort: (RideStartAbortMethod) -> Void = {
-        TelemetryManager.shared.trackRideStartAborted(method: $0)
-    }
+    var onOpenAllPersonas: () -> Void = {}
     var onCommit: (RidePersona) -> Void
 
     @State private var isExpanded = false
     @State private var hoveredPersona: RidePersona?
     @State private var pendingPersona: RidePersona = .auto
     @State private var didExceedTouchSlop = false
-    @State private var abortGestureActive = false
+    @State private var consumingLaunchGesture = false
     @State private var gestureStartedOnControl = false
 
     private let personas: [RidePersona] = [.walk, .run, .cycling, .bikeDrive, .carDrive]
@@ -1659,27 +1643,45 @@ struct RadialStartTrackingControl: View {
     var body: some View {
         GeometryReader { proxy in
             let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height - 50)
+            let showPersonas = isExpanded || launchState.isPending
 
             ZStack {
                 ForEach(Array(personas.enumerated()), id: \.element) { index, persona in
-                    Image(systemName: persona.systemImage)
-                        .font(.system(size: 23, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(
-                            hoveredPersona == persona ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.68),
-                            in: Circle()
-                        )
-                        .overlay {
-                            if hoveredPersona == persona {
-                                Circle().stroke(.white, lineWidth: 2)
+                    Button {
+                        startPersonaImmediately(persona)
+                    } label: {
+                        Image(systemName: persona.systemImage)
+                            .font(.system(size: 23, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 56, height: 56)
+                            .background(
+                                hoveredPersona == persona ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.68),
+                                in: Circle()
+                            )
+                            .overlay {
+                                if hoveredPersona == persona {
+                                    Circle().stroke(.white, lineWidth: 2)
+                                }
                             }
-                        }
-                        .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
-                        .scaleEffect(hoveredPersona == persona ? 1.16 : 1)
-                        .opacity(isExpanded ? 1 : 0)
-                        .position(optionPosition(index: index, center: center))
-                        .accessibilityHidden(true)
+                            .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
+                            .scaleEffect(hoveredPersona == persona ? 1.16 : 1)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(showPersonas ? 1 : 0)
+                    .position(optionPosition(index: index, center: center))
+                    .disabled(!showPersonas)
+                    .accessibilityHidden(!showPersonas)
+                    .accessibilityLabel(LocalizationHelper.localized(persona.displayName))
+                }
+
+                if launchState.isPending {
+                    Button(LocalizationHelper.localized("Change activity")) {
+                        launchState.reset()
+                        resetInteraction()
+                        onOpenAllPersonas()
+                    }
+                    .buttonStyle(.bordered)
+                    .position(x: center.x, y: 28)
                 }
 
                 VStack(spacing: 3) {
@@ -1719,24 +1721,42 @@ struct RadialStartTrackingControl: View {
             }
             .coordinateSpace(name: "radialStart")
         }
-        .frame(width: 300, height: 215)
-        .accessibilityLabel(LocalizationHelper.localized(launchState.isPending ? "Cancel" : "Start tracking"))
+        .frame(width: 300, height: 260)
+        .accessibilityLabel(LocalizationHelper.localized("Start tracking"))
         .accessibilityValue(LocalizationHelper.localized(
             (hoveredPersona ?? preselectedPersona).displayName
         ))
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction {
+            if launchState.isPending {
+                commitPendingLaunch()
+            } else {
+                beginLaunch(preselectedPersona, awaitsPersonaChoice: true)
+            }
+        }
         .accessibilityActions {
-            Button(LocalizationHelper.localized("Auto")) { beginLaunch(.auto) }
+            Button(LocalizationHelper.localized("Auto")) { startPersonaImmediately(.auto) }
             ForEach(personas, id: \.self) { persona in
-                Button(LocalizationHelper.localized(persona.displayName)) { beginLaunch(persona) }
+                Button(LocalizationHelper.localized(persona.displayName)) { startPersonaImmediately(persona) }
             }
         }
         .task(id: launchState.pendingToken) {
             guard let token = launchState.pendingToken else { return }
             let persona = pendingPersona
             do {
-                try await Task.sleep(for: RideStartAbortPolicy.preCommitDelay)
+                let delay = launchState.awaitsPersonaChoice
+                    ? RideStartAbortPolicy.personaChoiceWindow
+                    : RideStartAbortPolicy.preCommitDelay
+                try await Task.sleep(for: delay)
             } catch {
+                return
+            }
+            guard launchState.pendingToken == token else { return }
+            if launchState.awaitsPersonaChoice {
+                // A bloom is an invitation, not consent to start. Lapsing only retracts it and
+                // must not emit pre-commit-abort telemetry.
+                launchState.reset()
+                resetInteraction()
                 return
             }
             guard launchState.commit(observedToken: token) else { return }
@@ -1745,7 +1765,7 @@ struct RadialStartTrackingControl: View {
     }
 
     private var centerImage: String {
-        if launchState.isPending { return "xmark" }
+        if launchState.isPending { return pendingPersona.systemImage }
         if let hoveredPersona { return hoveredPersona.systemImage }
         if isExpanded { return "xmark" }
         return preselectedPersona == .auto ? "play.fill" : preselectedPersona.systemImage
@@ -1766,13 +1786,16 @@ struct RadialStartTrackingControl: View {
     }
 
     private func handleDragChanged(_ value: DragGesture.Value, center: CGPoint) {
+        if consumingLaunchGesture { return }
+
         if launchState.isPending {
-            guard !abortGestureActive, distance(value.location, center) <= 54,
-                  let token = launchState.pendingToken,
-                  launchState.abort(observedToken: token) else { return }
-            abortGestureActive = true
-            Haptics.notify(.warning)
-            onAbort(.preCommit)
+            guard distance(value.location, center) <= 54,
+                  let token = launchState.pendingToken else { return }
+            let persona = pendingPersona
+            guard launchState.commit(observedToken: token) else { return }
+            consumingLaunchGesture = true
+            Haptics.impact(.medium)
+            onCommit(persona)
             return
         }
 
@@ -1801,8 +1824,8 @@ struct RadialStartTrackingControl: View {
     }
 
     private func handleDragEnded(_ value: DragGesture.Value, center: CGPoint) {
-        if abortGestureActive {
-            abortGestureActive = false
+        if consumingLaunchGesture {
+            consumingLaunchGesture = false
             resetInteraction()
             return
         }
@@ -1816,15 +1839,37 @@ struct RadialStartTrackingControl: View {
             preselected: preselectedPersona
         )
 
-        if let selected { beginLaunch(selected) } else { resetInteraction() }
+        if let selected {
+            beginLaunch(
+                selected,
+                awaitsPersonaChoice: !didExceedTouchSlop && hoveredPersona == nil
+            )
+        } else { resetInteraction() }
     }
 
-    private func beginLaunch(_ persona: RidePersona) {
+    private func beginLaunch(_ persona: RidePersona, awaitsPersonaChoice: Bool = false) {
         guard !launchState.isPending else { return }
         pendingPersona = persona
-        launchState.begin()
+        launchState.begin(awaitsPersonaChoice: awaitsPersonaChoice)
         resetInteraction()
         Haptics.impact(.medium)
+    }
+
+    private func commitPendingLaunch() {
+        guard let token = launchState.pendingToken else { return }
+        let persona = pendingPersona
+        guard launchState.commit(observedToken: token) else { return }
+        resetInteraction()
+        Haptics.impact(.medium)
+        onCommit(persona)
+    }
+
+    private func startPersonaImmediately(_ persona: RidePersona) {
+        launchState.reset()
+        pendingPersona = persona
+        resetInteraction()
+        Haptics.impact(.medium)
+        onCommit(persona)
     }
 
     private func resetInteraction() {

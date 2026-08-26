@@ -462,53 +462,6 @@ private struct DashboardRouteThumbnail: View {
     }
 }
 
-struct DashboardPersonaDock: View {
-    let selectedPersona: RidePersona
-    let suggestedPersonas: [RidePersona]
-    let onSelectPersona: (RidePersona) -> Void
-    let onOpenAll: () -> Void
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(LocalizationHelper.formatted(
-                "Start %@",
-                LocalizationHelper.localized(selectedPersona.displayName)
-            ))
-            .font(.headline)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(suggestedPersonas.prefix(3)), id: \.self) { persona in
-                        Button {
-                            onSelectPersona(persona)
-                        } label: {
-                            Label(
-                                LocalizationHelper.localized(persona.displayName),
-                                systemImage: persona.systemImage
-                            )
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(minHeight: 44)
-                    }
-                    Button(LocalizationHelper.localized("Change activity"), action: onOpenAll)
-                        .frame(minHeight: 44)
-                }
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(maxWidth: 380)
-        .background(
-            Color(uiColor: .secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-    }
-}
-
 struct DashboardPersonaPicker: View {
     let selectedPersona: RidePersona
     let onSelect: (RidePersona) -> Void

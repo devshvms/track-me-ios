@@ -26,10 +26,35 @@ final class RideStartAbortPolicyTests: XCTestCase {
 
     func testResetClearsPendingLaunch() {
         var state = RideStartLaunchState()
-        state.begin()
+        state.begin(awaitsPersonaChoice: true)
         state.reset()
 
         XCTAssertNil(state.pendingToken)
+        XCTAssertFalse(state.awaitsPersonaChoice)
+    }
+
+    func testPersonaChoiceWindowDoesNotCommitWhenItLapses() {
+        var state = RideStartLaunchState()
+        let token = UUID()
+        state.begin(token: token, awaitsPersonaChoice: true)
+
+        XCTAssertTrue(state.awaitsPersonaChoice)
+        XCTAssertTrue(state.isPending)
+        XCTAssertEqual(RideStartAbortPolicy.personaChoiceWindow, .milliseconds(2_500))
+
+        state.reset()
+        XCTAssertFalse(state.isPending)
+        XCTAssertFalse(state.awaitsPersonaChoice)
+    }
+
+    func testExplicitPersonaCommitClearsChoiceWindow() {
+        var state = RideStartLaunchState()
+        let token = UUID()
+        state.begin(token: token, awaitsPersonaChoice: true)
+
+        XCTAssertTrue(state.commit(observedToken: token))
+        XCTAssertNil(state.pendingToken)
+        XCTAssertFalse(state.awaitsPersonaChoice)
     }
 
     func testPostCommitUndoRequiresBothStrictThresholds() {
