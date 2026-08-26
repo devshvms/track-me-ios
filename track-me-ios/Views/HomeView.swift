@@ -511,6 +511,10 @@ struct HomeView: View {
             isEnabled: isMapInteractive,
             onGesture: clearCameraFollow
         ))
+        // The idle map remains a real, parked backdrop, but its labels must not compete with
+        // the dashboard. Apply the blur to the map layer before HomeMapScrim in the parent ZStack.
+        .compositingGroup()
+        .blur(radius: presentationMode == .idleDashboard ? 14 : 0)
         .ignoresSafeArea(edges: .top)
         .accessibilityLabel(LocalizationHelper.localized("Map"))
         .accessibilityHidden(!isMapInteractive)
