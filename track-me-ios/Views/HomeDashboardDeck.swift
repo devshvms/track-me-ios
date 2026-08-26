@@ -13,6 +13,7 @@ struct HomeDashboardDeck: View {
     let onOpenHistory: () -> Void
     let onOpenCommunity: () -> Void
     let onOpenGroupMap: () -> Void
+    let scrollToTopRequest: Int
 
     @ObservedObject private var unitSettings = UnitSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -84,6 +85,7 @@ struct HomeDashboardDeck: View {
             // actionable at every Dynamic Type size.
             .padding(.bottom, 340)
         }
+        .id(scrollToTopRequest)
         .scrollIndicators(.hidden)
         .allowsHitTesting(isVisible)
         .accessibilityHidden(!isVisible)

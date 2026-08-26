@@ -21,10 +21,36 @@ struct ContentView: View {
     @Bindable private var groupRide = GroupRideManager.shared
     @Bindable private var emergencyRetirement = EmergencyDataPurge.shared
     @State private var selectedTab: AppTab = .home
+    @State private var tabScrollToTopRequest = 0
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
 
     private var onboardingState: OnboardingState {
         OnboardingState(rawValue: onboardingStateRaw) ?? .legacy
+    }
+
+    private var mainTabs: some View {
+        TabView(selection: $selectedTab) {
+            HomeView(
+                onNavigateHistory: { selectedTab = .history },
+                onNavigateCommunity: { selectedTab = .community },
+                scrollToTopRequest: tabScrollToTopRequest
+            )
+            .tabItem { Label("Home", systemImage: "house.fill") }
+            .tag(AppTab.home)
+
+            HistoryView(scrollToTopRequest: tabScrollToTopRequest)
+                .tabItem { Label("History", systemImage: "clock.fill") }
+                .tag(AppTab.history)
+
+            CommunityView()
+                .tabItem { Label(LocalizationHelper.localized("Community"), systemImage: "person.2.fill") }
+                .tag(AppTab.community)
+
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(AppTab.settings)
+        }
+        .onChange(of: selectedTab) { _, _ in tabScrollToTopRequest += 1 }
     }
 
     var body: some View {
@@ -48,34 +74,7 @@ struct ContentView: View {
                     )
                 }
             } else {
-                TabView(selection: $selectedTab) {
-            HomeView(
-                onNavigateHistory: { selectedTab = .history },
-                onNavigateCommunity: { selectedTab = .community }
-            )
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-                .tag(AppTab.home)
-
-            HistoryView()
-                .tabItem {
-                    Label("History", systemImage: "clock.fill")
-                }
-                .tag(AppTab.history)
-
-            CommunityView()
-                .tabItem {
-                    Label(LocalizationHelper.localized("Community"), systemImage: "person.2.fill")
-                }
-                .tag(AppTab.community)
-
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
-                }
-                .tag(AppTab.settings)
-                }
+                mainTabs
             }
         }
         .sheet(item: $recapCoordinator.pending, onDismiss: {

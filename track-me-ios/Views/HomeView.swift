@@ -7,6 +7,7 @@ import SwiftData
 struct HomeView: View {
     var onNavigateHistory: () -> Void = {}
     var onNavigateCommunity: () -> Void = {}
+    var scrollToTopRequest: Int = 0
 
     @Bindable var trackingManager = TrackingManager.shared
     @Bindable private var dashboard = HomeDashboardRepository.shared
@@ -535,7 +536,8 @@ struct HomeView: View {
             onOpenRecent: openRecentActivity,
             onOpenHistory: onNavigateHistory,
             onOpenCommunity: onNavigateCommunity,
-            onOpenGroupMap: openExplicitGroupMap
+            onOpenGroupMap: openExplicitGroupMap,
+            scrollToTopRequest: scrollToTopRequest
         )
     }
 
