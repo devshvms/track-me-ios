@@ -218,6 +218,28 @@ class TelemetryManager {
         ])
     }
 
+    // MARK: - v1.8.5 Home dashboard
+    func trackHomeDashboardViewed(historyBucket: String) {
+        capture(HomeTelemetryContract.dashboardViewed(historyBucket: historyBucket))
+    }
+
+    func trackActivityStartCTATapped(persona: RidePersona, method: String) {
+        capture(HomeTelemetryContract.startTapped(persona: persona, method: method))
+    }
+
+    func trackHomeInsightShown(_ insight: HomeInsight) {
+        guard let event = HomeTelemetryContract.insightShown(insight) else { return }
+        capture(event)
+    }
+
+    func trackHomeRecentActivityOpened(persona: RidePersona) {
+        capture(HomeTelemetryContract.recentOpened(persona: persona))
+    }
+
+    func trackHomeGroupMapOpened() {
+        capture(HomeTelemetryContract.groupMapOpened)
+    }
+
     /// Scope 1.7.3 §2 telemetry contract: failures carry only a coarse cause
     /// and operation shape, never a ride id, point count, timestamp, or route.
     func trackRideDeleteFailed(cause: RideDeletionFailureCause, operation: String) {
@@ -468,5 +490,13 @@ class TelemetryManager {
     private func capture(_ event: GroupTelemetryEvent) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture(event.name, properties: event.properties)
+    }
+
+    private func capture(_ event: HomeTelemetryEvent) {
+        guard shouldTrack() else { return }
+        let properties: [String: Any]? = event.properties.isEmpty
+            ? nil
+            : event.properties.mapValues { $0 as Any }
+        PostHogSDK.shared.capture(event.name, properties: properties)
     }
 }

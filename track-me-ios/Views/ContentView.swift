@@ -39,6 +39,7 @@ struct ContentView: View {
                     // Land on Home with a real default, without turning the CTA into a location
                     // permission trap or starting a recording before the user's next gesture.
                     trackingManager.selectedPersona = outcome.selectedPersona
+                    DashboardPersonaPreference.recordOnboardingFallback(outcome.selectedPersona)
                     onboardingStateRaw = OnboardingState.done.rawValue
                     try? OnboardingSampleRideSeeder.seedIfNeeded(
                         context: modelContext,
@@ -48,9 +49,12 @@ struct ContentView: View {
                 }
             } else {
                 TabView(selection: $selectedTab) {
-            HomeView()
+            HomeView(
+                onNavigateHistory: { selectedTab = .history },
+                onNavigateCommunity: { selectedTab = .community }
+            )
                 .tabItem {
-                    Label("Home", systemImage: "map.fill")
+                    Label("Home", systemImage: "house.fill")
                 }
                 .tag(AppTab.home)
 

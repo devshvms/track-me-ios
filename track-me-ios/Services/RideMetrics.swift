@@ -1,9 +1,8 @@
 import CoreLocation
 import Foundation
 import SwiftData
-import os
 
-struct RideAggregateSnapshot: Equatable {
+nonisolated struct RideAggregateSnapshot: Equatable {
     let distanceMeters: Double
     let movingDurationMillis: Int64
     let maxSpeedMps: Double
@@ -30,7 +29,7 @@ struct RideAggregateSnapshot: Equatable {
     }
 }
 
-enum RideMetrics {
+nonisolated enum RideMetrics {
     /// Route geometry distance. This intentionally includes every segment and is
     /// appropriate for charts, not as the source of truth for a finalized ride.
     static func rawDistanceMeters(_ points: [GPSPoint]) -> Double {
@@ -90,35 +89,5 @@ enum RideMetrics {
     private static func distance(from first: GPSPoint, to second: GPSPoint) -> Double {
         CLLocation(latitude: first.latitude, longitude: first.longitude)
             .distance(from: CLLocation(latitude: second.latitude, longitude: second.longitude))
-    }
-}
-
-@MainActor
-enum RideAggregateBackfill {
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "in.shvms.track-me-ios",
-        category: "RideAggregateBackfill"
-    )
-    private static var didRun = false
-
-    static func run(container: ModelContainer) {
-        guard !didRun else { return }
-        didRun = true
-
-        let context = ModelContext(container)
-        do {
-            let rides = try context.fetch(FetchDescriptor<Ride>())
-            var changed = 0
-            for ride in rides where ride.endTime != nil && !ride.hasCompleteAggregate {
-                ride.applyAggregate(RideMetrics.reconstructed(from: ride.points ?? []))
-                ride.isSynced = false
-                changed += 1
-            }
-            guard changed > 0 else { return }
-            try context.save()
-            logger.info("Backfilled aggregates for \(changed) rides")
-        } catch {
-            logger.error("Aggregate backfill failed: \(error.localizedDescription)")
-        }
     }
 }

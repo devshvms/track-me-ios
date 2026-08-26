@@ -1,6 +1,6 @@
 import Foundation
 
-enum RidePersona: String, CaseIterable, Hashable, Sendable {
+nonisolated enum RidePersona: String, CaseIterable, Codable, Hashable, Sendable {
     case auto = "AUTO", walk = "WALK", run = "RUN", cycling = "CYCLING", bikeDrive = "BIKE_DRIVE", carDrive = "CAR_DRIVE"
 
     var displayName: String {

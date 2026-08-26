@@ -21,6 +21,9 @@ final class Ride {
     var persona: String = "AUTO"
     /// Local first-run fixture. It behaves like a ride in History but never syncs or counts.
     var isSample: Bool = false
+    /// IANA timezone captured when recording starts. Legacy/imported rows stay nil and retain the
+    /// shipped read-time fallback to the device timezone.
+    var startZoneId: String?
 
     // Finalized, filtered metrics. Optional fields keep the SwiftData migration
     // additive for rides recorded before aggregate persistence was introduced.
@@ -29,6 +32,10 @@ final class Ride {
     var maxSpeedMps: Double?
     var avgSpeedMps: Double?
     var pointCount: Int?
+    /// Persisted dashboard qualification; the metadata version distinguishes a reconciled false
+    /// from a legacy row that has not been inspected yet.
+    var qualifiesForStats: Bool = false
+    var dashboardMetadataVersion: Int = 0
     
     @Relationship(deleteRule: .cascade, inverse: \GPSPoint.ride)
     var points: [GPSPoint]?

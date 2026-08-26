@@ -167,7 +167,10 @@ struct HistoryView: View {
             ToastManager.shared.show(message: LocalizationHelper.localized("Identical ride already exists"), style: .info)
             return
         }
+        ride.refreshDashboardMetadata()
         modelContext.insert(ride)
+        try? modelContext.save()
+        HomeDashboardRepository.shared.invalidate()
         FirestoreSyncManager.shared.syncRide(ride)
         ToastManager.shared.show(message: LocalizationHelper.localized("GPX Imported Successfully"), style: .success)
     }
@@ -178,6 +181,7 @@ struct HistoryView: View {
         modelContext.delete(ride)
         do {
             try modelContext.save()
+            HomeDashboardRepository.shared.invalidate()
         } catch {
             modelContext.rollback()
             ToastManager.shared.show(
