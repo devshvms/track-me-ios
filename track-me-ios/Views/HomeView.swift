@@ -1793,11 +1793,19 @@ struct RadialStartTrackingControl: View {
         if launchState.isPending {
             guard distance(value.location, center) <= 54,
                   let token = launchState.pendingToken else { return }
-            let persona = pendingPersona
-            guard launchState.commit(observedToken: token) else { return }
-            consumingLaunchGesture = true
-            Haptics.impact(.medium)
-            onCommit(persona)
+            
+            if launchState.awaitsPersonaChoice {
+                let persona = pendingPersona
+                guard launchState.commit(observedToken: token) else { return }
+                consumingLaunchGesture = true
+                Haptics.impact(.medium)
+                onCommit(persona)
+            } else {
+                guard launchState.abort(observedToken: token) else { return }
+                consumingLaunchGesture = true
+                Haptics.notify(.warning)
+                onAbort(.preCommit)
+            }
             return
         }
 
