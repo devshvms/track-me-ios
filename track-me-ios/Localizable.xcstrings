@@ -17702,6 +17702,46 @@
         }
       }
     },
+    "The sample ride in History is for exploring. Your own rides fill this in.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Beispielfahrt im Verlauf dient zum Ausprobieren. Deine eigenen Fahrten füllen dies."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El viaje de ejemplo en Historial es para explorar. Tus propios viajes completarán esto."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le trajet d'exemple dans l'historique sert à explorer. Vos propres trajets rempliront ceci."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इतिहास में नमूना यात्रा केवल आज़माने के लिए है। आपकी अपनी यात्राएँ इसे भरेंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴のサンプルライドは操作を試すためのものです。ご自身のライドがここに反映されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "历史记录中的示例骑行仅供体验。你自己的骑行将填充此处。"
+          }
+        }
+      }
+    },
     "Theme": {
       "localizations": {
         "de": {

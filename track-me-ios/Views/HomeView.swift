@@ -523,6 +523,7 @@ struct HomeView: View {
         HomeDashboardDeck(
             summary: dashboard.summary,
             isReconciling: dashboard.isReconciling,
+            hasSampleRide: dashboard.hasSampleRide,
             routePoints: dashboard.routePoints,
             groupActive: groupRide.state.isActive,
             groupMemberCount: groupRide.state.memberCount,
