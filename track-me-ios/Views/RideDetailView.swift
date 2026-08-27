@@ -367,10 +367,11 @@ struct RideDetailView: View {
             HStack {
                 statItem(title: "Distance", value: UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit))
                 Spacer()
-                // TASK-230: this value was always the pause-excluded one (§5.1) but was labelled
-                // only "Duration", so a rider who paused could not tell which of the two figures
-                // the HUD had shown them they were holding. The label now says which.
-                statItem(title: "Moving time", value: formatDuration(duration))
+                // TASK-230/235: the pause-excluded figure keeps the label "Duration" — §5.1 only
+                // forbids *wall* time being labelled simply that — and "Total" below restores its
+                // pair. Those are the two words the HUD already uses mid-ride, which is where a
+                // rider learns the distinction; a single unlabelled figure was the defect.
+                statItem(title: "Duration", value: formatDuration(duration))
                 Spacer()
                 statItem(title: usesPace ? "Average Pace" : "Average Speed", value: usesPace ? UnitFormatter.pace(mps: avgSpeedMps, unit: unitSettings.unit) : UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit))
             }
@@ -385,7 +386,7 @@ struct RideDetailView: View {
                 // The cell TASK-229 freed. Always rendered, never suppressed when it equals moving
                 // time: a ride with no pause showing both figures equal is the fact, and it is what
                 // makes the pair readable without a legend.
-                statItem(title: "Total time", value: RideDurations.totalElapsedSeconds(for: ride).map(formatDuration) ?? LocalizationHelper.localized("Unknown"))
+                statItem(title: "Total", value: RideDurations.totalElapsedSeconds(for: ride).map(formatDuration) ?? LocalizationHelper.localized("Unknown"))
             }
         }
         .padding(20)
