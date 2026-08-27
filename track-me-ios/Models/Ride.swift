@@ -37,6 +37,18 @@ final class Ride {
     /// from a legacy row that has not been inspected yet.
     var qualifiesForStats: Bool = false
     var dashboardMetadataVersion: Int = 0
+    /// TASK-232: this ride was recorded while a group session was live.
+    ///
+    /// The marker and the count below are deliberately the *whole* record.
+    /// `COMMUNITY_REDESIGN_SPEC` §2.2 allows a count and nothing else — no group id, no roster, no
+    /// names — because a count is not identities and the promise printed on that screen is that
+    /// nothing about the other riders is saved. Neither field is synced: `FirestoreSyncManager`
+    /// writes an explicit field map and these are not in it, so no new Data Safety surface (§5.4).
+    /// Additive and defaulted, so the SwiftData migration stays lightweight.
+    var wasGroupRide: Bool = false
+    /// How many riders were in the group, including this one. Nil when it was never observed —
+    /// §5.5's honesty rule: an unknown count renders no count, never `0`.
+    var groupRiderCount: Int?
     
     @Relationship(deleteRule: .cascade, inverse: \GPSPoint.ride)
     var points: [GPSPoint]?

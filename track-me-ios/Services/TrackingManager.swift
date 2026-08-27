@@ -218,6 +218,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         )
         newRide.persona = selectedPersona.rawValue
         newRide.startZoneId = TimeZone.current.identifier
+        // TASK-232: was a group live when this ride began? A marker and a count, never a group id
+        // and never a name — see Ride's note. The roster may not have synced yet at start, so an
+        // empty one stores no count rather than a zero, and finalisation widens it if a session is
+        // still live then.
+        let groupAtStart = GroupRideManager.shared.state
+        newRide.wasGroupRide = groupAtStart.isActive
+        newRide.groupRiderCount = groupAtStart.isActive && groupAtStart.memberCount > 0
+            ? groupAtStart.memberCount
+            : nil
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
         GroupRideManager.shared.refreshLocationSource()
