@@ -426,8 +426,14 @@ struct RideDetailView: View {
     func statItem(title: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(LocalizationHelper.localized(title))
-                .font(.caption)
+                .font(.caption.weight(.semibold))
                 .foregroundColor(.gray)
+                // TASK-240, Android parity. Two lines, always: without a reserved second line a
+                // cell whose label wraps pushes its value out of line with its neighbours', and
+                // the row reads as misaligned. Sizing for English is not enough — "GPS signal
+                // gaps" is 27 characters in French, "Elevation Gain" 19 in Spanish.
+                .lineLimit(2, reservesSpace: true)
+                .multilineTextAlignment(.center)
             Text(value)
                 .font(.subheadline)
                 .foregroundColor(.white)
