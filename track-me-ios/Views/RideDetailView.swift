@@ -342,22 +342,35 @@ struct RideDetailView: View {
     @ViewBuilder
     var rideSummaryCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Ride Stats")
-                .font(.title2).bold()
-                .foregroundColor(.white)
-                .accessibilityAddTraits(.isHeader)
-            
             let aggregate = ride.aggregateSnapshot
             let totalDistMeters = aggregate.distanceMeters
             let duration = Double(aggregate.movingDurationMillis) / 1_000
             let avgSpeedMps = aggregate.avgSpeedMps
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
             let usesPace = ride.ridePersona == .walk || ride.ridePersona == .run
-            
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Ride Stats")
+                    .font(.title2).bold()
+                    .foregroundColor(.white)
+                    .accessibilityAddTraits(.isHeader)
+
+                // TASK-229: start time reads as a caption under the heading, not as a grid cell. In
+                // a third of a row a date plus a time was always truncated to "Aug 23, 2026 - ...",
+                // which drops the half a rider is looking for and says less than 1.8.4 did.
+                Text(dateStr)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             HStack {
                 statItem(title: "Distance", value: UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit))
                 Spacer()
-                statItem(title: "Duration", value: formatDuration(duration))
+                // TASK-230: this value was always the pause-excluded one (§5.1) but was labelled
+                // only "Duration", so a rider who paused could not tell which of the two figures
+                // the HUD had shown them they were holding. The label now says which.
+                statItem(title: "Moving time", value: formatDuration(duration))
                 Spacer()
                 statItem(title: usesPace ? "Average Pace" : "Average Speed", value: usesPace ? UnitFormatter.pace(mps: avgSpeedMps, unit: unitSettings.unit) : UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit))
             }
@@ -369,7 +382,10 @@ struct RideDetailView: View {
                     statItem(title: "Elevation Gain", value: formatElevation(elevation))
                 }
                 Spacer()
-                statItem(title: "Start Time", value: dateStr)
+                // The cell TASK-229 freed. Always rendered, never suppressed when it equals moving
+                // time: a ride with no pause showing both figures equal is the fact, and it is what
+                // makes the pair readable without a legend.
+                statItem(title: "Total time", value: RideDurations.totalElapsedSeconds(for: ride).map(formatDuration) ?? LocalizationHelper.localized("Unknown"))
             }
         }
         .padding(20)
