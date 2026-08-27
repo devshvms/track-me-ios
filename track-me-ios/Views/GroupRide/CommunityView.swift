@@ -1,6 +1,7 @@
 import FirebaseAuth
 import MapKit
 import SwiftUI
+import SwiftData
 
 struct CommunityView: View {
     @Bindable private var groupRide = GroupRideManager.shared
@@ -17,6 +18,12 @@ struct CommunityView: View {
     @State private var directionsTarget: GroupDirectionsTarget?
     @State private var groupClockTick = StatusAge.elapsedMillis()
     @State private var signedInUserID = Auth.auth().currentUser?.uid
+    /// TASK-232. The rider's own rides that were recorded while a group was live — a read of local
+    /// ride records and nothing else. No collection, no sync, no membership history. What makes
+    /// this page stop being empty forever is that these rides were always theirs; they simply never
+    /// knew they were group rides.
+    @State private var groupRides: [HistoryRideSummary] = []
+    @Environment(\.modelContext) private var modelContext
     @State private var authListener: AuthStateDidChangeListenerHandle?
 
     var body: some View {
@@ -94,6 +101,8 @@ struct CommunityView: View {
                     groupRide.pendingJoinViaCode = true
                 }
             }
+            .task { loadGroupRides() }
+            .onChange(of: groupRide.state.isActive) { _, _ in loadGroupRides() }
             .task(id: groupRide.state.isActive) {
                 guard groupRide.state.isActive else { return }
                 while !Task.isCancelled {
@@ -168,6 +177,38 @@ struct CommunityView: View {
         }
     }
 
+    /// TASK-232. The same projection shape History uses — `propertiesToFetch` keeps route points
+    /// out of the fetch, and there is no membership table to join against because there is not
+    /// going to be one (§5.4).
+    private func loadGroupRides() {
+        var descriptor = FetchDescriptor<Ride>(
+            predicate: #Predicate {
+                $0.wasGroupRide && !$0.pendingDelete && $0.endTime != nil && $0.endTime! > $0.startTime
+            },
+            sortBy: [SortDescriptor(\Ride.startTime, order: .reverse)]
+        )
+        descriptor.propertiesToFetch = [
+            \Ride.id, \Ride.startTime, \Ride.endTime, \Ride.isSynced, \Ride.pendingDelete,
+            \Ride.title, \Ride.persona, \Ride.isSample, \Ride.distanceMeters,
+            \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
+            \Ride.wasGroupRide, \Ride.groupRiderCount
+        ]
+        groupRides = (try? modelContext.fetch(descriptor).map(HistoryRideSummary.init(ride:))) ?? []
+    }
+
+    /// A group ride opens the ordinary Ride Detail; there is no separate group screen.
+    private func rideDetail(for id: UUID) -> some View {
+        var descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        if let ride = try? modelContext.fetch(descriptor).first {
+            return AnyView(RideDetailView(ride: ride))
+        }
+        return AnyView(ContentUnavailableView(
+            LocalizationHelper.localized("Activity unavailable"),
+            systemImage: "clock.badge.exclamationmark"
+        ))
+    }
+
     private var signedOutView: some View {
         ContentUnavailableView {
             Label(LocalizationHelper.localized("Sign in to join a group"), systemImage: "person.2")
@@ -178,6 +219,31 @@ struct CommunityView: View {
 
     private var idleGroupView: some View {
         List {
+            // §2.2. Placed above Create/Join so the privacy footers that follow sit *below* the
+            // list, which is what §2.3 asks for on a screen whose copy lives in section footers
+            // rather than in one paragraph. §2.1's empty state is untouched: with no group rides
+            // this section does not exist and the page is exactly what it was.
+            if !groupRides.isEmpty {
+                Section {
+                    ForEach(groupRides) { summary in
+                        NavigationLink {
+                            rideDetail(for: summary.id)
+                        } label: {
+                            CompactRideSummaryRow(
+                                summary: summary,
+                                // §2.2: a count, never names. Names would be a record of other
+                                // people, which is the one thing this page promises it does not keep.
+                                trailingLabel: summary.groupRiderCount.map {
+                                    LocalizationHelper.formatted("%d riders", $0)
+                                }
+                            )
+                        }
+                    }
+                } header: {
+                    Text(LocalizationHelper.localized("Rides you rode together"))
+                }
+            }
+
             Section {
                 TextField(LocalizationHelper.localized("Group name"), text: $groupName)
                     .textInputAutocapitalization(.words)

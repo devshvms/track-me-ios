@@ -2,7 +2,9 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-private struct HistoryRideSummary: Identifiable, Hashable {
+/// Shared with Community (TASK-232) so its list is *this* card rather than a second one that
+/// drifts from it. Still a projection: `propertiesToFetch` keeps route points out of the fetch.
+struct HistoryRideSummary: Identifiable, Hashable {
     let id: UUID
     let startTime: Date
     let endTime: Date?
@@ -15,6 +17,9 @@ private struct HistoryRideSummary: Identifiable, Hashable {
     let movingDurationMillis: Int64?
     let avgSpeedMps: Double
     let pointCount: Int
+    /// TASK-232: recorded during a group session, and how many rode. A count, never names.
+    let wasGroupRide: Bool
+    let groupRiderCount: Int?
 
     init(ride: Ride) {
         id = ride.id
@@ -29,6 +34,8 @@ private struct HistoryRideSummary: Identifiable, Hashable {
         movingDurationMillis = ride.movingDurationMillis.map { max(0, $0) }
         avgSpeedMps = max(0, ride.avgSpeedMps ?? 0)
         pointCount = max(0, ride.pointCount ?? 0)
+        wasGroupRide = ride.wasGroupRide
+        groupRiderCount = ride.groupRiderCount.flatMap { $0 > 0 ? $0 : nil }
     }
 }
 
@@ -255,7 +262,8 @@ struct HistoryView: View {
         descriptor.propertiesToFetch = [
             \Ride.id, \Ride.startTime, \Ride.endTime, \Ride.isSynced, \Ride.pendingDelete,
             \Ride.title, \Ride.persona, \Ride.isSample, \Ride.distanceMeters,
-            \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount
+            \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
+            \Ride.wasGroupRide, \Ride.groupRiderCount
         ]
         summaries = (try? modelContext.fetch(descriptor).map(HistoryRideSummary.init(ride:))) ?? []
     }
@@ -322,8 +330,11 @@ struct HistoryView: View {
     }
 }
 
-private struct CompactRideSummaryRow: View {
+struct CompactRideSummaryRow: View {
     let summary: HistoryRideSummary
+    /// TASK-232: an extra fact the caller wants on the metrics row. Community passes the group's
+    /// rider count here. Nil on every other call site, which is every call site but one.
+    var trailingLabel: String? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -349,6 +360,9 @@ private struct CompactRideSummaryRow: View {
                     Text(summary.movingDurationMillis.map { HistoryMetricFormat.duration(TimeInterval($0) / 1000) } ?? LocalizationHelper.localized("Unknown"))
                         .font(.caption2).foregroundStyle(.secondary)
                     Text(HistoryMetricFormat.kmh(summary.avgSpeedMps * 3.6)).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                    if let trailingLabel {
+                        Text(trailingLabel).font(.caption2).foregroundStyle(.secondary)
+                    }
                 }
             }
         }

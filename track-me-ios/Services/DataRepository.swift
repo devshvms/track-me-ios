@@ -148,6 +148,16 @@ final class DataRepository {
                 ride.applyAggregate(aggregate)
                 ride.refreshDashboardMetadata()
 
+                // TASK-232: the largest roster seen while this ride was recording is what a rider
+                // means by "how many of us rode". Only ever grows, and only for a ride already
+                // marked as a group ride — joining a group after a solo ride does not
+                // retroactively make it one.
+                let groupAtEnd = await GroupRideManager.shared.state
+                if ride.wasGroupRide, groupAtEnd.isActive {
+                    let observed = max(ride.groupRiderCount ?? 0, groupAtEnd.memberCount)
+                    ride.groupRiderCount = observed > 0 ? observed : nil
+                }
+
                 if RideTitleGenerator.isGeneratedTitle(ride.title) {
                     ride.title = RideTitleGenerator.make(
                         startTime: ride.startTime,
