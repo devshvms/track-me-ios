@@ -250,7 +250,10 @@ struct HomeView: View {
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
                         preselectedPersona: selectedDashboardPersona,
-                        onOpenAllPersonas: { showDashboardPersonaPicker = true }
+                        onOpenAllPersonas: { showDashboardPersonaPicker = true },
+                        onAbort: { method in
+                            TelemetryManager.shared.trackRideStartAborted(method: method)
+                        }
                     ) { persona in
                         legacyStartHintSeen = true
                         let method = dashboardSelectionCameFromPicker || persona != selectedDashboardPersona
@@ -1629,6 +1632,10 @@ struct RadialStartTrackingControl: View {
     @Binding var launchState: RideStartLaunchState
     var preselectedPersona: RidePersona = .auto
     var onOpenAllPersonas: () -> Void = {}
+    /// The drag path's undo. `4dd9d41` restored the abort *behaviour* here — a centre press inside
+    /// the 420 ms non-persona-choice window cancels — but not the callback it reports through, so
+    /// the file has not compiled since. Same defect the Android side carried, and the same fix.
+    var onAbort: (RideStartAbortMethod) -> Void = { _ in }
     var onCommit: (RidePersona) -> Void
 
     @State private var isExpanded = false
