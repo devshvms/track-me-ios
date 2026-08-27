@@ -256,7 +256,12 @@ struct HistoryView: View {
 
     private func loadSummaries() {
         var descriptor = FetchDescriptor<Ride>(
-            predicate: #Predicate { $0.endTime != nil && $0.endTime! > $0.startTime },
+            // A force-unwrapped optional inside #Predicate -- `$0.endTime != nil &&
+            // $0.endTime! > $0.startTime` -- translates to a query that matches nothing, so this
+            // screen showed "No rides recorded yet." for every rider regardless of their data.
+            // The nil check is expressible; the ordering guard is applied in Swift below, which is
+            // free here because the projection is already bounded.
+            predicate: #Predicate { $0.endTime != nil },
             sortBy: [SortDescriptor(\Ride.startTime, order: .reverse)]
         )
         descriptor.propertiesToFetch = [
@@ -265,7 +270,9 @@ struct HistoryView: View {
             \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
             \Ride.wasGroupRide, \Ride.groupRiderCount
         ]
-        summaries = (try? modelContext.fetch(descriptor).map(HistoryRideSummary.init(ride:))) ?? []
+        summaries = (try? modelContext.fetch(descriptor)
+            .filter { ride in ride.endTime.map { $0 > ride.startTime } ?? false }
+            .map(HistoryRideSummary.init(ride:))) ?? []
     }
 
     private func detail(for id: UUID) -> some View {

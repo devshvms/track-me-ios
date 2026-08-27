@@ -182,8 +182,10 @@ struct CommunityView: View {
     /// going to be one (§5.4).
     private func loadGroupRides() {
         var descriptor = FetchDescriptor<Ride>(
+            // No force-unwrap inside #Predicate: it translates to a query that matches nothing.
+            // The ordering guard is applied in Swift below, as in HistoryView.
             predicate: #Predicate {
-                $0.wasGroupRide && !$0.pendingDelete && $0.endTime != nil && $0.endTime! > $0.startTime
+                $0.wasGroupRide && !$0.pendingDelete && $0.endTime != nil
             },
             sortBy: [SortDescriptor(\Ride.startTime, order: .reverse)]
         )
@@ -193,7 +195,9 @@ struct CommunityView: View {
             \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
             \Ride.wasGroupRide, \Ride.groupRiderCount
         ]
-        groupRides = (try? modelContext.fetch(descriptor).map(HistoryRideSummary.init(ride:))) ?? []
+        groupRides = (try? modelContext.fetch(descriptor)
+            .filter { ride in ride.endTime.map { $0 > ride.startTime } ?? false }
+            .map(HistoryRideSummary.init(ride:))) ?? []
     }
 
     /// A group ride opens the ordinary Ride Detail; there is no separate group screen.
