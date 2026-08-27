@@ -38,6 +38,9 @@ private enum HistoryDateRange: Hashable {
 
 struct HistoryView: View {
     var scrollToTopRequest: Int = 0
+    /// TASK-226: bumped when the rider double-taps this tab. Pops back to the list.
+    var popToRootRequest: Int = 0
+    @State private var navigationPath: [UUID] = []
     @State private var summaries: [HistoryRideSummary] = []
     @State private var showFileImporter = false
     @State private var showCustomRange = false
@@ -79,7 +82,7 @@ struct HistoryView: View {
             (unitSettings.unit == .imperial ? "> 31 mi" : "> 50 km", 50)
         ]
 
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
                 TextField(LocalizationHelper.localized("Search rides"), text: $searchText)
                     .textFieldStyle(.roundedBorder)
@@ -112,9 +115,7 @@ struct HistoryView: View {
                             Section {
                                 ForEach(bucketSummaries) { summary in
                                     HStack(spacing: 8) {
-                                        NavigationLink {
-                                            detail(for: summary.id)
-                                        } label: {
+                                        NavigationLink(value: summary.id) {
                                             CompactRideSummaryRow(summary: summary)
                                         }
                                         if summary.isSample {
@@ -155,6 +156,9 @@ struct HistoryView: View {
                     }
                 }
             }
+            .navigationDestination(for: UUID.self) { rideId in
+                detail(for: rideId)
+            }
             .navigationTitle(LocalizationHelper.localized("History"))
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -170,6 +174,10 @@ struct HistoryView: View {
             .onChange(of: dateRange) { _, _ in filterRevision += 1 }
             .onChange(of: selectedDistanceThresholdKm) { _, _ in filterRevision += 1 }
         }
+        // TASK-226: double-tapping the tab returns to the list. `removeAll` rather than a fresh
+        // stack identity, so the search text, the filters and the scroll position all survive —
+        // popping is not the same thing as starting over.
+        .onChange(of: popToRootRequest) { _, _ in navigationPath.removeAll() }
         .trackScreen("HistoryView")
         .sheet(isPresented: $showCustomRange) {
             NavigationStack {

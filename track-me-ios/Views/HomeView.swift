@@ -8,6 +8,8 @@ struct HomeView: View {
     var onNavigateHistory: () -> Void = {}
     var onNavigateCommunity: () -> Void = {}
     var scrollToTopRequest: Int = 0
+    /// TASK-226: bumped when the rider double-taps this tab. Pops back to the deck.
+    var popToRootRequest: Int = 0
 
     @Bindable var trackingManager = TrackingManager.shared
     @Bindable private var dashboard = HomeDashboardRepository.shared
@@ -418,6 +420,9 @@ struct HomeView: View {
         } message: {
             Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
         }
+        // TASK-226: double-tapping the tab returns to the deck. Home's push is already
+        // programmatic, so clearing the selection is the whole pop.
+        .onChange(of: popToRootRequest) { _, _ in selectedRecentRideId = nil }
         .navigationDestination(item: $selectedRecentRideId) { rideId in
             if let ride = ride(with: rideId) {
                 RideDetailView(ride: ride)
