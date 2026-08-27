@@ -51,7 +51,6 @@ struct ContentView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
                 .tag(AppTab.settings)
         }
-        .onChange(of: selectedTab) { _, _ in tabScrollToTopRequest += 1 }
         .background(TabBarReselectObserver { tabScrollToTopRequest += 1 })
     }
 
