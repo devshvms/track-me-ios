@@ -519,6 +519,12 @@ struct HomeView: View {
         // the dashboard. Apply the blur to the map layer before HomeMapScrim in the parent ZStack.
         .compositingGroup()
         .blur(radius: presentationMode == .idleDashboard ? 14 : 0)
+        // TASK-244, shvm: the idle backdrop is ~80% transparent. The map itself fades toward the
+        // app background rather than being buried under more black — the spec's own amendment says
+        // "a heavier scrim would flatten it into grey", so the lever is the map's opacity, not the
+        // scrim's. HomeMapScrim drops to match; fading and then re-darkening would be grey by
+        // another route. `compositingGroup` above means this fades the composed layer once.
+        .opacity(presentationMode == .idleDashboard ? HomeMapScrim.idleMapOpacity : 1)
         .ignoresSafeArea(edges: .top)
         .accessibilityLabel(LocalizationHelper.localized("Map"))
         .accessibilityHidden(!isMapInteractive)
@@ -885,10 +891,16 @@ private struct HomeMapScrim: View {
     let mode: HomePresentationMode
     let reduceMotion: Bool
 
+    /// TASK-244: how much of the idle backdrop map still shows — ~80% transparent, per shvm.
+    /// Matches Android's `IDLE_MAP_ALPHA`.
+    static let idleMapOpacity: Double = 0.2
+
     var body: some View {
         LinearGradient(
             colors: mode == .idleDashboard
-                ? [.black.opacity(0.72), .black.opacity(0.42)]
+                // The map is already faded to `idleMapOpacity`, so the scrim only has to give the
+                // deck a little depth.
+                ? [.black.opacity(0.18), .black.opacity(0.06)]
                 : [.black.opacity(0.28), .black.opacity(0.08)],
             startPoint: .top,
             endPoint: .bottom
