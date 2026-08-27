@@ -12339,6 +12339,106 @@
         }
       }
     },
+    "Average Pace" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Durchschnittstempo" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ritmo medio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Allure moyenne" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "औसत गति" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "平均ペース" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "平均配速" } }
+      }
+    },
+    "Average Speed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Durchschnittsgeschwindigkeit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Velocidad media" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vitesse moyenne" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "औसत गति" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "平均速度" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "平均速度" } }
+      }
+    },
+    "Best Pace" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bestes Tempo" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mejor ritmo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Meilleure allure" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सर्वश्रेष्ठ गति" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "最高ペース" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最佳配速" } }
+      }
+    },
+    "Elevation Gain" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Höhengewinn" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desnivel positivo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dénivelé positif" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "ऊंचाई में बढ़ोतरी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "獲得標高" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "累计爬升" } }
+      }
+    },
+    "GPS Points" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "GPS-Punkte" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Puntos GPS" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Points GPS" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "GPS पॉइंट" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPSポイント" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "GPS 点" } }
+      }
+    },
+    "GPS signal gaps" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "GPS-Signallücken" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Brechas de señal GPS" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Interruptions du signal GPS" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "GPS सिग्नल अंतराल" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPS信号の途切れ" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "GPS 信号间隔" } }
+      }
+    },
+    "Max G-Force" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Max. G-Kraft" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Fuerza G máx." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Force G max." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अधिकतम जी-फ़ोर्स" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "最大G" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最大G力" } }
+      }
+    },
+    "Max Speed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Maximale Geschwindigkeit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Velocidad máxima" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vitesse maximale" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अधिकतम गति" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "最高速度" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最高速度" } }
+      }
+    },
+    "Recording details" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aufnahmedetails" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Detalles de grabación" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Détails de l'enregistrement" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "रिकॉर्डिंग विवरण" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "記録の詳細" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "记录详情" } }
+      }
+    },
+    "Start Time" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Startzeit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Hora de inicio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Heure de début" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "प्रारंभ समय" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "開始時刻" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开始时间" } }
+      }
+    },
     "Ride stopped" : {
       "extractionState" : "stale",
       "localizations" : {

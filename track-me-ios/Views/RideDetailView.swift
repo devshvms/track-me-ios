@@ -24,6 +24,7 @@ struct RideDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var showImagePreview = false
     @State private var isDeletingRide = false
+    @State private var showRecordingDetails = false
     
     private var sortedPoints: [GPSPoint] {
         guard let points = ride.points, !points.isEmpty else { return [] }
@@ -62,6 +63,11 @@ struct RideDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // Summary Section
+                rideSummaryCard
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+
                 // Map Section
                 mapView
                     .frame(height: 320)
@@ -118,8 +124,9 @@ struct RideDetailView: View {
                                 .accessibilityHidden(true)
                         }
                         
-                        // Ride Stats Card
-                        rideStatsCard
+                        // Recording details stay after the route and chart so diagnostics remain
+                        // available without competing with the summary a rider reads first.
+                        recordingDetailsCard
                             .padding(.horizontal)
                         
                         // Action Buttons
@@ -333,7 +340,7 @@ struct RideDetailView: View {
     }
     
     @ViewBuilder
-    var rideStatsCard: some View {
+    var rideSummaryCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Ride Stats")
                 .font(.title2).bold()
@@ -345,21 +352,52 @@ struct RideDetailView: View {
             let duration = Double(aggregate.movingDurationMillis) / 1_000
             let avgSpeedMps = aggregate.avgSpeedMps
             let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
+            let usesPace = ride.ridePersona == .walk || ride.ridePersona == .run
             
             HStack {
                 statItem(title: "Distance", value: UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit))
                 Spacer()
                 statItem(title: "Duration", value: formatDuration(duration))
                 Spacer()
-                statItem(title: "GPS Tag", value: "\(aggregate.pointCount)")
+                statItem(title: usesPace ? "Average Pace" : "Average Speed", value: usesPace ? UnitFormatter.pace(mps: avgSpeedMps, unit: unitSettings.unit) : UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit))
             }
             
             HStack {
+                statItem(title: usesPace ? "Best Pace" : "Max Speed", value: usesPace ? UnitFormatter.pace(mps: aggregate.maxSpeedMps, unit: unitSettings.unit) : UnitFormatter.speed(mps: aggregate.maxSpeedMps, unit: unitSettings.unit))
+                if let elevation = ride.elevationGainMeters {
+                    Spacer()
+                    statItem(title: "Elevation Gain", value: formatElevation(elevation))
+                }
+                Spacer()
                 statItem(title: "Start Time", value: dateStr)
-                Spacer()
-                statItem(title: "Max G-Force", value: String(format: "%.2f G", maxGForce))
-                Spacer()
-                statItem(title: "Avg Speed", value: UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit))
+            }
+        }
+        .padding(20)
+        .background(Color(UIColor.darkGray))
+        .cornerRadius(16)
+    }
+
+    @ViewBuilder
+    var recordingDetailsCard: some View {
+        let aggregate = ride.aggregateSnapshot
+        let gapCount = ChartAccessibility.signalGaps(points: sortedPoints).count
+
+        VStack(alignment: .leading, spacing: 16) {
+            DisclosureGroup(isExpanded: $showRecordingDetails) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        statItem(title: "GPS Points", value: "\(aggregate.pointCount)")
+                        statItem(title: "Max G-Force", value: String(format: "%.2f G", maxGForce))
+                        statItem(title: "GPS signal gaps", value: "\(gapCount)")
+                    }
+                    Text(LocalizationHelper.syncStatusTitle(ride.isSynced ? "Synced" : "Unsynced"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 8)
+            } label: {
+                Text(LocalizationHelper.localized("Recording details"))
+                    .font(.headline)
             }
         }
         .padding(20)
@@ -381,6 +419,11 @@ struct RideDetailView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(LocalizationHelper.localized(title))
         .accessibilityValue(value)
+    }
+
+    private func formatElevation(_ meters: Double) -> String {
+        let value = unitSettings.unit == .imperial ? meters * 3.28084 : meters
+        return String(format: "%.0f %@", value, unitSettings.unit == .imperial ? "ft" : "m")
     }
     
     @ViewBuilder
