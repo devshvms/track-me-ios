@@ -48,6 +48,8 @@ struct HistoryView: View {
     /// TASK-226: bumped when the rider double-taps this tab. Pops back to the list.
     var popToRootRequest: Int = 0
     @State private var navigationPath: [UUID] = []
+    @State private var searchExpanded = false
+    @FocusState private var searchFieldFocused: Bool
     @State private var summaries: [HistoryRideSummary] = []
     @State private var showFileImporter = false
     @State private var showCustomRange = false
@@ -91,11 +93,31 @@ struct HistoryView: View {
 
         NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
-                TextField(LocalizationHelper.localized("Search rides"), text: $searchText)
-                    .textFieldStyle(.roundedBorder)
+                // TASK-243, Android parity. Search collapses to an icon in the filter row and
+                // expands to a full field only while in use: a permanently open text field spent a
+                // whole row of the list on a control that is empty almost always, and History is
+                // scanned far more often than it is searched. Expanded state is held open by a
+                // non-empty query so the field cannot collapse while it is still filtering.
+                if searchExpanded || !searchText.isEmpty {
+                    HStack(spacing: 8) {
+                        TextField(LocalizationHelper.localized("Search rides"), text: $searchText)
+                            .textFieldStyle(.roundedBorder)
+                            .focused($searchFieldFocused)
+                        Button {
+                            searchText = ""
+                            searchExpanded = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        }
+                        .accessibilityLabel(LocalizationHelper.localized("Close"))
+                    }
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
+                    // Opening without the caret in the field would make the tap feel inert.
+                    .onAppear { searchFieldFocused = true }
+                }
 
+                HStack(spacing: 8) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         personaMenu
@@ -113,6 +135,16 @@ struct HistoryView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
+                }
+                // Pinned outside the horizontal scroll so it never scrolls out of reach the way it
+                // would as just another chip.
+                if !(searchExpanded || !searchText.isEmpty) {
+                    Button { searchExpanded = true } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .padding(.trailing, 16)
+                    .accessibilityLabel(LocalizationHelper.localized("Search rides"))
+                }
                 }
                 .background(Color(uiColor: .secondarySystemGroupedBackground))
 
