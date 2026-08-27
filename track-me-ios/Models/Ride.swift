@@ -37,6 +37,9 @@ final class Ride {
     /// from a legacy row that has not been inspected yet.
     var qualifiesForStats: Bool = false
     var dashboardMetadataVersion: Int = 0
+    /// TASK-246: the History card's route shape, so the list projection can draw a real route
+    /// without fetching `points`. Optional with a default, so SwiftData migrates additively.
+    var routePolyline: String? = nil
     /// TASK-232: this ride was recorded while a group session was live.
     ///
     /// The marker and the count below are deliberately the *whole* record.

@@ -20,6 +20,8 @@ struct HistoryRideSummary: Identifiable, Hashable {
     /// TASK-232: recorded during a group session, and how many rode. A count, never names.
     let wasGroupRide: Bool
     let groupRiderCount: Int?
+    /// TASK-246: the card's route shape, on the row. Still no fetch of `points`.
+    let routePolyline: String?
 
     init(ride: Ride) {
         id = ride.id
@@ -36,6 +38,7 @@ struct HistoryRideSummary: Identifiable, Hashable {
         pointCount = max(0, ride.pointCount ?? 0)
         wasGroupRide = ride.wasGroupRide
         groupRiderCount = ride.groupRiderCount.flatMap { $0 > 0 ? $0 : nil }
+        routePolyline = ride.routePolyline
     }
 }
 
@@ -300,7 +303,7 @@ struct HistoryView: View {
             \Ride.id, \Ride.startTime, \Ride.endTime, \Ride.isSynced, \Ride.pendingDelete,
             \Ride.title, \Ride.persona, \Ride.isSample, \Ride.distanceMeters,
             \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
-            \Ride.wasGroupRide, \Ride.groupRiderCount
+            \Ride.wasGroupRide, \Ride.groupRiderCount, \Ride.routePolyline
         ]
         summaries = (try? modelContext.fetch(descriptor)
             .filter { ride in ride.endTime.map { $0 > ride.startTime } ?? false }
@@ -377,12 +380,16 @@ struct CompactRideSummaryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: summary.pointCount > 0 ? "point.topleft.down.to.point.bottomright.curvepath" : "location.slash")
-                .font(.title3)
-                .foregroundStyle(BrandColor.primary)
-                .frame(width: 52, height: 52)
-                .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
-                .accessibilityHidden(true)
+            // TASK-246: the ride's own route again, as in 1.8.4. The shape comes off the row, so
+            // the projection still never fetches `points` -- which was the reason 1.8.5 replaced
+            // this with a single glyph in the first place.
+            RouteThumbnail(
+                routePolyline: summary.routePolyline,
+                pointCount: summary.pointCount,
+                distanceMeters: summary.distanceMeters
+            )
+            .frame(width: 52, height: 52)
+            .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Image(systemName: summary.persona.systemImage).foregroundStyle(.secondary)
