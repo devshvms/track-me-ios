@@ -119,6 +119,46 @@ final class RideDistanceTests: XCTestCase {
         XCTAssertEqual(RideMetrics.elevationGainMeters(from: elevationPoints(climbWithDescent)) ?? -1, 100, accuracy: 0.001)
     }
 
+    /// The case the three original vectors missed, and why this returned 0 for every real ride: a
+    /// climb gentle enough that no *pair of consecutive samples* clears the noise floor. 100 m over
+    /// 600 samples is 1 Hz logging on a ten-minute climb, about 0.17 m per sample. Tolerance is one
+    /// noise floor — a real bound, since hysteresis never banks the final partial climb.
+    func testElevationGainKeepsAGradualRealWorldClimb() {
+        let gradual: [Double] = (0..<600).map { index in Double(index) * (100.0 / 599.0) }
+
+        XCTAssertEqual(RideMetrics.elevationGainMeters(from: elevationPoints(gradual)) ?? -1, 100, accuracy: 2)
+    }
+
+    func testElevationGainReportsClimbNotJitterOnAGradualAscent() {
+        let jittery: [Double] = (0..<600).map { index in
+            let ramp: Double = Double(index) * (100.0 / 599.0)
+            let jitter: Double = index % 2 == 0 ? 0.6 : -0.6
+            return ramp + jitter
+        }
+
+        XCTAssertEqual(RideMetrics.elevationGainMeters(from: elevationPoints(jittery)) ?? -1, 100, accuracy: 2)
+    }
+
+    /// Total ascent, not net: down 50 then up 50 is 50 m of climbing on the way back up.
+    func testElevationGainCountsAReAscentOfTheSameHill() {
+        let plateau: [Double] = Array(repeating: 50.0, count: 200)
+        let descent: [Double] = (0..<200).map { index in 50.0 - Double(index) * (50.0 / 199.0) }
+        let ascent: [Double] = (0..<200).map { index in Double(index) * (50.0 / 199.0) }
+        let upDownUp: [Double] = plateau + descent + ascent
+
+        XCTAssertEqual(RideMetrics.elevationGainMeters(from: elevationPoints(upDownUp)) ?? -1, 50, accuracy: 2)
+    }
+
+    /// Zero here is a fact — the ride was flat — and is distinct from "no altitude data", which is
+    /// nil and renders no cell at all (§5.2).
+    func testElevationGainReportsZeroForAFlatRideRatherThanNil() {
+        XCTAssertEqual(
+            RideMetrics.elevationGainMeters(from: elevationPoints(Array(repeating: 800.0, count: 50))) ?? -1,
+            0,
+            accuracy: 0.001
+        )
+    }
+
     func testAverageSpeedGuardsZeroAndNegativeDuration() {
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 1_800), 20.0, accuracy: 0.001)
         XCTAssertEqual(HistoryRideMetrics.averageSpeedKmh(distanceKm: 10, duration: 0), 0)
