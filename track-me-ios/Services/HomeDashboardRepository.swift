@@ -94,6 +94,19 @@ actor HomeDashboardWorker {
         return try? JSONDecoder().decode(HomeDashboardSummary.self, from: index.payload)
     }
 
+    /// TASK-225: does a sample ride exist at all?
+    ///
+    /// Deliberately separate from `rebuildIndex`, whose predicate filters `!isSample` and must keep
+    /// doing so — samples staying out of every aggregate is the whole reason the empty state exists.
+    /// One bounded fetch, no route points.
+    func hasSampleRide() throws -> Bool {
+        var descriptor = FetchDescriptor<Ride>(
+            predicate: #Predicate { $0.isSample && !$0.pendingDelete }
+        )
+        descriptor.fetchLimit = 1
+        return try !modelContext.fetch(descriptor).isEmpty
+    }
+
     /// Paged reconciliation keeps legacy point reads bounded and off the UI actor.
     @discardableResult
     func reconcileLegacyMetadata(pageSize: Int = 25) throws -> Int {
@@ -216,6 +229,11 @@ final class HomeDashboardRepository {
     private(set) var summary: HomeDashboardSummary?
     private(set) var routePoints: [HomeDashboardRoutePoint] = []
     private(set) var isReconciling = true
+    /// TASK-225. A sibling fact, not an aggregate — it rides alongside the summary rather than
+    /// inside it, because the summary is persisted as a Codable payload and this does not belong in
+    /// that shape. Android attaches it to its summary for the same reason in reverse: there the
+    /// summary is a live flow combine, not a stored blob.
+    private(set) var hasSampleRide = false
 
     private var worker: HomeDashboardWorker?
     private var rebuildGeneration = 0
@@ -238,6 +256,7 @@ final class HomeDashboardRepository {
         do {
             try await worker.reconcileLegacyMetadata()
             summary = try await worker.rebuildIndex(now: Date(), timeZoneIdentifier: TimeZone.current.identifier)
+            hasSampleRide = try await worker.hasSampleRide()
         } catch {
             NSLog("TrackMe: Home dashboard preparation failed: %@", error.localizedDescription)
         }
@@ -254,8 +273,10 @@ final class HomeDashboardRepository {
                     now: Date(),
                     timeZoneIdentifier: TimeZone.current.identifier
                 )
+                let sampleExists = try await worker.hasSampleRide()
                 guard generation == rebuildGeneration else { return }
                 summary = rebuilt
+                hasSampleRide = sampleExists
             } catch {
                 NSLog("TrackMe: Home dashboard index rebuild failed: %@", error.localizedDescription)
             }

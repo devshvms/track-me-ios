@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeDashboardDeck: View {
     let summary: HomeDashboardSummary?
     let isReconciling: Bool
+    let hasSampleRide: Bool
     let routePoints: [HomeDashboardRoutePoint]
     let groupActive: Bool
     let groupMemberCount: Int
@@ -32,7 +33,7 @@ struct HomeDashboardDeck: View {
 
                     Group {
                         if summary.lifetimeActivityCount == 0 {
-                            EmptyDashboardCard()
+                            EmptyDashboardCard(hasSampleRide: hasSampleRide)
                         } else {
                             WeeklySummaryCard(summary: summary, unit: unitSettings.unit)
                         }
@@ -164,6 +165,8 @@ private struct DashboardCard<Content: View>: View {
 }
 
 private struct EmptyDashboardCard: View {
+    let hasSampleRide: Bool
+
     var body: some View {
         DashboardCard {
             VStack(alignment: .leading, spacing: 13) {
@@ -173,6 +176,19 @@ private struct EmptyDashboardCard: View {
                 )
                 .font(.headline)
                 .foregroundStyle(BrandColor.primary)
+
+                // TASK-225: two different empty states used to read as one. A rider whose only ride
+                // is the seeded sample sees a ride in History and nothing here, which looks like
+                // data loss; the card made it worse by describing what the dashboard is for rather
+                // than why it is empty. The true first-run state — no rides at all — is unchanged.
+                if hasSampleRide {
+                    Text(LocalizationHelper.localized(
+                        "The sample ride in History is for exploring. Your own rides fill this in."
+                    ))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
 
                 preview("See weekly distance", icon: "chart.bar.fill")
                 preview("See how this week compares", icon: "chart.line.uptrend.xyaxis")
