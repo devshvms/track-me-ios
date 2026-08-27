@@ -61,6 +61,13 @@ struct RideDetailView: View {
     }
     
     var body: some View {
+        // TASK-245, shvm: no `.edgesIgnoringSafeArea(.top)` here. It made the scroll content start
+        // underneath the navigation bar, so the summary card opened with its heading and its first
+        // label row already hidden behind the toolbar and the rider had to drag down to read stats
+        // that were supposed to be the first thing on the screen. Nothing needs the top bleed: the
+        // map is the *second* element, not the first, so ignoring that inset bought no edge-to-edge
+        // anywhere and only cost the summary its top. The background on line ~189 still ignores all
+        // edges, which is what actually paints behind the bars.
         ScrollView {
             VStack(spacing: 0) {
                 // Summary Section
@@ -129,18 +136,23 @@ struct RideDetailView: View {
                         recordingDetailsCard
                             .padding(.horizontal)
                         
-                        // Action Buttons
-                        actionButtons
-                            .padding(.vertical, 24)
                     }
                 } else {
                     Text("No GPS Data Available")
                         .foregroundColor(.secondary)
                         .padding(.top, 40)
                 }
+
+                // TASK-245, shvm: outside the points check. A ride with no points is precisely the
+                // one a rider wants rid of, and hiding Delete with the charts left the only way out
+                // a swipe on the History row — undiscoverable from here. Share and GPX self-guard on
+                // `snapshotImage`/`gpxURL`, both nil without points, so this degrades to Delete
+                // alone. Android already behaved this way: its "No GPS data available" is only the
+                // map's empty state, not a gate on the whole tail.
+                actionButtons
+                    .padding(.vertical, 24)
             }
         }
-        .edgesIgnoringSafeArea(.top)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
