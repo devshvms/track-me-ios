@@ -193,8 +193,12 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel(LocalizationHelper.localized("Center on my location"))
 
-                        MapCompass(scope: mapScope)
-                            .trackMeMapControlStyle()
+                        // TASK-238 (iOS half, shvm 2026-08-27): no compass button here. It was the
+                        // third control in this stack and duplicated MapKit's own, which this map
+                        // still gets — no `.mapControls { }` suppresses the defaults, so the built-in
+                        // compass appears whenever the map is rotated off north. The hand-placed one
+                        // showed for the whole ride, including north-up, which is exactly when a
+                        // compass says nothing. Same reasoning as the Android removal.
 
                         if groupRide.state.isActive {
                             Button(action: { showGroupSheet = true }) {
