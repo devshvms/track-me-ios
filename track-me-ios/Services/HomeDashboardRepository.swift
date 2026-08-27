@@ -5,7 +5,10 @@ import SwiftData
 nonisolated enum HomeDashboardIndexContract {
     static let singletonKey = "home-dashboard"
     static let indexVersion = 1
-    static let metadataVersion = 1
+    /// TASK-246 raised this from 1 so every existing ride is swept once and gains its stored
+    /// route shape. Without the bump the reconcile predicate would never look at them again and
+    /// the History cards would stay generic for all history recorded before this build.
+    static let metadataVersion = 2
 }
 
 @Model
@@ -53,7 +56,23 @@ extension Ride {
     }
 
     /// Applies the one canonical qualification rule after aggregate metadata exists.
-    func refreshDashboardMetadata() {
+    ///
+    /// - Parameter freshPoints: only for callers that have just built points and not yet saved,
+    ///   where the `points` relationship may not have materialised. Everyone else omits it.
+    func refreshDashboardMetadata(freshPoints: [GPSPoint]? = nil) {
+        // TASK-246: the route shape is derived here from `self` rather than being a required
+        // argument. Android's equivalent takes it as a parameter and four of its five call sites
+        // quietly omitted it, which is why every cloud-synced ride there kept the generic glyph.
+        // A Ride already owns its points, so deriving the shape removes the argument that could be
+        // forgotten -- and this method has nine callers, every one of which was a chance to forget.
+        //
+        // `freshPoints` is the one exception, and it is the opposite of Android's mistake: it is
+        // for a caller that has *more* truth than the relationship does, because it inserted the
+        // points moments ago and has not saved yet.
+        //
+        // Set before the guard: a ride with an incomplete aggregate can still have a drawable
+        // track, and the thumbnail is not gated on qualifying for stats.
+        routePolyline = RoutePolyline.encoded(from: freshPoints ?? points ?? [])
         guard let endTime,
               endTime > startTime,
               let distanceMeters,

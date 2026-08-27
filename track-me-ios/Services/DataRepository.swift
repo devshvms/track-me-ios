@@ -83,7 +83,11 @@ final class DataRepository {
                 d.persistedAggregate
                     ?? d.aggregate(fallback: RideMetrics.reconstructed(from: importedPoints))
             )
-            ride.refreshDashboardMetadata()
+            // TASK-246: the points went in moments ago and this context has not saved, so the
+            // `points` relationship cannot be relied on to have materialised yet. Handing over the
+            // points we just built is what stops a restored ride from landing without a shape --
+            // which is exactly how Android's cloud rides ended up permanently generic.
+            ride.refreshDashboardMetadata(freshPoints: importedPoints)
             inserted += 1
         }
         if inserted > 0 {
