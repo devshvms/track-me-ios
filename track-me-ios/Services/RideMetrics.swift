@@ -97,6 +97,15 @@ nonisolated enum RideMetrics {
         calculateElevationGain(locations.map { ElevationSample(altitude: $0.altitude, timestamp: $0.timestamp) })
     }
 
+    /// A climb banks once it stands this far above the lowest point since the last bank.
+    ///
+    /// **Measured against a running reference, not the previous sample.** Applying it
+    /// sample-to-sample discarded any climb gentle enough that no consecutive pair cleared it --
+    /// and at 1 Hz a 100 m climb over ten minutes moves about 0.17 m per sample, so every delta was
+    /// thrown away and this returned exactly zero for every real ride. Matches Android's
+    /// `ElevationGain.kt`, so the two platforms agree well inside §5.2's ±5% tolerance.
+    private static let noiseFloorMeters = 2.0
+
     private static func calculateElevationGain(_ samples: [ElevationSample]) -> Double? {
         let altitudes = samples
             .filter { $0.altitude.isFinite }
@@ -109,10 +118,20 @@ nonisolated enum RideMetrics {
             let end = min(altitudes.count - 1, index + 2)
             return altitudes[start...end].reduce(0, +) / Double(end - start + 1)
         }
-        return zip(smoothed, smoothed.dropFirst()).reduce(0) { total, pair in
-            let delta = pair.1 - pair.0
-            return total + (delta >= 2 ? delta : 0)
+        var reference = smoothed[0]
+        var gain = 0.0
+        for altitude in smoothed {
+            let climbed = altitude - reference
+            if climbed >= noiseFloorMeters {
+                gain += climbed
+                reference = altitude
+            } else if altitude < reference {
+                // Descending resets the mark the next climb is measured from, so a descent and a
+                // re-ascent of the same hill are counted once each rather than smeared into one.
+                reference = altitude
+            }
         }
+        return gain
     }
 
     nonisolated static func nonNegativeFinite(_ value: Double) -> Double {
@@ -142,9 +161,19 @@ extension RideMetrics {
             let end = min(altitudes.count - 1, index + 2)
             return altitudes[start...end].reduce(0, +) / Double(end - start + 1)
         }
-        return zip(smoothed, smoothed.dropFirst()).reduce(0) { total, pair in
-            let delta = pair.1 - pair.0
-            return total + (delta >= 2 ? delta : 0)
+        var reference = smoothed[0]
+        var gain = 0.0
+        for altitude in smoothed {
+            let climbed = altitude - reference
+            if climbed >= noiseFloorMeters {
+                gain += climbed
+                reference = altitude
+            } else if altitude < reference {
+                // Descending resets the mark the next climb is measured from, so a descent and a
+                // re-ascent of the same hill are counted once each rather than smeared into one.
+                reference = altitude
+            }
         }
+        return gain
     }
 }
