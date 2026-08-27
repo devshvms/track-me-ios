@@ -408,7 +408,7 @@ struct RideDetailView: View {
     @ViewBuilder
     func statItem(title: String, value: String) -> some View {
         VStack(spacing: 4) {
-            Text(title)
+            Text(LocalizationHelper.localized(title))
                 .font(.caption)
                 .foregroundColor(.gray)
             Text(value)

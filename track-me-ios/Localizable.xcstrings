@@ -12359,6 +12359,16 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "平均速度" } }
       }
     },
+    "Avg Speed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Durchschnittsgeschwindigkeit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Velocidad media" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vitesse moyenne" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "औसत गति" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "平均速度" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "平均速度" } }
+      }
+    },
     "Best Pace" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Bestes Tempo" } },
@@ -12397,6 +12407,16 @@
         "hi" : { "stringUnit" : { "state" : "translated", "value" : "GPS सिग्नल अंतराल" } },
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPS信号の途切れ" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "GPS 信号间隔" } }
+      }
+    },
+    "GPS Tag" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "GPS-Markierung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Etiqueta GPS" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Étiquette GPS" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "GPS टैग" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPSタグ" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "GPS 标签" } }
       }
     },
     "Max G-Force" : {
