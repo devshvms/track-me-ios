@@ -30,7 +30,6 @@ struct RideOnboardingDemo: View {
         case 0:
             RadialStartTrackingControl(
                 launchState: $launchState,
-                onAbort: { _ in },
                 onCommit: { persona in
                     selectedPersona = persona
                     advance()
