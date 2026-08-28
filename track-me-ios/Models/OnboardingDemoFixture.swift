@@ -64,6 +64,15 @@ enum OnboardingDemoFixture {
                 ride: ride
             )
         }
+
+        // TASK-248: the sample carries an elevation figure like any other ride. Every other
+        // aggregate was set above and this one was not, so the sample — the first ride most riders
+        // ever open — dropped its elevation cell while showing five populated neighbours.
+        //
+        // Measured rather than absent: this track has an altitude on every point and is genuinely
+        // flat, so the answer is a real 0 m. §5.2 reserves the missing cell for altitude we never
+        // had, which is a different claim from "it did not climb".
+        ride.elevationGainMeters = RideMetrics.elevationGainMeters(from: ride.points ?? [])
         return ride
     }
 }
