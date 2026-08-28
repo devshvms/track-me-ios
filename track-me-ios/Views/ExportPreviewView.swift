@@ -174,7 +174,8 @@ struct ExportPreviewView: View {
             VStack(alignment: .leading, spacing: 6) {
                     let aggregate = ride.aggregateSnapshot
                     let duration = Double(aggregate.movingDurationMillis) / 1_000
-                    let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .none)
+                    // TASK-241: formatted in the in-app language, not the device's.
+                    let dateStr = LocalizationHelper.mediumDateTime(ride.startTime, includeTime: false)
                     // Compact, matching Android: "17min", never "00:17:00" — see `shareDuration`.
                     let fields = [showDate ? dateStr : nil, showDuration ? UnitFormatter.shareDuration(seconds: duration) : nil, showDistance ? UnitFormatter.distance(meters: aggregate.distanceMeters, unit: unitSettings.unit) : nil].compactMap { $0 }
                     if !fields.isEmpty {
