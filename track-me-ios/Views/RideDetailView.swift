@@ -25,10 +25,31 @@ struct RideDetailView: View {
     @State private var showImagePreview = false
     @State private var isDeletingRide = false
     @State private var showRecordingDetails = false
+    /// TASK-253: lets the rider put the hidden tail back. Not persisted — it is a way of looking at
+    /// one ride, not a preference about all of them.
+    @State private var showFullRecording = false
     
-    private var sortedPoints: [GPSPoint] {
+    /// Everything the device recorded, in order.
+    private var allPoints: [GPSPoint] {
         guard let points = ride.points, !points.isEmpty else { return [] }
         return points.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    /// TASK-253: the stationary head and tail a rider did not mean to record.
+    private var trim: RideTrim { RideTrimmer.window(for: allPoints) }
+
+    /// What the chart, map and scrubber draw.
+    ///
+    /// A display window, not an edit — nothing is stored or deleted, so `showFullRecording` simply
+    /// stops applying it and there is no undo to build. The stat grid deliberately still reads the
+    /// full aggregate, which is already correct: moving duration excludes paused samples, so the
+    /// forgotten time was never in "Duration", and it belongs in "Total" because the ride did span
+    /// that wall time.
+    private var sortedPoints: [GPSPoint] {
+        let points = allPoints
+        let window = trim
+        guard !showFullRecording, window.isTrimmed, window.endIndex < points.count else { return points }
+        return Array(points[window.startIndex...window.endIndex])
     }
     
     private var cumulativeDistances: [Double] {
@@ -83,6 +104,30 @@ struct RideDetailView: View {
                 if !sortedPoints.isEmpty {
                     // Analytics Section
                     VStack(spacing: 16) {
+                        // TASK-253: the trim announces itself. Quietly dropping part of someone's
+                        // own recording would be the same class of problem as deleting it — they
+                        // would have no way to know the chart was not the whole ride, and no way to
+                        // ask for it back. One line and one tap, above the chart it explains.
+                        if trim.isTrimmed {
+                            HStack {
+                                Text(LocalizationHelper.formatted(
+                                    "%@ of inactivity hidden",
+                                    formatDuration(trim.totalTrimmedSeconds)
+                                ))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                Spacer()
+                                Button(showFullRecording
+                                       ? LocalizationHelper.localized("Hide")
+                                       : LocalizationHelper.localized("Show all")) {
+                                    showFullRecording.toggle()
+                                }
+                                .font(.caption.weight(.semibold))
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 12)
+                        }
+
                         CombinedMetricLineChart(
                             points: sortedPoints,
                             scrubIndex: scrubIndex
@@ -453,7 +498,9 @@ struct RideDetailView: View {
     @ViewBuilder
     var recordingDetailsCard: some View {
         let aggregate = ride.aggregateSnapshot
-        let gapCount = ChartAccessibility.signalGaps(points: sortedPoints).count
+        // TASK-253: the full recording. This card is a diagnostic about what the device captured,
+        // so counting only the drawn window would make it lie about the thing it exists to report.
+        let gapCount = ChartAccessibility.signalGaps(points: allPoints).count
 
         VStack(alignment: .leading, spacing: 16) {
             DisclosureGroup(isExpanded: $showRecordingDetails) {
