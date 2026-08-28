@@ -523,7 +523,7 @@ struct HomeView: View {
         // the dashboard. Apply the blur to the map layer before HomeMapScrim in the parent ZStack.
         .compositingGroup()
         .blur(radius: presentationMode == .idleDashboard ? 14 : 0)
-        // TASK-244, shvm: the idle backdrop is ~80% transparent. The map itself fades toward the
+        // TASK-244/249, shvm: the idle backdrop is ~90% transparent. The map fades toward the
         // app background rather than being buried under more black — the spec's own amendment says
         // "a heavier scrim would flatten it into grey", so the lever is the map's opacity, not the
         // scrim's. HomeMapScrim drops to match; fading and then re-darkening would be grey by
@@ -895,9 +895,17 @@ private struct HomeMapScrim: View {
     let mode: HomePresentationMode
     let reduceMotion: Bool
 
-    /// TASK-244: how much of the idle backdrop map still shows — ~80% transparent, per shvm.
+    /// TASK-249: how much of the idle backdrop map still shows — ~90% transparent, per shvm, raised
+    /// from the ~80% TASK-244 shipped. The brief is "glass like": street labels should not be
+    /// readable, but the road and route lines should still register as structure behind the deck.
+    ///
+    /// Alpha alone is what moves. The blur above already destroys small shapes while leaving long
+    /// lines legible — text is fine detail and dies first, roads are continuous strokes and survive
+    /// — so fading further trades brightness without flattening the structure. A heavier scrim
+    /// would grey the whole thing, the failure TASK-221's amendment named.
+    ///
     /// Matches Android's `IDLE_MAP_ALPHA`.
-    static let idleMapOpacity: Double = 0.2
+    static let idleMapOpacity: Double = 0.1
 
     var body: some View {
         LinearGradient(
