@@ -298,7 +298,32 @@ struct RideDetailView: View {
                 longitudeDelta: (maxLng - minLng) * 1.5 + 0.005
             )
             
-            Map(initialPosition: .region(MKCoordinateRegion(center: center, span: span))) {
+            // TASK-251, shvm: the map let you pan and zoom to anywhere on earth, so a small window
+            // could end up showing empty ocean with no polyline in it. The region above already
+            // framed the route on load, but nothing kept the camera there afterwards -- the first
+            // drag left the ride behind.
+            //
+            // `mapCameraBounds` fences the camera to a padded box around the route and caps how far
+            // it can pull back. Rotation, tilt and zooming *in* are untouched, which is the part
+            // shvm liked. The padding is a fraction of the route's own span rather than a fixed
+            // degree amount, because a 300 m loop and a 300 km tour need very different slack.
+            let cameraBounds = MapCameraBounds(
+                centerCoordinateBounds: MKCoordinateRegion(
+                    center: center,
+                    span: MKCoordinateSpan(
+                        latitudeDelta: min(span.latitudeDelta, 170),
+                        longitudeDelta: min(span.longitudeDelta, 350)
+                    )
+                ),
+                // Matches Android's min-zoom cap: roughly the whole padded route and no more.
+                maximumDistance: routeMaximumCameraDistance(
+                    latitudeDelta: maxLat - minLat,
+                    longitudeDelta: maxLng - minLng,
+                    centerLatitude: center.latitude
+                )
+            )
+
+            Map(initialPosition: .region(MKCoordinateRegion(center: center, span: span)), bounds: cameraBounds) {
                 MapPolyline(coordinates: coordinates)
                     .stroke(BrandColor.primary, lineWidth: 5)
                 
@@ -353,7 +378,7 @@ struct RideDetailView: View {
     
     @ViewBuilder
     var rideSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             let aggregate = ride.aggregateSnapshot
             let totalDistMeters = aggregate.distanceMeters
             let duration = Double(aggregate.movingDurationMillis) / 1_000
@@ -376,32 +401,48 @@ struct RideDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            HStack {
-                statItem(title: "Distance", value: UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit))
-                Spacer()
-                // TASK-230/235: the pause-excluded figure keeps the label "Duration" — §5.1 only
-                // forbids *wall* time being labelled simply that — and "Total" below restores its
-                // pair. Those are the two words the HUD already uses mid-ride, which is where a
-                // rider learns the distinction; a single unlabelled figure was the defect.
-                statItem(title: "Duration", value: formatDuration(duration))
-                Spacer()
-                statItem(title: usesPace ? "Average Pace" : "Average Speed", value: usesPace ? UnitFormatter.pace(mps: avgSpeedMps, unit: unitSettings.unit) : UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit))
-            }
-            
-            HStack {
-                statItem(title: usesPace ? "Best Pace" : "Max Speed", value: usesPace ? UnitFormatter.pace(mps: aggregate.maxSpeedMps, unit: unitSettings.unit) : UnitFormatter.speed(mps: aggregate.maxSpeedMps, unit: unitSettings.unit))
-                if let elevation = ride.elevationGainMeters {
+            // TASK-230/235: the pause-excluded figure keeps the label "Duration" — §5.1 only
+            // forbids *wall* time being labelled simply that — and "Total" restores its pair. Those
+            // are the two words the HUD already uses mid-ride, which is where a rider learns the
+            // distinction; a single unlabelled figure was the defect.
+            let distanceText = UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit)
+            let durationText = formatDuration(duration)
+            let averageText = usesPace
+                ? UnitFormatter.pace(mps: avgSpeedMps, unit: unitSettings.unit)
+                : UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit)
+            let peakText = usesPace
+                ? UnitFormatter.pace(mps: aggregate.maxSpeedMps, unit: unitSettings.unit)
+                : UnitFormatter.speed(mps: aggregate.maxSpeedMps, unit: unitSettings.unit)
+            // The cell TASK-229 freed. Always rendered, never suppressed when it equals moving time:
+            // a ride with no pause showing both figures equal is the fact, and it is what makes the
+            // pair readable without a legend.
+            let totalText = RideDurations.totalElapsedSeconds(for: ride).map(formatDuration)
+                ?? LocalizationHelper.localized("Unknown")
+
+            // TASK-252, shvm: the two gaps were near-identical, so a label read as ambiguously
+            // belonging to the value above it or the one below. Proximity is the only thing
+            // grouping a cell, so the label sits tight to its own value and the rows are pushed
+            // apart — the pair reads as one unit, and the rows read as two.
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    statItem(title: "Distance", value: distanceText)
                     Spacer()
-                    statItem(title: "Elevation Gain", value: formatElevation(elevation))
+                    statItem(title: "Duration", value: durationText)
+                    Spacer()
+                    statItem(title: usesPace ? "Average Pace" : "Average Speed", value: averageText)
                 }
-                Spacer()
-                // The cell TASK-229 freed. Always rendered, never suppressed when it equals moving
-                // time: a ride with no pause showing both figures equal is the fact, and it is what
-                // makes the pair readable without a legend.
-                statItem(title: "Total", value: RideDurations.totalElapsedSeconds(for: ride).map(formatDuration) ?? LocalizationHelper.localized("Unknown"))
+                HStack {
+                    statItem(title: usesPace ? "Best Pace" : "Max Speed", value: peakText)
+                    if let elevation = ride.elevationGainMeters {
+                        Spacer()
+                        statItem(title: "Elevation Gain", value: formatElevation(elevation))
+                    }
+                    Spacer()
+                    statItem(title: "Total", value: totalText)
+                }
             }
         }
-        .padding(20)
+        .padding(16)
         .background(Color(UIColor.darkGray))
         .cornerRadius(16)
     }
@@ -436,9 +477,16 @@ struct RideDetailView: View {
     
     @ViewBuilder
     func statItem(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
+        // TASK-252: the reserved second label line stays. It is what TASK-240 added to stop a
+        // wrapping label pushing its value out of line with its neighbours', and dropping it to
+        // save height would re-open that defect in exactly the locales that exposed it.
+        //
+        // Zero spacing here is deliberate, not an oversight: the label and its value are one unit,
+        // and the row gap above is what separates the units. The reserved second line already
+        // supplies the optical breathing room a positive spacing would add.
+        VStack(spacing: 0) {
             Text(LocalizationHelper.localized(title))
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundColor(.gray)
                 // TASK-240, Android parity. Two lines, always: without a reserved second line a
                 // cell whose label wraps pushes its value out of line with its neighbours', and

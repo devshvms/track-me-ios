@@ -120,3 +120,28 @@ nonisolated enum RouteThumbnailPolicy {
         pointCount >= minimumPoints && distanceMeters > 0
     }
 }
+
+/// TASK-251: how far the Ride Detail camera may pull back from a route, in metres.
+///
+/// MapKit bounds a camera by distance rather than by zoom level, so this converts the route's own
+/// span into the equivalent cap. One step looser than a tight fit, so the rider keeps room to pull
+/// back and see the whole shape with some context — tighter than that reads as the map fighting the
+/// gesture, and the smooth zoom is the part worth protecting.
+func routeMaximumCameraDistance(
+    latitudeDelta: Double,
+    longitudeDelta: Double,
+    centerLatitude: Double
+) -> Double {
+    // A degree of latitude is ~111 km everywhere; a degree of longitude shrinks with the cosine of
+    // latitude, which matters for any route far from the equator.
+    let metresPerDegreeLatitude = 111_320.0
+    let metresPerDegreeLongitude = metresPerDegreeLatitude * max(cos(centerLatitude * .pi / 180), 0.01)
+
+    let heightMetres = abs(latitudeDelta) * metresPerDegreeLatitude
+    let widthMetres = abs(longitudeDelta) * metresPerDegreeLongitude
+    let extent = max(heightMetres, widthMetres)
+
+    // A stationary ride has no extent to scale from; the floor keeps it a usable neighbourhood view
+    // rather than collapsing the camera onto a single point.
+    return max(extent * 3.0, 2_000)
+}
