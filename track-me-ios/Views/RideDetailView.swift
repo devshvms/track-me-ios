@@ -383,7 +383,10 @@ struct RideDetailView: View {
             let totalDistMeters = aggregate.distanceMeters
             let duration = Double(aggregate.movingDurationMillis) / 1_000
             let avgSpeedMps = aggregate.avgSpeedMps
-            let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
+            // TASK-241: `DateFormatter.localizedString` formats in `Locale.current` — the *device*
+            // language — so a French UI printed an English date. Same defect as the strings, one
+            // layer down: a rider who set the app to French still read "28 Aug 2026 at 7:32 AM".
+            let dateStr = LocalizationHelper.mediumDateTime(ride.startTime, includeTime: true)
             let usesPace = ride.ridePersona == .walk || ride.ridePersona == .run
 
             VStack(alignment: .leading, spacing: 2) {

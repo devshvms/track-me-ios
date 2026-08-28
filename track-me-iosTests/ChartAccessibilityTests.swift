@@ -15,7 +15,7 @@
 import XCTest
 @testable import track_me_ios
 
-final class ChartAccessibilityTests: XCTestCase {
+final class ChartAccessibilityTests: EnglishCopyTestCase {
 
     private func sample(_ secondsFromStart: TimeInterval,
                         speed: Double,

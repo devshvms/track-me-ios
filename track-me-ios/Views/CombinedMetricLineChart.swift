@@ -13,6 +13,9 @@ private struct NormalizedMetricPoint: Identifiable {
 
 /// Reusable speed/elevation chart shared by ride detail and the onboarding history demo.
 struct CombinedMetricLineChart: View {
+    static var speedSeriesName: String { LocalizationHelper.localized("Speed") }
+    static var altitudeSeriesName: String { LocalizationHelper.localized("Altitude") }
+
     let points: [GPSPoint]
     let scrubIndex: Int?
 
@@ -86,7 +89,7 @@ struct CombinedMetricLineChart: View {
                     x: .value("Time", point.timestamp),
                     y: .value("Value", point.speedNormalized)
                 )
-                .foregroundStyle(by: .value("Metric", "Speed"))
+                .foregroundStyle(by: .value("Metric", Self.speedSeriesName))
                 .lineStyle(StrokeStyle(lineWidth: 2))
             }
 
@@ -95,7 +98,7 @@ struct CombinedMetricLineChart: View {
                     x: .value("Time", point.timestamp),
                     y: .value("Value", point.altitudeNormalized)
                 )
-                .foregroundStyle(by: .value("Metric", "Altitude"))
+                .foregroundStyle(by: .value("Metric", Self.altitudeSeriesName))
                 .lineStyle(StrokeStyle(lineWidth: 2))
             }
 
@@ -109,7 +112,7 @@ struct CombinedMetricLineChart: View {
                     x: .value("Selected", point.timestamp),
                     y: .value("Value", point.speedNormalized)
                 )
-                .foregroundStyle(by: .value("Metric", "Speed"))
+                .foregroundStyle(by: .value("Metric", Self.speedSeriesName))
                 .annotation(position: .top, alignment: .center) {
                     Text(UnitFormatter.speed(mps: point.rawSpeedMetersPerSecond, unit: unitSettings.unit))
                         // The chart summary/scrubber remains the primary VoiceOver path; keep these
@@ -127,7 +130,7 @@ struct CombinedMetricLineChart: View {
                     x: .value("Selected", point.timestamp),
                     y: .value("Value", point.altitudeNormalized)
                 )
-                .foregroundStyle(by: .value("Metric", "Altitude"))
+                .foregroundStyle(by: .value("Metric", Self.altitudeSeriesName))
                 .annotation(position: .bottom, alignment: .center) {
                     Text(String(format: "%.1f m", point.rawAltitude))
                         .font(.caption2.bold())
@@ -140,9 +143,13 @@ struct CombinedMetricLineChart: View {
                 }
             }
         }
+        // TASK-241: Swift Charts prints the *series name* in the legend, so a raw "Speed" string
+        // stayed English on an otherwise French chart. The name is localized once and used for both
+        // the series and the colour scale — they are matched by value, so they cannot be allowed to
+        // drift apart or the colours detach from the legend.
         .chartForegroundStyleScale([
-            "Speed": BrandColor.chartSpeed,
-            "Altitude": BrandColor.chartAltitude
+            Self.speedSeriesName: BrandColor.chartSpeed,
+            Self.altitudeSeriesName: BrandColor.chartAltitude
         ])
         .chartLegend(position: .top, alignment: .leading)
         .frame(height: 200)

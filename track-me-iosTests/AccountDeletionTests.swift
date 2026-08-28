@@ -88,7 +88,7 @@ final class RideStatsStoreResetTests: XCTestCase {
     }
 }
 
-final class AccountDeletionErrorMessageTests: XCTestCase {
+final class AccountDeletionErrorMessageTests: EnglishCopyTestCase {
     func testDeletionErrorMessage_requiresRecentLogin() {
         let error = NSError(domain: AuthErrorDomain, code: AuthErrorCode.requiresRecentLogin.rawValue, userInfo: nil)
         let message = AccountManagementView.deletionErrorMessage(for: error)
