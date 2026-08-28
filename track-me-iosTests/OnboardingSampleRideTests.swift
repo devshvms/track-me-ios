@@ -112,3 +112,35 @@ struct OnboardingSampleRideTests {
         }
     }
 }
+
+/// TASK-248. The sample is the first ride most riders open, and it was the one ride whose stat grid
+/// had a hole in it: five populated cells beside a missing elevation, while Android additionally
+/// printed "Unknown" for a duration its own average speed had been derived from.
+@Suite
+struct SampleRideMetadataTests {
+
+    @Test
+    func theSampleCarriesAnElevationFigureRatherThanAnEmptyCell() {
+        let ride = OnboardingDemoFixture.makeRide()
+        // §5.2 reserves the absent cell for altitude we never had. This track has an altitude on
+        // every point and is genuinely flat, so 0 m is a measurement, not a guess.
+        let elevation = ride.elevationGainMeters
+        #expect(elevation != nil, "a flat track still has a known gain")
+        #expect((elevation ?? 99) < 1.0, "flat terrain cannot climb")
+    }
+
+    @Test
+    func theSampleDurationAgreesWithTheAverageSpeedBesideIt() {
+        // §5.1's invariant, applied to the one ride that could not satisfy it: distance ÷ duration
+        // must land on the speed the grid prints next to them.
+        let ride = OnboardingDemoFixture.makeRide()
+        guard let distance = ride.distanceMeters,
+              let movingMillis = ride.movingDurationMillis, movingMillis > 0,
+              let speed = ride.avgSpeedMps else {
+            Issue.record("the sample must carry distance, duration and speed")
+            return
+        }
+        let implied = distance / (Double(movingMillis) / 1_000)
+        #expect(abs(implied - speed) <= speed * 0.05)
+    }
+}
