@@ -5,11 +5,52 @@ import FirebaseFirestore
 
 /// Pure consent contract shared with Android: local opt-in is required, while the
 /// remote flag can only force telemetry off.
+/// TASK-250, shvm: whether *this build, on this machine* may deliver telemetry at all.
+///
+/// A third gate beside consent and the remote kill switch, and the only one that is a property of
+/// the build rather than the user. Every debug run and every simulator session was landing in the
+/// same PostHog project and Crashlytics app as real riders. Not a privacy problem — nobody's data
+/// leaks — but a data-quality one, and quiet: developer sessions inflate counts and shape a funnel
+/// out of runs that were never real usage. A metric nobody trusts is worse than one nobody has.
+///
+/// Kept in step with Android's `TelemetryEnvironment`.
+enum TelemetryEnvironment {
+
+    /// Deliberately not "release builds only": a release build running in the Simulator is still
+    /// not a rider.
+    static let allowsDelivery: Bool = {
+        #if DEBUG
+        return false
+        #elseif targetEnvironment(simulator)
+        return false
+        #else
+        return true
+        #endif
+    }()
+
+    /// Human-readable reason, for the one log line that explains a silent analytics build.
+    static var suppressionReason: String? {
+        #if DEBUG
+        return "debug build"
+        #elseif targetEnvironment(simulator)
+        return "simulator"
+        #else
+        return nil
+        #endif
+    }
+}
+
 struct TelemetryConsentState {
     let localConsent: Bool
     let remoteAllowed: Bool
+    /// TASK-250. **No default on purpose** — a default would let a future call site silently opt
+    /// back into delivery from a debug build, which is the shape of the TASK-246 defect: a
+    /// parameter that reads as harmless and is wrong on exactly the paths that omit it.
+    let environmentAllowsDelivery: Bool
 
-    var isEnabled: Bool { localConsent && remoteAllowed }
+    /// This term can only ever subtract. It never grants delivery the user did not consent to,
+    /// which is why it composes with `&&` rather than replacing the other two.
+    var isEnabled: Bool { localConsent && remoteAllowed && environmentAllowsDelivery }
 }
 
 enum GroupJoinFailure: String, CaseIterable {
@@ -127,11 +168,29 @@ class TelemetryManager {
     private init() {}
 
     private var effectiveState: TelemetryConsentState {
-        TelemetryConsentState(localConsent: localConsent, remoteAllowed: remoteAllowed)
+        TelemetryConsentState(
+            localConsent: localConsent,
+            remoteAllowed: remoteAllowed,
+            environmentAllowsDelivery: TelemetryEnvironment.allowsDelivery
+        )
     }
     
     // MARK: - PostHog Setup
     func initializePostHog() {
+        // TASK-250: a build that may not deliver does not start the SDK at all.
+        //
+        // Opting out would already stop capture, and every event below checks the same flag — but
+        // "no SDK, no queue, no network" is a guarantee that does not depend on getting every call
+        // site right, and it is the guarantee shvm asked for. The remote config listener goes with
+        // it: its only job is to feed the kill switch, which cannot change an answer already false.
+        guard TelemetryEnvironment.allowsDelivery else {
+            // NSLog rather than print, so the reason reaches the system log and is visible on a
+            // build nobody is attached to -- the house style elsewhere in this codebase.
+            NSLog("TrackMe: telemetry delivery suppressed (%@)", TelemetryEnvironment.suppressionReason ?? "unknown")
+            isInitialized = true
+            return
+        }
+
         let configuration = PostHogConfig(projectToken: "phc_ohRdDdd3VeXqFJPWefGv8vF3ogo4cUHaw9hrMLvDmP8k", host: "https://eu.i.posthog.com")
         // PostHog handles standard properties automatically (OS Version, Screen Dimensions, etc)
         // Opt out automatically if telemetry is disabled
