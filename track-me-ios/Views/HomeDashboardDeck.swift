@@ -14,10 +14,14 @@ struct HomeDashboardDeck: View {
     let onOpenHistory: () -> Void
     let onOpenCommunity: () -> Void
     let onOpenGroupMap: () -> Void
+    /// TASK-254: hands Community the sheet to open, then switches to it. The sheets are not duplicated.
+    var onCreateGroup: () -> Void = {}
+    var onJoinGroup: () -> Void = {}
     let scrollToTopRequest: Int
 
     @ObservedObject private var unitSettings = UnitSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showHowItWorks = false
 
     var body: some View {
         ScrollView {
@@ -26,6 +30,16 @@ struct HomeDashboardDeck: View {
                     contextualCard
                         .dashboardCardMotion(
                             orderFromTop: 0,
+                            total: 4,
+                            isVisible: isVisible,
+                            reduceMotion: reduceMotion
+                        )
+
+                    groupRideCard
+                        .dashboardCardMotion(
+                            // Second in the deck, so it staggers in after the contextual notice
+                            // rather than alongside it.
+                            orderFromTop: 1,
                             total: 4,
                             isVisible: isVisible,
                             reduceMotion: reduceMotion
@@ -94,24 +108,7 @@ struct HomeDashboardDeck: View {
 
     @ViewBuilder
     private var contextualCard: some View {
-        if groupActive {
-            DashboardCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    Label(
-                        "\(LocalizationHelper.localized("Group session active")) • "
-                            + LocalizationHelper.formatted("%@ members", String(groupMemberCount)),
-                        systemImage: "person.2.fill"
-                    )
-                    .font(.headline)
-                    .foregroundStyle(BrandColor.primary)
-
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 10) { groupActions }
-                        VStack(alignment: .leading, spacing: 8) { groupActions }
-                    }
-                }
-            }
-        } else if syncNeedsAction {
+        if syncNeedsAction {
             Button(action: onOpenHistory) {
                 DashboardCard {
                     Label(
@@ -135,14 +132,83 @@ struct HomeDashboardDeck: View {
         }
     }
 
+    /// TASK-254, shvm: group rides are entered from Home, not only from a tab most riders never
+    /// open.
+    ///
+    /// The entry point was the whole problem. Creating or joining lived behind the Community tab,
+    /// which a rider has no reason to visit until they already know the feature exists — so the
+    /// feature was gated on discovering the feature.
+    ///
+    /// **The tab stays**, on shvm's call and rightly: TASK-232 gave Community real content, the
+    /// rider's own group rides, and removing it would orphan that. Card is the entry point, tab is
+    /// the destination; whether the tab still earns its place is a question for usage data later.
+    ///
+    /// The Create and Join *sheets* are not duplicated here — they stay on Community, and this only
+    /// records which one was asked for. Two implementations of a consent-bearing sheet is exactly
+    /// how the two drift apart.
+    ///
+    /// The privacy sentence is not decoration: `COMMUNITY_REDESIGN_SPEC.md` §2.3 keeps it at full
+    /// prominence because it is the reason people trust this feature, so the entry point carries it
+    /// rather than making the promise only where the rider has already committed.
+    @ViewBuilder
+    private var groupRideCard: some View {
+        DashboardCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label(
+                        groupActive
+                            ? "\(LocalizationHelper.localized("Group session active")) • "
+                                + LocalizationHelper.formatted("%@ members", String(groupMemberCount))
+                            : LocalizationHelper.localized("Ride together"),
+                        systemImage: "person.2.fill"
+                    )
+                    .font(.headline)
+                    .foregroundStyle(BrandColor.primary)
+
+                    if !groupActive {
+                        Spacer()
+                        Button {
+                            showHowItWorks.toggle()
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel(LocalizationHelper.localized("How group rides work"))
+                    }
+                }
+
+                if !groupActive && showHowItWorks {
+                    Text(LocalizationHelper.localized(
+                        "Everyone in the group sees everyone else while the group is live. Nobody sees where you have been, and nothing is saved."
+                    ))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { groupActions }
+                    VStack(alignment: .leading, spacing: 8) { groupActions }
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private var groupActions: some View {
-        Button(LocalizationHelper.localized("Open Community"), action: onOpenCommunity)
-            .buttonStyle(.bordered)
-            .frame(minHeight: 44)
-        Button(LocalizationHelper.localized("View live map"), action: onOpenGroupMap)
-            .buttonStyle(.borderedProminent)
-            .frame(minHeight: 44)
+        if groupActive {
+            Button(LocalizationHelper.localized("View live map"), action: onOpenGroupMap)
+                .buttonStyle(.borderedProminent)
+                .frame(minHeight: 44)
+        } else {
+            Button(LocalizationHelper.localized("Create a group"), action: onCreateGroup)
+                .buttonStyle(.borderedProminent)
+                .frame(minHeight: 44)
+            Button(LocalizationHelper.localized("Join with a code"), action: onJoinGroup)
+                .buttonStyle(.bordered)
+                .frame(minHeight: 44)
+        }
     }
 }
 

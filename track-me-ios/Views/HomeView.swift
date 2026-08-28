@@ -551,6 +551,16 @@ struct HomeView: View {
             onOpenHistory: onNavigateHistory,
             onOpenCommunity: onNavigateCommunity,
             onOpenGroupMap: openExplicitGroupMap,
+            // TASK-254: record which control the rider asked for, then switch to the tab that owns
+            // it. The controls are deliberately not rebuilt here.
+            onCreateGroup: {
+                GroupEntryRequest.shared.request(.create)
+                onNavigateCommunity()
+            },
+            onJoinGroup: {
+                GroupEntryRequest.shared.request(.join)
+                onNavigateCommunity()
+            },
             scrollToTopRequest: scrollToTopRequest
         )
     }
