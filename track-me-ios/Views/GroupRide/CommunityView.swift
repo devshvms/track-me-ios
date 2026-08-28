@@ -8,6 +8,12 @@ struct CommunityView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var groupName = "Sunday Riders"
     @State private var joinCode = ""
+
+    /// TASK-254: which field Home sent the rider here to use. Focusing it makes the Form scroll to
+    /// it, so the control they asked for is the one in front of them.
+    private enum GroupEntryField: Hashable { case create, join }
+    @FocusState private var focusedEntryField: GroupEntryField?
+    @ObservedObject private var groupEntryRequest = GroupEntryRequest.shared
     @State private var isBusy = false
     @State private var errorMessage: String?
     @State private var showEditSheet = false
@@ -102,6 +108,16 @@ struct CommunityView: View {
                 }
             }
             .task { loadGroupRides() }
+            // TASK-254: Home asked for a specific control. Guarded on `isActive` so a stale request
+            // cannot focus the create field over a live group -- the rider could tap Create on Home
+            // and be joined by an invite before this runs.
+            .onChange(of: groupEntryRequest.pending, initial: true) { _, action in
+                guard let action else { return }
+                if !groupRide.state.isActive {
+                    focusedEntryField = action == .create ? .create : .join
+                }
+                groupEntryRequest.consume()
+            }
             .onChange(of: groupRide.state.isActive) { _, _ in loadGroupRides() }
             .task(id: groupRide.state.isActive) {
                 guard groupRide.state.isActive else { return }
@@ -250,6 +266,7 @@ struct CommunityView: View {
 
             Section {
                 TextField(LocalizationHelper.localized("Group name"), text: $groupName)
+                    .focused($focusedEntryField, equals: .create)
                     .textInputAutocapitalization(.words)
                 Button {
                     awaitRun { try await groupRide.createGroup(groupName: groupName) }
@@ -265,6 +282,7 @@ struct CommunityView: View {
 
             Section {
                 TextField(LocalizationHelper.localized("Join code"), text: $joinCode)
+                    .focused($focusedEntryField, equals: .join)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .onChange(of: joinCode) { _, value in
