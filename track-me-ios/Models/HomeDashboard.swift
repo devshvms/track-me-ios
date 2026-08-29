@@ -5,6 +5,7 @@ nonisolated struct HomeWeeklyBucket: Codable, Equatable, Sendable {
     let activityCount: Int
     let distanceMeters: Double
     let activeDurationMillis: Int64
+    let distanceByPersona: [Double]
 }
 
 nonisolated struct HomeRecentActivity: Codable, Equatable, Sendable {
@@ -94,7 +95,8 @@ nonisolated struct HomeDashboardSummary: Codable, Equatable, Sendable {
                 weekStartEpochDay: week,
                 activityCount: 0,
                 distanceMeters: 0,
-                activeDurationMillis: 0
+                activeDurationMillis: 0,
+                distanceByPersona: []
             ),
             lifetimeActivityCount: 0,
             lifetimeDistanceMeters: 0,
@@ -378,7 +380,10 @@ nonisolated enum HomeDashboardSelector {
             weekStartEpochDay: start,
             activityCount: rides.count,
             distanceMeters: rides.reduce(0) { $0 + $1.distanceMeters },
-            activeDurationMillis: rides.reduce(Int64(0)) { $0 + $1.activeDurationMillis }
+            activeDurationMillis: rides.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
+            distanceByPersona: RidePersona.allCases.map { p in
+                rides.filter { $0.persona == p }.reduce(0) { $0 + $1.distanceMeters }
+            }
         )
     }
 
