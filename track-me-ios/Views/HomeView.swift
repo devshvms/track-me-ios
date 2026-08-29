@@ -13,6 +13,7 @@ struct HomeView: View {
 
     @Bindable var trackingManager = TrackingManager.shared
     @Bindable private var dashboard = HomeDashboardRepository.shared
+    @Bindable private var gamification = GamificationRepository.shared
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -478,6 +479,7 @@ struct HomeView: View {
         .onChange(of: dashboard.summary, initial: true) { _, summary in
             dashboard.loadRoutePreview(for: summary?.latestActivity?.localId)
             trackDashboardEntryIfNeeded()
+            gamification.refresh(context: modelContext)
         }
         .onChange(of: presentationMode) { _, _ in
             trackDashboardEntryIfNeeded()
@@ -537,6 +539,9 @@ struct HomeView: View {
     private var dashboardLayer: some View {
         HomeDashboardDeck(
             summary: dashboard.summary,
+            gamificationLevel: gamification.currentLevel,
+            gamificationTotalActiveMinutes: gamification.totalActiveMinutes,
+            gamificationUnlockedAchievements: gamification.unlockedAchievements,
             isReconciling: dashboard.isReconciling,
             hasSampleRide: dashboard.hasSampleRide,
             routePoints: dashboard.routePoints,

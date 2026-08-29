@@ -294,6 +294,44 @@ struct SettingsView: View {
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
 
+                    // Gamification Card
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Gamification")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Maintenance Mode")
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                let maintenanceEndWeek = GamificationRepository.shared.maintenanceEndWeek
+                                Text(maintenanceEndWeek != nil ? "Active" : "Paused consistency pressure")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Picker("Maintenance Mode", selection: Binding(
+                                get: { GamificationRepository.shared.maintenanceEndWeek != nil ? 4 : 0 },
+                                set: { weeks in
+                                    if weeks > 0 {
+                                        GamificationRepository.shared.setMaintenanceMode(weeks: weeks)
+                                    } else {
+                                        GamificationRepository.shared.clearMaintenanceMode()
+                                    }
+                                }
+                            )) {
+                                Text("Off").tag(0)
+                                Text("4 Weeks").tag(4)
+                                Text("8 Weeks").tag(8)
+                            }
+                            .tint(BrandColor.primary)
+                        }
+                    }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(16)
+
                     // Privacy & Analytics Card
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Privacy & Analytics")

@@ -40,6 +40,14 @@ final class GamificationRepository {
         self.defaults = defaults
     }
     
+    func refresh(context: ModelContext) {
+        let descriptor = FetchDescriptor<Ride>(
+            predicate: #Predicate { !$0.isSample && !$0.pendingDelete }
+        )
+        let rides = (try? context.fetch(descriptor)) ?? []
+        refresh(rides: rides)
+    }
+
     func refresh(rides: [Ride]) {
         let level = GamificationEngine.calculateLevel(from: rides)
         let minutes = GamificationEngine.calculateTotalActiveMinutes(from: rides)

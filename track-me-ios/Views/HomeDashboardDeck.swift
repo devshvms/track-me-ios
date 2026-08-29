@@ -2,6 +2,9 @@ import SwiftUI
 
 struct HomeDashboardDeck: View {
     let summary: HomeDashboardSummary?
+    let gamificationLevel: GamificationLevel
+    let gamificationTotalActiveMinutes: Int64
+    let gamificationUnlockedAchievements: [String]
     let isReconciling: Bool
     let hasSampleRide: Bool
     let routePoints: [HomeDashboardRoutePoint]
@@ -49,6 +52,11 @@ struct HomeDashboardDeck: View {
                         if summary.lifetimeActivityCount == 0 {
                             EmptyDashboardCard(hasSampleRide: hasSampleRide)
                         } else {
+                            GamificationProgressCard(
+                                currentLevel: gamificationLevel,
+                                totalActiveMinutes: gamificationTotalActiveMinutes,
+                                unlockedAchievements: gamificationUnlockedAchievements
+                            )
                             WeeklySummaryCard(summary: summary, unit: unitSettings.unit)
                         }
                     }
