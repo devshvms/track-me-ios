@@ -95,7 +95,17 @@ final class MotionSensorManager {
         return g * 9.81
     }
 
-    static func distanceShouldAccumulate(state: TrackingState, isPaused: Bool, dist: Double, effectiveSpeed: Double) -> Bool {
-        return state == .tracking && !isPaused && dist >= minDistanceToAccumulate && effectiveSpeed > minSpeedToAccumulate
+    static func distanceShouldAccumulate(
+        state: TrackingState,
+        isPaused: Bool,
+        crossesManualPause: Bool = false,
+        dist: Double,
+        effectiveSpeed: Double
+    ) -> Bool {
+        return state == .tracking
+            && !isPaused
+            && !crossesManualPause
+            && dist >= minDistanceToAccumulate
+            && effectiveSpeed > minSpeedToAccumulate
     }
 }

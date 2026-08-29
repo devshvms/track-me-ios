@@ -38,6 +38,27 @@ final class MotionSensorLogicTests: XCTestCase {
         XCTAssertFalse(MotionSensorManager.distanceShouldAccumulate(state: .paused, isPaused: false, dist: 1.5, effectiveSpeed: 0.31))
     }
 
+    func testDistanceDoesNotBridgeAcrossAManualPause() {
+        XCTAssertFalse(
+            MotionSensorManager.distanceShouldAccumulate(
+                state: .tracking,
+                isPaused: false,
+                crossesManualPause: true,
+                dist: 78,
+                effectiveSpeed: 3
+            )
+        )
+        XCTAssertTrue(
+            MotionSensorManager.distanceShouldAccumulate(
+                state: .tracking,
+                isPaused: false,
+                crossesManualPause: false,
+                dist: 3,
+                effectiveSpeed: 3
+            )
+        )
+    }
+
     func testUnitConversionEdgeCase() {
         // 0.01 G -> ~0.0981 m/s^2 (< 0.18) -> stationary
         let g1 = 0.01
