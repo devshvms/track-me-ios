@@ -68,6 +68,29 @@ struct HomeView: View {
 
             dashboardLayer
 
+            if let newLevel = gamification.newLevelReveal {
+                GamificationRevealView(
+                    newLevel: newLevel,
+                    newAchievements: gamification.newAchievementsReveal,
+                    onDismiss: {
+                        gamification.acknowledgeNewLevel(newLevel)
+                        if !gamification.newAchievementsReveal.isEmpty {
+                            gamification.acknowledgeAchievements(gamification.newAchievementsReveal)
+                        }
+                    }
+                )
+                .zIndex(100)
+            } else if !gamification.newAchievementsReveal.isEmpty {
+                GamificationRevealView(
+                    newLevel: nil,
+                    newAchievements: gamification.newAchievementsReveal,
+                    onDismiss: {
+                        gamification.acknowledgeAchievements(gamification.newAchievementsReveal)
+                    }
+                )
+                .zIndex(100)
+            }
+
             // Top UI (Map Style, GPS Warning & Offline Tracking Shield)
             VStack(spacing: 8) {
                 if groupRide.state.isActive && presentationMode != .idleDashboard {
