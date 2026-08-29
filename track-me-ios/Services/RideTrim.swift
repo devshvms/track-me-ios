@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 /// The stationary head and tail of a ride, which nobody meant to record.
@@ -89,5 +90,69 @@ enum RideTrimmer {
             leadingSeconds: trimStart > 0 ? leading : 0,
             trailingSeconds: trimEnd < last ? trailing : 0
         )
+    }
+}
+
+/// TASK-257, shvm: a stretch of a ride that was never recorded.
+///
+/// Mirrors Android's `RideGaps`. The rule takes **two** signals — a time gap *and* a speed the
+/// persona could not have reached — and it is AND, never OR. Time alone would dot a 30-second
+/// sampling gap the rider genuinely rode; implied speed alone fires on a single jittery fix, and at
+/// 1 Hz one bad fix implies an absurd speed.
+///
+/// The ceilings are deliberately generous and `auto` takes the most permissive, because the failure
+/// directions are not symmetric: a false negative is a cosmetically solid line, while a false
+/// positive draws a real part of someone's ride as if we had not recorded it.
+///
+/// **This governs how a gap is drawn, not whether its distance counts.** A manual pause at walking
+/// pace is invisible to a speed rule — that is why the pause now writes a flagged point instead.
+enum RideGaps {
+
+    /// Matches Android's `GAP_THRESHOLD_MILLIS` and `ChartAccessibility.gapThresholdSeconds`.
+    /// Reused rather than re-picked: two thresholds for one idea drift, and a rider comparing the
+    /// "GPS signal gaps" count to the dotted segments should see them agree.
+    static let gapThresholdSeconds: TimeInterval = 25
+
+    /// Ceilings, not typical speeds — a cyclist descending touches 80 km/h.
+    static func maxPlausibleSpeedMetersPerSecond(for persona: RidePersona) -> Double {
+        switch persona {
+        case .walk: return 12 / 3.6
+        case .run: return 30 / 3.6
+        case .cycling: return 80 / 3.6
+        case .bikeDrive: return 160 / 3.6
+        case .carDrive: return 220 / 3.6
+        // Unknown activity: the most permissive, so `auto` never dots a real segment.
+        case .auto: return 220 / 3.6
+        }
+    }
+
+    static func isUnrecordedGap(from previous: GPSPoint, to current: GPSPoint, persona: RidePersona) -> Bool {
+        let elapsed = current.timestamp.timeIntervalSince(previous.timestamp)
+        guard elapsed > gapThresholdSeconds else { return false }
+
+        let from = CLLocation(latitude: previous.latitude, longitude: previous.longitude)
+        let to = CLLocation(latitude: current.latitude, longitude: current.longitude)
+        let impliedSpeed = to.distance(from: from) / elapsed
+        return impliedSpeed > maxPlausibleSpeedMetersPerSecond(for: persona)
+    }
+
+    /// Splits a ride into the runs that were actually recorded.
+    ///
+    /// The space *between* two consecutive runs is a gap, to be drawn dotted. Returning runs rather
+    /// than a per-point flag keeps the renderer honest — it cannot accidentally draw a continuous
+    /// path through a gap, because it never holds one.
+    static func recordedRuns(_ points: [GPSPoint], persona: RidePersona) -> [[GPSPoint]] {
+        guard !points.isEmpty else { return [] }
+        var runs: [[GPSPoint]] = []
+        var run: [GPSPoint] = [points[0]]
+        for index in 1..<points.count {
+            if isUnrecordedGap(from: points[index - 1], to: points[index], persona: persona) {
+                runs.append(run)
+                run = []
+            }
+            run.append(points[index])
+        }
+        runs.append(run)
+        return runs
     }
 }

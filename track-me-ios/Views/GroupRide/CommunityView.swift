@@ -11,6 +11,17 @@ struct CommunityView: View {
 
     /// TASK-254: which field Home sent the rider here to use. Focusing it makes the Form scroll to
     /// it, so the control they asked for is the one in front of them.
+    /// TASK-258: acts on Home's request only when the screen can actually honour it.
+    private func applyPendingGroupEntry(_ action: GroupEntryRequest.Action?) {
+        guard let action else { return }
+        // Signed out: keep it pending rather than consuming it against a sign-in prompt.
+        guard signedInUserID != nil else { return }
+        if !groupRide.state.isActive {
+            focusedEntryField = action == .create ? .create : .join
+        }
+        groupEntryRequest.consume()
+    }
+
     private enum GroupEntryField: Hashable { case create, join }
     @FocusState private var focusedEntryField: GroupEntryField?
     @ObservedObject private var groupEntryRequest = GroupEntryRequest.shared
@@ -108,15 +119,22 @@ struct CommunityView: View {
                 }
             }
             .task { loadGroupRides() }
-            // TASK-254: Home asked for a specific control. Guarded on `isActive` so a stale request
-            // cannot focus the create field over a live group -- the rider could tap Create on Home
-            // and be joined by an invite before this runs.
+            // TASK-254/258: Home asked for a specific control.
+            //
+            // TASK-258, shvm: **signed out, this used to swallow the request.** It consumed the
+            // action while the screen was showing the signed-out state, so the rider was carried to
+            // Community, shown a sign-in prompt, and their intent was gone -- they had to start
+            // again. A signed-out request is now left *pending*: the rider signs in,
+            // `signedInUserID` changes, this re-runs, and the control they asked for is focused.
+            // The request lives in memory only, so it cannot outlive the process and surprise them.
+            //
+            // `isActive` still consumes without acting: a rider can tap Create on Home and be joined
+            // by an invite before this runs, and focusing create over a live group would be wrong.
             .onChange(of: groupEntryRequest.pending, initial: true) { _, action in
-                guard let action else { return }
-                if !groupRide.state.isActive {
-                    focusedEntryField = action == .create ? .create : .join
-                }
-                groupEntryRequest.consume()
+                applyPendingGroupEntry(action)
+            }
+            .onChange(of: signedInUserID) { _, _ in
+                applyPendingGroupEntry(groupEntryRequest.pending)
             }
             .onChange(of: groupRide.state.isActive) { _, _ in loadGroupRides() }
             .task(id: groupRide.state.isActive) {

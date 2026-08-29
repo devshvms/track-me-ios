@@ -35,6 +35,24 @@ struct RideDetailView: View {
         return points.sorted { $0.timestamp < $1.timestamp }
     }
 
+    /// TASK-257: the persona sets the gap rule's speed ceiling.
+    private var ridePersona: RidePersona { ride.ridePersona }
+
+    /// Contiguous stretches that were actually recorded — each drawn as a solid line.
+    private var recordedRuns: [[GPSPoint]] {
+        RideGaps.recordedRuns(sortedPoints, persona: ridePersona)
+    }
+
+    /// The joins between consecutive runs, drawn dashed. Two coordinates each.
+    private var gapJoins: [[CLLocationCoordinate2D]] {
+        let runs = recordedRuns
+        guard runs.count > 1 else { return [] }
+        return (1..<runs.count).compactMap { index in
+            guard let from = runs[index - 1].last, let to = runs[index].first else { return nil }
+            return [from.coordinate, to.coordinate]
+        }
+    }
+
     /// TASK-253: the stationary head and tail a rider did not mean to record.
     private var trim: RideTrim { RideTrimmer.window(for: allPoints) }
 
@@ -369,8 +387,23 @@ struct RideDetailView: View {
             )
 
             Map(initialPosition: .region(MKCoordinateRegion(center: center, span: span)), bounds: cameraBounds) {
-                MapPolyline(coordinates: coordinates)
-                    .stroke(BrandColor.primary, lineWidth: 5)
+                // TASK-257, shvm: a solid line asserts "this is where you went". Across a stretch
+                // that was never recorded — a manual pause, a tunnel — it asserts a route nobody
+                // rode, straight through buildings. Recorded runs stay solid; the joins between them
+                // are dashed, which reads as "we do not know" rather than as a road.
+                ForEach(Array(recordedRuns.enumerated()), id: \.offset) { _, run in
+                    if run.count >= 2 {
+                        MapPolyline(coordinates: run.map(\.coordinate))
+                            .stroke(BrandColor.primary, lineWidth: 5)
+                    }
+                }
+                ForEach(Array(gapJoins.enumerated()), id: \.offset) { _, join in
+                    MapPolyline(coordinates: join)
+                        .stroke(
+                            BrandColor.primary.opacity(0.55),
+                            style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 10])
+                        )
+                }
                 
                 Marker("Start", coordinate: coordinates.first!)
                     .tint(BrandColor.primary)

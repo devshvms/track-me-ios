@@ -500,10 +500,41 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     func pauseTracking() {
         if state == .tracking || state == .gpsLost || state == .storageLow {
+            // TASK-257, shvm: record *that* the pause happened, at the place it happened.
+            //
+            // A manual pause used to leave nothing behind. Recording stopped, so the fix before and
+            // the fix after ended up adjacent in storage with the pause flag clear on both, and
+            // every consumer read the jump between them as travel -- distance counted, and a
+            // straight line drawn through buildings the rider never rode past.
+            //
+            // Auto-pause never had this problem because it flags its points. This gives a manual
+            // pause the same evidence, and it is a real position rather than a synthetic one: where
+            // the rider was when they pressed pause. One marker is enough -- carrying `isPaused`,
+            // it excludes *both* segments touching it, the one into the pause and the one out.
+            markPauseBoundary()
             state = .paused
             currentSpeed = 0.0
             updateLiveActivity(force: true)
         }
+    }
+
+    /// Writes the current position as a paused point, so the pause is visible in the point stream.
+    ///
+    /// Best-effort: with no last fix there is nothing truthful to write, and inventing a position
+    /// would be worse than leaving the gap — the gap is at least honest, and the renderer's
+    /// time-and-speed rule still dots it.
+    private func markPauseBoundary() {
+        guard let rideId = currentRideId, let last = points.last else { return }
+        DataRepository.shared.savePointBackground(
+            rideId: rideId,
+            lat: last.coordinate.latitude,
+            lng: last.coordinate.longitude,
+            alt: last.altitude,
+            acc: last.horizontalAccuracy,
+            spd: 0,
+            ts: Date(),
+            paused: true
+        )
     }
 
     func resumeTracking() {
