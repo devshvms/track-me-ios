@@ -84,6 +84,39 @@ final class RideGapsTests: XCTestCase {
         XCTAssertEqual(runs[1].count, 2)
     }
 
+    func testManualPauseMarkerSplitsRunsEvenWhenMovementSpeedIsPlausible() {
+        let p0 = point(0, lat: 12.9700, lon: 77.5900)
+        let p1 = northOf(p0, metres: 20, afterSeconds: 5)
+        let paused = point(10, lat: p1.latitude, lon: p1.longitude, paused: true)
+        // 600 m in four minutes is deliberately below the walking ceiling, so only the explicit
+        // pause marker can prove that this stretch was not recorded.
+        let resumed = northOf(paused, metres: 600, afterSeconds: 240)
+        let p4 = northOf(resumed, metres: 20, afterSeconds: 5)
+
+        let runs = RideGaps.recordedRuns([p0, p1, paused, resumed, p4], persona: .walk)
+
+        XCTAssertEqual(runs.count, 2)
+        XCTAssertEqual(runs[0].count, 2)
+        XCTAssertEqual(runs[1].count, 2)
+        XCTAssertTrue(runs[0][0] === p0)
+        XCTAssertTrue(runs[0][1] === p1)
+        XCTAssertTrue(runs[1][0] === resumed)
+        XCTAssertTrue(runs[1][1] === p4)
+        XCTAssertFalse(runs.flatMap { $0 }.contains { $0.isPaused })
+    }
+
+    func testPausedPointsAtTheEdgesNeverBecomeSolidRuns() {
+        let pausedStart = point(0, lat: 12.9700, lon: 77.5900, paused: true)
+        let recorded = point(5, lat: 12.9701, lon: 77.5900)
+        let pausedEnd = point(10, lat: 12.9701, lon: 77.5900, paused: true)
+
+        let runs = RideGaps.recordedRuns([pausedStart, recorded, pausedEnd], persona: .walk)
+
+        XCTAssertEqual(runs.count, 1)
+        XCTAssertEqual(runs[0].count, 1)
+        XCTAssertTrue(runs[0][0] === recorded)
+    }
+
     func testEdgeInputsDoNotCrash() {
         XCTAssertTrue(RideGaps.recordedRuns([], persona: .auto).isEmpty)
         XCTAssertEqual(RideGaps.recordedRuns([point(0, lat: 1, lon: 1)], persona: .auto).count, 1)

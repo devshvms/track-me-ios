@@ -144,15 +144,26 @@ enum RideGaps {
     static func recordedRuns(_ points: [GPSPoint], persona: RidePersona) -> [[GPSPoint]] {
         guard !points.isEmpty else { return [] }
         var runs: [[GPSPoint]] = []
-        var run: [GPSPoint] = [points[0]]
-        for index in 1..<points.count {
-            if isUnrecordedGap(from: points[index - 1], to: points[index], persona: persona) {
-                runs.append(run)
+        var run: [GPSPoint] = []
+        var previousRecordedPoint: GPSPoint?
+
+        for point in points {
+            if point.isPaused {
+                if !run.isEmpty { runs.append(run) }
+                run = []
+                previousRecordedPoint = nil
+                continue
+            }
+
+            if let previous = previousRecordedPoint,
+               isUnrecordedGap(from: previous, to: point, persona: persona) {
+                if !run.isEmpty { runs.append(run) }
                 run = []
             }
-            run.append(points[index])
+            run.append(point)
+            previousRecordedPoint = point
         }
-        runs.append(run)
+        if !run.isEmpty { runs.append(run) }
         return runs
     }
 }
