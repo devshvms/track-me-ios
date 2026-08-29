@@ -68,8 +68,16 @@ nonisolated enum RideMetrics {
             guard !previous.isPaused, !current.isPaused else { continue }
 
             distanceMeters += distance(from: previous, to: current)
+            // TASK-259: was a private 60s cap — a *fourth* number for one idea. Android carried
+            // three (none, 15s, 60s) and this was the fourth, so the same ride reconstructed to a
+            // different duration depending on platform as well as on code path.
+            //
+            // Now the shared threshold: 25s is what this app already *calls* a GPS signal gap, the
+            // number behind the count in Recording details and behind TASK-257's dotted segments. A
+            // stretch reported to a rider as a gap should not also be counted as time they moved.
             let intervalMillis = Int64(current.timestamp.timeIntervalSince(previous.timestamp) * 1_000)
-            if intervalMillis > 0, intervalMillis <= 60_000 {
+            if intervalMillis > 0,
+               intervalMillis <= Int64(RideGaps.gapThresholdSeconds * 1_000) {
                 movingDurationMillis += intervalMillis
             }
         }
