@@ -72,6 +72,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var pendingTrackingStart = false
     private var storageWarningShown = false
     private var lastStorageCheck = Date.distantPast
+    private var skipsNextDistanceSegmentAfterManualPause = false
 
     override init() {
         super.init()
@@ -241,6 +242,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         maxSpeedMps = 0.0
         durationInMillis = 0
         elapsedDurationInMillis = 0
+        skipsNextDistanceSegmentAfterManualPause = false
         timeSinceLastGps = 0
         lastGpsTimestamp = Date()
 
@@ -405,6 +407,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         timeSinceLastGps = Date().timeIntervalSince(last.timestamp)
         currentSpeed = 0.0
         maxSpeedMps = restoredAggregate.maxSpeedMps
+        // A manual-pause boundary is persisted even if the app dies before the next fix. Keep the
+        // live accumulator aligned with RideMetrics.reconstructed when that ride is restored.
+        skipsNextDistanceSegmentAfterManualPause = last.isPaused
         state = .tracking
 
         startLocationUpdatesAndTimer()
@@ -437,6 +442,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
         currentRideId = nil
         elapsedDurationInMillis = 0
+        skipsNextDistanceSegmentAfterManualPause = false
         selectedPersona = .auto
         locationManager.activityType = LocationSessionConfig.recordingRide.activityType
         GroupRideManager.shared.refreshLocationSource()
@@ -511,6 +517,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             // pause the same evidence, and it is a real position rather than a synthetic one: where
             // the rider was when they pressed pause. One marker is enough -- carrying `isPaused`,
             // it excludes *both* segments touching it, the one into the pause and the one out.
+            skipsNextDistanceSegmentAfterManualPause = true
             markPauseBoundary()
             state = .paused
             currentSpeed = 0.0
@@ -613,7 +620,18 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
             currentSpeed = effectiveSpeed
             maxSpeedMps = max(maxSpeedMps, effectiveSpeed)
-            if MotionSensorManager.distanceShouldAccumulate(state: accumulationState, isPaused: isPaused, dist: dist, effectiveSpeed: effectiveSpeed) {
+            // The persisted pause marker excludes the segment to this first accepted fix. Mirror
+            // that rule in the live aggregate so the HUD and finalized ride never count movement
+            // that happened while recording was manually paused.
+            let crossesManualPause = skipsNextDistanceSegmentAfterManualPause
+            skipsNextDistanceSegmentAfterManualPause = false
+            if MotionSensorManager.distanceShouldAccumulate(
+                state: accumulationState,
+                isPaused: isPaused,
+                crossesManualPause: crossesManualPause,
+                dist: dist,
+                effectiveSpeed: effectiveSpeed
+            ) {
                 totalDistance += dist
             }
 
