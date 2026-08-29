@@ -2,10 +2,23 @@ import SwiftUI
 import MapKit
 import StoreKit
 import FirebaseAuth
+import SwiftData
 
 struct HomeView: View {
+    var onNavigateHistory: () -> Void = {}
+    var onNavigateCommunity: () -> Void = {}
+    var scrollToTopRequest: Int = 0
+    /// TASK-226: bumped when the rider double-taps this tab. Pops back to the deck.
+    var popToRootRequest: Int = 0
+
     @Bindable var trackingManager = TrackingManager.shared
-    @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
+    @Bindable private var dashboard = HomeDashboardRepository.shared
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Query(filter: #Predicate<Ride> { !$0.isSynced && !$0.isSample && !$0.pendingDelete })
+    private var unsyncedRides: [Ride]
+    @State private var position: MapCameraPosition = .region(HomeMapCamera.neutralRegion)
     @State private var mapRegion: MKCoordinateRegion?
     @SceneStorage("home.camera_follow_mode") private var cameraFollowMode = true
     @State private var hasFollowCameraPosition = false
@@ -19,6 +32,13 @@ struct HomeView: View {
     @State private var liveShareSharePayload: LiveShareSharePayload?
     @State private var showGroupSheet = false
     @State private var selectedGroupMember: GroupWire.MemberPosition?
+    @State private var explicitGroupMap = false
+    @State private var selectedDashboardPersona = DashboardPersonaPreference.selected()
+    @State private var dashboardSelectionCameFromPicker = false
+    @State private var showDashboardPersonaPicker = false
+    @State private var selectedRecentRideId: UUID?
+    @State private var didTrackDashboardEntry = false
+    @State private var trackedInsightValue: String?
     @State private var groupClockTick = StatusAge.elapsedMillis()
     // B1: durable one-shot post-ride reveal, surfaced once on Home.
     @Bindable var revealCoordinator = RevealCoordinator.shared
@@ -28,90 +48,28 @@ struct HomeView: View {
     @State private var rideStartLaunch = RideStartLaunchState()
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
     @AppStorage(OnboardingGate.startHintSeenKey) private var legacyStartHintSeen = false
+
+    private var presentationMode: HomePresentationMode {
+        HomePresentationModePolicy.resolve(
+            isTrackingIdle: trackingManager.state == .idle,
+            explicitGroupMap: explicitGroupMap
+        )
+    }
+
+    private var isMapInteractive: Bool { presentationMode != .idleDashboard }
+
     var body: some View {
+        NavigationStack {
         ZStack(alignment: .bottom) {
-            Map(position: $position, scope: mapScope) {
-                UserAnnotation()
-                if !trackingManager.points.isEmpty {
-                    let coordinates = trackingManager.points.map { $0.coordinate }
-                    MapPolyline(coordinates: coordinates)
-                        .stroke(
-                            LinearGradient(
-                                colors: [BrandColor.cyanBright, BrandColor.cyanDeep],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round)
-                        )
-                }
-                ForEach(visibleHeadingTailSegments) { segment in
-                    MapPolyline(coordinates: [segment.start, segment.end])
-                        .stroke(
-                            GroupMemberTint.color(
-                                index: groupRide.state.roster.firstIndex(where: { $0.uid == segment.uid }) ?? 0
-                            ).opacity(segment.opacity),
-                            style: StrokeStyle(
-                                lineWidth: segment.lineWidth,
-                                lineCap: .round,
-                                lineJoin: .round
-                            )
-                        )
-                }
-                ForEach(visibleGroupPositions) { member in
-                    Annotation(
-                        groupRide.state.roster.first(where: { $0.uid == member.uid })?.displayName ??
-                            LocalizationHelper.localized("Rider"),
-                        coordinate: CLLocationCoordinate2D(latitude: member.lat, longitude: member.lng)
-                    ) {
-                        Button {
-                            selectedGroupMember = member
-                        } label: {
-                            GroupMemberBadge(
-                                initials: groupRide.state.roster.first(where: { $0.uid == member.uid })?.initials ?? "?",
-                                tint: GroupMemberTint.color(index: groupRide.state.roster.firstIndex(where: { $0.uid == member.uid }) ?? 0),
-                                isStale: isGroupPositionStale(member),
-                                ageText: groupPositionAgeText(member),
-                                status: groupStatus(for: member.uid)?.status
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(groupMarkerAccessibilityLabel(member))
-                    }
-                }
-                if let lat = groupRide.state.destinationLat, let lng = groupRide.state.destinationLng {
-                    Marker(
-                        LocalizationHelper.localized("Destination"),
-                        systemImage: "flag.checkered",
-                        coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)
-                    )
-                }
-            }
-            .mapStyle(mapStyle.mapKitStyle)
-            .mapScope(mapScope)
-            .onMapCameraChange(frequency: .onEnd) { context in
-                mapRegion = context.region
-            }
-            // MapKit's SwiftUI API does not expose a camera-move reason like
-            // Maps Compose. These gestures are the public signal available on
-            // iOS; programmatic follow/recenter changes do not clear the mode.
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 1)
-                    .onChanged { _ in clearCameraFollow() }
-            )
-            .simultaneousGesture(
-                MagnificationGesture()
-                    .onChanged { _ in clearCameraFollow() }
-            )
-            .simultaneousGesture(
-                RotationGesture()
-                    .onChanged { _ in clearCameraFollow() }
-            )
-            .ignoresSafeArea(edges: .top)
-            .accessibilityLabel(LocalizationHelper.localized("Map"))
+            mapLayer
+
+            HomeMapScrim(mode: presentationMode, reduceMotion: reduceMotion)
+
+            dashboardLayer
 
             // Top UI (Map Style, GPS Warning & Offline Tracking Shield)
             VStack(spacing: 8) {
-                if groupRide.state.isActive {
+                if groupRide.state.isActive && presentationMode != .idleDashboard {
                     let presencePill = groupRide.presencePill(nowElapsedMillis: groupClockTick)
                     GroupPresencePillView(
                         pill: presencePill,
@@ -124,7 +82,9 @@ struct HomeView: View {
                         groupRide.observePresencePill(current, nowElapsedMillis: groupClockTick)
                     }
                 }
-                if trackingManager.state == .gpsLost || (trackingManager.state == .tracking && trackingManager.timeSinceLastGps > 10.0) {
+                if presentationMode == .activeTrackingMap
+                    && (trackingManager.state == .gpsLost
+                        || (trackingManager.state == .tracking && trackingManager.timeSinceLastGps > 10.0)) {
                     let seconds = Int(trackingManager.timeSinceLastGps)
                     let timeString = seconds > 60 ? "\(seconds / 60)m \(seconds % 60)s" : "\(seconds)s"
                     Text(LocalizationHelper.formatted("No GPS signal for %@", timeString))
@@ -146,7 +106,7 @@ struct HomeView: View {
                         }
                 }
 
-                if trackingManager.state == .storageLow {
+                if presentationMode == .activeTrackingMap && trackingManager.state == .storageLow {
                     Text(LocalizationHelper.localized("Storage almost full — free space to resume"))
                         .font(.subheadline.bold())
                         .foregroundColor(.white)
@@ -165,7 +125,9 @@ struct HomeView: View {
                             ).post()
                         }
                 }
-                if !networkMonitor.isConnected && trackingManager.state == .idle && !groupRide.state.isActive {
+                if !networkMonitor.isConnected
+                    && presentationMode == .activeTrackingMap
+                    && !groupRide.state.isActive {
                     let shieldText = trackingManager.state != .idle
                         ? "🛡️ Offline Tracking Shield Active • Route Safely Recording"
                         : "🛡️ Offline Tracking Shield • Ready to Record Locally"
@@ -211,6 +173,7 @@ struct HomeView: View {
                     .accessibilityElement(children: .combine)
                 }
 
+                if presentationMode == .activeTrackingMap {
                 HStack {
                     Spacer()
 
@@ -230,8 +193,12 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel(LocalizationHelper.localized("Center on my location"))
 
-                        MapCompass(scope: mapScope)
-                            .trackMeMapControlStyle()
+                        // TASK-238 (iOS half, shvm 2026-08-27): no compass button here. It was the
+                        // third control in this stack and duplicated MapKit's own, which this map
+                        // still gets — no `.mapControls { }` suppresses the defaults, so the built-in
+                        // compass appears whenever the map is rotated off north. The hand-placed one
+                        // showed for the whole ride, including north-up, which is exactly when a
+                        // compass says nothing. Same reasoning as the Android removal.
 
                         if groupRide.state.isActive {
                             Button(action: { showGroupSheet = true }) {
@@ -258,46 +225,54 @@ struct HomeView: View {
                     .padding(.trailing, 16)
                     .padding(.top, trackingManager.state == .gpsLost ? 16 : 50)
                 }
+                }
                 Spacer()
+            }
+
+            if presentationMode == .explicitGroupMap {
+                VStack {
+                    HStack {
+                        Button {
+                            explicitGroupMap = false
+                        } label: {
+                            Label(
+                                LocalizationHelper.localized("Dashboard"),
+                                systemImage: "chevron.left"
+                            )
+                            .trackMeMapControlStyle()
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint(LocalizationHelper.localized("Return to Home dashboard"))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 50)
+                    Spacer()
+                }
             }
 
             VStack(spacing: 10) {
                 if trackingManager.state == .idle {
-                    if OnboardingGate.shouldShowStartRideHint(
-                        state: OnboardingState(rawValue: onboardingStateRaw) ?? .legacy,
-                        hintAlreadySeen: legacyStartHintSeen
-                    ) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "hand.draw.fill")
-                                .foregroundStyle(BrandColor.primary)
-                            Text(LocalizationHelper.localized("Press and hold Start, then drag to choose an activity."))
-                                .font(BrandTypography.footnote.weight(.semibold))
-                                .multilineTextAlignment(.leading)
-                            Spacer(minLength: 0)
-                            Button {
-                                legacyStartHintSeen = true
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .frame(width: 32, height: 32)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(LocalizationHelper.localized("Dismiss"))
-                        }
-                        .padding(.leading, 14)
-                        .padding(.trailing, 8)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: 360)
-                        .background(.regularMaterial, in: Capsule())
-                        .padding(.horizontal, 16)
-                    }
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
-                        preselectedPersona: trackingManager.selectedPersona
+                        preselectedPersona: selectedDashboardPersona,
+                        onOpenAllPersonas: { showDashboardPersonaPicker = true },
+                        onAbort: { method in
+                            TelemetryManager.shared.trackRideStartAborted(method: method)
+                        }
                     ) { persona in
                         legacyStartHintSeen = true
+                        let method = dashboardSelectionCameFromPicker || persona != selectedDashboardPersona
+                            ? "persona_picker"
+                            : "primary"
+                        selectedDashboardPersona = persona
+                        TelemetryManager.shared.trackActivityStartCTATapped(
+                            persona: persona,
+                            method: method
+                        )
+                        dashboardSelectionCameFromPicker = false
                         trackingManager.startTracking(persona: persona)
                     }
-                    .transition(.scale(scale: 0.9).combined(with: .opacity))
                 } else {
                     if RideStartAbortPolicy.canOfferPostCommitUndo(
                         durationInMillis: trackingManager.durationInMillis,
@@ -393,13 +368,22 @@ struct HomeView: View {
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 12)
-            .animation(.spring(response: 0.4, dampingFraction: 0.78), value: trackingManager.state)
+            .animation(
+                reduceMotion ? nil : .timingCurve(0.4, 0, 0.2, 1, duration: 0.3),
+                value: presentationMode
+            )
         }
         .sheet(item: $liveShareSharePayload) { payload in
             ActivityView(activityItems: [payload.url])
         }
         .sheet(isPresented: $showGroupSheet) {
             CommunityView()
+        }
+        .sheet(isPresented: $showDashboardPersonaPicker) {
+            DashboardPersonaPicker(selectedPersona: selectedDashboardPersona) { persona in
+                selectDashboardPersona(persona)
+            }
+            .presentationDetents([.medium, .large])
         }
         .sheet(item: $selectedGroupMember) { member in
             GroupMemberDetailSheet(
@@ -440,9 +424,23 @@ struct HomeView: View {
         } message: {
             Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
         }
+        // TASK-226: double-tapping the tab returns to the deck. Home's push is already
+        // programmatic, so clearing the selection is the whole pop.
+        .onChange(of: popToRootRequest) { _, _ in selectedRecentRideId = nil }
+        .navigationDestination(item: $selectedRecentRideId) { rideId in
+            if let ride = ride(with: rideId) {
+                RideDetailView(ride: ride)
+            } else {
+                ContentUnavailableView(
+                    LocalizationHelper.localized("Activity unavailable"),
+                    systemImage: "clock.badge.exclamationmark"
+                )
+            }
+        }
+        .toolbar(presentationMode == .activeTrackingMap ? .hidden : .visible, for: .tabBar)
         .trackScreen("HomeView")
-        .task(id: groupRide.state.isActive) {
-            guard groupRide.state.isActive else { return }
+        .task(id: groupRide.state.isActive && isMapInteractive) {
+            guard groupRide.state.isActive && isMapInteractive else { return }
             while !Task.isCancelled {
                 groupClockTick = StatusAge.elapsedMillis()
                 try? await Task.sleep(for: .seconds(1))
@@ -450,6 +448,8 @@ struct HomeView: View {
         }
         .onDisappear {
             rideStartLaunch.reset()
+            didTrackDashboardEntry = false
+            trackedInsightValue = nil
         }
         .onChange(of: trackingManager.points.count) { _, _ in
             updateFollowCamera()
@@ -461,10 +461,221 @@ struct HomeView: View {
                 cameraFollowMode = true
                 hasFollowCameraPosition = false
                 updateFollowCamera()
+            } else if oldState != .idle && newState == .idle {
+                explicitGroupMap = false
+                selectedDashboardPersona = DashboardPersonaPreference.selected()
+                dashboardSelectionCameFromPicker = false
+                dashboard.invalidate()
             }
         }
         .onChange(of: groupRide.mapFocusRequest) { _, _ in
+            explicitGroupMap = true
             focusPendingGroupMember()
+        }
+        .onChange(of: groupRide.state.isActive) { _, isActive in
+            if !isActive { explicitGroupMap = false }
+        }
+        .onChange(of: dashboard.summary, initial: true) { _, summary in
+            dashboard.loadRoutePreview(for: summary?.latestActivity?.localId)
+            trackDashboardEntryIfNeeded()
+        }
+        .onChange(of: presentationMode) { _, _ in
+            trackDashboardEntryIfNeeded()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                dashboard.refreshOnForeground()
+                trackDashboardEntryIfNeeded()
+            } else {
+                didTrackDashboardEntry = false
+                trackedInsightValue = nil
+            }
+        }
+        .onAppear {
+            selectedDashboardPersona = DashboardPersonaPreference.selected()
+            updateFollowCamera()
+            trackDashboardEntryIfNeeded()
+        }
+    }
+    }
+
+    private var mapLayer: some View {
+        Map(
+            position: $position,
+            interactionModes: isMapInteractive ? .all : [],
+            scope: mapScope
+        ) {
+            homeMapContent
+        }
+        .onMapCameraChange(frequency: .onEnd) { context in
+            mapRegion = context.region
+        }
+        .mapStyle(mapStyle.mapKitStyle)
+        .mapScope(mapScope)
+        // MapKit's SwiftUI API does not expose a camera-move reason like
+        // Maps Compose. These gestures are the public signal available on
+        // iOS; programmatic follow/recenter changes do not clear the mode.
+        .modifier(InteractiveHomeMapGestures(
+            isEnabled: isMapInteractive,
+            onGesture: clearCameraFollow
+        ))
+        // The idle map remains a real, parked backdrop, but its labels must not compete with
+        // the dashboard. Apply the blur to the map layer before HomeMapScrim in the parent ZStack.
+        .compositingGroup()
+        .blur(radius: presentationMode == .idleDashboard ? 14 : 0)
+        // TASK-244/249, shvm: the idle backdrop is ~90% transparent. The map fades toward the
+        // app background rather than being buried under more black — the spec's own amendment says
+        // "a heavier scrim would flatten it into grey", so the lever is the map's opacity, not the
+        // scrim's. HomeMapScrim drops to match; fading and then re-darkening would be grey by
+        // another route. `compositingGroup` above means this fades the composed layer once.
+        .opacity(presentationMode == .idleDashboard ? HomeMapScrim.idleMapOpacity : 1)
+        .ignoresSafeArea(edges: .top)
+        .accessibilityLabel(LocalizationHelper.localized("Map"))
+        .accessibilityHidden(!isMapInteractive)
+    }
+
+    private var dashboardLayer: some View {
+        HomeDashboardDeck(
+            summary: dashboard.summary,
+            isReconciling: dashboard.isReconciling,
+            hasSampleRide: dashboard.hasSampleRide,
+            routePoints: dashboard.routePoints,
+            groupActive: groupRide.state.isActive,
+            groupMemberCount: groupRide.state.memberCount,
+            syncNeedsAction: Auth.auth().currentUser != nil
+                && !unsyncedRides.isEmpty
+                && networkMonitor.isConnected,
+            isOffline: !networkMonitor.isConnected,
+            isVisible: presentationMode == .idleDashboard,
+            onOpenRecent: openRecentActivity,
+            onOpenHistory: onNavigateHistory,
+            onOpenCommunity: onNavigateCommunity,
+            onOpenGroupMap: openExplicitGroupMap,
+            // TASK-254: record which control the rider asked for, then switch to the tab that owns
+            // it. The controls are deliberately not rebuilt here.
+            onCreateGroup: {
+                GroupEntryRequest.shared.request(.create)
+                onNavigateCommunity()
+            },
+            onJoinGroup: {
+                GroupEntryRequest.shared.request(.join)
+                onNavigateCommunity()
+            },
+            scrollToTopRequest: scrollToTopRequest
+        )
+    }
+
+    @MapContentBuilder
+    private var homeMapContent: some MapContent {
+        if presentationMode == .activeTrackingMap {
+            UserAnnotation()
+        }
+        if presentationMode == .activeTrackingMap, !trackingManager.points.isEmpty {
+            let coordinates = trackingManager.points.map(\.coordinate)
+            MapPolyline(coordinates: coordinates)
+                .stroke(
+                    LinearGradient(
+                        colors: [BrandColor.cyanBright, BrandColor.cyanDeep],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round)
+                )
+        }
+        if isMapInteractive {
+            ForEach(visibleHeadingTailSegments) { segment in
+                MapPolyline(coordinates: [segment.start, segment.end])
+                    .stroke(
+                        GroupMemberTint.color(index: groupRosterIndex(for: segment.uid))
+                            .opacity(segment.opacity),
+                        style: StrokeStyle(
+                            lineWidth: segment.lineWidth,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+            ForEach(visibleGroupPositions) { member in
+                groupMemberAnnotation(member)
+            }
+            if let lat = groupRide.state.destinationLat, let lng = groupRide.state.destinationLng {
+                Marker(
+                    LocalizationHelper.localized("Destination"),
+                    systemImage: "flag.checkered",
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)
+                )
+            }
+        }
+    }
+
+    private func groupMemberAnnotation(_ member: GroupWire.MemberPosition) -> some MapContent {
+        let rosterMember = groupRide.state.roster.first(where: { $0.uid == member.uid })
+        let label = rosterMember?.displayName ?? LocalizationHelper.localized("Rider")
+        let initials = rosterMember?.initials ?? "?"
+        let tint = GroupMemberTint.color(index: groupRosterIndex(for: member.uid))
+        let stale = isGroupPositionStale(member)
+        let age = groupPositionAgeText(member)
+        let status = groupStatus(for: member.uid)?.status
+
+        return Annotation(
+            label,
+            coordinate: CLLocationCoordinate2D(latitude: member.lat, longitude: member.lng)
+        ) {
+            Button {
+                selectedGroupMember = member
+            } label: {
+                GroupMemberBadge(
+                    initials: initials,
+                    tint: tint,
+                    isStale: stale,
+                    ageText: age,
+                    status: status
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(groupMarkerAccessibilityLabel(member))
+        }
+    }
+
+    private func groupRosterIndex(for uid: String) -> Int {
+        groupRide.state.roster.firstIndex(where: { $0.uid == uid }) ?? 0
+    }
+
+    private func selectDashboardPersona(_ persona: RidePersona) {
+        selectedDashboardPersona = persona
+        dashboardSelectionCameFromPicker = true
+        Haptics.selection()
+    }
+
+    private func openRecentActivity(_ recent: HomeRecentActivity) {
+        TelemetryManager.shared.trackHomeRecentActivityOpened(persona: recent.persona)
+        selectedRecentRideId = recent.localId
+    }
+
+    private func openExplicitGroupMap() {
+        explicitGroupMap = true
+        focusGroupMapOverview()
+        TelemetryManager.shared.trackHomeGroupMapOpened()
+    }
+
+    private func ride(with id: UUID) -> Ride? {
+        var descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func trackDashboardEntryIfNeeded() {
+        guard scenePhase == .active,
+              presentationMode == .idleDashboard,
+              let summary = dashboard.summary else { return }
+        if !didTrackDashboardEntry {
+            didTrackDashboardEntry = true
+            TelemetryManager.shared.trackHomeDashboardViewed(historyBucket: summary.historyBucket)
+        }
+        if let insight = summary.insight,
+           trackedInsightValue != insight.analyticsValue {
+            trackedInsightValue = insight.analyticsValue
+            TelemetryManager.shared.trackHomeInsightShown(insight)
         }
     }
 
@@ -573,6 +784,41 @@ struct HomeView: View {
         position = .region(region)
     }
 
+    private func focusGroupMapOverview() {
+        var coordinates = groupRide.state.positions.map {
+            CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng)
+        }
+        if let latitude = groupRide.state.destinationLat,
+           let longitude = groupRide.state.destinationLng {
+            coordinates.append(CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
+        }
+        guard let first = coordinates.first else {
+            mapRegion = HomeMapCamera.neutralRegion
+            position = .region(HomeMapCamera.neutralRegion)
+            return
+        }
+
+        let latitudes = coordinates.map(\.latitude)
+        let longitudes = coordinates.map(\.longitude)
+        let minimumLatitude = latitudes.min() ?? first.latitude
+        let maximumLatitude = latitudes.max() ?? first.latitude
+        let minimumLongitude = longitudes.min() ?? first.longitude
+        let maximumLongitude = longitudes.max() ?? first.longitude
+        let region = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(
+                latitude: (minimumLatitude + maximumLatitude) / 2,
+                longitude: (minimumLongitude + maximumLongitude) / 2
+            ),
+            span: MKCoordinateSpan(
+                latitudeDelta: max(0.02, (maximumLatitude - minimumLatitude) * 1.35),
+                longitudeDelta: max(0.02, (maximumLongitude - minimumLongitude) * 1.35)
+            )
+        )
+        clearCameraFollow()
+        mapRegion = region
+        position = .region(region)
+    }
+
     private var visibleHeadingTailSegments: [GroupHeadingTailSegment] {
         let selfUID = Auth.auth().currentUser?.uid
         return groupRide.headingTailSegments(
@@ -644,6 +890,72 @@ struct HomeView: View {
             return notice.rideStillRecording
                 ? LocalizationHelper.localized("This group has ended. Your ride is still recording.")
                 : LocalizationHelper.localized("This group has ended.")
+        }
+    }
+}
+
+private enum HomeMapCamera {
+    static let neutralRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+        span: MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 120)
+    )
+}
+
+private struct HomeMapScrim: View {
+    let mode: HomePresentationMode
+    let reduceMotion: Bool
+
+    /// TASK-249: how much of the idle backdrop map still shows — ~90% transparent, per shvm, raised
+    /// from the ~80% TASK-244 shipped. The brief is "glass like": street labels should not be
+    /// readable, but the road and route lines should still register as structure behind the deck.
+    ///
+    /// Alpha alone is what moves. The blur above already destroys small shapes while leaving long
+    /// lines legible — text is fine detail and dies first, roads are continuous strokes and survive
+    /// — so fading further trades brightness without flattening the structure. A heavier scrim
+    /// would grey the whole thing, the failure TASK-221's amendment named.
+    ///
+    /// Matches Android's `IDLE_MAP_ALPHA`.
+    static let idleMapOpacity: Double = 0.1
+
+    var body: some View {
+        LinearGradient(
+            colors: mode == .idleDashboard
+                // The map is already faded to `idleMapOpacity`, so the scrim only has to give the
+                // deck a little depth.
+                ? [.black.opacity(0.18), .black.opacity(0.06)]
+                : [.black.opacity(0.28), .black.opacity(0.08)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        .animation(
+            reduceMotion ? nil : .linear(duration: 0.42),
+            value: mode
+        )
+    }
+}
+
+private struct InteractiveHomeMapGestures: ViewModifier {
+    let isEnabled: Bool
+    let onGesture: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 1).onChanged { _ in onGesture() }
+                )
+                .simultaneousGesture(
+                    MagnificationGesture().onChanged { _ in onGesture() }
+                )
+                .simultaneousGesture(
+                    RotationGesture().onChanged { _ in onGesture() }
+                )
+        } else {
+            content
         }
     }
 }
@@ -1359,16 +1671,18 @@ nonisolated enum RadialStartPersonaPolicy {
 struct RadialStartTrackingControl: View {
     @Binding var launchState: RideStartLaunchState
     var preselectedPersona: RidePersona = .auto
-    var onAbort: (RideStartAbortMethod) -> Void = {
-        TelemetryManager.shared.trackRideStartAborted(method: $0)
-    }
+    var onOpenAllPersonas: () -> Void = {}
+    /// The drag path's undo. `4dd9d41` restored the abort *behaviour* here — a centre press inside
+    /// the 420 ms non-persona-choice window cancels — but not the callback it reports through, so
+    /// the file has not compiled since. Same defect the Android side carried, and the same fix.
+    var onAbort: (RideStartAbortMethod) -> Void = { _ in }
     var onCommit: (RidePersona) -> Void
 
     @State private var isExpanded = false
     @State private var hoveredPersona: RidePersona?
     @State private var pendingPersona: RidePersona = .auto
     @State private var didExceedTouchSlop = false
-    @State private var abortGestureActive = false
+    @State private var consumingLaunchGesture = false
     @State private var gestureStartedOnControl = false
 
     private let personas: [RidePersona] = [.walk, .run, .cycling, .bikeDrive, .carDrive]
@@ -1378,27 +1692,45 @@ struct RadialStartTrackingControl: View {
     var body: some View {
         GeometryReader { proxy in
             let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height - 50)
+            let showPersonas = isExpanded || launchState.isPending
 
             ZStack {
                 ForEach(Array(personas.enumerated()), id: \.element) { index, persona in
-                    Image(systemName: persona.systemImage)
-                        .font(.system(size: 23, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(
-                            hoveredPersona == persona ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.68),
-                            in: Circle()
-                        )
-                        .overlay {
-                            if hoveredPersona == persona {
-                                Circle().stroke(.white, lineWidth: 2)
+                    Button {
+                        startPersonaImmediately(persona)
+                    } label: {
+                        Image(systemName: persona.systemImage)
+                            .font(.system(size: 23, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 56, height: 56)
+                            .background(
+                                hoveredPersona == persona ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.68),
+                                in: Circle()
+                            )
+                            .overlay {
+                                if hoveredPersona == persona {
+                                    Circle().stroke(.white, lineWidth: 2)
+                                }
                             }
-                        }
-                        .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
-                        .scaleEffect(hoveredPersona == persona ? 1.16 : 1)
-                        .opacity(isExpanded ? 1 : 0)
-                        .position(optionPosition(index: index, center: center))
-                        .accessibilityHidden(true)
+                            .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
+                            .scaleEffect(hoveredPersona == persona ? 1.16 : 1)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(showPersonas ? 1 : 0)
+                    .position(optionPosition(index: index, center: center))
+                    .disabled(!showPersonas)
+                    .accessibilityHidden(!showPersonas)
+                    .accessibilityLabel(LocalizationHelper.localized(persona.displayName))
+                }
+
+                if launchState.isPending {
+                    Button(LocalizationHelper.localized("Change activity")) {
+                        launchState.reset()
+                        resetInteraction()
+                        onOpenAllPersonas()
+                    }
+                    .buttonStyle(.bordered)
+                    .position(x: center.x, y: 28)
                 }
 
                 VStack(spacing: 3) {
@@ -1438,24 +1770,42 @@ struct RadialStartTrackingControl: View {
             }
             .coordinateSpace(name: "radialStart")
         }
-        .frame(width: 300, height: 215)
-        .accessibilityLabel(LocalizationHelper.localized(launchState.isPending ? "Cancel" : "Start tracking"))
+        .frame(width: 300, height: 260)
+        .accessibilityLabel(LocalizationHelper.localized("Start tracking"))
         .accessibilityValue(LocalizationHelper.localized(
             (hoveredPersona ?? preselectedPersona).displayName
         ))
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction {
+            if launchState.isPending {
+                commitPendingLaunch()
+            } else {
+                beginLaunch(preselectedPersona, awaitsPersonaChoice: true)
+            }
+        }
         .accessibilityActions {
-            Button(LocalizationHelper.localized("Auto")) { beginLaunch(.auto) }
+            Button(LocalizationHelper.localized("Auto")) { startPersonaImmediately(.auto) }
             ForEach(personas, id: \.self) { persona in
-                Button(LocalizationHelper.localized(persona.displayName)) { beginLaunch(persona) }
+                Button(LocalizationHelper.localized(persona.displayName)) { startPersonaImmediately(persona) }
             }
         }
         .task(id: launchState.pendingToken) {
             guard let token = launchState.pendingToken else { return }
             let persona = pendingPersona
             do {
-                try await Task.sleep(for: RideStartAbortPolicy.preCommitDelay)
+                let delay = launchState.awaitsPersonaChoice
+                    ? RideStartAbortPolicy.personaChoiceWindow
+                    : RideStartAbortPolicy.preCommitDelay
+                try await Task.sleep(for: delay)
             } catch {
+                return
+            }
+            guard launchState.pendingToken == token else { return }
+            if launchState.awaitsPersonaChoice {
+                // A bloom is an invitation, not consent to start. Lapsing only retracts it and
+                // must not emit pre-commit-abort telemetry.
+                launchState.reset()
+                resetInteraction()
                 return
             }
             guard launchState.commit(observedToken: token) else { return }
@@ -1464,7 +1814,7 @@ struct RadialStartTrackingControl: View {
     }
 
     private var centerImage: String {
-        if launchState.isPending { return "xmark" }
+        if launchState.isPending { return pendingPersona.systemImage }
         if let hoveredPersona { return hoveredPersona.systemImage }
         if isExpanded { return "xmark" }
         return preselectedPersona == .auto ? "play.fill" : preselectedPersona.systemImage
@@ -1485,13 +1835,24 @@ struct RadialStartTrackingControl: View {
     }
 
     private func handleDragChanged(_ value: DragGesture.Value, center: CGPoint) {
+        if consumingLaunchGesture { return }
+
         if launchState.isPending {
-            guard !abortGestureActive, distance(value.location, center) <= 54,
-                  let token = launchState.pendingToken,
-                  launchState.abort(observedToken: token) else { return }
-            abortGestureActive = true
-            Haptics.notify(.warning)
-            onAbort(.preCommit)
+            guard distance(value.location, center) <= 54,
+                  let token = launchState.pendingToken else { return }
+
+            if launchState.awaitsPersonaChoice {
+                let persona = pendingPersona
+                guard launchState.commit(observedToken: token) else { return }
+                consumingLaunchGesture = true
+                Haptics.impact(.medium)
+                onCommit(persona)
+            } else {
+                guard launchState.abort(observedToken: token) else { return }
+                consumingLaunchGesture = true
+                Haptics.notify(.warning)
+                onAbort(.preCommit)
+            }
             return
         }
 
@@ -1520,8 +1881,8 @@ struct RadialStartTrackingControl: View {
     }
 
     private func handleDragEnded(_ value: DragGesture.Value, center: CGPoint) {
-        if abortGestureActive {
-            abortGestureActive = false
+        if consumingLaunchGesture {
+            consumingLaunchGesture = false
             resetInteraction()
             return
         }
@@ -1535,15 +1896,37 @@ struct RadialStartTrackingControl: View {
             preselected: preselectedPersona
         )
 
-        if let selected { beginLaunch(selected) } else { resetInteraction() }
+        if let selected {
+            beginLaunch(
+                selected,
+                awaitsPersonaChoice: !didExceedTouchSlop && hoveredPersona == nil
+            )
+        } else { resetInteraction() }
     }
 
-    private func beginLaunch(_ persona: RidePersona) {
+    private func beginLaunch(_ persona: RidePersona, awaitsPersonaChoice: Bool = false) {
         guard !launchState.isPending else { return }
         pendingPersona = persona
-        launchState.begin()
+        launchState.begin(awaitsPersonaChoice: awaitsPersonaChoice)
         resetInteraction()
         Haptics.impact(.medium)
+    }
+
+    private func commitPendingLaunch() {
+        guard let token = launchState.pendingToken else { return }
+        let persona = pendingPersona
+        guard launchState.commit(observedToken: token) else { return }
+        resetInteraction()
+        Haptics.impact(.medium)
+        onCommit(persona)
+    }
+
+    private func startPersonaImmediately(_ persona: RidePersona) {
+        launchState.reset()
+        pendingPersona = persona
+        resetInteraction()
+        Haptics.impact(.medium)
+        onCommit(persona)
     }
 
     private func resetInteraction() {

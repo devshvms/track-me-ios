@@ -8,6 +8,10 @@ private enum SignInProvider: Equatable {
 }
 
 struct SettingsView: View {
+    /// TASK-226: bumped when the rider double-taps this tab. Pops back to the settings list.
+    var popToRootRequest: Int = 0
+    @State private var navigationPath: [SettingsRoute] = []
+
     @AppStorage("enableGPSPostProcessing") var isPostProcessingEnabled: Bool = true
     @AppStorage("intelligentAutoPause") var isAutoPauseEnabled: Bool = true
     @State private var isLoggedOut = Auth.auth().currentUser == nil || Auth.auth().currentUser?.isAnonymous == true
@@ -45,7 +49,7 @@ struct SettingsView: View {
     @Query private var allRides: [Ride]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(spacing: 24) {
 
@@ -187,7 +191,7 @@ struct SettingsView: View {
                             .padding()
 
                             // Account Management Button
-                            NavigationLink(destination: AccountManagementView()) {
+                            NavigationLink(value: SettingsRoute.accountManagement) {
                                 Text("Account Management")
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
@@ -381,7 +385,7 @@ struct SettingsView: View {
                         Text(LocalizationHelper.localized("Find quick answers or send an editable support report."))
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        NavigationLink(destination: HelpFeedbackView()) {
+                        NavigationLink(value: SettingsRoute.helpFeedback) {
                             Text(LocalizationHelper.localized("Open Help & Feedback"))
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -423,6 +427,12 @@ struct SettingsView: View {
                 .padding()
             }
             .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
+            .navigationDestination(for: SettingsRoute.self) { route in
+                switch route {
+                case .accountManagement: AccountManagementView()
+                case .helpFeedback: HelpFeedbackView()
+                }
+            }
             .navigationTitle("")
             .navigationBarHidden(true)
             .alert("GPS Post-Processing", isPresented: $showGpsInfo) {
@@ -448,6 +458,8 @@ struct SettingsView: View {
                 self.authStateListenerHandle = nil
             }
         }
+        // TASK-226: double-tapping the tab returns to the settings list.
+        .onChange(of: popToRootRequest) { _, _ in navigationPath.removeAll() }
         .trackScreen("SettingsView")
     }
 
@@ -509,4 +521,11 @@ struct SettingsView: View {
             }
         }
     }
+}
+
+/// TASK-226: the two screens Settings can push. Value-based so the stack has a path to clear when
+/// the rider double-taps the tab; the destinations themselves are unchanged.
+enum SettingsRoute: Hashable {
+    case accountManagement
+    case helpFeedback
 }

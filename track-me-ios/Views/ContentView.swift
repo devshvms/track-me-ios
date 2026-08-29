@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import DeclaredAgeRange
+import UIKit
 
 struct ContentView: View {
     // B2: shared foreground trigger (scenePhase) — parity with Android MainActivity.onResume.
@@ -21,10 +22,50 @@ struct ContentView: View {
     @Bindable private var groupRide = GroupRideManager.shared
     @Bindable private var emergencyRetirement = EmergencyDataPurge.shared
     @State private var selectedTab: AppTab = .home
+    @State private var tabScrollToTopRequest = 0
+    // TASK-226. Per-tab so double-tapping History cannot pop Settings as a side effect.
+    @State private var tabDoubleTap = TabDoubleTapDetector()
+    @State private var tabPopToRootRequest: [AppTab: Int] = [:]
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
 
     private var onboardingState: OnboardingState {
         OnboardingState(rawValue: onboardingStateRaw) ?? .legacy
+    }
+
+    private var mainTabs: some View {
+        TabView(selection: $selectedTab) {
+            HomeView(
+                onNavigateHistory: { selectedTab = .history },
+                onNavigateCommunity: { selectedTab = .community },
+                scrollToTopRequest: tabScrollToTopRequest,
+                popToRootRequest: tabPopToRootRequest[.home] ?? 0
+            )
+            .tabItem { Label("Home", systemImage: "house.fill") }
+            .tag(AppTab.home)
+
+            HistoryView(
+                scrollToTopRequest: tabScrollToTopRequest,
+                popToRootRequest: tabPopToRootRequest[.history] ?? 0
+            )
+            .tabItem { Label("History", systemImage: "clock.fill") }
+            .tag(AppTab.history)
+
+            CommunityView()
+                .tabItem { Label(LocalizationHelper.localized("Community"), systemImage: "person.2.fill") }
+                .tag(AppTab.community)
+
+            SettingsView(popToRootRequest: tabPopToRootRequest[.settings] ?? 0)
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(AppTab.settings)
+        }
+        .background(TabBarReselectObserver { index in
+            // §4.4's scroll-to-top is unchanged and still fires first; TASK-226 sits on top of it.
+            tabScrollToTopRequest += 1
+            guard tabDoubleTap.tap(index: index, now: ProcessInfo.processInfo.systemUptime),
+                  let tab = AppTab.ordered[safe: index] else { return }
+            // The tab's main page, guaranteed: drop whatever is still above its root.
+            tabPopToRootRequest[tab, default: 0] += 1
+        })
     }
 
     var body: some View {
@@ -39,6 +80,7 @@ struct ContentView: View {
                     // Land on Home with a real default, without turning the CTA into a location
                     // permission trap or starting a recording before the user's next gesture.
                     trackingManager.selectedPersona = outcome.selectedPersona
+                    DashboardPersonaPreference.recordOnboardingFallback(outcome.selectedPersona)
                     onboardingStateRaw = OnboardingState.done.rawValue
                     try? OnboardingSampleRideSeeder.seedIfNeeded(
                         context: modelContext,
@@ -47,31 +89,7 @@ struct ContentView: View {
                     )
                 }
             } else {
-                TabView(selection: $selectedTab) {
-            HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "map.fill")
-                }
-                .tag(AppTab.home)
-
-            HistoryView()
-                .tabItem {
-                    Label("History", systemImage: "clock.fill")
-                }
-                .tag(AppTab.history)
-
-            CommunityView()
-                .tabItem {
-                    Label(LocalizationHelper.localized("Community"), systemImage: "person.2.fill")
-                }
-                .tag(AppTab.community)
-
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
-                }
-                .tag(AppTab.settings)
-                }
+                mainTabs
             }
         }
         .sheet(item: $recapCoordinator.pending, onDismiss: {
@@ -149,6 +167,82 @@ private enum AppTab: Hashable {
     case history
     case community
     case settings
+
+    /// Left-to-right, matching the `TabView` above — the tab bar reports a tapped *position*.
+    static let ordered: [AppTab] = [.home, .history, .community, .settings]
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
+/// SwiftUI's TabView does not publish a selection change when the active item is tapped again.
+/// Observe the UIKit tab bar only for that reselect gesture; ordinary content taps are untouched.
+///
+/// TASK-226 added the tapped item's position. It is derived from the tap's x coordinate rather than
+/// from `tabBar.selectedItem`, because on a tab *switch* the selection changes around this gesture
+/// and reading it here would race; a position does not.
+private struct TabBarReselectObserver: UIViewRepresentable {
+    let onReselect: (Int) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onReselect: onReselect) }
+    func makeUIView(context: Context) -> UIView { UIView(frame: .zero) }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        context.coordinator.onReselect = onReselect
+        DispatchQueue.main.async {
+            guard let tabBar = Self.findTabBar(from: view), context.coordinator.tabBar !== tabBar else { return }
+            if let oldTabBar = context.coordinator.tabBar, let gesture = context.coordinator.gesture {
+                oldTabBar.removeGestureRecognizer(gesture)
+            }
+            let gesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tabBarTapped(_:)))
+            gesture.cancelsTouchesInView = false
+            tabBar.addGestureRecognizer(gesture)
+            context.coordinator.tabBar = tabBar
+            context.coordinator.gesture = gesture
+        }
+    }
+
+    private static func findTabBar(from view: UIView) -> UITabBar? {
+        var responder: UIResponder? = view
+        while let next = responder?.next {
+            if let controller = next as? UITabBarController { return controller.tabBar }
+            responder = next
+        }
+        if let rootView = view.window?.rootViewController?.view {
+            return findTabBar(in: rootView)
+        }
+        return nil
+    }
+
+    private static func findTabBar(in view: UIView) -> UITabBar? {
+        if let tabBar = view as? UITabBar { return tabBar }
+        for child in view.subviews {
+            if let tabBar = findTabBar(in: child) { return tabBar }
+        }
+        return nil
+    }
+
+    final class Coordinator: NSObject {
+        var onReselect: (Int) -> Void
+        weak var tabBar: UITabBar?
+        weak var gesture: UITapGestureRecognizer?
+
+        init(onReselect: @escaping (Int) -> Void) { self.onReselect = onReselect }
+
+        @objc func tabBarTapped(_ gesture: UITapGestureRecognizer) {
+            guard let tabBar else { return }
+            let point = gesture.location(in: tabBar)
+            guard tabBar.bounds.contains(point), tabBar.selectedItem != nil else { return }
+            let count = tabBar.items?.count ?? 0
+            guard count > 0, tabBar.bounds.width > 0 else { return }
+            let itemWidth = tabBar.bounds.width / CGFloat(count)
+            let index = min(count - 1, max(0, Int(point.x / itemWidth)))
+            onReselect(index)
+        }
+    }
 }
 
 #Preview {

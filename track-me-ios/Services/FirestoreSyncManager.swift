@@ -154,12 +154,14 @@ class FirestoreSyncManager {
             "sourceInfo": ride.sourceInfo,
             "title": ride.title ?? "",
             "persona": ride.persona,
+            "startZoneId": ride.startZoneId ?? NSNull(),
             "maxSpeed": aggregate.maxSpeedMps,
             "distance": aggregate.distanceMeters,
             "avgSpeed": aggregate.avgSpeedMps,
             "pauseDuration": pauseDurationMillis,
             "movingDurationMillis": aggregate.movingDurationMillis,
             "pointCount": aggregate.pointCount,
+            "elevationGainMeters": aggregate.elevationGainMeters ?? NSNull(),
             RideChunkingContract.chunkCountField: chunkCount,
             "contentHash": Self.contentHash(points)
         ]
@@ -632,7 +634,9 @@ class FirestoreSyncManager {
         let last = UserDefaults.standard.object(forKey: Self.foregroundThrottleKey) as? Date
         if let last, Date().timeIntervalSince(last) < Self.foregroundThrottle { return }
         UserDefaults.standard.set(Date(), forKey: Self.foregroundThrottleKey)
-        syncPeriodic { _ in }
+        syncPeriodic { _ in
+            Task { @MainActor in HomeDashboardRepository.shared.refreshOnForeground() }
+        }
     }
 
     /// Called right after a successful sign-in. Unlike syncOnForegroundIfDue this
@@ -643,7 +647,9 @@ class FirestoreSyncManager {
         if TrackingManager.shared.state == .tracking || TrackingManager.shared.state == .paused { return }
         processPendingDeletions()
         UserDefaults.standard.set(Date(), forKey: Self.foregroundThrottleKey)
-        syncPeriodic { _ in }
+        syncPeriodic { _ in
+            Task { @MainActor in HomeDashboardRepository.shared.refreshOnForeground() }
+        }
     }
 
     /// Drains durable local tombstones after reconnect/launch. A queued delete

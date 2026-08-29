@@ -24,10 +24,50 @@ struct RideDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var showImagePreview = false
     @State private var isDeletingRide = false
+    @State private var showRecordingDetails = false
+    /// TASK-253: lets the rider put the hidden tail back. Not persisted — it is a way of looking at
+    /// one ride, not a preference about all of them.
+    @State private var showFullRecording = false
     
-    private var sortedPoints: [GPSPoint] {
+    /// Everything the device recorded, in order.
+    private var allPoints: [GPSPoint] {
         guard let points = ride.points, !points.isEmpty else { return [] }
         return points.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    /// TASK-257: the persona sets the gap rule's speed ceiling.
+    private var ridePersona: RidePersona { ride.ridePersona }
+
+    /// Contiguous stretches that were actually recorded — each drawn as a solid line.
+    private var recordedRuns: [[GPSPoint]] {
+        RideGaps.recordedRuns(sortedPoints, persona: ridePersona)
+    }
+
+    /// The joins between consecutive runs, drawn dashed. Two coordinates each.
+    private var gapJoins: [[CLLocationCoordinate2D]] {
+        let runs = recordedRuns
+        guard runs.count > 1 else { return [] }
+        return (1..<runs.count).compactMap { index in
+            guard let from = runs[index - 1].last, let to = runs[index].first else { return nil }
+            return [from.coordinate, to.coordinate]
+        }
+    }
+
+    /// TASK-253: the stationary head and tail a rider did not mean to record.
+    private var trim: RideTrim { RideTrimmer.window(for: allPoints) }
+
+    /// What the chart, map and scrubber draw.
+    ///
+    /// A display window, not an edit — nothing is stored or deleted, so `showFullRecording` simply
+    /// stops applying it and there is no undo to build. The stat grid deliberately still reads the
+    /// full aggregate, which is already correct: moving duration excludes paused samples, so the
+    /// forgotten time was never in "Duration", and it belongs in "Total" because the ride did span
+    /// that wall time.
+    private var sortedPoints: [GPSPoint] {
+        let points = allPoints
+        let window = trim
+        guard !showFullRecording, window.isTrimmed, window.endIndex < points.count else { return points }
+        return Array(points[window.startIndex...window.endIndex])
     }
     
     private var cumulativeDistances: [Double] {
@@ -60,8 +100,20 @@ struct RideDetailView: View {
     }
     
     var body: some View {
+        // TASK-245, shvm: no `.edgesIgnoringSafeArea(.top)` here. It made the scroll content start
+        // underneath the navigation bar, so the summary card opened with its heading and its first
+        // label row already hidden behind the toolbar and the rider had to drag down to read stats
+        // that were supposed to be the first thing on the screen. Nothing needs the top bleed: the
+        // map is the *second* element, not the first, so ignoring that inset bought no edge-to-edge
+        // anywhere and only cost the summary its top. The background on line ~189 still ignores all
+        // edges, which is what actually paints behind the bars.
         ScrollView {
             VStack(spacing: 0) {
+                // Summary Section
+                rideSummaryCard
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+
                 // Map Section
                 mapView
                     .frame(height: 320)
@@ -70,6 +122,30 @@ struct RideDetailView: View {
                 if !sortedPoints.isEmpty {
                     // Analytics Section
                     VStack(spacing: 16) {
+                        // TASK-253: the trim announces itself. Quietly dropping part of someone's
+                        // own recording would be the same class of problem as deleting it — they
+                        // would have no way to know the chart was not the whole ride, and no way to
+                        // ask for it back. One line and one tap, above the chart it explains.
+                        if trim.isTrimmed {
+                            HStack {
+                                Text(LocalizationHelper.formatted(
+                                    "%@ of inactivity hidden",
+                                    formatDuration(trim.totalTrimmedSeconds)
+                                ))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                Spacer()
+                                Button(showFullRecording
+                                       ? LocalizationHelper.localized("Hide")
+                                       : LocalizationHelper.localized("Show all")) {
+                                    showFullRecording.toggle()
+                                }
+                                .font(.caption.weight(.semibold))
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 12)
+                        }
+
                         CombinedMetricLineChart(
                             points: sortedPoints,
                             scrubIndex: scrubIndex
@@ -118,22 +194,28 @@ struct RideDetailView: View {
                                 .accessibilityHidden(true)
                         }
                         
-                        // Ride Stats Card
-                        rideStatsCard
+                        // Recording details stay after the route and chart so diagnostics remain
+                        // available without competing with the summary a rider reads first.
+                        recordingDetailsCard
                             .padding(.horizontal)
                         
-                        // Action Buttons
-                        actionButtons
-                            .padding(.vertical, 24)
                     }
                 } else {
                     Text("No GPS Data Available")
                         .foregroundColor(.secondary)
                         .padding(.top, 40)
                 }
+
+                // TASK-245, shvm: outside the points check. A ride with no points is precisely the
+                // one a rider wants rid of, and hiding Delete with the charts left the only way out
+                // a swipe on the History row — undiscoverable from here. Share and GPX self-guard on
+                // `snapshotImage`/`gpxURL`, both nil without points, so this degrades to Delete
+                // alone. Android already behaved this way: its "No GPS data available" is only the
+                // map's empty state, not a gate on the whole tail.
+                actionButtons
+                    .padding(.vertical, 24)
             }
         }
-        .edgesIgnoringSafeArea(.top)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -246,6 +328,7 @@ struct RideDetailView: View {
             modelContext.delete(ride)
             do {
                 try modelContext.save()
+                HomeDashboardRepository.shared.invalidate()
                 dismiss()
             } catch {
                 modelContext.rollback()
@@ -278,9 +361,49 @@ struct RideDetailView: View {
                 longitudeDelta: (maxLng - minLng) * 1.5 + 0.005
             )
             
-            Map(initialPosition: .region(MKCoordinateRegion(center: center, span: span))) {
-                MapPolyline(coordinates: coordinates)
-                    .stroke(BrandColor.primary, lineWidth: 5)
+            // TASK-251, shvm: the map let you pan and zoom to anywhere on earth, so a small window
+            // could end up showing empty ocean with no polyline in it. The region above already
+            // framed the route on load, but nothing kept the camera there afterwards -- the first
+            // drag left the ride behind.
+            //
+            // `mapCameraBounds` fences the camera to a padded box around the route and caps how far
+            // it can pull back. Rotation, tilt and zooming *in* are untouched, which is the part
+            // shvm liked. The padding is a fraction of the route's own span rather than a fixed
+            // degree amount, because a 300 m loop and a 300 km tour need very different slack.
+            let cameraBounds = MapCameraBounds(
+                centerCoordinateBounds: MKCoordinateRegion(
+                    center: center,
+                    span: MKCoordinateSpan(
+                        latitudeDelta: min(span.latitudeDelta, 170),
+                        longitudeDelta: min(span.longitudeDelta, 350)
+                    )
+                ),
+                // Matches Android's min-zoom cap: roughly the whole padded route and no more.
+                maximumDistance: routeMaximumCameraDistance(
+                    latitudeDelta: maxLat - minLat,
+                    longitudeDelta: maxLng - minLng,
+                    centerLatitude: center.latitude
+                )
+            )
+
+            Map(initialPosition: .region(MKCoordinateRegion(center: center, span: span)), bounds: cameraBounds) {
+                // TASK-257, shvm: a solid line asserts "this is where you went". Across a stretch
+                // that was never recorded — a manual pause, a tunnel — it asserts a route nobody
+                // rode, straight through buildings. Recorded runs stay solid; the joins between them
+                // are dashed, which reads as "we do not know" rather than as a road.
+                ForEach(Array(recordedRuns.enumerated()), id: \.offset) { _, run in
+                    if run.count >= 2 {
+                        MapPolyline(coordinates: run.map(\.coordinate))
+                            .stroke(BrandColor.primary, lineWidth: 5)
+                    }
+                }
+                ForEach(Array(gapJoins.enumerated()), id: \.offset) { _, join in
+                    MapPolyline(coordinates: join)
+                        .stroke(
+                            BrandColor.primary.opacity(0.55),
+                            style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [2, 10])
+                        )
+                }
                 
                 Marker("Start", coordinate: coordinates.first!)
                     .tint(BrandColor.primary)
@@ -332,33 +455,102 @@ struct RideDetailView: View {
     }
     
     @ViewBuilder
-    var rideStatsCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Ride Stats")
-                .font(.title2).bold()
-                .foregroundColor(.white)
-                .accessibilityAddTraits(.isHeader)
-            
+    var rideSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
             let aggregate = ride.aggregateSnapshot
             let totalDistMeters = aggregate.distanceMeters
             let duration = Double(aggregate.movingDurationMillis) / 1_000
             let avgSpeedMps = aggregate.avgSpeedMps
-            let dateStr = DateFormatter.localizedString(from: ride.startTime, dateStyle: .medium, timeStyle: .short)
-            
-            HStack {
-                statItem(title: "Distance", value: UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit))
-                Spacer()
-                statItem(title: "Duration", value: formatDuration(duration))
-                Spacer()
-                statItem(title: "GPS Tag", value: "\(aggregate.pointCount)")
+            // TASK-241: `DateFormatter.localizedString` formats in `Locale.current` — the *device*
+            // language — so a French UI printed an English date. Same defect as the strings, one
+            // layer down: a rider who set the app to French still read "28 Aug 2026 at 7:32 AM".
+            let dateStr = LocalizationHelper.mediumDateTime(ride.startTime, includeTime: true)
+            let usesPace = ride.ridePersona == .walk || ride.ridePersona == .run
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Ride Stats")
+                    .font(.title2).bold()
+                    .foregroundColor(.white)
+                    .accessibilityAddTraits(.isHeader)
+
+                // TASK-229: start time reads as a caption under the heading, not as a grid cell. In
+                // a third of a row a date plus a time was always truncated to "Aug 23, 2026 - ...",
+                // which drops the half a rider is looking for and says less than 1.8.4 did.
+                Text(dateStr)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            
-            HStack {
-                statItem(title: "Start Time", value: dateStr)
-                Spacer()
-                statItem(title: "Max G-Force", value: String(format: "%.2f G", maxGForce))
-                Spacer()
-                statItem(title: "Avg Speed", value: UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit))
+
+            // TASK-230/235: the pause-excluded figure keeps the label "Duration" — §5.1 only
+            // forbids *wall* time being labelled simply that — and "Total" restores its pair. Those
+            // are the two words the HUD already uses mid-ride, which is where a rider learns the
+            // distinction; a single unlabelled figure was the defect.
+            let distanceText = UnitFormatter.distance(meters: totalDistMeters, unit: unitSettings.unit)
+            let durationText = formatDuration(duration)
+            let averageText = usesPace
+                ? UnitFormatter.pace(mps: avgSpeedMps, unit: unitSettings.unit)
+                : UnitFormatter.speed(mps: avgSpeedMps, unit: unitSettings.unit)
+            let peakText = usesPace
+                ? UnitFormatter.pace(mps: aggregate.maxSpeedMps, unit: unitSettings.unit)
+                : UnitFormatter.speed(mps: aggregate.maxSpeedMps, unit: unitSettings.unit)
+            // The cell TASK-229 freed. Always rendered, never suppressed when it equals moving time:
+            // a ride with no pause showing both figures equal is the fact, and it is what makes the
+            // pair readable without a legend.
+            let totalText = RideDurations.totalElapsedSeconds(for: ride).map(formatDuration)
+                ?? LocalizationHelper.localized("Unknown")
+
+            // TASK-252, shvm: the two gaps were near-identical, so a label read as ambiguously
+            // belonging to the value above it or the one below. Proximity is the only thing
+            // grouping a cell, so the label sits tight to its own value and the rows are pushed
+            // apart — the pair reads as one unit, and the rows read as two.
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    statItem(title: "Distance", value: distanceText)
+                    Spacer()
+                    statItem(title: "Duration", value: durationText)
+                    Spacer()
+                    statItem(title: usesPace ? "Average Pace" : "Average Speed", value: averageText)
+                }
+                HStack {
+                    statItem(title: usesPace ? "Best Pace" : "Max Speed", value: peakText)
+                    if let elevation = ride.elevationGainMeters {
+                        Spacer()
+                        statItem(title: "Elevation Gain", value: formatElevation(elevation))
+                    }
+                    Spacer()
+                    statItem(title: "Total", value: totalText)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(UIColor.darkGray))
+        .cornerRadius(16)
+    }
+
+    @ViewBuilder
+    var recordingDetailsCard: some View {
+        let aggregate = ride.aggregateSnapshot
+        // TASK-253: the full recording. This card is a diagnostic about what the device captured,
+        // so counting only the drawn window would make it lie about the thing it exists to report.
+        let gapCount = ChartAccessibility.signalGaps(points: allPoints).count
+
+        VStack(alignment: .leading, spacing: 16) {
+            DisclosureGroup(isExpanded: $showRecordingDetails) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        statItem(title: "GPS Points", value: "\(aggregate.pointCount)")
+                        statItem(title: "Max G-Force", value: String(format: "%.2f G", maxGForce))
+                        statItem(title: "GPS signal gaps", value: "\(gapCount)")
+                    }
+                    Text(LocalizationHelper.syncStatusTitle(ride.isSynced ? "Synced" : "Unsynced"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 8)
+            } label: {
+                Text(LocalizationHelper.localized("Recording details"))
+                    .font(.headline)
             }
         }
         .padding(20)
@@ -368,10 +560,23 @@ struct RideDetailView: View {
     
     @ViewBuilder
     func statItem(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(title)
-                .font(.caption)
+        // TASK-252: the reserved second label line stays. It is what TASK-240 added to stop a
+        // wrapping label pushing its value out of line with its neighbours', and dropping it to
+        // save height would re-open that defect in exactly the locales that exposed it.
+        //
+        // Zero spacing here is deliberate, not an oversight: the label and its value are one unit,
+        // and the row gap above is what separates the units. The reserved second line already
+        // supplies the optical breathing room a positive spacing would add.
+        VStack(spacing: 0) {
+            Text(LocalizationHelper.localized(title))
+                .font(.caption2.weight(.semibold))
                 .foregroundColor(.gray)
+                // TASK-240, Android parity. Two lines, always: without a reserved second line a
+                // cell whose label wraps pushes its value out of line with its neighbours', and
+                // the row reads as misaligned. Sizing for English is not enough — "GPS signal
+                // gaps" is 27 characters in French, "Elevation Gain" 19 in Spanish.
+                .lineLimit(2, reservesSpace: true)
+                .multilineTextAlignment(.center)
             Text(value)
                 .font(.subheadline)
                 .foregroundColor(.white)
@@ -380,6 +585,11 @@ struct RideDetailView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(LocalizationHelper.localized(title))
         .accessibilityValue(value)
+    }
+
+    private func formatElevation(_ meters: Double) -> String {
+        let value = unitSettings.unit == .imperial ? meters * 3.28084 : meters
+        return String(format: "%.0f %@", value, unitSettings.unit == .imperial ? "ft" : "m")
     }
     
     @ViewBuilder

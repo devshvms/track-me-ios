@@ -1,12 +1,30 @@
 import FirebaseAuth
 import MapKit
 import SwiftUI
+import SwiftData
 
 struct CommunityView: View {
     @Bindable private var groupRide = GroupRideManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var groupName = "Sunday Riders"
     @State private var joinCode = ""
+
+    /// TASK-254: which field Home sent the rider here to use. Focusing it makes the Form scroll to
+    /// it, so the control they asked for is the one in front of them.
+    /// TASK-258: acts on Home's request only when the screen can actually honour it.
+    private func applyPendingGroupEntry(_ action: GroupEntryRequest.Action?) {
+        guard let action else { return }
+        // Signed out: keep it pending rather than consuming it against a sign-in prompt.
+        guard signedInUserID != nil else { return }
+        if !groupRide.state.isActive {
+            focusedEntryField = action == .create ? .create : .join
+        }
+        groupEntryRequest.consume()
+    }
+
+    private enum GroupEntryField: Hashable { case create, join }
+    @FocusState private var focusedEntryField: GroupEntryField?
+    @ObservedObject private var groupEntryRequest = GroupEntryRequest.shared
     @State private var isBusy = false
     @State private var errorMessage: String?
     @State private var showEditSheet = false
@@ -17,6 +35,12 @@ struct CommunityView: View {
     @State private var directionsTarget: GroupDirectionsTarget?
     @State private var groupClockTick = StatusAge.elapsedMillis()
     @State private var signedInUserID = Auth.auth().currentUser?.uid
+    /// TASK-232. The rider's own rides that were recorded while a group was live — a read of local
+    /// ride records and nothing else. No collection, no sync, no membership history. What makes
+    /// this page stop being empty forever is that these rides were always theirs; they simply never
+    /// knew they were group rides.
+    @State private var groupRides: [HistoryRideSummary] = []
+    @Environment(\.modelContext) private var modelContext
     @State private var authListener: AuthStateDidChangeListenerHandle?
 
     var body: some View {
@@ -94,6 +118,25 @@ struct CommunityView: View {
                     groupRide.pendingJoinViaCode = true
                 }
             }
+            .task { loadGroupRides() }
+            // TASK-254/258: Home asked for a specific control.
+            //
+            // TASK-258, shvm: **signed out, this used to swallow the request.** It consumed the
+            // action while the screen was showing the signed-out state, so the rider was carried to
+            // Community, shown a sign-in prompt, and their intent was gone -- they had to start
+            // again. A signed-out request is now left *pending*: the rider signs in,
+            // `signedInUserID` changes, this re-runs, and the control they asked for is focused.
+            // The request lives in memory only, so it cannot outlive the process and surprise them.
+            //
+            // `isActive` still consumes without acting: a rider can tap Create on Home and be joined
+            // by an invite before this runs, and focusing create over a live group would be wrong.
+            .onChange(of: groupEntryRequest.pending, initial: true) { _, action in
+                applyPendingGroupEntry(action)
+            }
+            .onChange(of: signedInUserID) { _, _ in
+                applyPendingGroupEntry(groupEntryRequest.pending)
+            }
+            .onChange(of: groupRide.state.isActive) { _, _ in loadGroupRides() }
             .task(id: groupRide.state.isActive) {
                 guard groupRide.state.isActive else { return }
                 while !Task.isCancelled {
@@ -168,6 +211,42 @@ struct CommunityView: View {
         }
     }
 
+    /// TASK-232. The same projection shape History uses — `propertiesToFetch` keeps route points
+    /// out of the fetch, and there is no membership table to join against because there is not
+    /// going to be one (§5.4).
+    private func loadGroupRides() {
+        var descriptor = FetchDescriptor<Ride>(
+            // No force-unwrap inside #Predicate: it translates to a query that matches nothing.
+            // The ordering guard is applied in Swift below, as in HistoryView.
+            predicate: #Predicate {
+                $0.wasGroupRide && !$0.pendingDelete && $0.endTime != nil
+            },
+            sortBy: [SortDescriptor(\Ride.startTime, order: .reverse)]
+        )
+        descriptor.propertiesToFetch = [
+            \Ride.id, \Ride.startTime, \Ride.endTime, \Ride.isSynced, \Ride.pendingDelete,
+            \Ride.title, \Ride.persona, \Ride.isSample, \Ride.distanceMeters,
+            \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
+            \Ride.wasGroupRide, \Ride.groupRiderCount
+        ]
+        groupRides = (try? modelContext.fetch(descriptor)
+            .filter { ride in ride.endTime.map { $0 > ride.startTime } ?? false }
+            .map(HistoryRideSummary.init(ride:))) ?? []
+    }
+
+    /// A group ride opens the ordinary Ride Detail; there is no separate group screen.
+    private func rideDetail(for id: UUID) -> some View {
+        var descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        if let ride = try? modelContext.fetch(descriptor).first {
+            return AnyView(RideDetailView(ride: ride))
+        }
+        return AnyView(ContentUnavailableView(
+            LocalizationHelper.localized("Activity unavailable"),
+            systemImage: "clock.badge.exclamationmark"
+        ))
+    }
+
     private var signedOutView: some View {
         ContentUnavailableView {
             Label(LocalizationHelper.localized("Sign in to join a group"), systemImage: "person.2")
@@ -178,8 +257,34 @@ struct CommunityView: View {
 
     private var idleGroupView: some View {
         List {
+            // §2.2. Placed above Create/Join so the privacy footers that follow sit *below* the
+            // list, which is what §2.3 asks for on a screen whose copy lives in section footers
+            // rather than in one paragraph. §2.1's empty state is untouched: with no group rides
+            // this section does not exist and the page is exactly what it was.
+            if !groupRides.isEmpty {
+                Section {
+                    ForEach(groupRides) { summary in
+                        NavigationLink {
+                            rideDetail(for: summary.id)
+                        } label: {
+                            CompactRideSummaryRow(
+                                summary: summary,
+                                // §2.2: a count, never names. Names would be a record of other
+                                // people, which is the one thing this page promises it does not keep.
+                                trailingLabel: summary.groupRiderCount.map {
+                                    LocalizationHelper.formatted("%d riders", $0)
+                                }
+                            )
+                        }
+                    }
+                } header: {
+                    Text(LocalizationHelper.localized("Rides you rode together"))
+                }
+            }
+
             Section {
                 TextField(LocalizationHelper.localized("Group name"), text: $groupName)
+                    .focused($focusedEntryField, equals: .create)
                     .textInputAutocapitalization(.words)
                 Button {
                     awaitRun { try await groupRide.createGroup(groupName: groupName) }
@@ -195,6 +300,7 @@ struct CommunityView: View {
 
             Section {
                 TextField(LocalizationHelper.localized("Join code"), text: $joinCode)
+                    .focused($focusedEntryField, equals: .join)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .onChange(of: joinCode) { _, value in

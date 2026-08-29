@@ -17,10 +17,18 @@ final class DataRepository {
         migrateGeneratedPersonaTitlesIfNeeded()
     }
 
-    func saveRide(_ ride: Ride) {
-        guard let context = container?.mainContext else { return }
+    @discardableResult
+    func saveRide(_ ride: Ride) -> Bool {
+        guard let context = container?.mainContext else { return false }
         context.insert(ride)
-        try? context.save()
+        do {
+            try context.save()
+            return true
+        } catch {
+            context.rollback()
+            NSLog("TrackMe: failed to persist ride start: %@", error.localizedDescription)
+            return false
+        }
     }
 
     func allRides() -> [Ride] {
@@ -60,6 +68,7 @@ final class DataRepository {
             }
             ride.firestoreId = d.firestoreId
             ride.cloudChunkCount = d.chunkCount
+            ride.startZoneId = d.startZoneId
             ctx.insert(ride)
             var importedPoints: [GPSPoint] = []
             for p in d.points {
@@ -74,9 +83,17 @@ final class DataRepository {
                 d.persistedAggregate
                     ?? d.aggregate(fallback: RideMetrics.reconstructed(from: importedPoints))
             )
+            // TASK-246: the points went in moments ago and this context has not saved, so the
+            // `points` relationship cannot be relied on to have materialised yet. Handing over the
+            // points we just built is what stops a restored ride from landing without a shape --
+            // which is exactly how Android's cloud rides ended up permanently generic.
+            ride.refreshDashboardMetadata(freshPoints: importedPoints)
             inserted += 1
         }
-        if inserted > 0 { try? ctx.save() }
+        if inserted > 0 {
+            try? ctx.save()
+            HomeDashboardRepository.shared.invalidate()
+        }
     }
     func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool) {
         guard let container = container else { return }
@@ -133,6 +150,17 @@ final class DataRepository {
                 guard let ride = try context.fetch(descriptor).first else { return }
                 ride.endTime = max(endedAt, ride.startTime)
                 ride.applyAggregate(aggregate)
+                ride.refreshDashboardMetadata()
+
+                // TASK-232: the largest roster seen while this ride was recording is what a rider
+                // means by "how many of us rode". Only ever grows, and only for a ride already
+                // marked as a group ride — joining a group after a solo ride does not
+                // retroactively make it one.
+                let groupAtEnd = await GroupRideManager.shared.state
+                if ride.wasGroupRide, groupAtEnd.isActive {
+                    let observed = max(ride.groupRiderCount ?? 0, groupAtEnd.memberCount)
+                    ride.groupRiderCount = observed > 0 ? observed : nil
+                }
 
                 if RideTitleGenerator.isGeneratedTitle(ride.title) {
                     ride.title = RideTitleGenerator.make(
@@ -143,6 +171,7 @@ final class DataRepository {
                 }
 
                 try context.save()
+                HomeDashboardRepository.shared.invalidate()
 
                 // Fire and forget cloud sync
                 FirestoreSyncManager.shared.syncRide(ride)
@@ -174,6 +203,7 @@ final class DataRepository {
                 guard let ride = try context.fetch(descriptor).first else { return }
                 context.delete(ride)
                 try context.save()
+                HomeDashboardRepository.shared.invalidate()
             } catch {
                 NSLog("TrackMe: failed to discard near-empty ride: %@", error.localizedDescription)
             }
@@ -188,8 +218,10 @@ final class DataRepository {
         let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
         guard let ride = try? context.fetch(descriptor).first else { return false }
         ride.pendingDelete = true
+        ride.refreshDashboardMetadata()
         do {
             try context.save()
+            HomeDashboardRepository.shared.invalidate()
             return true
         } catch {
             context.rollback()
@@ -203,8 +235,10 @@ final class DataRepository {
         let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
         guard let ride = try? context.fetch(descriptor).first else { return }
         ride.pendingDelete = false
+        ride.refreshDashboardMetadata()
         do {
             try context.save()
+            HomeDashboardRepository.shared.invalidate()
         } catch {
             context.rollback()
             NSLog("TrackMe: failed to restore ride after rejected delete: %@", error.localizedDescription)
@@ -260,6 +294,7 @@ final class DataRepository {
         try? context.delete(model: EmergencyContact.self)
         try? context.delete(model: EmergencySettings.self)
         try context.save()
+        HomeDashboardRepository.shared.resetAfterWipe()
     }
 
 }

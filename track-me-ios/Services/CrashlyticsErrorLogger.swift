@@ -7,7 +7,11 @@ final class CrashlyticsErrorLogger: ErrorLogger, @unchecked Sendable {
     private init() {}
 
     func initialize() {
-        Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(true)
+        // TASK-250: collection follows the same environment gate as analytics. A debug or Simulator
+        // crash is one someone is already looking at in a debugger; sending it makes the production
+        // crash-free-users rate a number about developers rather than riders, and a deliberately
+        // crashed test run can bury a real regression under its own noise.
+        Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(TelemetryEnvironment.allowsDelivery)
     }
 
     func setUserId(_ userId: String?) {

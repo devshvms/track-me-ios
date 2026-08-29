@@ -98,3 +98,70 @@ struct RoutePreviewThumbnail: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
+
+/// TASK-246: the History card's thumbnail, drawn from the shape stored on the ride row.
+///
+/// Separate from `RoutePreviewThumbnail` above, which takes `[GPSPoint]` and is right where the
+/// points are already in hand (Ride Detail, the onboarding demo). This one exists so the History
+/// list can draw a real route without the projection ever fetching points — the constraint that
+/// made 1.8.5 fall back to one generic glyph for every ride.
+struct RouteThumbnail: View {
+    let routePolyline: String?
+    let pointCount: Int
+    let distanceMeters: Double
+
+    private var coordinates: [CLLocationCoordinate2D] {
+        guard RouteThumbnailPolicy.drawsShape(pointCount: pointCount, distanceMeters: distanceMeters),
+              let routePolyline, !routePolyline.isEmpty else { return [] }
+        return RoutePolyline.decode(routePolyline)
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(uiColor: .tertiarySystemFill))
+
+            let route = coordinates
+            if route.count >= 2 {
+                Canvas { context, size in
+                    var minLat = route[0].latitude, maxLat = route[0].latitude
+                    var minLon = route[0].longitude, maxLon = route[0].longitude
+                    for coordinate in route {
+                        minLat = min(minLat, coordinate.latitude)
+                        maxLat = max(maxLat, coordinate.latitude)
+                        minLon = min(minLon, coordinate.longitude)
+                        maxLon = max(maxLon, coordinate.longitude)
+                    }
+                    // A ride that barely moved has no span to normalise against; the floor keeps it
+                    // a mark in the middle rather than a divide-by-zero.
+                    let latSpan = max(maxLat - minLat, 0.00001)
+                    let lonSpan = max(maxLon - minLon, 0.00001)
+
+                    let inset: CGFloat = 6
+                    let drawWidth = max(size.width - inset * 2, 1)
+                    let drawHeight = max(size.height - inset * 2, 1)
+
+                    var path = Path()
+                    for (index, coordinate) in route.enumerated() {
+                        let x = inset + CGFloat((coordinate.longitude - minLon) / lonSpan) * drawWidth
+                        // Screen Y grows downward, so latitude inverts.
+                        let y = inset + CGFloat(1 - (coordinate.latitude - minLat) / latSpan) * drawHeight
+                        let point = CGPoint(x: x, y: y)
+                        if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                    }
+                    context.stroke(
+                        path,
+                        with: .color(BrandColor.primary),
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+                    )
+                }
+            } else {
+                Image(systemName: pointCount > 0
+                      ? "point.topleft.down.to.point.bottomright.curvepath"
+                      : "location.slash")
+                    .font(.title3)
+                    .foregroundStyle(BrandColor.primary)
+            }
+        }
+    }
+}

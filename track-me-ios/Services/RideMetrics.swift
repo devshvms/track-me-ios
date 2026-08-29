@@ -1,20 +1,21 @@
 import CoreLocation
 import Foundation
 import SwiftData
-import os
 
-struct RideAggregateSnapshot: Equatable {
+nonisolated struct RideAggregateSnapshot: Equatable {
     let distanceMeters: Double
     let movingDurationMillis: Int64
     let maxSpeedMps: Double
     let avgSpeedMps: Double
     let pointCount: Int
+    let elevationGainMeters: Double?
 
     static func live(
         distanceMeters: Double,
         movingDurationMillis: TimeInterval,
         maxSpeedMps: Double,
-        pointCount: Int
+        pointCount: Int,
+        elevationGainMeters: Double? = nil
     ) -> RideAggregateSnapshot {
         let distance = RideMetrics.nonNegativeFinite(distanceMeters)
         let duration = Int64(max(0, movingDurationMillis.rounded()))
@@ -25,12 +26,13 @@ struct RideAggregateSnapshot: Equatable {
             movingDurationMillis: duration,
             maxSpeedMps: maxSpeed,
             avgSpeedMps: average,
-            pointCount: max(0, pointCount)
+            pointCount: max(0, pointCount),
+            elevationGainMeters: elevationGainMeters
         )
     }
 }
 
-enum RideMetrics {
+nonisolated enum RideMetrics {
     /// Route geometry distance. This intentionally includes every segment and is
     /// appropriate for charts, not as the source of truth for a finalized ride.
     static func rawDistanceMeters(_ points: [GPSPoint]) -> Double {
@@ -52,7 +54,8 @@ enum RideMetrics {
                 movingDurationMillis: 0,
                 maxSpeedMps: 0,
                 avgSpeedMps: 0,
-                pointCount: 0
+                pointCount: 0,
+                elevationGainMeters: nil
             )
         }
 
@@ -65,8 +68,16 @@ enum RideMetrics {
             guard !previous.isPaused, !current.isPaused else { continue }
 
             distanceMeters += distance(from: previous, to: current)
+            // TASK-259: was a private 60s cap — a *fourth* number for one idea. Android carried
+            // three (none, 15s, 60s) and this was the fourth, so the same ride reconstructed to a
+            // different duration depending on platform as well as on code path.
+            //
+            // Now the shared threshold: 25s is what this app already *calls* a GPS signal gap, the
+            // number behind the count in Recording details and behind TASK-257's dotted segments. A
+            // stretch reported to a rider as a gap should not also be counted as time they moved.
             let intervalMillis = Int64(current.timestamp.timeIntervalSince(previous.timestamp) * 1_000)
-            if intervalMillis > 0, intervalMillis <= 60_000 {
+            if intervalMillis > 0,
+               intervalMillis <= Int64(RideGaps.gapThresholdSeconds * 1_000) {
                 movingDurationMillis += intervalMillis
             }
         }
@@ -79,8 +90,56 @@ enum RideMetrics {
             movingDurationMillis: movingDurationMillis,
             maxSpeedMps: maxSpeedMps,
             avgSpeedMps: nonNegativeFinite(average),
-            pointCount: sorted.count
+            pointCount: sorted.count,
+            elevationGainMeters: elevationGainMeters(from: sorted)
         )
+    }
+
+    /// Computes ascent from a centered, edge-truncated five-point moving average.
+    /// Fewer than ten finite altitudes are too sparse to support an elevation cell.
+    static func elevationGainMeters(from points: [GPSPoint]) -> Double? {
+        calculateElevationGain(points.map { ElevationSample(altitude: $0.altitude, timestamp: $0.timestamp) })
+    }
+
+    static func elevationGainMeters(fromLocations locations: [CLLocation]) -> Double? {
+        calculateElevationGain(locations.map { ElevationSample(altitude: $0.altitude, timestamp: $0.timestamp) })
+    }
+
+    /// A climb banks once it stands this far above the lowest point since the last bank.
+    ///
+    /// **Measured against a running reference, not the previous sample.** Applying it
+    /// sample-to-sample discarded any climb gentle enough that no consecutive pair cleared it --
+    /// and at 1 Hz a 100 m climb over ten minutes moves about 0.17 m per sample, so every delta was
+    /// thrown away and this returned exactly zero for every real ride. Matches Android's
+    /// `ElevationGain.kt`, so the two platforms agree well inside §5.2's ±5% tolerance.
+    private static let noiseFloorMeters = 2.0
+
+    private static func calculateElevationGain(_ samples: [ElevationSample]) -> Double? {
+        let altitudes = samples
+            .filter { $0.altitude.isFinite }
+            .sorted { $0.timestamp < $1.timestamp }
+            .map(\.altitude)
+        guard altitudes.count >= 10 else { return nil }
+
+        let smoothed = altitudes.indices.map { index in
+            let start = max(0, index - 2)
+            let end = min(altitudes.count - 1, index + 2)
+            return altitudes[start...end].reduce(0, +) / Double(end - start + 1)
+        }
+        var reference = smoothed[0]
+        var gain = 0.0
+        for altitude in smoothed {
+            let climbed = altitude - reference
+            if climbed >= noiseFloorMeters {
+                gain += climbed
+                reference = altitude
+            } else if altitude < reference {
+                // Descending resets the mark the next climb is measured from, so a descent and a
+                // re-ascent of the same hill are counted once each rather than smeared into one.
+                reference = altitude
+            }
+        }
+        return gain
     }
 
     nonisolated static func nonNegativeFinite(_ value: Double) -> Double {
@@ -91,34 +150,38 @@ enum RideMetrics {
         CLLocation(latitude: first.latitude, longitude: first.longitude)
             .distance(from: CLLocation(latitude: second.latitude, longitude: second.longitude))
     }
+
+    private struct ElevationSample {
+        let altitude: Double
+        let timestamp: Date
+    }
 }
+extension RideMetrics {
+    static func elevationGainMeters(from points: [CLLocation]) -> Double? {
+        let altitudes = points
+            .filter { $0.altitude.isFinite }
+            .sorted { $0.timestamp < $1.timestamp }
+            .map(\.altitude)
+        guard altitudes.count >= 10 else { return nil }
 
-@MainActor
-enum RideAggregateBackfill {
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "in.shvms.track-me-ios",
-        category: "RideAggregateBackfill"
-    )
-    private static var didRun = false
-
-    static func run(container: ModelContainer) {
-        guard !didRun else { return }
-        didRun = true
-
-        let context = ModelContext(container)
-        do {
-            let rides = try context.fetch(FetchDescriptor<Ride>())
-            var changed = 0
-            for ride in rides where ride.endTime != nil && !ride.hasCompleteAggregate {
-                ride.applyAggregate(RideMetrics.reconstructed(from: ride.points ?? []))
-                ride.isSynced = false
-                changed += 1
-            }
-            guard changed > 0 else { return }
-            try context.save()
-            logger.info("Backfilled aggregates for \(changed) rides")
-        } catch {
-            logger.error("Aggregate backfill failed: \(error.localizedDescription)")
+        let smoothed = altitudes.indices.map { index in
+            let start = max(0, index - 2)
+            let end = min(altitudes.count - 1, index + 2)
+            return altitudes[start...end].reduce(0, +) / Double(end - start + 1)
         }
+        var reference = smoothed[0]
+        var gain = 0.0
+        for altitude in smoothed {
+            let climbed = altitude - reference
+            if climbed >= noiseFloorMeters {
+                gain += climbed
+                reference = altitude
+            } else if altitude < reference {
+                // Descending resets the mark the next climb is measured from, so a descent and a
+                // re-ascent of the same hill are counted once each rather than smeared into one.
+                reference = altitude
+            }
+        }
+        return gain
     }
 }

@@ -5,7 +5,7 @@ import GoogleSignIn
 @testable import track_me_ios
 
 @MainActor
-final class AuthSignInLogicTests: XCTestCase {
+final class AuthSignInLogicTests: EnglishCopyTestCase {
     func testCancellationPredicate_acceptsFirebaseCancellationCodes() {
         XCTAssertTrue(AuthManager.isSignInCancellation(AuthErrorCode.webContextCancelled))
     }

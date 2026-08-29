@@ -217,6 +217,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             )
         )
         newRide.persona = selectedPersona.rawValue
+        newRide.startZoneId = TimeZone.current.identifier
+        // TASK-232: was a group live when this ride began? A marker and a count, never a group id
+        // and never a name — see Ride's note. The roster may not have synced yet at start, so an
+        // empty one stores no count rather than a zero, and finalisation widens it if a session is
+        // still live then.
+        let groupAtStart = GroupRideManager.shared.state
+        newRide.wasGroupRide = groupAtStart.isActive
+        newRide.groupRiderCount = groupAtStart.isActive && groupAtStart.memberCount > 0
+            ? groupAtStart.memberCount
+            : nil
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
         GroupRideManager.shared.refreshLocationSource()
@@ -238,7 +248,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         // Save initially on main thread
         DispatchQueue.main.async {
-            DataRepository.shared.saveRide(newRide)
+            if DataRepository.shared.saveRide(newRide) {
+                // Selection and permission attempts are intentionally not persisted. This changes
+                // only after the recording row commits locally.
+                DashboardPersonaPreference.recordCommittedStart(newRide.ridePersona)
+            }
         }
 
         startLocationUpdatesAndTimer(allowsPermissionPrompts: allowsPermissionPrompts)
@@ -486,10 +500,41 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     func pauseTracking() {
         if state == .tracking || state == .gpsLost || state == .storageLow {
+            // TASK-257, shvm: record *that* the pause happened, at the place it happened.
+            //
+            // A manual pause used to leave nothing behind. Recording stopped, so the fix before and
+            // the fix after ended up adjacent in storage with the pause flag clear on both, and
+            // every consumer read the jump between them as travel -- distance counted, and a
+            // straight line drawn through buildings the rider never rode past.
+            //
+            // Auto-pause never had this problem because it flags its points. This gives a manual
+            // pause the same evidence, and it is a real position rather than a synthetic one: where
+            // the rider was when they pressed pause. One marker is enough -- carrying `isPaused`,
+            // it excludes *both* segments touching it, the one into the pause and the one out.
+            markPauseBoundary()
             state = .paused
             currentSpeed = 0.0
             updateLiveActivity(force: true)
         }
+    }
+
+    /// Writes the current position as a paused point, so the pause is visible in the point stream.
+    ///
+    /// Best-effort: with no last fix there is nothing truthful to write, and inventing a position
+    /// would be worse than leaving the gap — the gap is at least honest, and the renderer's
+    /// time-and-speed rule still dots it.
+    private func markPauseBoundary() {
+        guard let rideId = currentRideId, let last = points.last else { return }
+        DataRepository.shared.savePointBackground(
+            rideId: rideId,
+            lat: last.coordinate.latitude,
+            lng: last.coordinate.longitude,
+            alt: last.altitude,
+            acc: last.horizontalAccuracy,
+            spd: 0,
+            ts: Date(),
+            paused: true
+        )
     }
 
     func resumeTracking() {
@@ -621,7 +666,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             distanceMeters: totalDistance,
             movingDurationMillis: durationInMillis,
             maxSpeedMps: maxSpeedMps,
-            pointCount: points.count
+            pointCount: points.count,
+            elevationGainMeters: RideMetrics.elevationGainMeters(fromLocations: points)
         )
         DataRepository.shared.finishRide(rideId: id, endedAt: endedAt, aggregate: aggregate)
         TelemetryManager.shared.trackRideCompleted()

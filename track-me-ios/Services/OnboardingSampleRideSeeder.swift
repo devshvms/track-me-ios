@@ -91,8 +91,10 @@ enum OnboardingSampleRideSeeder {
                 title: title
             )
             ride.isSample = true
+            ride.refreshDashboardMetadata()
             context.insert(ride)
             try context.save()
+            HomeDashboardRepository.shared.invalidate()
         }
 
         defaults.set(OnboardingSampleSeedState.seeded.rawValue, forKey: stateKey)

@@ -9,12 +9,14 @@ struct DownloadedRide: Equatable {
     let sourceInfo: String
     let title: String?
     let persona: String
+    let startZoneId: String?
     let points: [DownloadedPoint]
     let distanceMeters: Double?
     let movingDurationMillis: Int64?
     let maxSpeedMps: Double?
     let avgSpeedMps: Double?
     let pointCount: Int?
+    let elevationGainMeters: Double?
     let chunkCount: Int?
 
     var persistedAggregate: RideAggregateSnapshot? {
@@ -27,7 +29,8 @@ struct DownloadedRide: Equatable {
             movingDurationMillis: max(0, movingDurationMillis),
             maxSpeedMps: RideMetrics.nonNegativeFinite(maxSpeedMps),
             avgSpeedMps: RideMetrics.nonNegativeFinite(avgSpeedMps),
-            pointCount: max(0, pointCount ?? points.count)
+            pointCount: max(0, pointCount ?? points.count),
+            elevationGainMeters: elevationGainMeters
         )
     }
 
@@ -41,7 +44,8 @@ struct DownloadedRide: Equatable {
             movingDurationMillis: duration,
             maxSpeedMps: maxSpeedMps.map(RideMetrics.nonNegativeFinite) ?? fallback.maxSpeedMps,
             avgSpeedMps: average,
-            pointCount: max(0, pointCount ?? fallback.pointCount)
+            pointCount: max(0, pointCount ?? fallback.pointCount),
+            elevationGainMeters: elevationGainMeters ?? fallback.elevationGainMeters
         )
     }
 }
@@ -114,12 +118,14 @@ extension FirestoreSyncManager {
             sourceInfo: (data["sourceInfo"] as? String) ?? "Cloud Sync",
             title: data["title"] as? String,
             persona: (data["persona"] as? String) ?? "AUTO",
+            startZoneId: data["startZoneId"] as? String,
             points: points,
             distanceMeters: decodeDouble(data["distance"]),
             movingDurationMillis: movingDurationMillis,
             maxSpeedMps: decodeDouble(data["maxSpeed"]),
             avgSpeedMps: decodeDouble(data["avgSpeed"]),
             pointCount: decodeInt64(data["pointCount"]).map(Int.init),
+            elevationGainMeters: decodeDouble(data["elevationGainMeters"]),
             chunkCount: chunkCount
         )
     }
