@@ -1840,7 +1840,7 @@ struct RadialStartTrackingControl: View {
         if launchState.isPending {
             guard distance(value.location, center) <= 54,
                   let token = launchState.pendingToken else { return }
-            
+
             if launchState.awaitsPersonaChoice {
                 let persona = pendingPersona
                 guard launchState.commit(observedToken: token) else { return }

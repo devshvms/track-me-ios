@@ -96,3 +96,45 @@ final class RideGapsTests: XCTestCase {
         XCTAssertEqual(RideGaps.gapThresholdSeconds, ChartAccessibility.gapThresholdSeconds)
     }
 }
+
+/// TASK-259, from review. Moving time had four implementations across the two platforms and they
+/// disagreed: Android counted every gap on three paths, capped at 15 s on a fourth and 60 s on a
+/// fifth, and iOS carried its own 60 s. One ride reconstructed to different durations depending on
+/// which code path — and which platform — last touched it.
+final class MovingTimeRuleTests: XCTestCase {
+
+    private let start = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func point(_ second: Int, paused: Bool = false) -> GPSPoint {
+        GPSPoint(latitude: 12.97, longitude: 77.59, altitude: 0, accuracy: 5, speed: 5,
+                 timestamp: start.addingTimeInterval(Double(second)), isPaused: paused)
+    }
+
+    func testTheThresholdMatchesAndroidAndTheAppsOwnGapDefinition() {
+        // Android's countsAsMovingTime uses RideGaps.GAP_THRESHOLD_MILLIS = 25_000. If either side
+        // moves, this is the reminder the other must move with it.
+        XCTAssertEqual(RideGaps.gapThresholdSeconds, 25)
+        XCTAssertEqual(RideGaps.gapThresholdSeconds, ChartAccessibility.gapThresholdSeconds)
+    }
+
+    func testALongGapIsNotCountedAsMovingTime() {
+        // 2 seconds of real movement, then a 138-second gap. Only the 2 seconds are moving time.
+        let aggregate = RideMetrics.reconstructed(from: [point(0), point(1), point(2), point(140)])
+        XCTAssertEqual(aggregate.movingDurationMillis, 2_000)
+    }
+
+    func testAPausedEndpointIsExcludedOnEitherSide() {
+        let aggregate = RideMetrics.reconstructed(from: [
+            point(0), point(1), point(2, paused: true), point(3), point(4),
+        ])
+        // 0->1 counts; 1->2 and 2->3 touch the paused point; 3->4 counts.
+        XCTAssertEqual(aggregate.movingDurationMillis, 2_000)
+    }
+
+    func testTheOldSixtySecondCapWouldHaveInflatedThis() {
+        // A 40-second gap: under the old iOS cap it counted as moving time, over the shared rule it
+        // does not. This is the behaviour the unification deliberately changes.
+        let aggregate = RideMetrics.reconstructed(from: [point(0), point(40)])
+        XCTAssertEqual(aggregate.movingDurationMillis, 0)
+    }
+}
