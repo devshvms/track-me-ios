@@ -20291,5 +20291,230 @@
                             "current_value":  0,
                             "previous_value":  10
                         }
-                    ]
+                    ],
+    "mutations": [
+        {
+            "description": "Deletion rolls level and milestone back",
+            "kind": "delete",
+            "before_activities": [
+                {"id": "deleted", "active_duration_millis": 36000000},
+                {"id": "keep-01", "active_duration_millis": 0},
+                {"id": "keep-02", "active_duration_millis": 0},
+                {"id": "keep-03", "active_duration_millis": 0},
+                {"id": "keep-04", "active_duration_millis": 0},
+                {"id": "keep-05", "active_duration_millis": 0},
+                {"id": "keep-06", "active_duration_millis": 0},
+                {"id": "keep-07", "active_duration_millis": 0},
+                {"id": "keep-08", "active_duration_millis": 0},
+                {"id": "keep-09", "active_duration_millis": 0},
+                {"id": "keep-10", "active_duration_millis": 0},
+                {"id": "keep-11", "active_duration_millis": 0},
+                {"id": "keep-12", "active_duration_millis": 0},
+                {"id": "keep-13", "active_duration_millis": 0},
+                {"id": "keep-14", "active_duration_millis": 0},
+                {"id": "keep-15", "active_duration_millis": 0},
+                {"id": "keep-16", "active_duration_millis": 0},
+                {"id": "keep-17", "active_duration_millis": 0},
+                {"id": "keep-18", "active_duration_millis": 0},
+                {"id": "keep-19", "active_duration_millis": 0},
+                {"id": "keep-20", "active_duration_millis": 0},
+                {"id": "keep-21", "active_duration_millis": 0},
+                {"id": "keep-22", "active_duration_millis": 0},
+                {"id": "keep-23", "active_duration_millis": 0},
+                {"id": "keep-24", "active_duration_millis": 0}
+            ],
+            "after_activities": [
+                {"id": "keep-01", "active_duration_millis": 0},
+                {"id": "keep-02", "active_duration_millis": 0},
+                {"id": "keep-03", "active_duration_millis": 0},
+                {"id": "keep-04", "active_duration_millis": 0},
+                {"id": "keep-05", "active_duration_millis": 0},
+                {"id": "keep-06", "active_duration_millis": 0},
+                {"id": "keep-07", "active_duration_millis": 0},
+                {"id": "keep-08", "active_duration_millis": 0},
+                {"id": "keep-09", "active_duration_millis": 0},
+                {"id": "keep-10", "active_duration_millis": 0},
+                {"id": "keep-11", "active_duration_millis": 0},
+                {"id": "keep-12", "active_duration_millis": 0},
+                {"id": "keep-13", "active_duration_millis": 0},
+                {"id": "keep-14", "active_duration_millis": 0},
+                {"id": "keep-15", "active_duration_millis": 0},
+                {"id": "keep-16", "active_duration_millis": 0},
+                {"id": "keep-17", "active_duration_millis": 0},
+                {"id": "keep-18", "active_duration_millis": 0},
+                {"id": "keep-19", "active_duration_millis": 0},
+                {"id": "keep-20", "active_duration_millis": 0},
+                {"id": "keep-21", "active_duration_millis": 0},
+                {"id": "keep-22", "active_duration_millis": 0},
+                {"id": "keep-23", "active_duration_millis": 0},
+                {"id": "keep-24", "active_duration_millis": 0}
+            ],
+            "expected_before_snapshot": {
+                "active_duration_millis": 36000000,
+                "activity_count": 25,
+                "level_id": "level_3",
+                "level_name_key": "Regular",
+                "current_minutes": 600,
+                "current_threshold_minutes": 600,
+                "next_threshold_minutes": 1800,
+                "progress_numerator_minutes": 0,
+                "progress_denominator_minutes": 1200,
+                "latest_milestone_id": "milestone_25",
+                "unlocked_milestone_ids": ["milestone_1", "milestone_10", "milestone_25"],
+                "unlocked_milestone_count": 3
+            },
+            "expected_after_snapshot": {
+                "active_duration_millis": 0,
+                "activity_count": 24,
+                "level_id": "level_1",
+                "level_name_key": "Starter",
+                "current_minutes": 0,
+                "current_threshold_minutes": 0,
+                "next_threshold_minutes": 120,
+                "progress_numerator_minutes": 0,
+                "progress_denominator_minutes": 120,
+                "latest_milestone_id": "milestone_10",
+                "unlocked_milestone_ids": ["milestone_1", "milestone_10"],
+                "unlocked_milestone_count": 2
+            }
+        },
+        {
+            "description": "Imported row crosses level and milestone boundaries",
+            "kind": "import",
+            "before_activities": [
+                {"id": "existing-01", "active_duration_millis": 7199999},
+                {"id": "existing-02", "active_duration_millis": 0},
+                {"id": "existing-03", "active_duration_millis": 0},
+                {"id": "existing-04", "active_duration_millis": 0},
+                {"id": "existing-05", "active_duration_millis": 0},
+                {"id": "existing-06", "active_duration_millis": 0},
+                {"id": "existing-07", "active_duration_millis": 0},
+                {"id": "existing-08", "active_duration_millis": 0},
+                {"id": "existing-09", "active_duration_millis": 0}
+            ],
+            "after_activities": [
+                {"id": "existing-01", "active_duration_millis": 7199999},
+                {"id": "existing-02", "active_duration_millis": 0},
+                {"id": "existing-03", "active_duration_millis": 0},
+                {"id": "existing-04", "active_duration_millis": 0},
+                {"id": "existing-05", "active_duration_millis": 0},
+                {"id": "existing-06", "active_duration_millis": 0},
+                {"id": "existing-07", "active_duration_millis": 0},
+                {"id": "existing-08", "active_duration_millis": 0},
+                {"id": "existing-09", "active_duration_millis": 0},
+                {"id": "imported", "active_duration_millis": 1}
+            ],
+            "expected_before_snapshot": {
+                "active_duration_millis": 7199999,
+                "activity_count": 9,
+                "level_id": "level_1",
+                "level_name_key": "Starter",
+                "current_minutes": 119,
+                "current_threshold_minutes": 0,
+                "next_threshold_minutes": 120,
+                "progress_numerator_minutes": 119,
+                "progress_denominator_minutes": 120,
+                "latest_milestone_id": "milestone_1",
+                "unlocked_milestone_ids": ["milestone_1"],
+                "unlocked_milestone_count": 1
+            },
+            "expected_after_snapshot": {
+                "active_duration_millis": 7200000,
+                "activity_count": 10,
+                "level_id": "level_2",
+                "level_name_key": "Moving",
+                "current_minutes": 120,
+                "current_threshold_minutes": 120,
+                "next_threshold_minutes": 600,
+                "progress_numerator_minutes": 0,
+                "progress_denominator_minutes": 480,
+                "latest_milestone_id": "milestone_10",
+                "unlocked_milestone_ids": ["milestone_1", "milestone_10"],
+                "unlocked_milestone_count": 2
+            }
+        }
+    ],
+    "home_cases": [
+        {
+            "description": "Mixed personas retain qualifying zero-distance fact",
+            "now_epoch_millis": 1787745600000,
+            "fallback_timezone": "UTC",
+            "activities": [
+                {"id": "1", "started_at_epoch_millis": 1787652000000, "start_timezone": "UTC", "persona": "CYCLING", "distance_meters": 10000, "active_duration_millis": 600000},
+                {"id": "2", "started_at_epoch_millis": 1787533200000, "start_timezone": "UTC", "persona": "WALK", "distance_meters": 0, "active_duration_millis": 300000},
+                {"id": "3", "started_at_epoch_millis": 1787565600000, "start_timezone": "UTC", "persona": "CYCLING", "distance_meters": 5000, "active_duration_millis": 900000}
+            ],
+            "expected_current_week": {
+                "week_start_epoch_day": 20689,
+                "activity_count": 3,
+                "active_duration_millis": 1800000,
+                "distance_by_persona": [
+                    {"persona": "WALK", "distance_meters": 0},
+                    {"persona": "CYCLING", "distance_meters": 15000}
+                ]
+            },
+            "expected_comparison": null
+        },
+        {
+            "description": "Partial current week freezes exact comparison values and periods",
+            "now_epoch_millis": 1787745600000,
+            "fallback_timezone": "UTC",
+            "activities": [
+                {"id": "10", "started_at_epoch_millis": 1787652000000, "start_timezone": "UTC", "persona": "RUN", "distance_meters": 1000, "active_duration_millis": 600000},
+                {"id": "11", "started_at_epoch_millis": 1787047200000, "start_timezone": "UTC", "persona": "WALK", "distance_meters": 1000, "active_duration_millis": 600000},
+                {"id": "12", "started_at_epoch_millis": 1786442400000, "start_timezone": "UTC", "persona": "AUTO", "distance_meters": 500, "active_duration_millis": 600000}
+            ],
+            "expected_current_week": {
+                "week_start_epoch_day": 20689,
+                "activity_count": 1,
+                "active_duration_millis": 600000,
+                "distance_by_persona": [
+                    {"persona": "RUN", "distance_meters": 1000}
+                ]
+            },
+            "expected_comparison": {
+                "metric": "distance",
+                "direction": "stable",
+                "current_start_epoch_day": 20689,
+                "current_end_epoch_day": 20691,
+                "comparison_start_epoch_day": 20682,
+                "comparison_end_epoch_day": 20684,
+                "current_value": 1000,
+                "comparison_value": 1000
+            }
+        }
+    ],
+    "calendar_cases": [
+        {
+            "description": "Recorded Kolkata timezone moves UTC Sunday into Monday",
+            "now_epoch_millis": 1787529900000,
+            "fallback_timezone": "UTC",
+            "activities": [
+                {"id": "20", "started_at_epoch_millis": 1787529300000, "start_timezone": "Asia/Kolkata", "persona": "WALK", "distance_meters": 1000, "active_duration_millis": 300000}
+            ],
+            "expected_current_week_start_epoch_day": 20689,
+            "expected_current_week_activity_count": 1
+        },
+        {
+            "description": "Recorded UTC timezone keeps UTC Sunday in previous week",
+            "now_epoch_millis": 1787529900000,
+            "fallback_timezone": "UTC",
+            "activities": [
+                {"id": "21", "started_at_epoch_millis": 1787529300000, "start_timezone": "UTC", "persona": "WALK", "distance_meters": 1000, "active_duration_millis": 300000}
+            ],
+            "expected_current_week_start_epoch_day": 20689,
+            "expected_current_week_activity_count": 0
+        },
+        {
+            "description": "New York DST-offset week keeps only local Monday activity",
+            "now_epoch_millis": 1793620800000,
+            "fallback_timezone": "America/New_York",
+            "activities": [
+                {"id": "22", "started_at_epoch_millis": 1793593800000, "start_timezone": "America/New_York", "persona": "RUN", "distance_meters": 1000, "active_duration_millis": 300000},
+                {"id": "23", "started_at_epoch_millis": 1793597400000, "start_timezone": "America/New_York", "persona": "RUN", "distance_meters": 1000, "active_duration_millis": 300000}
+            ],
+            "expected_current_week_start_epoch_day": 20759,
+            "expected_current_week_activity_count": 1
+        }
+    ]
 }

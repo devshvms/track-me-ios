@@ -167,4 +167,51 @@ final class GamificationEngineTests: XCTestCase {
             XCTAssertEqual(snapshot.unlockedMilestoneCount, expected.unlocked_milestone_count, vector.description)
         }
     }
+
+    func testMutationVectorsRecomputeDeletionAndImportFromRows() throws {
+        let fileURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/home-gamification-v1.json")
+        let vectors = try JSONDecoder().decode(
+            GamificationVectors.self,
+            from: Data(contentsOf: fileURL)
+        )
+
+        for vector in vectors.mutations {
+            assertSnapshot(
+                activities: vector.before_activities,
+                expected: vector.expected_before_snapshot,
+                description: "\(vector.description) before"
+            )
+            assertSnapshot(
+                activities: vector.after_activities,
+                expected: vector.expected_after_snapshot,
+                description: "\(vector.description) after"
+            )
+        }
+    }
+
+    private func assertSnapshot(
+        activities: [ActivityVector],
+        expected: ExpectedSnapshot,
+        description: String
+    ) {
+        let duration = activities.reduce(Int64(0)) { $0 + $1.active_duration_millis }
+        let actual = GamificationEngine.deriveSnapshot(facts: GamificationFacts(
+            lifetimeActivityCount: activities.count,
+            lifetimeActiveDurationMillis: duration
+        ))
+        XCTAssertEqual(duration, expected.active_duration_millis, description)
+        XCTAssertEqual(activities.count, expected.activity_count, description)
+        XCTAssertEqual(actual.currentLevelId, expected.level_id, description)
+        XCTAssertEqual(actual.currentLevelNameKey, expected.level_name_key, description)
+        XCTAssertEqual(actual.currentMinutes, expected.current_minutes, description)
+        XCTAssertEqual(actual.currentThresholdMinutes, expected.current_threshold_minutes, description)
+        XCTAssertEqual(actual.nextThresholdMinutes, expected.next_threshold_minutes, description)
+        XCTAssertEqual(actual.progressNumeratorMinutes, expected.progress_numerator_minutes, description)
+        XCTAssertEqual(actual.progressDenominatorMinutes, expected.progress_denominator_minutes, description)
+        XCTAssertEqual(actual.latestUnlockedMilestoneId ?? "milestone_none", expected.latest_milestone_id, description)
+        XCTAssertEqual(actual.unlockedMilestoneIds, expected.unlocked_milestone_ids, description)
+        XCTAssertEqual(actual.unlockedMilestoneCount, expected.unlocked_milestone_count, description)
+    }
 }
