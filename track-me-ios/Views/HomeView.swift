@@ -563,7 +563,7 @@ struct HomeView: View {
             onOpenCommunity: onNavigateCommunity,
             onOpenGroupMap: openExplicitGroupMap,
             onOpenGamification: { showGamificationCollection = true },
-            scrollToTopRequest: tabScrollToTopRequest
+            scrollToTopRequest: scrollToTopRequest
         )
     }
 

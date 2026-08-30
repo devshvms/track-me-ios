@@ -265,10 +265,10 @@ private struct EmptyDashboardCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
 
-                preview("See weekly distance", icon: "chart.bar.fill")
+                preview("See weekly duration", icon: "chart.bar.fill")
                 preview("See how this week compares", icon: "chart.line.uptrend.xyaxis")
                 preview("Revisit recent routes", icon: "point.topleft.down.to.point.bottomright.curvepath")
-
+                
                 Text(LocalizationHelper.localized(
                     "Location is requested after Start so TrackMe can record your route."
                 ))
@@ -324,16 +324,27 @@ private struct WeeklySummaryCard: View {
             label: LocalizationHelper.localized("This week")
         )
         DashboardMetric(
-            value: UnitFormatter.distance(
-                meters: summary.currentWeek.distanceMeters,
-                unit: unit
-            ),
-            label: LocalizationHelper.localized("Distance")
-        )
-        DashboardMetric(
             value: dashboardDuration(summary.currentWeek.activeDurationMillis),
             label: LocalizationHelper.localized("Duration")
         )
+        
+        let hasAnyDistance = summary.currentWeek.distanceByPersona.contains { $0 > 0.0 }
+        if hasAnyDistance {
+            ForEach(Array(RidePersona.allCases.enumerated()), id: \.offset) { i, persona in
+                let distance = i < summary.currentWeek.distanceByPersona.count ? summary.currentWeek.distanceByPersona[i] : 0.0
+                if distance > 0.0 {
+                    DashboardMetric(
+                        value: UnitFormatter.distance(meters: distance, unit: unit),
+                        label: LocalizationHelper.localized(persona.displayName)
+                    )
+                }
+            }
+        } else {
+            DashboardMetric(
+                value: UnitFormatter.distance(meters: 0.0, unit: unit),
+                label: LocalizationHelper.localized("Distance")
+            )
+        }
     }
 }
 
