@@ -551,7 +551,7 @@ struct HomeView: View {
             onOpenHistory: onNavigateHistory,
             onOpenCommunity: onNavigateCommunity,
             onOpenGroupMap: openExplicitGroupMap,
-            scrollToTopRequest: tabScrollToTopRequest
+            scrollToTopRequest: scrollToTopRequest
         )
     }
 

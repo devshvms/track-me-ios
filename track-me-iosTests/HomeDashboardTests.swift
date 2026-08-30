@@ -4,6 +4,29 @@ import XCTest
 @testable import track_me_ios
 
 final class HomeDashboardPolicyTests: XCTestCase {
+    func testDistanceByPersonaAggregation() {
+        let now = date("2026-08-26T12:00:00Z")
+        let summary = HomeDashboardSelector.select(
+            rides: [
+                metadata("2026-08-25T12:00:00Z", persona: .cycling, distance: 10000),
+                metadata("2026-08-24T12:00:00Z", persona: .run, distance: 5000),
+                metadata("2026-08-23T12:00:00Z", persona: .cycling, distance: 15000),
+                metadata("2026-08-10T12:00:00Z", persona: .run, distance: 5000)
+            ],
+            now: now,
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        let week = summary.currentWeek
+        XCTAssertEqual(week.activityCount, 3)
+        XCTAssertEqual(week.distanceMeters, 30000)
+        
+        // Assert distance by persona
+        let cyclingIdx = RidePersona.allCases.firstIndex(of: .cycling) ?? 0
+        let runIdx = RidePersona.allCases.firstIndex(of: .run) ?? 0
+        XCTAssertEqual(week.distanceByPersona[cyclingIdx], 25000)
+        XCTAssertEqual(week.distanceByPersona[runIdx], 5000)
+    }
+
     func testPresentationModePrecedenceKeepsActiveTrackingAboveGroupMap() {
         XCTAssertEqual(
             HomePresentationModePolicy.resolve(isTrackingIdle: false, explicitGroupMap: true),
