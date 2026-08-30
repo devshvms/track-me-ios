@@ -1,0 +1,76 @@
+{
+  "levels": [
+    {"duration_millis": -100, "expected_level_id": "level_1"},
+    {"duration_millis": 0, "expected_level_id": "level_1"},
+    {"duration_millis": 7199999, "expected_level_id": "level_1"},
+    {"duration_millis": 7200000, "expected_level_id": "level_2"},
+    {"duration_millis": 7200001, "expected_level_id": "level_2"},
+    {"duration_millis": 35999999, "expected_level_id": "level_2"},
+    {"duration_millis": 36000000, "expected_level_id": "level_3"},
+    {"duration_millis": 36000001, "expected_level_id": "level_3"},
+    {"duration_millis": 107999999, "expected_level_id": "level_3"},
+    {"duration_millis": 108000000, "expected_level_id": "level_4"},
+    {"duration_millis": 108000001, "expected_level_id": "level_4"},
+    {"duration_millis": 269999999, "expected_level_id": "level_4"},
+    {"duration_millis": 270000000, "expected_level_id": "level_5"},
+    {"duration_millis": 270000001, "expected_level_id": "level_5"},
+    {"duration_millis": 539999999, "expected_level_id": "level_5"},
+    {"duration_millis": 540000000, "expected_level_id": "level_6"},
+    {"duration_millis": 540000001, "expected_level_id": "level_6"},
+    {"duration_millis": 35999999999, "expected_level_id": "level_6"}
+  ],
+  "milestones": [
+    {"activity_count": -5, "expected_milestone_id": "milestone_none"},
+    {"activity_count": 0, "expected_milestone_id": "milestone_none"},
+    {"activity_count": 1, "expected_milestone_id": "milestone_1"},
+    {"activity_count": 9, "expected_milestone_id": "milestone_1"},
+    {"activity_count": 10, "expected_milestone_id": "milestone_10"},
+    {"activity_count": 24, "expected_milestone_id": "milestone_10"},
+    {"activity_count": 25, "expected_milestone_id": "milestone_25"},
+    {"activity_count": 49, "expected_milestone_id": "milestone_25"},
+    {"activity_count": 50, "expected_milestone_id": "milestone_50"},
+    {"activity_count": 99, "expected_milestone_id": "milestone_50"},
+    {"activity_count": 100, "expected_milestone_id": "milestone_100"},
+    {"activity_count": 249, "expected_milestone_id": "milestone_100"},
+    {"activity_count": 250, "expected_milestone_id": "milestone_250"},
+    {"activity_count": 499, "expected_milestone_id": "milestone_250"},
+    {"activity_count": 500, "expected_milestone_id": "milestone_500"},
+    {"activity_count": 999, "expected_milestone_id": "milestone_500"},
+    {"activity_count": 1000, "expected_milestone_id": "milestone_1000"},
+    {"activity_count": 5000, "expected_milestone_id": "milestone_1000"}
+  ],
+  "comparisons": [
+    {"current_value": 100, "previous_value": 100, "expected_state": "exact"},
+    {"current_value": 150, "previous_value": 100, "expected_state": "higher"},
+    {"current_value": 50, "previous_value": 100, "expected_state": "lower"},
+    {"current_value": 0, "previous_value": 0, "expected_state": "exact"},
+    {"current_value": 10, "previous_value": 0, "expected_state": "higher"},
+    {"current_value": 0, "previous_value": 10, "expected_state": "lower"}
+  ],
+  "snapshots": [
+    {
+      "description": "Empty input",
+      "activities": [],
+      "expected_snapshot": {
+        "level_id": "level_1",
+        "milestone_id": "milestone_none",
+        "active_duration_millis": 0,
+        "activity_count": 0
+      }
+    },
+    {
+      "description": "Valid snapshot with mixed personas and 0-distance rides",
+      "activities": [
+        {"duration_millis": 3600000, "distance_meters": 15000, "persona": "cyclist", "timestamp_millis": 1000000000, "timezone_offset_seconds": 0},
+        {"duration_millis": 1800000, "distance_meters": 3000, "persona": "walker", "timestamp_millis": 1000000000, "timezone_offset_seconds": 0},
+        {"duration_millis": 1800000, "distance_meters": 0, "persona": "indoor_cyclist", "timestamp_millis": 1000000000, "timezone_offset_seconds": 0}
+      ],
+      "expected_snapshot": {
+        "level_id": "level_2",
+        "milestone_id": "milestone_1",
+        "active_duration_millis": 7200000,
+        "activity_count": 3
+      }
+    }
+  ]
+}
