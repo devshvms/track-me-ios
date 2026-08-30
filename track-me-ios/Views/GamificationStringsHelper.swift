@@ -1,27 +1,35 @@
 import Foundation
 
 public enum GamificationStringsHelper {
-    public static func levelName(for levelId: String) -> String {
-        switch levelId {
-        case "level_1": return LocalizationHelper.localized("Starter")
-        case "level_2": return LocalizationHelper.localized("Moving")
-        case "level_3": return LocalizationHelper.localized("Regular")
-        case "level_4": return LocalizationHelper.localized("Explorer")
-        case "level_5": return LocalizationHelper.localized("Enduring")
-        case "level_6": return LocalizationHelper.localized("Pathfinder")
-        default: return LocalizationHelper.localized("Starter")
-        }
+    public static func levelName(forNameKey nameKey: String) -> String {
+        LocalizationHelper.localized(nameKey)
     }
     
-    public static func milestoneTitle(for milestoneId: String) -> String {
-        let countString = milestoneId.replacingOccurrences(of: "milestone_", with: "")
-        guard let count = Int(countString) else { return milestoneId }
-        
+    public static func milestoneTitle(activityCount count: Int) -> String {
         if count == 1 {
             return LocalizationHelper.localized("First Qualifying Activity")
-        } else {
-            return LocalizationHelper.formatted("%d rides", count)
         }
+        return LocalizationHelper.formatted("%@ qualifying activities", String(count))
+    }
+
+    public static func activeMinutes(_ minutes: Int64) -> String {
+        LocalizationHelper.formatted("%@ active minutes", String(minutes))
+    }
+
+    public static func nextLevelProgress(current: Int64, next: Int64) -> String {
+        LocalizationHelper.formatted(
+            "%@ active minutes • next level at %@",
+            String(current),
+            String(next)
+        )
+    }
+
+    public static func maximumLevel(current: Int64) -> String {
+        LocalizationHelper.formatted("Maximum level • %@ active minutes", String(current))
+    }
+
+    public static func unlockCriterion(minutes: Int64) -> String {
+        LocalizationHelper.formatted("Unlocks at %@ active minutes", String(minutes))
     }
     
     public static var myProgress: String {
@@ -46,5 +54,9 @@ public enum GamificationStringsHelper {
     
     public static var locked: String {
         LocalizationHelper.localized("Locked")
+    }
+
+    public static var latestMilestone: String {
+        LocalizationHelper.localized("Latest milestone")
     }
 }

@@ -66,7 +66,7 @@ struct HomeDashboardDeck: View {
                     }
 
                     if let insight = summary.insight {
-                        InsightCard(insight: insight, unit: unitSettings.system)
+                        InsightCard(insight: insight, unit: unitSettings.unit)
                             .dashboardCardMotion(
                                 orderFromTop: 2,
                                 total: 4,
@@ -79,7 +79,6 @@ struct HomeDashboardDeck: View {
                     let snapshot = GamificationEngine.deriveSnapshot(facts: facts)
                     GamificationProgressCard(
                         snapshot: snapshot,
-                        facts: facts,
                         onOpenProgress: onOpenGamification
                     )
                     .dashboardCardMotion(
@@ -214,14 +213,14 @@ struct HomeDashboardDeck: View {
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: 44)
         } else {
-            Button(LocalizationHelper.localized("Ride Together"), action: onOpenCommunity)
+            Button(LocalizationHelper.localized("Ride together"), action: onOpenCommunity)
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: 44)
         }
     }
 }
 
-private struct DashboardCard<Content: View>: View {
+struct DashboardCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -309,7 +308,7 @@ private struct WeeklySummaryCard: View {
                     .foregroundStyle(.secondary)
                 }
 
-                WeeklyDistanceChart(buckets: Array(summary.weeklyBuckets.suffix(4)), unit: unit)
+                WeeklyDurationChart(buckets: Array(summary.weeklyBuckets.suffix(4)))
             }
         }
     }
@@ -328,16 +327,12 @@ private struct WeeklySummaryCard: View {
             label: LocalizationHelper.localized("Duration")
         )
         
-        let hasAnyDistance = summary.currentWeek.distanceByPersona.contains { $0 > 0.0 }
-        if hasAnyDistance {
-            ForEach(Array(RidePersona.allCases.enumerated()), id: \.offset) { i, persona in
-                let distance = i < summary.currentWeek.distanceByPersona.count ? summary.currentWeek.distanceByPersona[i] : 0.0
-                if distance > 0.0 {
-                    DashboardMetric(
-                        value: UnitFormatter.distance(meters: distance, unit: unit),
-                        label: LocalizationHelper.localized(persona.displayName)
-                    )
-                }
+        if !summary.currentWeek.distanceByPersona.isEmpty {
+            ForEach(summary.currentWeek.distanceByPersona, id: \.persona) { item in
+                DashboardMetric(
+                    value: UnitFormatter.distance(meters: item.distanceMeters, unit: unit),
+                    label: LocalizationHelper.localized(item.persona.displayName)
+                )
             }
         } else {
             DashboardMetric(
@@ -361,9 +356,8 @@ private struct DashboardMetric: View {
     }
 }
 
-private struct WeeklyDistanceChart: View {
+private struct WeeklyDurationChart: View {
     let buckets: [HomeWeeklyBucket]
-    let unit: UnitSystem
 
     private var normalizedBuckets: [HomeWeeklyBucket] {
         let missing = max(0, 4 - buckets.count)
@@ -429,7 +423,7 @@ private struct InsightCard: View {
     private var message: String {
         switch insight {
         case let .returning(persona, inactiveDays):
-            LocalizationHelper.formatted(
+            return LocalizationHelper.formatted(
                 "Welcome back to %@ after %@ days.",
                 LocalizationHelper.localized(persona.displayName),
                 String(inactiveDays)
@@ -439,12 +433,17 @@ private struct InsightCard: View {
                 ? LocalizationHelper.localized("Distance")
                 : LocalizationHelper.localized("Duration")
             let currentStr = metric == .distance
-                ? UnitFormatter.rideDistance(meters: currentValue, unit: unit)
+                ? UnitFormatter.distance(meters: currentValue, unit: unit)
                 : dashboardDuration(Int64(currentValue))
             let comparisonStr = metric == .distance
-                ? UnitFormatter.rideDistance(meters: comparisonValue, unit: unit)
+                ? UnitFormatter.distance(meters: comparisonValue, unit: unit)
                 : dashboardDuration(Int64(comparisonValue))
-            return "\(metricStr): \(currentStr) / \(comparisonStr)"
+            return LocalizationHelper.formatted(
+                "%@: %@ compared with %@",
+                metricStr,
+                currentStr,
+                comparisonStr
+            )
         case let .dominantPersona(persona, _, _, _, _):
             return LocalizationHelper.formatted(
                 "%@ led your recent activities.",

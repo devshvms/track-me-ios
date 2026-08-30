@@ -1,6 +1,6 @@
 import Foundation
 
-public extension HomeDashboardSummary {
+extension HomeDashboardSummary {
     func toGamificationFacts() -> GamificationFacts {
         GamificationFacts(
             lifetimeActivityCount: self.lifetimeActivityCount,

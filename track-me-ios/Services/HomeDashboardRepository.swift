@@ -4,7 +4,9 @@ import SwiftData
 
 nonisolated enum HomeDashboardIndexContract {
     static let singletonKey = "home-dashboard"
-    static let indexVersion = 1
+    // v2 changes the encoded weekly persona-distance payload from a positional number array to
+    // typed persona/value facts. Reject v1 rather than assigning an old value by enum position.
+    static let indexVersion = 2
     /// TASK-246 raised this from 1 so every existing ride is swept once and gains its stored
     /// route shape. Without the bump the reconcile predicate would never look at them again and
     /// the History cards would stay generic for all history recorded before this build.

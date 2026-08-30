@@ -2,13 +2,6 @@ import SwiftUI
 
 public struct GamificationCollectionScreen: View {
     public let snapshot: GamificationSnapshot
-    @Environment(\.dismiss) private var dismiss
-    
-    private let allLevels = ["level_1", "level_2", "level_3", "level_4", "level_5", "level_6"]
-    private let allMilestones = [
-        "milestone_1", "milestone_10", "milestone_25", "milestone_50", 
-        "milestone_100", "milestone_250", "milestone_500", "milestone_1000"
-    ]
     
     public init(snapshot: GamificationSnapshot) {
         self.snapshot = snapshot
@@ -24,17 +17,22 @@ public struct GamificationCollectionScreen: View {
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    let currentIndex = allLevels.firstIndex(of: snapshot.currentLevelId) ?? 0
+                    let currentIndex = GamificationEngine.levels.firstIndex {
+                        $0.id == snapshot.currentLevelId
+                    } ?? 0
                     
-                    ForEach(Array(allLevels.enumerated()), id: \.element) { index, level in
+                    ForEach(Array(GamificationEngine.levels.enumerated()), id: \.element.id) { index, level in
                         let isUnlocked = index <= currentIndex
                         let statusText = isUnlocked ? GamificationStringsHelper.unlocked : GamificationStringsHelper.locked
                         
                         HStack {
                             VStack(alignment: .leading) {
-                                Text(GamificationStringsHelper.levelName(for: level))
+                                Text(GamificationStringsHelper.levelName(forNameKey: level.nameKey))
                                     .font(.body)
                                     .foregroundColor(isUnlocked ? .primary : .secondary)
+                                Text(GamificationStringsHelper.unlockCriterion(minutes: level.thresholdMinutes))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                                 Text(statusText)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -51,6 +49,7 @@ public struct GamificationCollectionScreen: View {
                         .padding()
                         .background(isUnlocked ? BrandColor.primary.opacity(0.1) : Color(.systemGray6))
                         .cornerRadius(8)
+                        .accessibilityElement(children: .combine)
                     }
                 }
                 
@@ -60,13 +59,13 @@ public struct GamificationCollectionScreen: View {
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    ForEach(allMilestones, id: \.self) { milestone in
-                        let isUnlocked = snapshot.unlockedMilestoneIds.contains(milestone)
+                    ForEach(GamificationEngine.milestones, id: \.id) { milestone in
+                        let isUnlocked = snapshot.unlockedMilestoneIds.contains(milestone.id)
                         let statusText = isUnlocked ? GamificationStringsHelper.unlocked : GamificationStringsHelper.locked
                         
                         HStack {
                             VStack(alignment: .leading) {
-                                Text(GamificationStringsHelper.milestoneTitle(for: milestone))
+                                Text(GamificationStringsHelper.milestoneTitle(activityCount: milestone.activityCount))
                                     .font(.body)
                                     .foregroundColor(isUnlocked ? .primary : .secondary)
                                 Text(statusText)
@@ -85,6 +84,7 @@ public struct GamificationCollectionScreen: View {
                         .padding()
                         .background(isUnlocked ? BrandColor.primary.opacity(0.1) : Color(.systemGray6))
                         .cornerRadius(8)
+                        .accessibilityElement(children: .combine)
                     }
                 }
                 

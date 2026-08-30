@@ -1,11 +1,16 @@
 import Foundation
 
+nonisolated struct HomePersonaDistance: Codable, Equatable, Sendable {
+    let persona: RidePersona
+    let distanceMeters: Double
+}
+
 nonisolated struct HomeWeeklyBucket: Codable, Equatable, Sendable {
     let weekStartEpochDay: Int
     let activityCount: Int
     let distanceMeters: Double
     let activeDurationMillis: Int64
-    let distanceByPersona: [Double]
+    let distanceByPersona: [HomePersonaDistance]
 }
 
 nonisolated struct HomeRecentActivity: Codable, Equatable, Sendable {
@@ -381,8 +386,13 @@ nonisolated enum HomeDashboardSelector {
             activityCount: rides.count,
             distanceMeters: rides.reduce(0) { $0 + $1.distanceMeters },
             activeDurationMillis: rides.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
-            distanceByPersona: RidePersona.allCases.map { p in
-                rides.filter { $0.persona == p }.reduce(0) { $0 + $1.distanceMeters }
+            distanceByPersona: RidePersona.allCases.compactMap { persona in
+                let personaRides = rides.filter { $0.persona == persona }
+                guard !personaRides.isEmpty else { return nil }
+                return HomePersonaDistance(
+                    persona: persona,
+                    distanceMeters: personaRides.reduce(0) { $0 + $1.distanceMeters }
+                )
             }
         )
     }

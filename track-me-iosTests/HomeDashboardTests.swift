@@ -10,7 +10,7 @@ final class HomeDashboardPolicyTests: XCTestCase {
             rides: [
                 metadata("2026-08-25T12:00:00Z", persona: .cycling, distance: 10000),
                 metadata("2026-08-24T12:00:00Z", persona: .run, distance: 5000),
-                metadata("2026-08-23T12:00:00Z", persona: .cycling, distance: 15000),
+                metadata("2026-08-24T01:00:00Z", persona: .cycling, distance: 15000),
                 metadata("2026-08-10T12:00:00Z", persona: .run, distance: 5000)
             ],
             now: now,
@@ -20,11 +20,26 @@ final class HomeDashboardPolicyTests: XCTestCase {
         XCTAssertEqual(week.activityCount, 3)
         XCTAssertEqual(week.distanceMeters, 30000)
         
-        // Assert distance by persona
-        let cyclingIdx = RidePersona.allCases.firstIndex(of: .cycling) ?? 0
-        let runIdx = RidePersona.allCases.firstIndex(of: .run) ?? 0
-        XCTAssertEqual(week.distanceByPersona[cyclingIdx], 25000)
-        XCTAssertEqual(week.distanceByPersona[runIdx], 5000)
+        XCTAssertEqual(
+            week.distanceByPersona.first { $0.persona == .cycling }?.distanceMeters,
+            25_000
+        )
+        XCTAssertEqual(
+            week.distanceByPersona.first { $0.persona == .run }?.distanceMeters,
+            5_000
+        )
+    }
+
+    func testZeroDistancePersonaRemainsAnExplicitWeeklyFact() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata("2026-08-25T12:00:00Z", persona: .walk, distance: 0)],
+            now: date("2026-08-26T12:00:00Z"),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+
+        XCTAssertEqual(summary.currentWeek.distanceByPersona, [
+            HomePersonaDistance(persona: .walk, distanceMeters: 0)
+        ])
     }
 
     func testPresentationModePrecedenceKeepsActiveTrackingAboveGroupMap() {
@@ -231,7 +246,14 @@ final class HomeDashboardPolicyTests: XCTestCase {
         let keys = [
             "Start %@", "This week", "Insights", "Recent activity",
             "Private by default • Works offline", "Group session active",
-            "Open Community", "View live map", "Return to Home dashboard"
+            "Ride together", "View live map", "Return to Home dashboard",
+            "Four-week duration: %@, %@, %@, and %@",
+            "%@: %@ compared with %@",
+            "Starter", "Moving", "Regular", "Explorer", "Enduring", "Pathfinder",
+            "First Qualifying Activity", "%@ qualifying activities",
+            "%@ active minutes • next level at %@", "Maximum level • %@ active minutes",
+            "Unlocks at %@ active minutes", "My Progress", "View progress",
+            "Levels", "Milestones", "Unlocked", "Locked", "Latest milestone"
         ]
         for key in keys {
             let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
@@ -312,6 +334,30 @@ final class HomeDashboardPersistenceTests: XCTestCase {
         let indexes = try container.mainContext.fetch(FetchDescriptor<HomeDashboardIndex>())
         XCTAssertEqual(indexes.count, 1)
         XCTAssertEqual(indexes.first?.lifetimeActivityCount, 3)
+    }
+
+    func testOldDashboardPayloadVersionFailsClosedForRebuild() async throws {
+        let container = try ModelContainer(
+            for: Ride.self,
+            GPSPoint.self,
+            HomeDashboardIndex.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let now = Date(timeIntervalSince1970: 1_777_200_000)
+        let summary = HomeDashboardSummary.empty(now: now, timeZone: TimeZone(identifier: "UTC")!)
+        let epochDay = HomeCalendar.epochDay(for: now, timeZone: TimeZone(identifier: "UTC")!)
+        container.mainContext.insert(HomeDashboardIndex(
+            schemaVersion: HomeDashboardIndexContract.indexVersion - 1,
+            asOfEpochDay: epochDay,
+            summary: summary,
+            payload: try JSONEncoder().encode(summary)
+        ))
+        try container.mainContext.save()
+
+        let worker = HomeDashboardWorker(modelContainer: container)
+        let cached = try await worker.cachedSummary(now: now, timeZoneIdentifier: "UTC")
+
+        XCTAssertNil(cached, "Old positional persona-distance payload must be rebuilt")
     }
 
     private func completeRide(distance: Double, duration: Int64) -> Ride {

@@ -1,54 +1,66 @@
 import Foundation
 
+public struct GamificationLevelDefinition: Equatable, Sendable {
+    public let id: String
+    public let nameKey: String
+    public let thresholdMinutes: Int64
+}
+
+public struct GamificationMilestoneDefinition: Equatable, Sendable {
+    public let id: String
+    public let activityCount: Int
+}
+
 public enum GamificationEngine: Sendable {
-    private static let LEVEL_THRESHOLDS: [(threshold: Int64, id: String)] = [
-        (7_200_000, "level_2"),
-        (36_000_000, "level_3"),
-        (108_000_000, "level_4"),
-        (270_000_000, "level_5"),
-        (540_000_000, "level_6")
+    public static let levels: [GamificationLevelDefinition] = [
+        GamificationLevelDefinition(id: "level_1", nameKey: "Starter", thresholdMinutes: 0),
+        GamificationLevelDefinition(id: "level_2", nameKey: "Moving", thresholdMinutes: 120),
+        GamificationLevelDefinition(id: "level_3", nameKey: "Regular", thresholdMinutes: 600),
+        GamificationLevelDefinition(id: "level_4", nameKey: "Explorer", thresholdMinutes: 1_800),
+        GamificationLevelDefinition(id: "level_5", nameKey: "Enduring", thresholdMinutes: 4_500),
+        GamificationLevelDefinition(id: "level_6", nameKey: "Pathfinder", thresholdMinutes: 9_000)
     ]
 
-    private static let MILESTONES: [(count: Int, id: String)] = [
-        (1, "milestone_1"),
-        (10, "milestone_10"),
-        (25, "milestone_25"),
-        (50, "milestone_50"),
-        (100, "milestone_100"),
-        (250, "milestone_250"),
-        (500, "milestone_500"),
-        (1000, "milestone_1000")
+    public static let milestones: [GamificationMilestoneDefinition] = [
+        GamificationMilestoneDefinition(id: "milestone_1", activityCount: 1),
+        GamificationMilestoneDefinition(id: "milestone_10", activityCount: 10),
+        GamificationMilestoneDefinition(id: "milestone_25", activityCount: 25),
+        GamificationMilestoneDefinition(id: "milestone_50", activityCount: 50),
+        GamificationMilestoneDefinition(id: "milestone_100", activityCount: 100),
+        GamificationMilestoneDefinition(id: "milestone_250", activityCount: 250),
+        GamificationMilestoneDefinition(id: "milestone_500", activityCount: 500),
+        GamificationMilestoneDefinition(id: "milestone_1000", activityCount: 1_000)
     ]
 
     public static func deriveSnapshot(facts: GamificationFacts) -> GamificationSnapshot {
-        let duration = facts.lifetimeActiveDurationMillis
-        
-        var currentLevelId = "level_1"
-        var nextThreshold: Int64? = LEVEL_THRESHOLDS.first?.threshold
+        let currentMinutes = max(0, facts.lifetimeActiveDurationMillis) / 60_000
+        let activityCount = max(0, facts.lifetimeActivityCount)
+        let currentLevel = levels.last { currentMinutes >= $0.thresholdMinutes } ?? levels[0]
+        let nextLevel = levels.first { $0.thresholdMinutes > currentMinutes }
+        let progressDenominator = nextLevel.map {
+            $0.thresholdMinutes - currentLevel.thresholdMinutes
+        } ?? 0
+        let progressNumerator = nextLevel == nil
+            ? 0
+            : min(progressDenominator, max(0, currentMinutes - currentLevel.thresholdMinutes))
 
-        for (index, threshold) in LEVEL_THRESHOLDS.enumerated() {
-            if duration >= threshold.threshold {
-                currentLevelId = threshold.id
-                let nextIndex = index + 1
-                if nextIndex < LEVEL_THRESHOLDS.count {
-                    nextThreshold = LEVEL_THRESHOLDS[nextIndex].threshold
-                } else {
-                    nextThreshold = nil
-                }
-            } else {
-                break
-            }
-        }
-
-        let unlockedMilestones = MILESTONES
-            .filter { facts.lifetimeActivityCount >= $0.count }
+        // Preserve catalogue order. Lexicographic sorting would put milestone_1000 before
+        // milestone_25 and make the Home card announce the wrong "latest" unlock.
+        let unlockedMilestones = milestones
+            .filter { activityCount >= $0.activityCount }
             .map { $0.id }
-            .sorted()
 
         return GamificationSnapshot(
-            currentLevelId: currentLevelId,
-            nextLevelDurationThresholdMillis: nextThreshold,
-            unlockedMilestoneIds: unlockedMilestones
+            currentLevelId: currentLevel.id,
+            currentLevelNameKey: currentLevel.nameKey,
+            currentMinutes: currentMinutes,
+            currentThresholdMinutes: currentLevel.thresholdMinutes,
+            nextThresholdMinutes: nextLevel?.thresholdMinutes,
+            progressNumeratorMinutes: progressNumerator,
+            progressDenominatorMinutes: progressDenominator,
+            latestUnlockedMilestoneId: unlockedMilestones.last,
+            unlockedMilestoneIds: unlockedMilestones,
+            unlockedMilestoneCount: unlockedMilestones.count
         )
     }
 }
