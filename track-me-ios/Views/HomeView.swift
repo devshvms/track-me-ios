@@ -37,6 +37,7 @@ struct HomeView: View {
     @State private var dashboardSelectionCameFromPicker = false
     @State private var showDashboardPersonaPicker = false
     @State private var selectedRecentRideId: UUID?
+    @State private var showGamificationCollection = false
     @State private var didTrackDashboardEntry = false
     @State private var trackedInsightValue: String?
     @State private var groupClockTick = StatusAge.elapsedMillis()
@@ -426,7 +427,10 @@ struct HomeView: View {
         }
         // TASK-226: double-tapping the tab returns to the deck. Home's push is already
         // programmatic, so clearing the selection is the whole pop.
-        .onChange(of: popToRootRequest) { _, _ in selectedRecentRideId = nil }
+        .onChange(of: popToRootRequest) { _, _ in 
+            selectedRecentRideId = nil 
+            showGamificationCollection = false
+        }
         .navigationDestination(item: $selectedRecentRideId) { rideId in
             if let ride = ride(with: rideId) {
                 RideDetailView(ride: ride)
@@ -435,6 +439,13 @@ struct HomeView: View {
                     LocalizationHelper.localized("Activity unavailable"),
                     systemImage: "clock.badge.exclamationmark"
                 )
+            }
+        }
+        .navigationDestination(isPresented: $showGamificationCollection) {
+            if let summary = dashboard.summary {
+                let facts = summary.toGamificationFacts()
+                let snapshot = GamificationEngine.deriveSnapshot(facts: facts)
+                GamificationCollectionScreen(snapshot: snapshot)
             }
         }
         .toolbar(presentationMode == .activeTrackingMap ? .hidden : .visible, for: .tabBar)
@@ -551,6 +562,7 @@ struct HomeView: View {
             onOpenHistory: onNavigateHistory,
             onOpenCommunity: onNavigateCommunity,
             onOpenGroupMap: openExplicitGroupMap,
+            onOpenGamification: { showGamificationCollection = true },
             scrollToTopRequest: tabScrollToTopRequest
         )
     }

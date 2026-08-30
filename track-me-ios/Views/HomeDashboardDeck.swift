@@ -14,6 +14,7 @@ struct HomeDashboardDeck: View {
     let onOpenHistory: () -> Void
     let onOpenCommunity: () -> Void
     let onOpenGroupMap: () -> Void
+    let onOpenGamification: () -> Void
     let scrollToTopRequest: Int
 
     @ObservedObject private var unitSettings = UnitSettings.shared
@@ -73,6 +74,20 @@ struct HomeDashboardDeck: View {
                                 reduceMotion: reduceMotion
                             )
                     }
+
+                    let facts = summary.toGamificationFacts()
+                    let snapshot = GamificationEngine.deriveSnapshot(facts: facts)
+                    GamificationProgressCard(
+                        snapshot: snapshot,
+                        facts: facts,
+                        onOpenProgress: onOpenGamification
+                    )
+                    .dashboardCardMotion(
+                        orderFromTop: 3,
+                        total: 5,
+                        isVisible: isVisible,
+                        reduceMotion: reduceMotion
+                    )
 
                     if let recent = summary.latestActivity {
                         RecentActivityCard(
