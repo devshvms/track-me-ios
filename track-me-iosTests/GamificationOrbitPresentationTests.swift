@@ -27,19 +27,33 @@ final class GamificationOrbitPresentationTests: XCTestCase {
     }
 
     func testProgressClampsMalformedPresentationInput() {
-        let snapshot = GamificationSnapshot(
+        let snapshot = malformedMidLevelSnapshot(denominator: 480)
+
+        XCTAssertEqual(GamificationOrbitPresentation.progress(for: snapshot), 1, accuracy: 0.0001)
+        XCTAssertEqual(
+            GamificationOrbitPresentation.progress(for: malformedMidLevelSnapshot(denominator: 0)),
+            0,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            GamificationOrbitPresentation.progress(for: malformedMidLevelSnapshot(denominator: -1)),
+            0,
+            accuracy: 0.0001
+        )
+    }
+
+    private func malformedMidLevelSnapshot(denominator: Int64) -> GamificationSnapshot {
+        GamificationSnapshot(
             currentLevelId: "level_2",
             currentLevelNameKey: "Moving",
             currentMinutes: 999,
             currentThresholdMinutes: 120,
             nextThresholdMinutes: 600,
             progressNumeratorMinutes: 900,
-            progressDenominatorMinutes: 480,
+            progressDenominatorMinutes: denominator,
             latestUnlockedMilestoneId: nil,
             unlockedMilestoneIds: [],
             unlockedMilestoneCount: 0
         )
-
-        XCTAssertEqual(GamificationOrbitPresentation.progress(for: snapshot), 1, accuracy: 0.0001)
     }
 }

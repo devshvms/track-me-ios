@@ -13,32 +13,44 @@ public struct GamificationCollectionScreen: View {
     public var body: some View {
         GeometryReader { proxy in
             let compact = proxy.size.height < 620 || dynamicTypeSize.isAccessibilitySize
-            let reservedHeight: CGFloat = compact ? 244 : 196
-            let orbitSize = min(
-                proxy.size.width - (compact ? 16 : 28),
-                max(184, proxy.size.height - reservedHeight)
-            )
+            let horizontalPadding: CGFloat = compact ? 8 : 14
+            let verticalPadding: CGFloat = compact ? 4 : 10
+            let availableHeight = max(1, proxy.size.height - verticalPadding * 2)
+            let availableWidth = max(1, proxy.size.width - horizontalPadding * 2)
+            let levelsHeight = availableHeight * 0.08
+            let orbitHeight = availableHeight * 0.59
+            let summaryHeight = availableHeight * 0.11
+            let milestonesHeight = availableHeight * 0.22
+            let orbitSize = min(availableWidth, orbitHeight)
             let levelIndex = GamificationOrbitPresentation.levelIndex(for: snapshot)
             let accent = ProgressLevelPalette.accent(
                 levelIndex: levelIndex,
                 colorScheme: colorScheme
             )
 
-            VStack(spacing: compact ? 7 : 12) {
+            VStack(spacing: 0) {
                 Text(GamificationStringsHelper.levels)
                     .font(.headline)
                     .fontWeight(.semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.45)
+                    .allowsTightening(true)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: levelsHeight)
                     .accessibilityAddTraits(.isHeader)
 
-                ProgressOrbitView(
-                    snapshot: snapshot,
-                    levelIndex: levelIndex,
-                    accent: accent,
-                    colorScheme: colorScheme,
-                    compact: compact
-                )
-                .frame(width: orbitSize, height: orbitSize)
-                .layoutPriority(1)
+                ZStack {
+                    ProgressOrbitView(
+                        snapshot: snapshot,
+                        levelIndex: levelIndex,
+                        accent: accent,
+                        colorScheme: colorScheme,
+                        compact: compact
+                    )
+                    .frame(width: orbitSize, height: orbitSize)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: orbitHeight)
 
                 Text(progressSummary)
                     .font(.footnote)
@@ -46,7 +58,10 @@ public struct GamificationCollectionScreen: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.82)
+                    .minimumScaleFactor(0.45)
+                    .allowsTightening(true)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: summaryHeight)
                     .accessibilityLabel(progressSummary)
 
                 MilestoneConstellation(
@@ -55,10 +70,12 @@ public struct GamificationCollectionScreen: View {
                     colorScheme: colorScheme,
                     compact: compact
                 )
+                .frame(maxWidth: .infinity)
+                .frame(height: milestonesHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.horizontal, compact ? 8 : 14)
-            .padding(.vertical, compact ? 4 : 10)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
             .background {
                 LinearGradient(
                     colors: [
@@ -96,7 +113,9 @@ enum GamificationOrbitPresentation {
     }
 
     static func progress(for snapshot: GamificationSnapshot) -> Double {
-        guard snapshot.progressDenominatorMinutes > 0 else { return 1 }
+        guard snapshot.progressDenominatorMinutes > 0 else {
+            return levelIndex(for: snapshot) == GamificationEngine.levels.count - 1 ? 1 : 0
+        }
         return min(
             1,
             max(
@@ -120,7 +139,7 @@ private struct ProgressOrbitView: View {
             let size = min(proxy.size.width, proxy.size.height)
             let centre = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
             let radius = size * (compact ? 0.385 : 0.39)
-            let nodeSize = max(34, min(compact ? 42 : 48, size * 0.145))
+            let nodeSize = max(20, min(compact ? 42 : 48, size * 0.145))
             let dialSize = size * (compact ? 0.47 : 0.50)
 
             ZStack {
@@ -155,14 +174,16 @@ private struct ProgressOrbitView: View {
                         .font(compact ? .headline : .title3)
                         .fontWeight(.bold)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.72)
+                        .minimumScaleFactor(0.35)
+                        .allowsTightening(true)
                     Text(GamificationStringsHelper.activeMinutes(snapshot.currentMinutes))
                         .font(compact ? .caption2 : .caption)
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.72)
+                        .minimumScaleFactor(0.35)
+                        .allowsTightening(true)
                 }
                 .frame(width: dialSize * 0.72)
                 .position(centre)
@@ -260,24 +281,46 @@ private struct MilestoneConstellation: View {
     }
 
     var body: some View {
-        VStack(spacing: compact ? 5 : 8) {
-            Text(GamificationStringsHelper.milestones)
-                .font(.headline)
-                .fontWeight(.semibold)
-                .accessibilityAddTraits(.isHeader)
+        GeometryReader { proxy in
+            let titleHeight = proxy.size.height * 0.26
+            let rowHeight = (proxy.size.height - titleHeight) / 2
+            let horizontalGap: CGFloat = compact ? 12 : 18
+            let nodeSize = max(
+                12,
+                min(
+                    compact ? 36 : 42,
+                    (proxy.size.width - horizontalGap * 3) / 4,
+                    rowHeight * 0.86
+                )
+            )
 
-            ForEach(0..<2, id: \.self) { row in
-                HStack(spacing: compact ? 12 : 18) {
-                    ForEach(Array(GamificationEngine.milestones[(row * 4)..<(row * 4 + 4)]), id: \.id) { milestone in
-                        MilestoneNode(
-                            milestone: milestone,
-                            unlocked: unlockedIds.contains(milestone.id),
-                            latest: snapshot.latestUnlockedMilestoneId == milestone.id,
-                            accent: accent,
-                            colorScheme: colorScheme,
-                            compact: compact
-                        )
+            VStack(spacing: 0) {
+                Text(GamificationStringsHelper.milestones)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                    .allowsTightening(true)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: titleHeight)
+                    .accessibilityAddTraits(.isHeader)
+
+                ForEach(0..<2, id: \.self) { row in
+                    HStack(spacing: horizontalGap) {
+                        ForEach(Array(GamificationEngine.milestones[(row * 4)..<(row * 4 + 4)]), id: \.id) { milestone in
+                            MilestoneNode(
+                                milestone: milestone,
+                                unlocked: unlockedIds.contains(milestone.id),
+                                latest: snapshot.latestUnlockedMilestoneId == milestone.id,
+                                accent: accent,
+                                colorScheme: colorScheme,
+                                compact: compact,
+                                nodeSize: nodeSize
+                            )
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: rowHeight)
                 }
             }
         }
@@ -291,6 +334,7 @@ private struct MilestoneNode: View {
     let accent: Color
     let colorScheme: ColorScheme
     let compact: Bool
+    let nodeSize: CGFloat
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -312,7 +356,8 @@ private struct MilestoneNode: View {
                         ? ProgressLevelPalette.foreground(colorScheme: colorScheme)
                         : Color.secondary
                 )
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.35)
+                .allowsTightening(true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Image(systemName: unlocked ? "checkmark" : "lock.fill")
@@ -324,7 +369,7 @@ private struct MilestoneNode: View {
                 )
                 .padding(3)
         }
-        .frame(width: compact ? 36 : 42, height: compact ? 36 : 42)
+        .frame(width: nodeSize, height: nodeSize)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             GamificationStringsHelper.milestoneTitle(activityCount: milestone.activityCount)
