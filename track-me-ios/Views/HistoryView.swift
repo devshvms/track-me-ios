@@ -55,6 +55,8 @@ struct HistoryView: View {
     @FocusState private var searchFieldFocused: Bool
     @State private var summaries: [HistoryRideSummary] = []
     @State private var showFileImporter = false
+    /// TASK-275: shown when an import is refused as a duplicate. Silence would read as a no-op.
+    @State private var importMessage: String?
     @State private var showCustomRange = false
     @State private var searchText = ""
     @State private var selectedPersonas = Set(RidePersona.allCases)
@@ -210,6 +212,14 @@ struct HistoryView: View {
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.xml, .init(filenameExtension: "gpx")!]) { result in
                 if case .success(let url) = result { importGPX(from: url) }
             }
+            // TASK-275: a refused import must say so. Dropping the file silently is
+            // indistinguishable from the picker having failed.
+            .alert(
+                importMessage ?? "",
+                isPresented: Binding(get: { importMessage != nil }, set: { if !$0 { importMessage = nil } })
+            ) {
+                Button(String(localized: "OK"), role: .cancel) { importMessage = nil }
+            }
             .task { loadSummaries() }
             .onChange(of: searchText) { _, _ in filterRevision += 1 }
             .onChange(of: selectedPersonas) { _, _ in filterRevision += 1 }
@@ -351,7 +361,26 @@ struct HistoryView: View {
         guard url.startAccessingSecurityScopedResource() else { return }
         defer { url.stopAccessingSecurityScopedResource() }
         guard let ride = GPXParser().parse(url: url) else { return }
+        // TASK-275: the typed provenance fact. `sourceInfo` is free text for display and is not
+        // safe to branch on; qualification reads this.
+        ride.source = RideSource.imported
+        // Computes the content hash alongside the route shape, so the duplicate check below has
+        // something to compare.
         ride.refreshDashboardMetadata()
+
+        // TASK-275: dedupe by track identity. This path previously had no duplicate check at all —
+        // not even the id check Android had — so importing the same file twice produced two rides
+        // and double-counted its minutes in every aggregate, with nobody acting in bad faith.
+        if let hash = ride.contentHash {
+            var descriptor = FetchDescriptor<Ride>(
+                predicate: #Predicate { $0.contentHash == hash && $0.pendingDelete == false }
+            )
+            descriptor.fetchLimit = 1
+            if let existing = try? modelContext.fetch(descriptor), existing.isEmpty == false {
+                importMessage = String(localized: "This ride is already in your history")
+                return
+            }
+        }
         modelContext.insert(ride)
         try? modelContext.save()
         loadSummaries()
