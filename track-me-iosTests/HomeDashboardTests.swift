@@ -254,7 +254,8 @@ final class HomeDashboardPolicyTests: XCTestCase {
                 distanceMeters: 1_000,
                 activeDurationMillis: 300_000,
                 avgSpeedMps: 3.33,
-                pointCount: 20_000
+                pointCount: 20_000,
+                sourceRaw: RideSource.recorded
             )
         }
         let summary = HomeDashboardSelector.select(
@@ -348,7 +349,8 @@ final class HomeDashboardPolicyTests: XCTestCase {
             distanceMeters: distance,
             activeDurationMillis: 300_000,
             avgSpeedMps: distance / 300,
-            pointCount: 100
+            pointCount: 100,
+            sourceRaw: RideSource.recorded
         )
     }
 
@@ -369,7 +371,8 @@ final class HomeDashboardPolicyTests: XCTestCase {
             distanceMeters: vector.distance_meters,
             activeDurationMillis: vector.active_duration_millis,
             avgSpeedMps: durationSeconds > 0 ? vector.distance_meters / durationSeconds : 0,
-            pointCount: 100
+            pointCount: 100,
+            sourceRaw: RideSource.recorded
         )
     }
 
@@ -460,5 +463,58 @@ final class HomeDashboardPersistenceTests: XCTestCase {
         ride.avgSpeedMps = duration > 0 ? distance / (Double(duration) / 1_000) : 0
         ride.pointCount = 100
         return ride
+    }
+
+    // MARK: - TASK-275: imported rides earn no progress, but stay in every other total
+
+    private func metadata(_ index: Int, source: String, minutes: Int64 = 10) -> HomeDashboardRideMetadata {
+        HomeDashboardRideMetadata(
+            localId: UUID(),
+            persona: .cycling,
+            startedAt: Date(timeIntervalSince1970: 1_780_000_000 + Double(index) * 86_400),
+            startZoneId: "UTC",
+            distanceMeters: 1_000,
+            activeDurationMillis: minutes * 60_000,
+            avgSpeedMps: 3.33,
+            pointCount: 200,
+            sourceRaw: source
+        )
+    }
+
+    func testImportedRidesCountForTheDashboardAndNotForGamification() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata(0, source: RideSource.recorded),
+                    metadata(1, source: RideSource.imported)],
+            now: Date(timeIntervalSince1970: 1_780_400_000),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        // The rider's own totals show both — an imported ride is still their ride.
+        XCTAssertEqual(summary.lifetimeActivityCount, 2)
+        XCTAssertEqual(summary.lifetimeActiveDurationMillis, 1_200_000)
+        // Levels and milestones see only what this app recorded.
+        XCTAssertEqual(summary.gamificationActivityCount, 1)
+        XCTAssertEqual(summary.gamificationActiveDurationMillis, 600_000)
+    }
+
+    func testAHistoryOfOnlyImportsEarnsNothing() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata(0, source: RideSource.imported),
+                    metadata(1, source: RideSource.imported)],
+            now: Date(timeIntervalSince1970: 1_780_400_000),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        XCTAssertEqual(summary.lifetimeActivityCount, 2)
+        XCTAssertEqual(summary.gamificationActivityCount, 0)
+        XCTAssertEqual(summary.gamificationActiveDurationMillis, 0)
+    }
+
+    func testAnUnknownFutureSourceEarnsNothingRatherThanCrashing() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata(0, source: "SOMETHING_NEW")],
+            now: Date(timeIntervalSince1970: 1_780_400_000),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        XCTAssertEqual(summary.lifetimeActivityCount, 1)
+        XCTAssertEqual(summary.gamificationActivityCount, 0)
     }
 }

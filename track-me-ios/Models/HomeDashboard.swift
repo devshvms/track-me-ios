@@ -77,6 +77,13 @@ nonisolated struct HomeDashboardSummary: Codable, Equatable, Sendable {
     let lifetimeActivityCount: Int
     let lifetimeDistanceMeters: Double
     let lifetimeActiveDurationMillis: Int64
+    /// TASK-275: the same two lifetime facts, counting recorded rides only.
+    ///
+    /// Levels and activity milestones read these; every dashboard surface keeps reading the
+    /// unfiltered pair above, because an imported ride is still the rider's ride and belongs in
+    /// their totals, their history and their week. What it does not do is earn progress.
+    let gamificationActivityCount: Int
+    let gamificationActiveDurationMillis: Int64
     let displayStreakWeeks: Int
     let latestActivity: HomeRecentActivity?
     /// Oldest to newest, including zero weeks, so the chart never shifts meaning.
@@ -106,6 +113,8 @@ nonisolated struct HomeDashboardSummary: Codable, Equatable, Sendable {
             lifetimeActivityCount: 0,
             lifetimeDistanceMeters: 0,
             lifetimeActiveDurationMillis: 0,
+            gamificationActivityCount: 0,
+            gamificationActiveDurationMillis: 0,
             displayStreakWeeks: 0,
             latestActivity: nil,
             weeklyBuckets: [],
@@ -124,6 +133,8 @@ nonisolated struct HomeDashboardRideMetadata: Equatable, Sendable {
     let activeDurationMillis: Int64
     let avgSpeedMps: Double
     let pointCount: Int
+    /// TASK-275: RECORDED or IMPORTED; only the former earns levels and milestones.
+    let sourceRaw: String
 }
 
 nonisolated enum HomePresentationMode: Equatable, Sendable {
@@ -181,11 +192,14 @@ nonisolated enum HomeDashboardSelector {
             return personaOrder($0.persona) < personaOrder($1.persona)
         }
 
+        let earned = sorted.filter { RideSource.earnsProgress($0.sourceRaw) }
         return HomeDashboardSummary(
             currentWeek: currentWeek,
             lifetimeActivityCount: sorted.count,
             lifetimeDistanceMeters: sorted.reduce(0) { $0 + $1.distanceMeters },
             lifetimeActiveDurationMillis: sorted.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
+            gamificationActivityCount: earned.count,
+            gamificationActiveDurationMillis: earned.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
             displayStreakWeeks: displayStreak(activeWeeks: activeWeekStarts, currentWeek: currentWeekStart),
             latestActivity: sorted.first.map {
                 HomeRecentActivity(

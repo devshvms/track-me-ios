@@ -10,7 +10,12 @@ nonisolated enum HomeDashboardIndexContract {
     /// TASK-246 raised this from 1 so every existing ride is swept once and gains its stored
     /// route shape. Without the bump the reconcile predicate would never look at them again and
     /// the History cards would stay generic for all history recorded before this build.
-    static let metadataVersion = 2
+    /// TASK-275 raised this to 3 so every existing ride is swept once and gains its content hash.
+    /// The bump is the mechanism, not an accident of editing: `refreshDashboardMetadata` is what
+    /// writes the hash, and the reconcile predicate only looks at rows *below* the current version.
+    /// Left at 2, every ride that already existed would have kept a nil hash forever, and the
+    /// re-import-your-own-export case would have stayed open for the users who have history.
+    static let metadataVersion = 3
 }
 
 @Model
@@ -74,7 +79,12 @@ extension Ride {
         //
         // Set before the guard: a ride with an incomplete aggregate can still have a drawable
         // track, and the thumbnail is not gated on qualifying for stats.
-        routePolyline = RoutePolyline.encoded(from: freshPoints ?? points ?? [])
+        let trackPoints = freshPoints ?? points ?? []
+        routePolyline = RoutePolyline.encoded(from: trackPoints)
+        // TASK-275: derived here rather than passed in, for the same reason the polyline above is.
+        // Android takes it as a required argument; this file already argues why that shape is a
+        // trap with nine callers, and a Ride owns its points.
+        contentHash = RideContentHash.of(trackPoints) ?? contentHash
         guard let endTime,
               endTime > startTime,
               let distanceMeters,
@@ -184,7 +194,8 @@ actor HomeDashboardWorker {
                 distanceMeters: RideMetrics.nonNegativeFinite(distance),
                 activeDurationMillis: max(0, duration),
                 avgSpeedMps: RideMetrics.nonNegativeFinite(average),
-                pointCount: max(0, pointCount)
+                pointCount: max(0, pointCount),
+                sourceRaw: ride.source
             )
         }
         let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
