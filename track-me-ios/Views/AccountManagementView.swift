@@ -20,6 +20,11 @@ struct AccountManagementView: View {
     @State private var isDownloadingArchive = false
     @State private var downloadedArchiveURL: URL? = nil
 
+    /// TASK-277: the same earned ring the Settings header wears, at the size Android uses here.
+    /// Derived on appear rather than observed: this screen is pushed, not long-lived, and a level
+    /// cannot change while it is open.
+    @State private var levelIndex: Int = 0
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -27,24 +32,22 @@ struct AccountManagementView: View {
             VStack(spacing: 24) {
                 // Profile Section
                 VStack(spacing: 12) {
-                    if let photoUrl = Auth.auth().currentUser?.photoURL {
-                        AsyncImage(url: photoUrl) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            ProgressView()
-                        }
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 100, height: 100)
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 50, height: 50)
-                                .foregroundColor(.primary)
+                    LevelAvatar(levelIndex: levelIndex, diameter: 100) {
+                        if let photoUrl = Auth.auth().currentUser?.photoURL {
+                            AsyncImage(url: photoUrl) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                ProgressView()
+                            }
+                        } else {
+                            ZStack {
+                                Circle().fill(Color.gray.opacity(0.3))
+                                Image(systemName: "person.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 50, height: 50)
+                                    .foregroundColor(.primary)
+                            }
                         }
                     }
 
@@ -295,6 +298,7 @@ struct AccountManagementView: View {
             }
         }
         .onAppear {
+            refreshLevel()
             DataExportService.shared.checkExportStatus { result in
                 if case .success(let response) = result {
                     currentExportResponse = response
@@ -302,6 +306,13 @@ struct AccountManagementView: View {
             }
         }
         .trackScreen("AccountManagementView")
+    }
+
+    private func refreshLevel() {
+        guard let summary = HomeDashboardRepository.shared.summary else { return }
+        levelIndex = GamificationTrail.levelIndex(
+            for: GamificationEngine.deriveSnapshot(facts: summary.toGamificationFacts())
+        )
     }
 
     static func deletionErrorMessage(for error: Error) -> String {

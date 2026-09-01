@@ -445,7 +445,10 @@ struct HomeView: View {
             if let summary = dashboard.summary {
                 let facts = summary.toGamificationFacts()
                 let snapshot = GamificationEngine.deriveSnapshot(facts: facts)
-                GamificationCollectionScreen(snapshot: snapshot)
+                GamificationCollectionScreen(
+                    snapshot: snapshot,
+                    achievements: summary.levelAchievements
+                )
             }
         }
         .toolbar(presentationMode == .activeTrackingMap ? .hidden : .visible, for: .tabBar)

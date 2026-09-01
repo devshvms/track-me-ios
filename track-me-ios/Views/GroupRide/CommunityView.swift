@@ -632,7 +632,8 @@ struct CommunityView: View {
 
     private var startTimeText: String {
         guard let millis = groupRide.state.startAtMillis else { return "--" }
-        return Date(timeIntervalSince1970: TimeInterval(millis) / 1000).formatted(date: .abbreviated, time: .shortened)
+        return LocalizationHelper.mediumDateTime(Date(timeIntervalSince1970: TimeInterval(millis) / 1000),
+                                                 includeTime: true)
     }
 
     private var calendarDetails: CalendarDetails? {
