@@ -11,6 +11,8 @@ struct SettingsView: View {
     /// TASK-226: bumped when the rider double-taps this tab. Pops back to the settings list.
     var popToRootRequest: Int = 0
     @State private var navigationPath: [SettingsRoute] = []
+    /// TASK-277: one derivation for both the signed-in and signed-out cards.
+    @State private var levelIndex: Int = 0
 
     @AppStorage("enableGPSPostProcessing") var isPostProcessingEnabled: Bool = true
     @AppStorage("intelligentAutoPause") var isAutoPauseEnabled: Bool = true
@@ -48,6 +50,13 @@ struct SettingsView: View {
     // We get total rides from SwiftData
     @Query private var allRides: [Ride]
 
+    private func refreshLevel() {
+        guard let summary = HomeDashboardRepository.shared.summary else { return }
+        levelIndex = GamificationTrail.levelIndex(
+            for: GamificationEngine.deriveSnapshot(facts: summary.toGamificationFacts())
+        )
+    }
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
@@ -56,15 +65,17 @@ struct SettingsView: View {
                     if isLoggedOut {
                         // Logged-out Card
                         VStack(spacing: 16) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(width: 80, height: 80)
-                                Image(systemName: "person.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 40, height: 40)
-                                    .foregroundColor(.primary)
+                            // TASK-277: the ring shows signed out too. Levels derive from local
+                            // rides, which need no account — this card's own subtitle says the
+                            // history is local only.
+                            LevelAvatar(levelIndex: levelIndex, diameter: 80) {
+                                ZStack {
+                                    Circle().fill(Color.gray.opacity(0.3))
+                                    Image(systemName: "person.fill")
+                                        .resizable().scaledToFit()
+                                        .frame(width: 40, height: 40)
+                                        .foregroundColor(.primary)
+                                }
                             }
 
                             Text("Guest")
@@ -97,24 +108,21 @@ struct SettingsView: View {
                         VStack(spacing: 0) {
                             // Header
                             HStack(spacing: 16) {
-                                if let photoUrl = Auth.auth().currentUser?.photoURL {
-                                    AsyncImage(url: photoUrl) { image in
-                                        image.resizable().scaledToFill()
-                                    } placeholder: {
-                                        ProgressView()
-                                    }
-                                    .frame(width: 64, height: 64)
-                                    .clipShape(Circle())
-                                } else {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.gray.opacity(0.3))
-                                            .frame(width: 64, height: 64)
-                                        Image(systemName: "person.fill")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 32, height: 32)
-                                            .foregroundColor(.primary)
+                                LevelAvatar(levelIndex: levelIndex, diameter: 64) {
+                                    if let photoUrl = Auth.auth().currentUser?.photoURL {
+                                        AsyncImage(url: photoUrl) { image in
+                                            image.resizable().scaledToFill()
+                                        } placeholder: {
+                                            ProgressView()
+                                        }
+                                    } else {
+                                        ZStack {
+                                            Circle().fill(Color.gray.opacity(0.3))
+                                            Image(systemName: "person.fill")
+                                                .resizable().scaledToFit()
+                                                .frame(width: 32, height: 32)
+                                                .foregroundColor(.primary)
+                                        }
                                     }
                                 }
 
@@ -434,6 +442,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("")
+        .task { refreshLevel() }
             .navigationBarHidden(true)
             .alert("GPS Post-Processing", isPresented: $showGpsInfo) {
                 Button("Got it", role: .cancel) { }
