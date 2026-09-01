@@ -14,6 +14,9 @@ public struct GamificationSnapshot: Codable, Equatable, Sendable {
     public let currentLevelId: String
     public let currentLevelNameKey: String
     public let currentMinutes: Int64
+    /// TASK-276: the real qualifying activity count, so the rail can state it rather than showing
+    /// the last milestone's threshold and calling it "recorded".
+    public let currentActivityCount: Int
     public let currentThresholdMinutes: Int64
     public let nextThresholdMinutes: Int64?
     public let progressNumeratorMinutes: Int64
@@ -26,6 +29,7 @@ public struct GamificationSnapshot: Codable, Equatable, Sendable {
         currentLevelId: String,
         currentLevelNameKey: String,
         currentMinutes: Int64,
+        currentActivityCount: Int,
         currentThresholdMinutes: Int64,
         nextThresholdMinutes: Int64?,
         progressNumeratorMinutes: Int64,
@@ -37,6 +41,7 @@ public struct GamificationSnapshot: Codable, Equatable, Sendable {
         self.currentLevelId = currentLevelId
         self.currentLevelNameKey = currentLevelNameKey
         self.currentMinutes = currentMinutes
+        self.currentActivityCount = currentActivityCount
         self.currentThresholdMinutes = currentThresholdMinutes
         self.nextThresholdMinutes = nextThresholdMinutes
         self.progressNumeratorMinutes = progressNumeratorMinutes

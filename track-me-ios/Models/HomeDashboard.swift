@@ -84,6 +84,8 @@ nonisolated struct HomeDashboardSummary: Codable, Equatable, Sendable {
     /// their totals, their history and their week. What it does not do is earn progress.
     let gamificationActivityCount: Int
     let gamificationActiveDurationMillis: Int64
+    /// TASK-276: when each level was reached and what earned it. Derived, never stored.
+    let levelAchievements: [GamificationLedger.LevelAchievement]
     let displayStreakWeeks: Int
     let latestActivity: HomeRecentActivity?
     /// Oldest to newest, including zero weeks, so the chart never shifts meaning.
@@ -115,6 +117,7 @@ nonisolated struct HomeDashboardSummary: Codable, Equatable, Sendable {
             lifetimeActiveDurationMillis: 0,
             gamificationActivityCount: 0,
             gamificationActiveDurationMillis: 0,
+            levelAchievements: GamificationLedger.derive([]),
             displayStreakWeeks: 0,
             latestActivity: nil,
             weeklyBuckets: [],
@@ -200,6 +203,14 @@ nonisolated enum HomeDashboardSelector {
             lifetimeActiveDurationMillis: sorted.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
             gamificationActivityCount: earned.count,
             gamificationActiveDurationMillis: earned.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
+            levelAchievements: GamificationLedger.derive(earned.map {
+                GamificationLedger.RideFact(
+                    atEpochMillis: Int64($0.startedAt.timeIntervalSince1970 * 1_000),
+                    personaRaw: $0.persona.rawValue,
+                    activeDurationMillis: $0.activeDurationMillis,
+                    distanceMeters: $0.distanceMeters
+                )
+            }),
             displayStreakWeeks: displayStreak(activeWeeks: activeWeekStarts, currentWeek: currentWeekStart),
             latestActivity: sorted.first.map {
                 HomeRecentActivity(
