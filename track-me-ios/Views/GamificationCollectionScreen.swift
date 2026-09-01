@@ -25,7 +25,7 @@ struct GamificationCollectionScreen: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selected: Int?
     @State private var drawn: CGFloat = 0
-    @State private var bloom: CGFloat = 0
+    @State private var bloomTick: Int = 0
     @State private var dismissTask: Task<Void, Never>?
 
     private var isDark: Bool { colorScheme == .dark }
@@ -99,23 +99,8 @@ struct GamificationCollectionScreen: View {
             ZStack(alignment: .topLeading) {
                 // Touch-aware bloom, behind the trail: a wash of the tapped level's colour
                 // spreading from the point that was touched, then gone.
-                if let selected, bloom > 0.01 {
-                    let origin = GamificationTrail.nodes(snapshot)[selected].position
-                    let reach = (70 + 250 * bloom) * scale
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    GamificationPalette.accent(selected, dark: isDark)
-                                        .opacity(bloomAlpha),
-                                    .clear,
-                                ],
-                                center: .center, startRadius: 0, endRadius: reach
-                            )
-                        )
-                        .frame(width: reach * 2, height: reach * 2)
-                        .position(x: origin.x * scale, y: origin.y * scale)
-                        .allowsHitTesting(false)
+                if let selected, !reduceMotion {
+                    bloomWash(levelIndex: selected, scale: scale)
                 }
 
                 trailShape(fraction: 1, scale: scale)
@@ -161,11 +146,58 @@ struct GamificationCollectionScreen: View {
         }
     }
 
-    private var bloomAlpha: Double {
-        let peak: CGFloat = 0.22, maxAlpha: Double = 0.5
-        return bloom <= peak
-            ? maxAlpha * Double(bloom / peak)
-            : maxAlpha * Double(1 - (bloom - peak) / (1 - peak))
+    /// The bloom's envelope, driven per frame.
+    ///
+    /// This has to be a keyframe animation rather than `withAnimation`, and the difference is the
+    /// whole bug: `withAnimation { bloom = 1 }` evaluates the body **once**, at the final value, and
+    /// animates the resulting view's own animatable properties between the two rendered states. The
+    /// alpha here is a *non-monotonic function* of that value — it rises to a peak at 22% and falls
+    /// back to zero — so the only frame SwiftUI ever drew was the endpoint, where alpha is 0. The
+    /// flash was mathematically invisible. Compose recomposes on every frame and reads the
+    /// in-between values, which is why the identical arithmetic works on Android.
+    private struct BloomFrame {
+        var alpha: Double = 0
+        var spread: CGFloat = 0
+    }
+
+    /// Matches Android's `BLOOM_*` constants exactly, so the flash has the same weight on both.
+    private static let bloomDuration: TimeInterval = 1.5
+    private static let bloomPeak: Double = 0.22
+    private static let bloomMaxAlpha: Double = 0.5
+    private static let bloomStartRadius: CGFloat = 70
+    private static let bloomGrowth: CGFloat = 250
+
+    private func bloomWash(levelIndex index: Int, scale: CGFloat) -> some View {
+        let origin = GamificationTrail.nodes(snapshot)[index].position
+        let tint = GamificationPalette.accent(index, dark: isDark)
+        return KeyframeAnimator(initialValue: BloomFrame(), trigger: bloomTick) { frame in
+            let reach = max((Self.bloomStartRadius + Self.bloomGrowth * frame.spread) * scale, 1)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        // Solid core out to a third of the reach, then a long fade, so it reads as
+                        // a wash spreading rather than a hard disc growing. Android's three stops.
+                        stops: [
+                            .init(color: tint.opacity(frame.alpha), location: 0),
+                            .init(color: tint.opacity(frame.alpha * 0.55), location: 0.35),
+                            .init(color: .clear, location: 1),
+                        ],
+                        center: .center, startRadius: 0, endRadius: reach
+                    )
+                )
+                .frame(width: reach * 2, height: reach * 2)
+                .position(x: origin.x * scale, y: origin.y * scale)
+        } keyframes: { _ in
+            KeyframeTrack(\.alpha) {
+                LinearKeyframe(Self.bloomMaxAlpha, duration: Self.bloomDuration * Self.bloomPeak)
+                LinearKeyframe(0, duration: Self.bloomDuration * (1 - Self.bloomPeak))
+            }
+            KeyframeTrack(\.spread) {
+                // Leaves fast and settles slowly, standing in for Android's (0.2, 0.7, 0.3, 1).
+                CubicKeyframe(1, duration: Self.bloomDuration, startVelocity: 2.4, endVelocity: 0.05)
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     private func levelNode(_ node: GamificationTrail.Node, scale: CGFloat) -> some View {
@@ -433,12 +465,9 @@ struct GamificationCollectionScreen: View {
     private func select(_ index: Int) {
         selected = index
         dismissTask?.cancel()
-        if reduceMotion {
-            bloom = 0
-        } else {
-            bloom = 0
-            withAnimation(.timingCurve(0.2, 0.7, 0.3, 1, duration: 1.5)) { bloom = 1 }
-        }
+        // Restarts the wash even when the rider taps a second waypoint without the first card
+        // closing, which is the case a plain `onAppear` animation would miss.
+        bloomTick += 1
         // The card dismisses itself. A rider who taps a level to satisfy a passing curiosity should
         // not have to tidy up after it, and leaving it open would obscure the trail it describes.
         dismissTask = Task {
@@ -450,6 +479,5 @@ struct GamificationCollectionScreen: View {
     private func dismiss() {
         dismissTask?.cancel()
         selected = nil
-        bloom = 0
     }
 }
