@@ -498,7 +498,7 @@ private struct RecentActivityCard: View {
                                 systemImage: recent.persona.systemImage
                             )
                             .font(.subheadline.bold())
-                            Text(startedAt.formatted(date: .abbreviated, time: .omitted))
+                            Text(LocalizationHelper.mediumDateTime(startedAt, includeTime: false))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                             Text(

@@ -22,6 +22,7 @@ struct GamificationCollectionScreen: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selected: Int?
     @State private var drawn: CGFloat = 0
     @State private var bloom: CGFloat = 0
@@ -45,6 +46,23 @@ struct GamificationCollectionScreen: View {
                     .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 12)
+            } else if dynamicTypeSize.isAccessibilitySize {
+                // §2.1 bans scrolling so the milestones cannot be pushed off the bottom by a tall
+                // trail. At accessibility text sizes the failure runs the other way: the readout
+                // grows until the trail is a thumbnail and its own sentences truncate — the page
+                // keeps everything on screen by making all of it unreadable. Scrolling is the
+                // lesser harm, and only here.
+                ScrollView {
+                    VStack(spacing: 0) {
+                        trail.frame(height: max(proxy.size.height * 0.45, 260))
+                            .frame(maxWidth: .infinity)
+                        hint
+                        readout.padding(.top, 4)
+                        milestoneRail.padding(.top, 12)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 8)
+                }
             } else {
                 VStack(spacing: 0) {
                     trail.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -100,10 +118,10 @@ struct GamificationCollectionScreen: View {
                         .allowsHitTesting(false)
                 }
 
-                trailShape(fraction: 1)
+                trailShape(fraction: 1, scale: scale)
                     .stroke(Color(.separator),
                             style: StrokeStyle(lineWidth: 5 * scale, lineCap: .round, dash: [1 * scale, 11 * scale]))
-                trailShape(fraction: drawn)
+                trailShape(fraction: drawn, scale: scale)
                     .stroke(accent, style: StrokeStyle(lineWidth: 5 * scale, lineCap: .round))
 
                 ForEach(GamificationTrail.nodes(snapshot).filter { $0.state != .current }, id: \.levelIndex) { node in
@@ -124,17 +142,23 @@ struct GamificationCollectionScreen: View {
 
     /// The trail as a drawable path, trimmed to `fraction` of its length. Built by walking the same
     /// sampled table the geometry uses, so what is drawn and what is measured cannot disagree.
-    private func trailShape(fraction: CGFloat) -> Path {
+    ///
+    /// `scale` is not optional: the waypoints are placed at `position * scale`, so a path drawn in
+    /// the unscaled design box only lines up with them on a screen where the scale happens to be 1.
+    /// The Android canvas had exactly this bug and drew the trail at a third of its size.
+    private func trailShape(fraction: CGFloat, scale: CGFloat) -> Path {
         Path { path in
-            let scaleFactor = CGFloat(1)
-            path.move(to: GamificationTrail.point(at: 0).applying(.init(scaleX: scaleFactor, y: scaleFactor)))
+            func at(_ t: CGFloat) -> CGPoint {
+                let point = GamificationTrail.point(at: t)
+                return CGPoint(x: point.x * scale, y: point.y * scale)
+            }
+            path.move(to: at(0))
             guard fraction > 0 else { return }
             let steps = 220
             for step in 1...steps {
-                path.addLine(to: GamificationTrail.point(at: fraction * CGFloat(step) / CGFloat(steps)))
+                path.addLine(to: at(fraction * CGFloat(step) / CGFloat(steps)))
             }
         }
-        .applying(.identity)
     }
 
     private var bloomAlpha: Double {
@@ -165,9 +189,14 @@ struct GamificationCollectionScreen: View {
                     .foregroundStyle(passed ? GamificationPalette.onAccent(dark: isDark) : Color.secondary)
             )
             .frame(width: size, height: size)
-            .position(x: node.position.x * scale, y: node.position.y * scale)
+            // Both modifiers go *before* `.position`, which expands its subject to fill the parent:
+            // a content shape applied after it describes a circle the size of the whole board, and
+            // six of those stacked mean whichever is drawn last answers every tap on the trail.
+            // The padding buys a 44pt target for a waypoint drawn at 26.
+            .padding(max(0, (44 - size) / 2))
             .contentShape(Circle())
             .onTapGesture { select(node.levelIndex) }
+            .position(x: node.position.x * scale, y: node.position.y * scale)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(
                 "\(GamificationStringsHelper.levelName(forNameKey: level.nameKey)), "
@@ -192,9 +221,10 @@ struct GamificationCollectionScreen: View {
                     .foregroundStyle(GamificationPalette.onAccent(dark: isDark))
             )
             .frame(width: size, height: size)
-            .position(x: position.x * scale, y: position.y * scale)
+            .padding(max(0, (44 - size) / 2))
             .contentShape(Circle())
             .onTapGesture { select(levelIndex) }
+            .position(x: position.x * scale, y: position.y * scale)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(
                 LocalizationHelper.localized("You are here") + ", "
@@ -247,7 +277,10 @@ struct GamificationCollectionScreen: View {
 
     @ViewBuilder
     private func personaRow(_ part: GamificationLedger.PersonaContribution) -> some View {
-        let name = RidePersona(rawValue: part.personaRaw)?.displayName ?? part.personaRaw
+        // `displayName` is an English lookup key, not display text — every other call site in the
+        // app wraps it, and this one rendered "Walk" beside a French date until it did too.
+        let name = RidePersona(rawValue: part.personaRaw)
+            .map { LocalizationHelper.localized($0.displayName) } ?? part.personaRaw
         let distance = UnitFormatter.distance(meters: part.distanceMeters,
                                               unit: imperial ? .imperial : .metric, decimals: 1)
         let time = Self.duration(part.activeDurationMillis)
@@ -264,7 +297,7 @@ struct GamificationCollectionScreen: View {
                           achievement: GamificationLedger.LevelAchievement?) -> String {
         if let millis = achievement?.achievedAtEpochMillis {
             let date = Date(timeIntervalSince1970: Double(millis) / 1000)
-            let text = date.formatted(date: .abbreviated, time: .omitted)
+            let text = LocalizationHelper.mediumDateTime(date, includeTime: false)
             return index == 0
                 ? LocalizationHelper.formatted("Joined %@", text)
                 : LocalizationHelper.formatted("Reached %@", text)
@@ -298,23 +331,28 @@ struct GamificationCollectionScreen: View {
         return VStack(alignment: .leading, spacing: 2) {
             Text(GamificationStringsHelper.levelName(forNameKey: snapshot.currentLevelNameKey))
                 .font(.title2.weight(.bold))
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             Text(GamificationStringsHelper.activeMinutes(snapshot.currentMinutes))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             if let next {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(LocalizationHelper.localized("Next")) · "
                          + GamificationStringsHelper.levelName(forNameKey: next.nameKey))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     // The figure is tinted with the accent of the level being chased, so the number
                     // and the colour it buys are the same fact.
-                    (Text(String(max(0, next.thresholdMinutes - snapshot.currentMinutes)))
-                        .foregroundColor(GamificationPalette.accent(levelIndex + 1, dark: isDark))
-                        .fontWeight(.bold)
-                     + Text(" " + LocalizationHelper.localized("min of tracking to go")))
+                    // The figure is tinted with the accent of the level being chased, so the number
+                    // and the colour it buys are the same fact. Located by searching the localized
+                    // sentence for the substring that was substituted rather than by concatenation:
+                    // every locale puts the number somewhere different, and Japanese puts it last.
+                    remainingSentence(next: next)
                         .font(.callout.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 9)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -325,17 +363,44 @@ struct GamificationCollectionScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func remainingSentence(next: GamificationLevelDefinition) -> Text {
+        let remaining = String(max(0, next.thresholdMinutes - snapshot.currentMinutes))
+        let sentence = LocalizationHelper.formatted("%@ min of tracking to go", remaining)
+        let highlight = GamificationPalette.accent(levelIndex + 1, dark: isDark)
+        guard let range = sentence.range(of: remaining) else {
+            return Text(sentence)
+        }
+        return Text(sentence[sentence.startIndex..<range.lowerBound])
+            + Text(remaining).foregroundColor(highlight).fontWeight(.bold)
+            + Text(sentence[range.upperBound...])
+    }
+
+    private var railHeading: some View {
+        Text(LocalizationHelper.localized("Activities"))
+            .font(.caption2).foregroundStyle(.secondary)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var railCount: some View {
+        Text(LocalizationHelper.formatted("%@ recorded", String(snapshot.currentActivityCount)))
+            .font(.caption.weight(.semibold))
+    }
+
     /// Milestones count *activities*; the trail counts *minutes*. Two axes, so two instruments —
     /// putting both on one path would imply they advance together, and they do not.
     private var milestoneRail: some View {
         VStack(spacing: 9) {
-            HStack {
-                Text(LocalizationHelper.localized("Activities"))
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer()
-                Text(LocalizationHelper.formatted("%@ recorded", String(snapshot.currentActivityCount)))
-                    .font(.caption.weight(.semibold))
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    railHeading
+                    Spacer()
+                    railCount
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    railHeading
+                    railCount
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 5) {
                 ForEach(GamificationEngine.milestones, id: \.id) { milestone in
