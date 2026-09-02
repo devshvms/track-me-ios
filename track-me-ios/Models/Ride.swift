@@ -37,6 +37,20 @@ final class Ride {
     /// from a legacy row that has not been inspected yet.
     var qualifiesForStats: Bool = false
     var dashboardMetadataVersion: Int = 0
+    /// TASK-275: whether *this app* recorded the ride, or it arrived from a file.
+    ///
+    /// Levels and activity milestones count `RideSource.recorded` only. That is the whole
+    /// anti-gaming mechanism, deliberately: proving *who* recorded a ride needs signed exports, key
+    /// distribution and a server, while knowing whether we recorded it is one value written at
+    /// insert. Imported rides stay first-class everywhere else — History, Ride Detail, export,
+    /// sync — because a rider importing old history still wants to see it.
+    ///
+    /// Defaults to recorded, which is the honest answer for every row that predates the property:
+    /// import wrote rides the recorder could not be told apart from, so there is no evidence on
+    /// which to call any of them imported.
+    var source: String = RideSource.recorded
+    /// TASK-275: stable identity of the track itself. Nil until the reconciler reaches the row.
+    var contentHash: String? = nil
     /// TASK-246: the History card's route shape, so the list projection can draw a real route
     /// without fetching `points`. Optional with a default, so SwiftData migrates additively.
     var routePolyline: String? = nil

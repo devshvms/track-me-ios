@@ -14,9 +14,7 @@ struct HomeDashboardDeck: View {
     let onOpenHistory: () -> Void
     let onOpenCommunity: () -> Void
     let onOpenGroupMap: () -> Void
-    /// TASK-254: hands Community the sheet to open, then switches to it. The sheets are not duplicated.
-    var onCreateGroup: () -> Void = {}
-    var onJoinGroup: () -> Void = {}
+    let onOpenGamification: () -> Void
     let scrollToTopRequest: Int
 
     @ObservedObject private var unitSettings = UnitSettings.shared
@@ -68,7 +66,7 @@ struct HomeDashboardDeck: View {
                     }
 
                     if let insight = summary.insight {
-                        InsightCard(insight: insight)
+                        InsightCard(insight: insight, unit: unitSettings.unit)
                             .dashboardCardMotion(
                                 orderFromTop: 2,
                                 total: 4,
@@ -76,6 +74,19 @@ struct HomeDashboardDeck: View {
                                 reduceMotion: reduceMotion
                             )
                     }
+
+                    let facts = summary.toGamificationFacts()
+                    let snapshot = GamificationEngine.deriveSnapshot(facts: facts)
+                    GamificationProgressCard(
+                        snapshot: snapshot,
+                        onOpenProgress: onOpenGamification
+                    )
+                    .dashboardCardMotion(
+                        orderFromTop: 3,
+                        total: 5,
+                        isVisible: isVisible,
+                        reduceMotion: reduceMotion
+                    )
 
                     if let recent = summary.latestActivity {
                         RecentActivityCard(
@@ -202,17 +213,14 @@ struct HomeDashboardDeck: View {
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: 44)
         } else {
-            Button(LocalizationHelper.localized("Create a group"), action: onCreateGroup)
+            Button(LocalizationHelper.localized("Ride together"), action: onOpenCommunity)
                 .buttonStyle(.borderedProminent)
-                .frame(minHeight: 44)
-            Button(LocalizationHelper.localized("Join with a code"), action: onJoinGroup)
-                .buttonStyle(.bordered)
                 .frame(minHeight: 44)
         }
     }
 }
 
-private struct DashboardCard<Content: View>: View {
+struct DashboardCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -256,10 +264,10 @@ private struct EmptyDashboardCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
 
-                preview("See weekly distance", icon: "chart.bar.fill")
+                preview("See weekly duration", icon: "chart.bar.fill")
                 preview("See how this week compares", icon: "chart.line.uptrend.xyaxis")
                 preview("Revisit recent routes", icon: "point.topleft.down.to.point.bottomright.curvepath")
-
+                
                 Text(LocalizationHelper.localized(
                     "Location is requested after Start so TrackMe can record your route."
                 ))
@@ -300,7 +308,7 @@ private struct WeeklySummaryCard: View {
                     .foregroundStyle(.secondary)
                 }
 
-                WeeklyDistanceChart(buckets: Array(summary.weeklyBuckets.suffix(4)), unit: unit)
+                WeeklyDurationChart(buckets: Array(summary.weeklyBuckets.suffix(4)))
             }
         }
     }
@@ -315,16 +323,23 @@ private struct WeeklySummaryCard: View {
             label: LocalizationHelper.localized("This week")
         )
         DashboardMetric(
-            value: UnitFormatter.distance(
-                meters: summary.currentWeek.distanceMeters,
-                unit: unit
-            ),
-            label: LocalizationHelper.localized("Distance")
-        )
-        DashboardMetric(
             value: dashboardDuration(summary.currentWeek.activeDurationMillis),
             label: LocalizationHelper.localized("Duration")
         )
+        
+        if !summary.currentWeek.distanceByPersona.isEmpty {
+            ForEach(summary.currentWeek.distanceByPersona, id: \.persona) { item in
+                DashboardMetric(
+                    value: UnitFormatter.distance(meters: item.distanceMeters, unit: unit),
+                    label: LocalizationHelper.localized(item.persona.displayName)
+                )
+            }
+        } else {
+            DashboardMetric(
+                value: UnitFormatter.distance(meters: 0.0, unit: unit),
+                label: LocalizationHelper.localized("Distance")
+            )
+        }
     }
 }
 
@@ -341,9 +356,8 @@ private struct DashboardMetric: View {
     }
 }
 
-private struct WeeklyDistanceChart: View {
+private struct WeeklyDurationChart: View {
     let buckets: [HomeWeeklyBucket]
-    let unit: UnitSystem
 
     private var normalizedBuckets: [HomeWeeklyBucket] {
         let missing = max(0, 4 - buckets.count)
@@ -351,24 +365,25 @@ private struct WeeklyDistanceChart: View {
             weekStartEpochDay: 0,
             activityCount: 0,
             distanceMeters: 0,
-            activeDurationMillis: 0
+            activeDurationMillis: 0,
+            distanceByPersona: []
         )
         return Array(repeating: empty, count: missing) + buckets
     }
 
     private var accessibilityText: String {
         let values = normalizedBuckets.map {
-            UnitFormatter.distance(meters: $0.distanceMeters, unit: unit)
+            dashboardDuration($0.activeDurationMillis)
         }
         return LocalizationHelper.formatted(
-            "Four-week distance: %@, %@, %@, and %@",
+            "Four-week duration: %@, %@, %@, and %@",
             values[0], values[1], values[2], values[3]
         )
     }
 
     var body: some View {
         GeometryReader { proxy in
-            let maximum = max(1, normalizedBuckets.map(\.distanceMeters).max() ?? 1)
+            let maximum = max(1.0, normalizedBuckets.map { Double($0.activeDurationMillis) }.max() ?? 1.0)
             let gap: CGFloat = 12
             let width = max(4, (proxy.size.width - gap * 3) / 4)
             HStack(alignment: .bottom, spacing: gap) {
@@ -377,7 +392,7 @@ private struct WeeklyDistanceChart: View {
                         .fill(BrandColor.primary.opacity(index == 3 ? 1 : 0.45))
                         .frame(
                             width: width,
-                            height: max(3, proxy.size.height * bucket.distanceMeters / maximum)
+                            height: max(3, proxy.size.height * Double(bucket.activeDurationMillis) / maximum)
                         )
                         .accessibilityHidden(true)
                 }
@@ -391,6 +406,7 @@ private struct WeeklyDistanceChart: View {
 
 private struct InsightCard: View {
     let insight: HomeInsight
+    let unit: UnitSystem
 
     var body: some View {
         DashboardCard {
@@ -407,22 +423,29 @@ private struct InsightCard: View {
     private var message: String {
         switch insight {
         case let .returning(persona, inactiveDays):
-            LocalizationHelper.formatted(
+            return LocalizationHelper.formatted(
                 "Welcome back to %@ after %@ days.",
                 LocalizationHelper.localized(persona.displayName),
                 String(inactiveDays)
             )
-        case let .periodComparison(_, direction, _, _, _, _, _):
-            switch direction {
-            case .higher:
-                LocalizationHelper.localized("You recorded more distance in the recent period.")
-            case .stable:
-                LocalizationHelper.localized("Your recent distance was steady.")
-            case .lower:
-                LocalizationHelper.localized("A lighter recent period.")
-            }
+        case let .periodComparison(metric, _, _, _, currentValue, comparisonValue, _):
+            let metricStr = metric == .distance
+                ? LocalizationHelper.localized("Distance")
+                : LocalizationHelper.localized("Duration")
+            let currentStr = metric == .distance
+                ? UnitFormatter.distance(meters: currentValue, unit: unit)
+                : dashboardDuration(Int64(currentValue))
+            let comparisonStr = metric == .distance
+                ? UnitFormatter.distance(meters: comparisonValue, unit: unit)
+                : dashboardDuration(Int64(comparisonValue))
+            return LocalizationHelper.formatted(
+                "%@: %@ compared with %@",
+                metricStr,
+                currentStr,
+                comparisonStr
+            )
         case let .dominantPersona(persona, _, _, _, _):
-            LocalizationHelper.formatted(
+            return LocalizationHelper.formatted(
                 "%@ led your recent activities.",
                 LocalizationHelper.localized(persona.displayName)
             )
@@ -475,7 +498,7 @@ private struct RecentActivityCard: View {
                                 systemImage: recent.persona.systemImage
                             )
                             .font(.subheadline.bold())
-                            Text(startedAt.formatted(date: .abbreviated, time: .omitted))
+                            Text(LocalizationHelper.mediumDateTime(startedAt, includeTime: false))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                             Text(

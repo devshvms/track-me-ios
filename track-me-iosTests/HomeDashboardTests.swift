@@ -4,6 +4,44 @@ import XCTest
 @testable import track_me_ios
 
 final class HomeDashboardPolicyTests: XCTestCase {
+    func testDistanceByPersonaAggregation() {
+        let now = date("2026-08-26T12:00:00Z")
+        let summary = HomeDashboardSelector.select(
+            rides: [
+                metadata("2026-08-25T12:00:00Z", persona: .cycling, distance: 10000),
+                metadata("2026-08-24T12:00:00Z", persona: .run, distance: 5000),
+                metadata("2026-08-24T01:00:00Z", persona: .cycling, distance: 15000),
+                metadata("2026-08-10T12:00:00Z", persona: .run, distance: 5000)
+            ],
+            now: now,
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        let week = summary.currentWeek
+        XCTAssertEqual(week.activityCount, 3)
+        XCTAssertEqual(week.distanceMeters, 30000)
+        
+        XCTAssertEqual(
+            week.distanceByPersona.first { $0.persona == .cycling }?.distanceMeters,
+            25_000
+        )
+        XCTAssertEqual(
+            week.distanceByPersona.first { $0.persona == .run }?.distanceMeters,
+            5_000
+        )
+    }
+
+    func testZeroDistancePersonaRemainsAnExplicitWeeklyFact() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata("2026-08-25T12:00:00Z", persona: .walk, distance: 0)],
+            now: date("2026-08-26T12:00:00Z"),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+
+        XCTAssertEqual(summary.currentWeek.distanceByPersona, [
+            HomePersonaDistance(persona: .walk, distanceMeters: 0)
+        ])
+    }
+
     func testPresentationModePrecedenceKeepsActiveTrackingAboveGroupMap() {
         XCTAssertEqual(
             HomePresentationModePolicy.resolve(isTrackingIdle: false, explicitGroupMap: true),
@@ -67,6 +105,76 @@ final class HomeDashboardPolicyTests: XCTestCase {
         XCTAssertNotEqual(india.currentWeek.activityCount, utc.currentWeek.activityCount)
         XCTAssertEqual(india.currentWeek.activityCount, 1)
         XCTAssertEqual(utc.currentWeek.activityCount, 0)
+    }
+
+    func testSharedHomeVectorsFreezeWeeklyFactsAndExactComparisonPeriods() throws {
+        let vectors = try sharedVectors()
+        for vector in vectors.home_cases {
+            let summary = HomeDashboardSelector.select(
+                rides: vector.activities.map(vectorMetadata),
+                now: Date(timeIntervalSince1970: Double(vector.now_epoch_millis) / 1_000),
+                fallbackTimeZone: try XCTUnwrap(TimeZone(identifier: vector.fallback_timezone))
+            )
+            let expectedWeek = vector.expected_current_week
+            XCTAssertEqual(summary.currentWeek.weekStartEpochDay, expectedWeek.week_start_epoch_day, vector.description)
+            XCTAssertEqual(summary.currentWeek.activityCount, expectedWeek.activity_count, vector.description)
+            XCTAssertEqual(summary.currentWeek.activeDurationMillis, expectedWeek.active_duration_millis, vector.description)
+            XCTAssertEqual(
+                summary.currentWeek.distanceByPersona,
+                expectedWeek.distance_by_persona.map {
+                    HomePersonaDistance(
+                        persona: RidePersona(rawValue: $0.persona)!,
+                        distanceMeters: $0.distance_meters
+                    )
+                },
+                vector.description
+            )
+
+            if let expected = vector.expected_comparison {
+                guard case let .periodComparison(
+                    metric,
+                    direction,
+                    currentPeriod,
+                    comparisonPeriod,
+                    currentValue,
+                    comparisonValue,
+                    _
+                ) = summary.insight else {
+                    return XCTFail("Expected comparison: \(vector.description)")
+                }
+                XCTAssertEqual(metric.rawValue, expected.metric, vector.description)
+                XCTAssertEqual(direction.rawValue, expected.direction, vector.description)
+                XCTAssertEqual(currentPeriod.startEpochDay, expected.current_start_epoch_day, vector.description)
+                XCTAssertEqual(currentPeriod.endEpochDay, expected.current_end_epoch_day, vector.description)
+                XCTAssertEqual(comparisonPeriod.startEpochDay, expected.comparison_start_epoch_day, vector.description)
+                XCTAssertEqual(comparisonPeriod.endEpochDay, expected.comparison_end_epoch_day, vector.description)
+                XCTAssertEqual(currentValue, expected.current_value, accuracy: 0, vector.description)
+                XCTAssertEqual(comparisonValue, expected.comparison_value, accuracy: 0, vector.description)
+            } else if case .periodComparison = summary.insight {
+                XCTFail("Unexpected comparison: \(vector.description)")
+            }
+        }
+    }
+
+    func testSharedCalendarVectorsFreezeMondayTimezoneAndDSTBucketing() throws {
+        let vectors = try sharedVectors()
+        for vector in vectors.calendar_cases {
+            let summary = HomeDashboardSelector.select(
+                rides: vector.activities.map(vectorMetadata),
+                now: Date(timeIntervalSince1970: Double(vector.now_epoch_millis) / 1_000),
+                fallbackTimeZone: try XCTUnwrap(TimeZone(identifier: vector.fallback_timezone))
+            )
+            XCTAssertEqual(
+                summary.currentWeek.weekStartEpochDay,
+                vector.expected_current_week_start_epoch_day,
+                vector.description
+            )
+            XCTAssertEqual(
+                summary.currentWeek.activityCount,
+                vector.expected_current_week_activity_count,
+                vector.description
+            )
+        }
     }
 
     func testReturnInsightHasPriorityOverComparisonAndDominantPersona() {
@@ -146,7 +254,8 @@ final class HomeDashboardPolicyTests: XCTestCase {
                 distanceMeters: 1_000,
                 activeDurationMillis: 300_000,
                 avgSpeedMps: 3.33,
-                pointCount: 20_000
+                pointCount: 20_000,
+                sourceRaw: RideSource.recorded
             )
         }
         let summary = HomeDashboardSelector.select(
@@ -208,7 +317,14 @@ final class HomeDashboardPolicyTests: XCTestCase {
         let keys = [
             "Start %@", "This week", "Insights", "Recent activity",
             "Private by default • Works offline", "Group session active",
-            "Open Community", "View live map", "Return to Home dashboard"
+            "Ride together", "View live map", "Return to Home dashboard",
+            "Four-week duration: %@, %@, %@, and %@",
+            "%@: %@ compared with %@",
+            "Starter", "Moving", "Regular", "Explorer", "Enduring", "Pathfinder",
+            "First Qualifying Activity", "%@ qualifying activities",
+            "%@ active minutes • next level at %@", "Maximum level • %@ active minutes",
+            "Unlocks at %@ active minutes", "My Progress", "View progress",
+            "Levels", "Milestones", "Unlocked", "Locked", "Latest milestone"
         ]
         for key in keys {
             let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
@@ -233,7 +349,30 @@ final class HomeDashboardPolicyTests: XCTestCase {
             distanceMeters: distance,
             activeDurationMillis: 300_000,
             avgSpeedMps: distance / 300,
-            pointCount: 100
+            pointCount: 100,
+            sourceRaw: RideSource.recorded
+        )
+    }
+
+    private func sharedVectors() throws -> GamificationVectors {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/home-gamification-v1.json")
+        return try JSONDecoder().decode(GamificationVectors.self, from: Data(contentsOf: url))
+    }
+
+    private func vectorMetadata(_ vector: HomeActivityVector) -> HomeDashboardRideMetadata {
+        let durationSeconds = Double(vector.active_duration_millis) / 1_000
+        return HomeDashboardRideMetadata(
+            localId: UUID(),
+            persona: RidePersona(rawValue: vector.persona)!,
+            startedAt: Date(timeIntervalSince1970: Double(vector.started_at_epoch_millis) / 1_000),
+            startZoneId: vector.start_timezone,
+            distanceMeters: vector.distance_meters,
+            activeDurationMillis: vector.active_duration_millis,
+            avgSpeedMps: durationSeconds > 0 ? vector.distance_meters / durationSeconds : 0,
+            pointCount: 100,
+            sourceRaw: RideSource.recorded
         )
     }
 
@@ -291,6 +430,30 @@ final class HomeDashboardPersistenceTests: XCTestCase {
         XCTAssertEqual(indexes.first?.lifetimeActivityCount, 3)
     }
 
+    func testOldDashboardPayloadVersionFailsClosedForRebuild() async throws {
+        let container = try ModelContainer(
+            for: Ride.self,
+            GPSPoint.self,
+            HomeDashboardIndex.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let now = Date(timeIntervalSince1970: 1_777_200_000)
+        let summary = HomeDashboardSummary.empty(now: now, timeZone: TimeZone(identifier: "UTC")!)
+        let epochDay = HomeCalendar.epochDay(for: now, timeZone: TimeZone(identifier: "UTC")!)
+        container.mainContext.insert(HomeDashboardIndex(
+            schemaVersion: HomeDashboardIndexContract.indexVersion - 1,
+            asOfEpochDay: epochDay,
+            summary: summary,
+            payload: try JSONEncoder().encode(summary)
+        ))
+        try container.mainContext.save()
+
+        let worker = HomeDashboardWorker(modelContainer: container)
+        let cached = try await worker.cachedSummary(now: now, timeZoneIdentifier: "UTC")
+
+        XCTAssertNil(cached, "Old positional persona-distance payload must be rebuilt")
+    }
+
     private func completeRide(distance: Double, duration: Int64) -> Ride {
         let ride = Ride(startTime: Date(timeIntervalSince1970: 1_777_200_000))
         ride.endTime = ride.startTime.addingTimeInterval(600)
@@ -300,5 +463,58 @@ final class HomeDashboardPersistenceTests: XCTestCase {
         ride.avgSpeedMps = duration > 0 ? distance / (Double(duration) / 1_000) : 0
         ride.pointCount = 100
         return ride
+    }
+
+    // MARK: - TASK-275: imported rides earn no progress, but stay in every other total
+
+    private func metadata(_ index: Int, source: String, minutes: Int64 = 10) -> HomeDashboardRideMetadata {
+        HomeDashboardRideMetadata(
+            localId: UUID(),
+            persona: .cycling,
+            startedAt: Date(timeIntervalSince1970: 1_780_000_000 + Double(index) * 86_400),
+            startZoneId: "UTC",
+            distanceMeters: 1_000,
+            activeDurationMillis: minutes * 60_000,
+            avgSpeedMps: 3.33,
+            pointCount: 200,
+            sourceRaw: source
+        )
+    }
+
+    func testImportedRidesCountForTheDashboardAndNotForGamification() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata(0, source: RideSource.recorded),
+                    metadata(1, source: RideSource.imported)],
+            now: Date(timeIntervalSince1970: 1_780_400_000),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        // The rider's own totals show both — an imported ride is still their ride.
+        XCTAssertEqual(summary.lifetimeActivityCount, 2)
+        XCTAssertEqual(summary.lifetimeActiveDurationMillis, 1_200_000)
+        // Levels and milestones see only what this app recorded.
+        XCTAssertEqual(summary.gamificationActivityCount, 1)
+        XCTAssertEqual(summary.gamificationActiveDurationMillis, 600_000)
+    }
+
+    func testAHistoryOfOnlyImportsEarnsNothing() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata(0, source: RideSource.imported),
+                    metadata(1, source: RideSource.imported)],
+            now: Date(timeIntervalSince1970: 1_780_400_000),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        XCTAssertEqual(summary.lifetimeActivityCount, 2)
+        XCTAssertEqual(summary.gamificationActivityCount, 0)
+        XCTAssertEqual(summary.gamificationActiveDurationMillis, 0)
+    }
+
+    func testAnUnknownFutureSourceEarnsNothingRatherThanCrashing() {
+        let summary = HomeDashboardSelector.select(
+            rides: [metadata(0, source: "SOMETHING_NEW")],
+            now: Date(timeIntervalSince1970: 1_780_400_000),
+            fallbackTimeZone: TimeZone(identifier: "UTC")!
+        )
+        XCTAssertEqual(summary.lifetimeActivityCount, 1)
+        XCTAssertEqual(summary.gamificationActivityCount, 0)
     }
 }
