@@ -5853,6 +5853,149 @@
         }
       }
     },
+    "Debug Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Debug-Einstellungen" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Ajustes de depuración" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Réglages de débogage" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "डीबग सेटिंग्स" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "デバッグ設定" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "调试设置" } }
+      }
+    },
+    "Debug mode": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Debug-Modus" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Modo de depuración" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Mode débogage" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "डीबग मोड" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "デバッグモード" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "调试模式" } }
+      }
+    },
+    "Debug mode is enabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Der Debug-Modus ist aktiviert" } },
+        "es": { "stringUnit": { "state": "translated", "value": "El modo de depuración está activado" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Le mode débogage est activé" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "डीबग मोड चालू है" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "デバッグモードが有効になりました" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "调试模式已启用" } }
+      }
+    },
+    "Diagnostic controls for controlled TrackMe testing": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Diagnosesteuerung für kontrollierte TrackMe-Tests" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Controles de diagnóstico para pruebas controladas de TrackMe" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Commandes de diagnostic pour les tests contrôlés de TrackMe" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "नियंत्रित TrackMe परीक्षण के लिए डायग्नोस्टिक कंट्रोल" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "TrackMeの管理されたテスト用診断コントロール" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "用于 TrackMe 受控测试的诊断控制" } }
+      }
+    },
+    "Dynamically pauses moving time based on the activity speed profile.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Pausiert die Bewegungszeit dynamisch anhand des Geschwindigkeitsprofils der Aktivität." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Pausa dinámicamente el tiempo en movimiento según el perfil de velocidad de la actividad." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Met dynamiquement en pause le temps de déplacement selon le profil de vitesse de l’activité." } },
+        "hi": { "stringUnit": { "state": "translated", "value": "गतिविधि की गति प्रोफ़ाइल के अनुसार चलते समय को अपने-आप रोकता है।" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "アクティビティの速度特性に応じて移動時間を自動的に一時停止します。" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "根据活动速度特征动态暂停移动计时。" } }
+      }
+    },
+    "Enable debug mode (tap 5 times)": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Debug-Modus aktivieren (5-mal tippen)" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Activar el modo de depuración (toca 5 veces)" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Activer le mode débogage (touchez 5 fois)" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "डीबग मोड चालू करें (5 बार टैप करें)" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "デバッグモードを有効化（5回タップ）" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "启用调试模式（点按 5 次）" } }
+      }
+    },
+    "How do I get Pro data customizations?": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Wie erhalte ich Pro-Datenanpassungen?" } },
+        "es": { "stringUnit": { "state": "translated", "value": "¿Cómo obtengo personalizaciones de datos Pro?" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Comment obtenir les personnalisations de données Pro ?" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "Pro डेटा कस्टमाइज़ेशन कैसे मिलेगा?" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "Proデータカスタマイズを利用するには？" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "如何获得 Pro 数据自定义？" } }
+      }
+    },
+    "Open Debug Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Debug-Einstellungen öffnen" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Abrir ajustes de depuración" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Ouvrir les réglages de débogage" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "डीबग सेटिंग्स खोलें" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "デバッグ設定を開く" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "打开调试设置" } }
+      }
+    },
+    "Pro data customizations are not available yet. Debug controls are for controlled testing and can reduce tracking accuracy.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Pro-Datenanpassungen sind noch nicht verfügbar. Debug-Steuerungen dienen kontrollierten Tests und können die Tracking-Genauigkeit verringern." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Las personalizaciones de datos Pro aún no están disponibles. Los controles de depuración son para pruebas controladas y pueden reducir la precisión del seguimiento." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Les personnalisations de données Pro ne sont pas encore disponibles. Les commandes de débogage servent aux tests contrôlés et peuvent réduire la précision du suivi." } },
+        "hi": { "stringUnit": { "state": "translated", "value": "Pro डेटा कस्टमाइज़ेशन अभी उपलब्ध नहीं है। डीबग कंट्रोल केवल नियंत्रित परीक्षण के लिए हैं और ट्रैकिंग की सटीकता घटा सकते हैं।" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "Proデータカスタマイズはまだ利用できません。デバッグコントロールは管理されたテスト用で、追跡精度を下げる場合があります。" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Pro 数据自定义尚未开放。调试控制仅用于受控测试，并可能降低跟踪准确性。" } }
+      }
+    },
+    "Stored diagnostic preference only. iOS currently filters fixes live and has no post-ride pipeline connected to this flag.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Nur gespeicherte Diagnoseeinstellung. iOS filtert Punkte derzeit live; dieser Schalter ist mit keiner Nachbearbeitung nach der Aktivität verbunden." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Preferencia de diagnóstico almacenada únicamente. iOS filtra los puntos en directo y no tiene un proceso posterior conectado a este control." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Préférence de diagnostic enregistrée uniquement. iOS filtre actuellement les points en direct et aucun traitement après l’activité n’est relié à ce réglage." } },
+        "hi": { "stringUnit": { "state": "translated", "value": "यह केवल सहेजी गई डायग्नोस्टिक पसंद है। iOS अभी पॉइंट लाइव फ़िल्टर करता है और इस सेटिंग से कोई पोस्ट-राइड प्रक्रिया जुड़ी नहीं है।" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "保存される診断設定のみです。iOSは現在位置情報をリアルタイムでフィルタリングし、この設定に接続された終了後処理はありません。" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "这只是保存的诊断偏好。iOS 目前会实时过滤定位点，没有与此设置相连的行程后处理流程。" } }
+      }
+    },
+    "Tracking controls": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Tracking-Steuerung" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Controles de seguimiento" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Commandes de suivi" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "ट्रैकिंग कंट्रोल" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "追跡コントロール" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "跟踪控制" } }
+      }
+    },
+    "Turning this off restores diagnostic settings to defaults and removes this page.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Beim Ausschalten werden die Diagnoseeinstellungen zurückgesetzt und diese Seite entfernt." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Al desactivarlo, se restauran los ajustes de diagnóstico y se elimina esta página." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Sa désactivation rétablit les réglages de diagnostic par défaut et supprime cette page." } },
+        "hi": { "stringUnit": { "state": "translated", "value": "इसे बंद करने पर डायग्नोस्टिक सेटिंग्स डिफ़ॉल्ट हो जाएंगी और यह पेज हट जाएगा।" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "オフにすると診断設定が初期値に戻り、このページが削除されます。" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "关闭后会恢复诊断设置默认值，并移除此页面。" } }
+      }
+    },
+    "GPS drift while stopped, tunnels, and urban canyons can affect distance. TrackMe filters implausible fixes while recording; a signal gap is shown as a straight line.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "GPS-Drift im Stillstand, Tunnel und Häuserschluchten können die Entfernung beeinflussen. TrackMe filtert unplausible Punkte während der Aufzeichnung; eine Signallücke wird als gerade Linie angezeigt." } },
+        "es": { "stringUnit": { "state": "translated", "value": "La deriva GPS al estar detenido, los túneles y los cañones urbanos pueden afectar la distancia. TrackMe filtra los puntos inverosímiles durante la grabación; un hueco de señal aparece como una línea recta." } },
+        "fr": { "stringUnit": { "state": "translated", "value": "La dérive GPS à l’arrêt, les tunnels et les canyons urbains peuvent modifier la distance. TrackMe filtre les points invraisemblables pendant l’enregistrement ; un trou de signal apparaît comme une ligne droite." } },
+        "hi": { "stringUnit": { "state": "translated", "value": "रुके रहने पर GPS ड्रिफ्ट, सुरंग और ऊंची इमारतें दूरी बदल सकती हैं। TrackMe रिकॉर्डिंग के दौरान असंभव पॉइंट फ़िल्टर करता है; सिग्नल गैप सीधी रेखा दिखता है।" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "停止中のGPSドリフト、トンネル、高層ビルで距離が変わることがあります。TrackMeは記録中に不自然な位置情報を除外し、信号の空白は直線で表示します。" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "静止时的 GPS 漂移、隧道和城市高楼可能影响距离。TrackMe 会在记录时过滤不合理的定位点；信号中断会显示为直线。" } }
+      }
+    },
     "Device": {
       "extractionState": "stale",
       "localizations": {

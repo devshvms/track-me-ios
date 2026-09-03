@@ -1,27 +1,18 @@
 import Foundation
 
 enum AutoPausePreference {
-    /// Release builds always use the supported production behavior. The stored key remains for
-    /// controlled debug scenarios, but an old customer override cannot silently disable auto-pause
-    /// after its Settings control has been removed.
+    /// Locked mode always uses supported behavior. A stored override is active only while the
+    /// locally unlocked Debug Settings mode is enabled.
     static func isEnabled(_ defaults: UserDefaults = .standard) -> Bool {
-        isEnabled(defaults, debugOverridesAvailable: debugOverridesAvailable)
+        isEnabled(defaults, debugModeEnabled: DebugSettings.isEnabled(defaults))
     }
 
     static func isEnabled(
         _ defaults: UserDefaults,
-        debugOverridesAvailable: Bool
+        debugModeEnabled: Bool
     ) -> Bool {
-        guard debugOverridesAvailable else { return true }
-        return defaults.object(forKey: "intelligentAutoPause") == nil
-            || defaults.bool(forKey: "intelligentAutoPause")
-    }
-
-    private static var debugOverridesAvailable: Bool {
-        #if DEBUG
-        true
-        #else
-        false
-        #endif
+        guard debugModeEnabled else { return true }
+        return defaults.object(forKey: DebugSettings.autoPauseKey) == nil
+            || defaults.bool(forKey: DebugSettings.autoPauseKey)
     }
 }

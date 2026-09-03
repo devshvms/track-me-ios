@@ -5,11 +5,11 @@ final class AutoPausePreferenceTests: XCTestCase {
         XCTAssertTrue(AutoPausePreference.isEnabled(cleanDefaults(named: #function)))
     }
 
-    func testExplicitFalseDisablesDebugOverride() {
+    func testExplicitFalseDisablesUnlockedOverride() {
         let defaults = cleanDefaults(named: #function)
         defaults.set(false, forKey: "intelligentAutoPause")
         XCTAssertFalse(
-            AutoPausePreference.isEnabled(defaults, debugOverridesAvailable: true)
+            AutoPausePreference.isEnabled(defaults, debugModeEnabled: true)
         )
     }
 
@@ -17,28 +17,28 @@ final class AutoPausePreferenceTests: XCTestCase {
         let defaults = cleanDefaults(named: #function)
         defaults.set(true, forKey: "intelligentAutoPause")
         XCTAssertTrue(
-            AutoPausePreference.isEnabled(defaults, debugOverridesAvailable: true)
+            AutoPausePreference.isEnabled(defaults, debugModeEnabled: true)
         )
     }
 
-    func testReleasePolicyIgnoresStaleDisabledOverride() {
+    func testLockedPolicyIgnoresStaleDisabledOverride() {
         let defaults = cleanDefaults(named: #function)
         defaults.set(false, forKey: "intelligentAutoPause")
 
         XCTAssertTrue(
-            AutoPausePreference.isEnabled(defaults, debugOverridesAvailable: false)
+            AutoPausePreference.isEnabled(defaults, debugModeEnabled: false)
         )
     }
 
-    func testDebugPolicyHonorsExplicitOverrideAndDefaultsOn() {
+    func testUnlockedPolicyHonorsExplicitOverrideAndDefaultsOn() {
         let defaults = cleanDefaults(named: #function)
         XCTAssertTrue(
-            AutoPausePreference.isEnabled(defaults, debugOverridesAvailable: true)
+            AutoPausePreference.isEnabled(defaults, debugModeEnabled: true)
         )
 
         defaults.set(false, forKey: "intelligentAutoPause")
         XCTAssertFalse(
-            AutoPausePreference.isEnabled(defaults, debugOverridesAvailable: true)
+            AutoPausePreference.isEnabled(defaults, debugModeEnabled: true)
         )
     }
 

@@ -14,11 +14,7 @@ struct SettingsView: View {
     /// TASK-277: one derivation for both the signed-in and signed-out cards.
     @State private var levelIndex: Int = 0
 
-    #if DEBUG
-    @AppStorage("enableGPSPostProcessing") var isPostProcessingEnabled: Bool = true
-    @AppStorage("intelligentAutoPause") var isAutoPauseEnabled: Bool = true
-    @State private var debugTrackingControlsExpanded = false
-    #endif
+    @AppStorage("debugModeEnabled") private var debugModeEnabled = false
     @State private var isLoggedOut = Auth.auth().currentUser == nil || Auth.auth().currentUser?.isAnonymous == true
     @State private var isSigningIn = false
     @State private var signingInProvider: SignInProvider?
@@ -333,70 +329,28 @@ struct SettingsView: View {
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
 
-                    #if DEBUG
-                    // Compile-time debug surface. Release customers get the supported tracking
-                    // defaults and cannot accidentally disable an algorithm they should not need
-                    // to understand. DisclosureGroup supplies one ordinary, accessible tap target
-                    // and starts collapsed through `debugTrackingControlsExpanded`.
-                    VStack(alignment: .leading, spacing: 16) {
-                        DisclosureGroup(isExpanded: $debugTrackingControlsExpanded) {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Divider()
-
-                                HStack(alignment: .top) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(LocalizationHelper.localized("Intelligent Auto-Pause"))
-                                            .font(.subheadline)
-                                            .foregroundColor(.primary)
-                                        Text(LocalizationHelper.localized("Dynamically pauses the moving timer at traffic signals or stops based on activity speed."))
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                    Spacer()
-                                    Toggle("", isOn: $isAutoPauseEnabled)
-                                        .labelsHidden()
-                                        .tint(BrandColor.primary)
-                                        .accessibilityLabel(LocalizationHelper.localized("Intelligent auto-pause"))
-                                }
-
-                                Divider()
-
-                                HStack(alignment: .top) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Disable GPS Post-Processing")
-                                            .font(.subheadline)
-                                            .foregroundColor(.primary)
-                                        Text("Stored diagnostic preference only. iOS currently filters fixes live and has no post-ride pipeline connected to this flag.")
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                    Spacer()
-                                    Toggle("", isOn: Binding(
-                                        get: { !isPostProcessingEnabled },
-                                        set: { isPostProcessingEnabled = !$0 }
-                                    ))
-                                    .labelsHidden()
-                                    .tint(BrandColor.primary)
-                                    .accessibilityLabel(LocalizationHelper.localized("Disable GPS post-processing"))
-                                }
-                            }
-                            .padding(.top, 8)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Debug tracking controls")
+                    if debugModeEnabled {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(LocalizationHelper.localized("Debug Settings"))
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text(LocalizationHelper.localized("Diagnostic controls for controlled TrackMe testing"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            NavigationLink(value: SettingsRoute.debugSettings) {
+                                Text(LocalizationHelper.localized("Open Debug Settings"))
                                     .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(BrandColor.primaryFill)
                                     .foregroundColor(.primary)
-                                Text("Internal overrides for controlled GPS scenario testing")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .cornerRadius(24)
                             }
                         }
-                        .tint(BrandColor.primary)
+                        .padding()
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .cornerRadius(16)
                     }
-                    .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(16)
-                    #endif
 
                     // Help & Feedback Card
                     VStack(alignment: .leading, spacing: 16) {
@@ -452,6 +406,7 @@ struct SettingsView: View {
                 switch route {
                 case .accountManagement: AccountManagementView()
                 case .helpFeedback: HelpFeedbackView()
+                case .debugSettings: DebugSettingsView()
                 }
             }
             .navigationTitle("")
@@ -545,4 +500,5 @@ struct SettingsView: View {
 enum SettingsRoute: Hashable {
     case accountManagement
     case helpFeedback
+    case debugSettings
 }

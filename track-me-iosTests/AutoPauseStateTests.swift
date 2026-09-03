@@ -5,6 +5,6 @@ final class AutoPauseStateTests: XCTestCase {
     func testDisabledPreferenceNeverAutoPauses() {
         let defaults = UserDefaults(suiteName: #function)!
         defaults.set(false, forKey: "intelligentAutoPause")
-        XCTAssertFalse(AutoPausePreference.isEnabled(defaults, debugOverridesAvailable: true))
+        XCTAssertFalse(AutoPausePreference.isEnabled(defaults, debugModeEnabled: true))
     }
 }
