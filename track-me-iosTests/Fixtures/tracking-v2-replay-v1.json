@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "tracking-v2-replay-v1",
+  "coordinateSpace": "synthetic_local_metres",
+  "scenarios": [
+    {
+      "id": "clean_vehicle_missing_speed",
+      "persona": "CAR_DRIVE",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.03, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 10.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.03, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 20.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.03, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 30.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.03, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 40.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.03, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 50.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.03, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 60.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.03, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 58.0, "distanceMaxMeters": 62.0, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 7, "missingSpeedCount": 7, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
+    },
+    {
+      "id": "stationary_alternating_drift",
+      "persona": "CAR_DRIVE",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 8.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.02, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 10.0, "northMeters": 0.0, "accuracyMeters": 8.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.02, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": -10.0, "northMeters": 0.0, "accuracyMeters": 8.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.02, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 8.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.02, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 10.0, "northMeters": 0.0, "accuracyMeters": 8.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.02, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": -10.0, "northMeters": 0.0, "accuracyMeters": 8.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.02, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 8.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.02, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 0.0, "distanceMaxMeters": 0.01, "finalState": "STATIONARY", "routeSegmentsMin": 0, "routeSegmentsMax": 0, "sampleCount": 7, "missingSpeedCount": 7, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
+    },
+    {
+      "id": "manual_pause_discontinuity",
+      "persona": "CYCLING",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 10.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 20.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 30.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 40.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "discontinuity", "reason": "MANUAL_PAUSE" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 500.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 22000, "eastMeters": 510.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 24000, "eastMeters": 520.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 26000, "eastMeters": 530.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 28000, "eastMeters": 540.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 78.0, "distanceMaxMeters": 82.0, "finalState": "MOVING", "routeSegmentsMin": 2, "routeSegmentsMax": 2, "sampleCount": 10, "missingSpeedCount": 0, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
+    },
+    {
+      "id": "long_gps_gap_no_chord",
+      "persona": "CYCLING",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 10.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 20.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 30.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 40.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 30000, "eastMeters": 500.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 32000, "eastMeters": 510.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 34000, "eastMeters": 520.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 36000, "eastMeters": 530.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 38000, "eastMeters": 540.0, "northMeters": 0.0, "accuracyMeters": 5.0, "gpsSpeedMps": 5.0, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.30, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 78.0, "distanceMaxMeters": 82.0, "finalState": "MOVING", "routeSegmentsMin": 2, "routeSegmentsMax": 2, "sampleCount": 10, "missingSpeedCount": 0, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
+    },
+    {
+      "id": "slow_walk_step_bridge",
+      "persona": "WALK",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 0, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 0.72, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 1, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 1.44, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 2, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 2.16, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 3, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 2.88, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 4, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 3.60, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 5, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 4.32, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 6, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 14000, "eastMeters": 5.04, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 7, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 16000, "eastMeters": 5.76, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 8, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 18000, "eastMeters": 6.48, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 9, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 7.20, "northMeters": 0.0, "accuracyMeters": 6.0, "gpsSpeedMps": 0.18, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 10, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 7.1, "distanceMaxMeters": 7.3, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 11, "missingSpeedCount": 0, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 10 }
+    },
+    {
+      "id": "walk_gps_replaces_step_bridge",
+      "persona": "WALK",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 0, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 5.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 1, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 10.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 2, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 15.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 3, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 20.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 4, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 25.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 5, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 30.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 6, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 14000, "eastMeters": 35.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 7, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 16000, "eastMeters": 40.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 8, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 18000, "eastMeters": 45.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 9, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 50.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 10, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 22000, "eastMeters": 55.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 11, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 24000, "eastMeters": 60.0, "northMeters": 0.0, "accuracyMeters": 4.0, "gpsSpeedMps": 2.5, "gpsSpeedAccuracyMps": 0.4, "motionEnergy": 0.24, "motionAgeMillis": 0, "steps": 12, "stepAgeMillis": 0, "cadenceHz": 0.5, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 58.0, "distanceMaxMeters": 62.0, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 13, "missingSpeedCount": 0, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 12 }
+    }
+  ]
+}
