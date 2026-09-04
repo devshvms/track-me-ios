@@ -28,6 +28,10 @@ final class RideDistanceTests: XCTestCase {
         )
     }
 
+    /// TASK-286. This vector used to assert the defect: 222.4 m against 10 s of moving time, an
+    /// average of 22.24 m/s beside a stored maximum of 5. The name always said the long gap was
+    /// excluded; the distance assertion did the opposite, because eligibility was applied to
+    /// duration only. A GPS-gap chord must now contribute NEITHER distance NOR time.
     func testReconstructedAggregateExcludesPausedSegmentsAndLongTimeGaps() {
         let base = Date(timeIntervalSince1970: 1_000)
         let points = [
@@ -40,11 +44,99 @@ final class RideDistanceTests: XCTestCase {
 
         let aggregate = RideMetrics.reconstructed(from: points)
 
-        XCTAssertEqual(aggregate.distanceMeters, 222.4, accuracy: 1)
+        // Only the first interval is eligible: the middle two touch a paused point and the last is
+        // a 70 s gap against a 25 s threshold.
+        XCTAssertEqual(aggregate.distanceMeters, 111.2, accuracy: 1)
         XCTAssertEqual(aggregate.movingDurationMillis, 10_000)
-        XCTAssertEqual(aggregate.maxSpeedMps, 5)
         XCTAssertEqual(aggregate.avgSpeedMps, aggregate.distanceMeters / 10, accuracy: 0.001)
         XCTAssertEqual(aggregate.pointCount, 5)
+        // The invariant the whole task exists for.
+        XCTAssertGreaterThanOrEqual(aggregate.maxSpeedMps, aggregate.avgSpeedMps)
+    }
+
+    // MARK: - TASK-286 boundaries
+
+    private func point(_ lonThousandths: Double, _ afterSeconds: TimeInterval, speed: Double, paused: Bool = false, base: Date = Date(timeIntervalSince1970: 1_000)) -> GPSPoint {
+        GPSPoint(latitude: 0, longitude: lonThousandths / 1_000, altitude: 0, accuracy: 1, speed: speed, timestamp: base.addingTimeInterval(afterSeconds), isPaused: paused)
+    }
+
+    func testIntervalExactlyAtTheGapThresholdIsEligible() {
+        let a = RideMetrics.reconstructed(from: [point(0, 0, speed: 1), point(1, 25, speed: 1)])
+        XCTAssertEqual(a.distanceMeters, 111.2, accuracy: 1)
+        XCTAssertEqual(a.movingDurationMillis, 25_000)
+    }
+
+    func testFirstIntervalAboveTheThresholdContributesNeither() {
+        let a = RideMetrics.reconstructed(from: [point(0, 0, speed: 1), point(1, 25.001, speed: 1)])
+        XCTAssertEqual(a.distanceMeters, 0, accuracy: 0.001)
+        XCTAssertEqual(a.movingDurationMillis, 0)
+        XCTAssertEqual(a.avgSpeedMps, 0)
+    }
+
+    func testNonMonotonicAndZeroLengthIntervalsContributeNothing() {
+        // Sorting makes a duplicate timestamp a zero-length interval; it must not add geometry.
+        let base = Date(timeIntervalSince1970: 1_000)
+        let a = RideMetrics.reconstructed(from: [
+            point(0, 0, speed: 1, base: base),
+            point(1, 0, speed: 9, base: base)
+        ])
+        XCTAssertEqual(a.distanceMeters, 0, accuracy: 0.001)
+        XCTAssertEqual(a.movingDurationMillis, 0)
+        XCTAssertEqual(a.avgSpeedMps, 0)
+    }
+
+    func testPauseImmediatelyBeforeAndAfterAGapContributesNothing() {
+        let a = RideMetrics.reconstructed(from: [
+            point(0, 0, speed: 3, paused: true),
+            point(1, 60, speed: 3),
+            point(2, 120, speed: 3, paused: true)
+        ])
+        XCTAssertEqual(a.distanceMeters, 0, accuracy: 0.001)
+        XCTAssertEqual(a.movingDurationMillis, 0)
+    }
+
+    func testNaNInfinityAndNegativeSpeedCannotCorruptTheAggregate() {
+        let a = RideMetrics.reconstructed(from: [
+            point(0, 0, speed: .nan),
+            point(1, 10, speed: .infinity),
+            point(2, 20, speed: -7)
+        ])
+        XCTAssertTrue(a.distanceMeters.isFinite)
+        XCTAssertTrue(a.maxSpeedMps.isFinite)
+        XCTAssertTrue(a.avgSpeedMps.isFinite)
+        XCTAssertGreaterThanOrEqual(a.maxSpeedMps, 0)
+        XCTAssertGreaterThanOrEqual(a.avgSpeedMps, 0)
+        XCTAssertGreaterThanOrEqual(a.maxSpeedMps, a.avgSpeedMps)
+    }
+
+    func testConstantMovementYieldsCoherentAverageAndPeak() {
+        let points = (0...5).map { point(Double($0), Double($0) * 10, speed: 11.12) }
+        let a = RideMetrics.reconstructed(from: points)
+        XCTAssertEqual(a.movingDurationMillis, 50_000)
+        XCTAssertEqual(a.avgSpeedMps, 11.12, accuracy: 0.05)
+        XCTAssertGreaterThanOrEqual(a.maxSpeedMps, a.avgSpeedMps)
+    }
+
+    func testVariableRouteKeepsPeakAtOrAboveAverage() {
+        // Geometry says the rider sped up; the stored speeds deliberately under-read, which is the
+        // case that produced an average faster than the peak before this task.
+        let a = RideMetrics.reconstructed(from: [
+            point(0, 0, speed: 0.1),
+            point(1, 20, speed: 0.1),   // ~5.6 m/s chord
+            point(3, 30, speed: 0.1),   // ~22.2 m/s chord
+            point(4, 40, speed: 0.1)    // ~11.1 m/s chord
+        ])
+        XCTAssertGreaterThan(a.distanceMeters, 0)
+        XCTAssertGreaterThanOrEqual(a.maxSpeedMps, a.avgSpeedMps)
+    }
+
+    func testNoEligibleEvidenceYieldsExplicitZeroRatherThanAPace() {
+        let a = RideMetrics.reconstructed(from: [point(0, 0, speed: 4, paused: true)])
+        XCTAssertEqual(a.distanceMeters, 0)
+        XCTAssertEqual(a.movingDurationMillis, 0)
+        XCTAssertEqual(a.avgSpeedMps, 0)
+        XCTAssertEqual(a.maxSpeedMps, 0)
+        XCTAssertEqual(a.pointCount, 1)
     }
 
     func testLiveAggregateUsesFilteredDistanceAndMovingDuration() {
