@@ -47,6 +47,11 @@ nonisolated struct TrackingV2Snapshot: Sendable {
     var routeSegments: [[TrackingV2Point]] = []
     var sampleCount = 0
     var missingSpeedCount = 0
+    var powerRestrictedSampleCount = 0
+    var poorAccuracySampleCount = 0
+    var unobservedGapCount = 0
+    var maximumSampleIntervalMillis: Int64 = 0
+    /// Compatibility aggregate: power-restricted or poor-accuracy samples.
     var degradedSampleCount = 0
     var rejectedOutlierCount = 0
     var stepDistanceMeters = 0.0
@@ -86,6 +91,10 @@ nonisolated final class TrackingV2Estimator {
     private var discardedImplausibleStepCount: Int64 = 0
     private var sampleCount = 0
     private var missingSpeedCount = 0
+    private var powerRestrictedSampleCount = 0
+    private var poorAccuracySampleCount = 0
+    private var unobservedGapCount = 0
+    private var maximumSampleIntervalMillis: Int64 = 0
     private var degradedSampleCount = 0
     private var rejectedOutlierCount = 0
     private var lastSample: TrackingV2Sample?
@@ -109,6 +118,10 @@ nonisolated final class TrackingV2Estimator {
         discardedImplausibleStepCount = 0
         sampleCount = 0
         missingSpeedCount = 0
+        powerRestrictedSampleCount = 0
+        poorAccuracySampleCount = 0
+        unobservedGapCount = 0
+        maximumSampleIntervalMillis = 0
         degradedSampleCount = 0
         rejectedOutlierCount = 0
         lastSample = nil
@@ -145,7 +158,11 @@ nonisolated final class TrackingV2Estimator {
 
         sampleCount += 1
         if sample.gpsSpeedMetersPerSecond == nil { missingSpeedCount += 1 }
-        let degraded = isDegraded(sample)
+        let powerRestricted = sample.powerMode != .normal
+        if powerRestricted { powerRestrictedSampleCount += 1 }
+        let poorAccuracy = hasPoorAccuracy(sample)
+        if poorAccuracy { poorAccuracySampleCount += 1 }
+        let degraded = powerRestricted || poorAccuracy
         if degraded { degradedSampleCount += 1 }
 
         guard let previous = lastSample else {
@@ -160,7 +177,9 @@ nonisolated final class TrackingV2Estimator {
         }
 
         let deltaMillis = sample.elapsedRealtimeMillis - previous.elapsedRealtimeMillis
+        maximumSampleIntervalMillis = max(maximumSampleIntervalMillis, deltaMillis)
         if deltaMillis > Self.maxObservedGapMillis {
+            unobservedGapCount += 1
             markDiscontinuity()
             window.append(sample)
             lastSample = sample
@@ -431,6 +450,10 @@ nonisolated final class TrackingV2Estimator {
             routeSegments: routeSegments,
             sampleCount: sampleCount,
             missingSpeedCount: missingSpeedCount,
+            powerRestrictedSampleCount: powerRestrictedSampleCount,
+            poorAccuracySampleCount: poorAccuracySampleCount,
+            unobservedGapCount: unobservedGapCount,
+            maximumSampleIntervalMillis: maximumSampleIntervalMillis,
             degradedSampleCount: degradedSampleCount,
             rejectedOutlierCount: rejectedOutlierCount,
             stepDistanceMeters: calibratedStepDistance,
@@ -460,7 +483,11 @@ nonisolated final class TrackingV2Estimator {
     }
 
     private func isDegraded(_ sample: TrackingV2Sample) -> Bool {
-        sample.powerMode != .normal || sample.horizontalAccuracyMeters > 25
+        sample.powerMode != .normal || hasPoorAccuracy(sample)
+    }
+
+    private func hasPoorAccuracy(_ sample: TrackingV2Sample) -> Bool {
+        sample.horizontalAccuracyMeters > Self.poorAccuracyMeters
     }
 
     private func minimumCoordinateWindowSize(for powerMode: TrackingV2PowerMode) -> Int {
@@ -509,6 +536,7 @@ nonisolated final class TrackingV2Estimator {
     private static let degradedWindowMillis: Int64 = 24_000
     private static let maximumWindowSamples = 16
     private static let maxObservedGapMillis: Int64 = 15_000
+    private static let poorAccuracyMeters: Float = 25
     private static let minimumCoherentDisplacementMeters: Float = 4
     private static let minimumPathStraightness: Float = 0.55
     private static let minimumCoordinateEvidenceSamples = 3
