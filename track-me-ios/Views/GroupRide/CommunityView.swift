@@ -72,7 +72,9 @@ struct CommunityView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         if inviteShareMessage != nil {
                             Button {
-                                TelemetryManager.shared.trackGroupInviteSent()
+                                // TASK-289: no telemetry here. It used to fire on presentation,
+                                // which counted sheet openings rather than sends — see the
+                                // onCompletion handler on the sheet itself.
                                 showInviteShareSheet = true
                             } label: {
                                 Image(systemName: "square.and.arrow.up")
@@ -149,7 +151,18 @@ struct CommunityView: View {
             }
             .sheet(isPresented: $showInviteShareSheet) {
                 if let inviteShareMessage {
-                    ShareSheet(activityItems: [inviteShareMessage])
+                    // TASK-289: `completed` is UIActivityViewController's own report that the share
+                    // actually went through, so group_invite_sent counts sends rather than sheet
+                    // presentations. Cancelling reports false and records nothing — which is the
+                    // outcome the previous placement got wrong, and the reason
+                    // group_invite_sent / group_created could not tell "nobody shared" apart from
+                    // "everybody opened the sheet and backed out".
+                    ShareSheet(
+                        activityItems: [inviteShareMessage],
+                        onCompletion: { completed in
+                            if completed { TelemetryManager.shared.trackGroupInviteSent() }
+                        }
+                    )
                 }
             }
             .sheet(isPresented: $showStatusPicker) {
@@ -287,7 +300,16 @@ struct CommunityView: View {
                     .focused($focusedEntryField, equals: .create)
                     .textInputAutocapitalization(.words)
                 Button {
-                    awaitRun { try await groupRide.createGroup(groupName: groupName) }
+                    // TASK-289: creation ends on the share sheet, not on a screen containing a
+                    // share button. GroupRideManager.createGroup publishes joinCode and
+                    // inviteToken into `state` before it returns, so inviteShareMessage is already
+                    // non-nil here — no wait needed, unlike Android where the code arrives on a
+                    // separate flow. Dismissing the sheet is a normal outcome: the group stays,
+                    // and the roster's invite prompt remains the way back.
+                    Task {
+                        let created = await run { try await groupRide.createGroup(groupName: groupName) }
+                        if created, inviteShareMessage != nil { showInviteShareSheet = true }
+                    }
                 } label: {
                     Label(LocalizationHelper.localized("Create group"), systemImage: "plus.circle.fill")
                 }
@@ -354,6 +376,26 @@ struct CommunityView: View {
                 }
             } header: {
                 Text(LocalizationHelper.localized("Group"))
+            }
+
+            // TASK-289. A group of one is not a feature, it is an empty room the user is standing
+            // in. 42 people created a group and 2 sent an invite. This section is the invite
+            // prompt, not a label describing the emptiness — and it is a section in the list, not
+            // an alert, so a rider who wants a solo group simply scrolls past it.
+            if groupRide.state.isAloneInGroup {
+                Section {
+                    Text(LocalizationHelper.localized("A group of one is just you. Invite someone and you'll see each other on the map."))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        showInviteShareSheet = true
+                    } label: {
+                        Label(LocalizationHelper.localized("Share group invite"), systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(inviteShareMessage == nil)
+                } header: {
+                    Text(LocalizationHelper.localized("You're the only one here"))
+                }
             }
 
             if !attentionRows.isEmpty {
@@ -740,13 +782,18 @@ struct CommunityView: View {
         Task { await run(action) }
     }
 
-    private func run(_ action: @escaping () async throws -> Void) async {
+    /// TASK-289: returns whether the action succeeded, so creation can end on the share sheet
+    /// without inferring success from a stale `errorMessage`.
+    @discardableResult
+    private func run(_ action: @escaping () async throws -> Void) async -> Bool {
         isBusy = true
         defer { isBusy = false }
         do {
             try await action()
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 }

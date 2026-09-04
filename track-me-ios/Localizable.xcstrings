@@ -1760,6 +1760,46 @@
     },
     "5m": {},
     "5s": {},
+    "A group of one is just you. Invite someone and you'll see each other on the map.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Gruppe aus einer Person bist nur du. Lade jemanden ein und ihr seht euch auf der Karte."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un grupo de uno eres solo tú. Invita a alguien y os veréis en el mapa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un groupe d’une personne, c’est juste vous. Invitez quelqu’un et vous vous verrez sur la carte."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक व्यक्ति का समूह सिर्फ़ आप हैं। किसी को आमंत्रित करें और आप एक-दूसरे को मानचित्र पर देखेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1人のグループはあなただけです。誰かを招待すると、地図でお互いが見えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有一个人的群组就只有你。邀请别人，你们就能在地图上看到彼此。"
+          }
+        }
+      }
+    },
     "A lighter recent period.": {
       "localizations": {
         "de": {
@@ -24354,6 +24394,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "您未共享位置。其他人无法看到您。"
+          }
+        }
+      }
+    },
+    "You're the only one here": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du bist allein hier"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eres el único aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous êtes seul ici"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यहाँ सिर्फ़ आप हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだあなただけです"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前只有你一个人"
           }
         }
       }
