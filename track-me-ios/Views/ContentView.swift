@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import DeclaredAgeRange
 import UIKit
 
 struct ContentView: View {
@@ -16,7 +15,6 @@ struct ContentView: View {
     @Bindable private var recapCoordinator = WeeklyRecapCoordinator.shared
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @ObservedObject private var ageSignalManager = AgeSignalManager.shared
-    @Environment(\.requestAgeRange) private var requestAgeRange
     @Environment(\.modelContext) private var modelContext
     private var trackingManager = TrackingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
@@ -144,11 +142,8 @@ struct ContentView: View {
         // views still override per role.
         .brandDefaultFont()
         .tint(BrandColor.primary)
-        .task {
-            await ageSignalManager.checkAndPersist { gate in
-                try await requestAgeRange(ageGates: gate)
-            }
-        }
+        // TASK-288: runs on every OS version. See View.ageSignalCheck() for why that matters.
+        .ageSignalCheck()
         .alert(
             LocalizationHelper.localized("The SOS button has been removed"),
             isPresented: $emergencyRetirement.shouldShowRemovalNotice

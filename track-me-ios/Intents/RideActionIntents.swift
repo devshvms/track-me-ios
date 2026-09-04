@@ -4,9 +4,15 @@ protocol TrackMeBackgroundIntent: AppIntent {}
 
 extension TrackMeBackgroundIntent {
     /// iOS 26 replacement for `openAppWhenRun = false`.
+    ///
+    /// TASK-288: `IntentModes` does not exist before iOS 26, so this is availability-gated rather
+    /// than unconditional. Nothing is lost below 26 — `openAppWhenRun` immediately below is the
+    /// pre-26 spelling of the same intent, and it was already being kept deliberately.
+    @available(iOS 26.0, *)
     static var supportedModes: IntentModes { .background }
 
     /// Retained explicitly for the SCOPE_1.8.4 §3.2 invariant and older framework metadata.
+    /// On iOS 17–25 this is not a fallback but the only spelling, and it carries the invariant alone.
     static var openAppWhenRun: Bool { false }
 
     static var authenticationPolicy: IntentAuthenticationPolicy { .alwaysAllowed }
@@ -72,11 +78,23 @@ struct EndRideIntent: TrackMeBackgroundIntent {
             environment: LiveVoiceIntentEnvironment.shared,
             unit: UnitPreference.current,
             confirm: { dialog in
-                try await requestConfirmation(
-                    conditions: [],
-                    actionName: .continue,
-                    dialog: "\(dialog)"
-                )
+                // TASK-288. requestConfirmation(conditions:actionName:dialog:) is iOS 18+, so at a
+                // 17.0 floor it needs the pre-18 spelling underneath it. The older overload is
+                // deprecated on 18+, which is exactly why it is confined to the else branch.
+                // Ending a ride must still ask — dropping the confirmation on iOS 17 rather than
+                // porting it would silently make the destructive path one tap shorter there.
+                if #available(iOS 18.0, *) {
+                    try await requestConfirmation(
+                        conditions: [],
+                        actionName: .continue,
+                        dialog: "\(dialog)"
+                    )
+                } else {
+                    try await requestConfirmation(
+                        result: .result(dialog: "\(dialog)"),
+                        confirmationActionName: .continue
+                    )
+                }
             }
         )
         return .result(dialog: "\(response.dialog)")

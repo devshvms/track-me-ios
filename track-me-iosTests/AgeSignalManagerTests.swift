@@ -1,5 +1,4 @@
 import XCTest
-import DeclaredAgeRange
 @testable import track_me_ios
 
 final class AgeSignalManagerTests: XCTestCase {
@@ -25,7 +24,7 @@ final class AgeSignalManagerTests: XCTestCase {
         defaults.removePersistentDomain(forName: "AgeSignalManagerTests.declined")
         let manager = AgeSignalManager(defaults: defaults)
 
-        await manager.checkAndPersist { _ in .declinedSharing }
+        await manager.checkAndPersist { _ in .noSignal }
 
         XCTAssertEqual(manager.decision, .allowed)
         XCTAssertEqual(defaults.string(forKey: "ageSignalCategory"), "unknown")
