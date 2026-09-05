@@ -43,6 +43,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         AppLaunchEnvironment.configureFirebase()
         if !AppLaunchEnvironment.isUnitTesting {
             CrashlyticsErrorLogger.shared.initialize()
+            // The store is opened before Firebase exists, so a failure there cannot report itself.
+            // If it fell back to memory, the rider is looking at an app with no history: say so
+            // out loud rather than letting it read as "you have never ridden anywhere".
+            if let failure = ModelContainerDiagnostics.shared.takeFailure() {
+                CrashlyticsErrorLogger.shared.log("ModelContainer fell back to in-memory storage")
+                CrashlyticsErrorLogger.shared.recordError(failure)
+            }
             _ = Auth.auth().addStateDidChangeListener { _, user in
                 CrashlyticsErrorLogger.shared.setUserId(user?.uid)
             }
@@ -80,22 +87,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 struct track_me_iosApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Ride.self,
-            GPSPoint.self,
-            HomeDashboardIndex.self,
-            EmergencyContact.self,
-            EmergencySettings.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    /// The ride store. Built by a factory that never traps — see `ModelContainerFactory` for why
+    /// that matters more from 1.8.7 onwards than it did before.
+    var sharedModelContainer: ModelContainer = ModelContainerFactory.make()
     
     @AppStorage("appTheme") private var appTheme: String = "system"
     @AppStorage("appLanguage") private var appLanguage: String = "en"
@@ -127,7 +121,6 @@ struct track_me_iosApp: App {
                         onboardingState: state,
                         title: LocalizationHelper.localized("Sample ride")
                     )
-                    EmergencyDataPurge.shared.purgeOnce(container: sharedModelContainer)
                     Task {
                         await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
                         await HomeDashboardRepository.shared.prepare()

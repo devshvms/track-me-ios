@@ -65,9 +65,9 @@ enum BrandColor {
     /// Destructive / error as FOREGROUND TEXT. Adapts to the surface so
     /// error text is WCAG AA in BOTH appearances: deep red (#DC2626, 4.8:1 on
     /// white) on light, brightened red (#F87171, ~6.2:1 on navy) on dark. This is
-    /// the iOS mirror of Android's adaptive Material `error` role (RedSos light /
+    /// the iOS mirror of Android's adaptive Material `error` role (RedDestructive light /
     /// RedTextDark dark, theme/Color.kt + Theme.kt). Use for any red LABEL; keep
-    /// `destructive` for fills, strokes, `.tint` markers, and the SOS slider thumb.
+    /// `destructive` for fills, strokes and `.tint` markers.
     static let destructiveText = dynamic(light: 0xDC2626, dark: 0xF87171)
 
     /// Warning (GPS lost, paused, pending/processing).

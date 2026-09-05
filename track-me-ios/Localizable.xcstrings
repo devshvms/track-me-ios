@@ -3741,47 +3741,6 @@
         }
       }
     },
-    "Cancel Emergency SOS": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notruf SOS abbrechen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar SOS de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annuler le SOS d'urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन SOS रद्द करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急SOSをキャンセル"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消紧急求救"
-          }
-        }
-      }
-    },
     "Cannot send SMS": {
       "extractionState": "stale",
       "localizations": {
@@ -4519,47 +4478,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "社区"
-          }
-        }
-      }
-    },
-    "Configure Emergency Setup": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notfall einrichten"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configurar emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configurer les urgences"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन सेटअप कॉन्फ़िगर करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急設定を構成"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "配置紧急设置"
           }
         }
       }
@@ -6331,47 +6249,6 @@
         }
       }
     },
-    "Double tap to start the ten second SOS countdown": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zum Starten des zehnsekündigen SOS-Countdowns doppeltippen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toca dos veces para iniciar la cuenta atrás de SOS de diez segundos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Touchez deux fois pour lancer le compte à rebours SOS de dix secondes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दस सेकंड का SOS काउंटडाउन शुरू करने के लिए डबल टैप करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダブルタップで10秒間のSOSカウントダウンを開始"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "双击开始十秒求救倒计时"
-          }
-        }
-      }
-    },
     "Download All My Data (GPX/JSON Archive)": {
       "localizations": {
         "de": {
@@ -6696,129 +6573,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "累计爬升"
-          }
-        }
-      }
-    },
-    "Emergency Contacts": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notfallkontakte"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contactos de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contacts d’urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन संपर्क"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急連絡先"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紧急联系人"
-          }
-        }
-      }
-    },
-    "Emergency SOS": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notruf SOS"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS d'urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन SOS"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急SOS"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紧急求救"
-          }
-        }
-      }
-    },
-    "Emergency Setup": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notfalleinrichtung"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configuración de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configuration d’urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन सेटअप"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急設定"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紧急设置"
           }
         }
       }
@@ -9347,53 +9101,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "混合"
-          }
-        }
-      }
-    },
-    "I understand": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ich verstehe"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I understand"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entiendo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "J'ai compris"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मैं समझता/समझती हूँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "理解しました"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我知道了"
           }
         }
       }
@@ -16665,129 +16372,6 @@
         }
       }
     },
-    "SOS Sent": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS gesendet"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS enviado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS envoyé"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS भेजा गया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSを送信しました"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS已发送"
-          }
-        }
-      }
-    },
-    "SOS cancelled": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS abgebrochen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS cancelado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS annulé"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS रद्द किया गया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSをキャンセルしました"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已取消求救"
-          }
-        }
-      }
-    },
-    "SOS countdown started. Double tap to cancel.": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS-Countdown gestartet. Zum Abbrechen doppeltippen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cuenta atrás de SOS iniciada. Toca dos veces para cancelar."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Compte à rebours SOS démarré. Touchez deux fois pour annuler."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS काउंटडाउन शुरू हुआ। रद्द करने के लिए डबल टैप करें।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSカウントダウンを開始しました。ダブルタップでキャンセル。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "求救倒计时已开始。双击取消。"
-          }
-        }
-      }
-    },
     "SPEED": {
       "extractionState": "stale",
       "localizations": {
@@ -17397,47 +16981,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "设置状态"
-          }
-        }
-      }
-    },
-    "Set up emergency contacts to use SOS": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Richten Sie Notfallkontakte ein, um SOS zu verwenden"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configura contactos de emergencia para usar SOS"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configurez des contacts d'urgence pour utiliser SOS"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS का उपयोग करने के लिए आपातकालीन संपर्क सेट करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSを使用するには緊急連絡先を設定してください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置紧急联系人以使用SOS"
           }
         }
       }
@@ -20554,53 +20097,6 @@
         }
       }
     },
-    "The SOS button has been removed": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die SOS-Taste wurde entfernt"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The SOS button has been removed"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se eliminó el botón SOS"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le bouton SOS a été supprimé"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS बटन हटा दिया गया है"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSボタンは削除されました"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS 按钮已移除"
-          }
-        }
-      }
-    },
     "The archive download returned an unexpected response.": {
       "extractionState": "stale",
       "localizations": {
@@ -22278,53 +21774,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "TrackMe 面向成人用户，根据我们的隐私政策，未满 18 岁的用户无法使用。如果你认为这是错误，请联系我们。"
-          }
-        }
-      }
-    },
-    "TrackMe no longer includes in-app SOS or automatic SMS alerts. Your saved emergency contacts were removed from this device. For a real emergency, use your phone's built-in Emergency SOS or call local emergency services.": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe enthält keine SOS-Funktion und keine automatischen SMS-Warnungen mehr. Deine gespeicherten Notfallkontakte wurden von diesem Gerät entfernt. Verwende in einem echten Notfall die integrierte Notruf-SOS-Funktion deines Telefons oder rufe den örtlichen Notdienst an."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe no longer includes in-app SOS or automatic SMS alerts. Your saved emergency contacts were removed from this device. For a real emergency, use your phone's built-in Emergency SOS or call local emergency services."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe ya no incluye SOS dentro de la app ni alertas SMS automáticas. Tus contactos de emergencia guardados se eliminaron de este dispositivo. En una emergencia real, usa el SOS integrado del teléfono o llama a los servicios de emergencia locales."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe n'inclut plus de SOS intégré ni d'alertes SMS automatiques. Vos contacts d'urgence enregistrés ont été supprimés de cet appareil. En cas d'urgence réelle, utilisez le SOS intégré à votre téléphone ou appelez les secours locaux."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe में अब ऐप के अंदर SOS या अपने-आप भेजे जाने वाले SMS अलर्ट शामिल नहीं हैं। आपके सहेजे गए आपातकालीन संपर्क इस डिवाइस से हटा दिए गए हैं। वास्तविक आपात स्थिति में फ़ोन के अंतर्निहित Emergency SOS का उपयोग करें या स्थानीय आपातकालीन सेवाओं को कॉल करें।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMeではアプリ内SOSと自動SMS通知を利用できなくなりました。このデバイスに保存されていた緊急連絡先は削除されました。実際の緊急時には、電話に内蔵された緊急SOSを使用するか、地域の緊急サービスに連絡してください。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe 不再提供应用内 SOS 或自动短信提醒。你保存的紧急联系人已从此设备中删除。如遇真正的紧急情况，请使用手机内置的紧急 SOS，或拨打当地急救电话。"
           }
         }
       }
@@ -24010,53 +23459,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "可以。记录优先保存在本地。仅云同步和实时共享需要网络连接。"
-          }
-        }
-      }
-    },
-    "Yes. Recording is local-first. A connection is needed only for cloud sync, live sharing, and SOS.": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ja. Die Aufzeichnung erfolgt lokal. Eine Verbindung ist nur für Cloud-Sync, Live-Share und SOS nötig."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yes. Recording is local-first. A connection is needed only for cloud sync, live sharing, and SOS."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sí. La grabación es local. Solo se necesita conexión para sincronizar, compartir en vivo y SOS."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oui. L'enregistrement est local. Une connexion est nécessaire uniquement pour la synchronisation, le partage en direct et le SOS."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हां। रिकॉर्डिंग पहले स्थानीय होती है। कनेक्शन केवल क्लाउड सिंक, लाइव शेयर और SOS के लिए चाहिए।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "はい。記録はまず端末に保存されます。接続はクラウド同期、ライブ共有、SOSにのみ必要です。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可以。记录优先保存在本地。仅云同步、实时共享和 SOS 需要连接。"
           }
         }
       }

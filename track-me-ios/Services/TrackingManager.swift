@@ -202,11 +202,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             return
         }
 
-        // Open a fresh legacy-emergency suppression window before the ride exists. A restored ride
-        // deliberately does NOT call this (see restoreInterruptedSessionIfNeeded) — it keeps any
-        // persisted compatibility bit until finalization.
-        EmergencyManager.shared.beginRideSession()
-
         locationManager.activityType = Self.activityType(for: selectedPersona)
         let rideStartTime = Date()
         let newRide = Ride(
@@ -480,9 +475,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pausedElapsed: durationInMillis / 1000
         )
 
-        // Consume the legacy suppression bit just as normal finalization does, but deliberately
-        // skip finishRide/ride_completed/reveal generation for an explicit start abort.
-        _ = EmergencyManager.shared.consumeRideSuppression()
+        // Deliberately skips finishRide/ride_completed/reveal generation for an explicit start abort.
         DataRepository.shared.deleteRide(rideId: id)
         currentRideId = nil
         GroupRideManager.shared.refreshLocationSource()
@@ -675,11 +668,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// segment distance/duration. Keeping finalization in one path ensures the
     /// A1 good-ride hook and telemetry fire consistently when recording stops.
     private func finalizeSegment(id: UUID, endedAt: Date) {
-        // Consume the single legacy suppression bit before the junk-ride early return, so a
-        // discarded segment cannot leave it set for the next ride. History still records a valid
-        // ride, while old upgraded data cannot create a reveal unexpectedly.
-        let suppressPostRideCelebrations = EmergencyManager.shared.consumeRideSuppression()
-
         let aggregate = RideAggregateSnapshot.live(
             distanceMeters: totalDistance,
             movingDurationMillis: durationInMillis,
@@ -696,8 +684,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 rideId: id.uuidString,
                 finishedAtMillis: Int64(endedAt.timeIntervalSince1970 * 1000),
                 durationMillis: Int64(durationInMillis),
-                distanceMeters: totalDistance,
-                suppressPostRideCelebrations: suppressPostRideCelebrations
+                distanceMeters: totalDistance
             )
             Task {
                 let transition = await RideStatsStore.shared.recordGoodRide(summary)

@@ -18,7 +18,6 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     private var trackingManager = TrackingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
-    @Bindable private var emergencyRetirement = EmergencyDataPurge.shared
     @State private var selectedTab: AppTab = .home
     @State private var tabScrollToTopRequest = 0
     // TASK-226. Per-tab so double-tapping History cannot pop Settings as a side effect.
@@ -144,16 +143,6 @@ struct ContentView: View {
         .tint(BrandColor.primary)
         // TASK-288: runs on every OS version. See View.ageSignalCheck() for why that matters.
         .ageSignalCheck()
-        .alert(
-            LocalizationHelper.localized("The SOS button has been removed"),
-            isPresented: $emergencyRetirement.shouldShowRemovalNotice
-        ) {
-            Button(LocalizationHelper.localized("I understand")) {
-                emergencyRetirement.acknowledgeRemovalNotice()
-            }
-        } message: {
-            Text(LocalizationHelper.localized("TrackMe no longer includes in-app SOS or automatic SMS alerts. Your saved emergency contacts were removed from this device. For a real emergency, use your phone's built-in Emergency SOS or call local emergency services."))
-        }
     }
 }
 

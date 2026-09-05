@@ -13,27 +13,21 @@ nonisolated struct GoodRideSummary {
     let distanceMeters: Double
     /// Local first-run samples are replayable/exportable but never enter retention aggregates.
     let isSample: Bool
-    /// Legacy compatibility flag for a ride that entered the retired emergency flow. The ride
-    /// still contributes to history aggregates, but old downstream callers may suppress a reveal.
-    /// Parity with Android `GoodRideSummary.suppressPostRideCelebrations`.
-    let suppressPostRideCelebrations: Bool
 
-    /// Explicit memberwise init so the new flag defaults to `false` while `let` immutability is
+    /// Explicit memberwise init so `isSample` can default to `false` while `let` immutability is
     /// preserved (Swift omits defaulted `let` properties from the synthesized init entirely).
     init(
         rideId: String,
         finishedAtMillis: Int64,
         durationMillis: Int64,
         distanceMeters: Double,
-        isSample: Bool = false,
-        suppressPostRideCelebrations: Bool = false
+        isSample: Bool = false
     ) {
         self.rideId = rideId
         self.finishedAtMillis = finishedAtMillis
         self.durationMillis = durationMillis
         self.distanceMeters = distanceMeters
         self.isSample = isSample
-        self.suppressPostRideCelebrations = suppressPostRideCelebrations
     }
 }
 
@@ -106,12 +100,8 @@ nonisolated struct RideStatsTransition {
     let streakAdvanced: Bool
     /// True when this ride's week-rollover forgave a single missed week (B3 auto-freeze).
     let streakFroze: Bool
-    /// True when B1/B4 post-ride celebrations must not be presented for this ride.
-    /// Parity with Android `RideStatsTransition.suppressPostRideCelebrations`.
-    let suppressPostRideCelebrations: Bool
 
-    /// Explicit memberwise init: the new flag is last and defaults to `false`, so every existing
-    /// construction site (and test) keeps compiling while the fields stay `let`.
+    /// Explicit memberwise init so the fields can stay `let`.
     init(
         rideId: String,
         alreadyProcessed: Bool,
@@ -128,8 +118,7 @@ nonisolated struct RideStatsTransition {
         streakWeeks: Int,
         isFirstRideOfWeek: Bool,
         streakAdvanced: Bool,
-        streakFroze: Bool,
-        suppressPostRideCelebrations: Bool = false
+        streakFroze: Bool
     ) {
         self.rideId = rideId
         self.alreadyProcessed = alreadyProcessed
@@ -147,7 +136,6 @@ nonisolated struct RideStatsTransition {
         self.isFirstRideOfWeek = isFirstRideOfWeek
         self.streakAdvanced = streakAdvanced
         self.streakFroze = streakFroze
-        self.suppressPostRideCelebrations = suppressPostRideCelebrations
     }
 }
 
@@ -245,8 +233,7 @@ nonisolated enum RideStatsReducer {
                 streakWeeks: old.streakWeeks,
                 isFirstRideOfWeek: false,
                 streakAdvanced: false,
-                streakFroze: false,
-                suppressPostRideCelebrations: summary.suppressPostRideCelebrations
+                streakFroze: false
             )
             return (old, noOp)
         }
@@ -331,8 +318,7 @@ nonisolated enum RideStatsReducer {
             streakWeeks: newStreakWeeks,
             isFirstRideOfWeek: isFirstRideOfWeek,
             streakAdvanced: streakAdvanced,
-            streakFroze: streakFroze,
-            suppressPostRideCelebrations: summary.suppressPostRideCelebrations
+            streakFroze: streakFroze
         )
 
         return (newStats, transition)
