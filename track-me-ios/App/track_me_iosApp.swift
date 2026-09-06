@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseMessaging
 import FirebaseAuth
 import GoogleSignIn
 import UserNotifications
@@ -57,9 +58,38 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         }
         UNUserNotificationCenter.current().delegate = self
         GroupStatusAlertCoordinator.shared.registerNotificationCategory()
+        if !AppLaunchEnvironment.isUnitTesting {
+            // SCOPE_1.8.7 §6.3. Registering for remote notifications does not prompt — the prompt
+            // is `requestAuthorization`, which this deliberately does not call. TASK-284's rule is
+            // that a permission request has to arrive at a moment that earns it, and app launch is
+            // not that moment.
+            application.registerForRemoteNotifications()
+            // Follows the authorization the user has already given, in both directions. This is
+            // also the only thing that recovers a subscription after a reinstall, a restore, or the
+            // user turning notifications back on in Settings without opening anything of ours.
+            BroadcastSubscription.sync()
+        }
         // The age-range request is started from ContentView, where SwiftUI supplies the
         // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
+    }
+
+    /// SCOPE_1.8.7 §6.3 — a data-only operator broadcast.
+    ///
+    /// Data-only means iOS shows nothing by itself: this is where the payload is validated and,
+    /// only if it survives, turned into a local notification. An `alert` payload would have been
+    /// rendered before any of our code ran.
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        Task { @MainActor in
+            let stored = OperatorBroadcastReceiver.handle(userInfo)
+            // Reporting .newData for a duplicate or a refused payload teaches iOS to throttle
+            // background deliveries — including the ones the user does need.
+            completionHandler(stored ? .newData : .noData)
+        }
     }
 
     func userNotificationCenter(

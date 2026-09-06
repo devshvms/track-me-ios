@@ -16,6 +16,7 @@
 		BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* TrackMeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BB000000000000000000001B /* BrandColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* BrandColor.swift */; };
 		CC0000000000000000000002 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000000000000000000003 /* FirebaseCrashlytics */; };
+		CC0000000000000000000006 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000000000000000000007 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -107,6 +108,7 @@
 				702018E12E6FEF201B7BB950 /* FirebaseAuth in Frameworks */,
 				161D4F25E3C595034CEE4D3A /* FirebaseFirestore in Frameworks */,
 				CC0000000000000000000002 /* FirebaseCrashlytics in Frameworks */,
+				CC0000000000000000000006 /* FirebaseMessaging in Frameworks */,
 				16EA495C2A889D003036CA95 /* GoogleSignIn in Frameworks */,
 				16CD17A3EBB12F24F820700D /* PostHog in Frameworks */,
 			);
@@ -186,6 +188,7 @@
 				BE023F3E41E46AB63B7FEB31 /* FirebaseAuth */,
 				45C95C550C3CC2B63ACAC768 /* FirebaseFirestore */,
 				CC0000000000000000000003 /* FirebaseCrashlytics */,
+				CC0000000000000000000007 /* FirebaseMessaging */,
 				188E4B7AA7D5FEEFFF870518 /* GoogleSignIn */,
 				7D46285C00EE50DEBC5E9129 /* PostHog */,
 			);
@@ -755,6 +758,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B5A0DAEEA01AC80476D73CDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCrashlytics;
+		};
+		CC0000000000000000000007 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B5A0DAEEA01AC80476D73CDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
