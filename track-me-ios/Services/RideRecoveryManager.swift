@@ -2,9 +2,24 @@ import Foundation
 import SwiftData
 
 /// Result of a launch-time orphan sweep.
+/// The facts a recovered ride can be described with.
+///
+/// SCOPE_1.8.7 §6.1.1 scenario 1 needs these, not just a count. §4.2 N1 is "every notification
+/// carries a fact, not a feeling": *"Your ride was saved"* on its own is the kind of line that
+/// could have been written without reading the user's data. *"12.3 km, recording stopped at
+/// 14:32"* could not.
+struct RecoveredRide {
+    let endTime: Date
+    let distanceMeters: Double
+}
+
 struct RecoverySummary {
     var recoveredCount: Int = 0
     var discardedCount: Int = 0
+    /// Details of what was recovered. Deliberately carries no title: a ride title can be
+    /// user-written, and a notification renders on a lock screen where whoever is holding the phone
+    /// may not be its owner.
+    var recovered: [RecoveredRide] = []
 }
 
 /// The default ride title ("Morning Run", "Evening Motorbike Ride", etc.). Shared
@@ -95,6 +110,10 @@ enum RideRecoveryManager {
         if let message = toastMessage(for: summary) {
             ToastManager.shared.show(message: message, style: .info)
         }
+        // §6.1.1 scenario 1. The toast above only exists if the app is open, and the people who
+        // most need this are the ones whose phone died and have stopped expecting the ride to be
+        // there. Class A — never rationed by the proactive budget.
+        await RecoveryNotifier.notify(summary: summary)
     }
 
     /// Part A — the orphan sweep.
@@ -129,6 +148,12 @@ enum RideRecoveryManager {
                 )
             }
             summary.recoveredCount += 1
+            summary.recovered.append(
+                RecoveredRide(
+                    endTime: lastPoint.timestamp,
+                    distanceMeters: ride.distanceMeters ?? 0
+                )
+            )
 
             // Fire-and-forget cloud sync, same as the normal finish path.
             FirestoreSyncManager.shared.syncRide(ride)

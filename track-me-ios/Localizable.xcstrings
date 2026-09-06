@@ -882,6 +882,46 @@
         }
       }
     },
+    "%@ rides were saved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se guardaron %@ rutas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sorties ont été enregistrées"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Fahrten wurden gespeichert"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ राइड सहेजी गईं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 件のライドを保存しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存 %@ 次记录"
+          }
+        }
+      }
+    },
     "%@ seconds": {
       "extractionState": "stale",
       "localizations": {
@@ -15303,6 +15343,46 @@
         }
       }
     },
+    "Recording stopped at %1$@ because the app was closed. %2$@ was kept.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación se detuvo a las %1$@ porque la app se cerró. Se conservaron %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'enregistrement s'est arrêté à %1$@ car l'app s'est fermée. %2$@ ont été conservés."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufzeichnung endete um %1$@, weil die App geschlossen wurde. %2$@ wurden behalten."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐप बंद होने से रिकॉर्डिंग %1$@ पर रुक गई। %2$@ सहेजा गया।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリが終了したため %1$@ に記録が停止しました。%2$@ を保存しています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用关闭，记录于 %1$@ 停止。已保留 %2$@。"
+          }
+        }
+      }
+    },
     "Regular": {
       "extractionState": "manual",
       "localizations": {
@@ -20137,6 +20217,86 @@
         }
       }
     },
+    "The app closed while they were recording. They were finished and kept.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La app se cerró mientras se grababan. Se finalizaron y se conservaron."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app s'est fermée pendant l'enregistrement. Elles ont été terminées et conservées."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App wurde während der Aufzeichnung geschlossen. Sie wurden beendet und behalten."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिकॉर्डिंग के दौरान ऐप बंद हो गया। उन्हें पूरा करके सहेज लिया गया।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録中にアプリが終了しました。すべて終了して保存しています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记录期间应用关闭，已全部结束并保留。"
+          }
+        }
+      }
+    },
+    "The app closed while you were recording, so the ride was finished and kept.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La app se cerró mientras grababas, así que la ruta se finalizó y se conservó."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app s'est fermée pendant l'enregistrement ; la sortie a été terminée et conservée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App wurde während der Aufzeichnung geschlossen, die Fahrt wurde beendet und behalten."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिकॉर्डिंग के दौरान ऐप बंद हो गया, इसलिए राइड पूरी करके सहेज ली गई।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録中にアプリが終了したため、ライドを終了して保存しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记录期间应用关闭，已结束并保留这次记录。"
+          }
+        }
+      }
+    },
     "The archive download returned an unexpected response.": {
       "extractionState": "stale",
       "localizations": {
@@ -24090,6 +24250,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "您的骑行达到9,000个点并已自动拆分。"
+          }
+        }
+      }
+    },
+    "Your ride was saved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu ruta se ha guardado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre sortie a été enregistrée"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Fahrt wurde gespeichert"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी राइड सहेज ली गई"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライドを保存しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的记录已保存"
           }
         }
       }
