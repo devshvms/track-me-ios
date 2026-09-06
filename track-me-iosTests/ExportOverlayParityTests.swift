@@ -129,6 +129,31 @@ final class ExportOverlayParityTests: XCTestCase {
         XCTAssertFalse(ReplayDeepLink.isTrackMeLink(ReplayDeepLink.prefix + "ride 123"))
     }
 
+    func testBothArtifactsCarryTheLinkEvenWhenThereIsNoFiguresPanel() {
+        let previewSource = strippingComments(try! sourceFile("Views/ExportPreviewView.swift"))
+        XCTAssertTrue(
+            previewSource.contains("Text(ReplayDeepLink.forRide(ride))"),
+            "the still image is rendered from exportFrame, so its link must live in that view"
+        )
+        XCTAssertTrue(
+            previewSource.contains("deepLink: ReplayDeepLink.forRide(ride)"),
+            "the replay renderer must receive the same public route"
+        )
+
+        let rendererSource = strippingComments(try! sourceFile("Services/ReplayFrameRenderer.swift"))
+        let linkOffset = rendererSource.range(of: "ReplayDeepLink.isTrackMeLink")?.lowerBound
+        let panelGuardOffset = rendererSource.range(of: "guard overlay.drawsPanel")?.lowerBound
+        XCTAssertNotNil(linkOffset)
+        XCTAssertNotNil(panelGuardOffset)
+        if let linkOffset, let panelGuardOffset {
+            XCTAssertLessThan(
+                linkOffset,
+                panelGuardOffset,
+                "the mandatory lockup and link must render before no-panel mode returns"
+            )
+        }
+    }
+
     // MARK: - The localisation bug, guarded at the source
 
     func testTheVideoLabelIsLocalisedLikeEveryOtherSurface() {
