@@ -159,6 +159,11 @@ struct track_me_iosApp: App {
                             activeRideId: TrackingManager.shared.currentRideId?.uuidString
                         )
                         FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                        // §6.3: push is the fast path, not the only one. Anyone the push missed —
+                        // authorization declined, device off, APNs dropped it, subscription not
+                        // yet complete — picks the broadcast up here instead, silently, because
+                        // the moment to interrupt has passed.
+                        await BroadcastReconciler.reconcile()
                         GroupRideManager.shared.restore()
                         _ = await AppUpdateManager.shared.checkForUpdate()
                     }

@@ -18,6 +18,10 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     private var trackingManager = TrackingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
+    // SCOPE_1.8.7 §6.3: the in-app half of an operator broadcast. Held here rather than inside a
+    // tab because a broadcast is about the app, not about riding — it has to reach someone who
+    // opens straight into History or Settings too.
+    @Bindable private var broadcasts = BroadcastStore.shared
     @State private var selectedTab: AppTab = .home
     @State private var tabScrollToTopRequest = 0
     // TASK-226. Per-tab so double-tapping History cannot pop Settings as a side effect.
@@ -86,7 +90,18 @@ struct ContentView: View {
                     )
                 }
             } else {
-                mainTabs
+                VStack(spacing: 0) {
+                    // Only the newest unread one. A stack of banners is a wall, and an operator
+                    // with three outstanding notices has a bigger problem than the UI can solve.
+                    if let broadcast = broadcasts.unread(
+                        versionCode: OperatorBroadcastReceiver.currentVersionCode()
+                    ).first {
+                        BroadcastBanner(broadcast: broadcast) {
+                            broadcasts.markSeen(createdAtMillis: broadcast.createdAtMillis)
+                        }
+                    }
+                    mainTabs
+                }
             }
         }
         .sheet(item: $recapCoordinator.pending, onDismiss: {
