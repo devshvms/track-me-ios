@@ -19,6 +19,8 @@ struct ExportPreviewView: View {
     
     @State private var isShowingShareSheet = false
     @State private var shareItems: [Any] = []
+    /// Which artifact the open sheet is sharing, so the completion handler can name it.
+    @State private var sharedArtifactKind: String?
     @State private var isExportingVideo = false
     @State private var videoExportProgress: Float = 0
     @State private var videoExportTask: Task<Void, Never>?
@@ -130,9 +132,31 @@ struct ExportPreviewView: View {
         }
         .navigationTitle(LocalizationHelper.localized("Export Preview"))
         .navigationBarTitleDisplayMode(.inline)
+        // TASK-305: top of the export funnel. `.task` runs once per appearance, not per redraw —
+        // a toggle flip is not a new export attempt, and counting it as one would make every
+        // downstream ratio look worse than it is.
+        .task { TelemetryManager.shared.trackExportPreviewOpened(surface: "ride_detail") }
+        .onChange(of: showDate) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
+        .onChange(of: showDuration) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
+        .onChange(of: showDistance) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
+        .onChange(of: privacyTrim) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "privacy_trim") }
+        .onChange(of: darkOverlay) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "theme") }
+        .onChange(of: selectedRatio) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "ratio") }
         .background(Color(UIColor.systemGroupedBackground))
         .sheet(isPresented: $isShowingShareSheet) {
-            ActivityView(activityItems: shareItems)
+            // ShareSheet rather than ActivityView: it is the one that reports completion, which is
+            // what separates "shared" from "opened the sheet and backed out" (TASK-289).
+            ShareSheet(
+                activityItems: shareItems,
+                onActivityCompletion: { activityType, completed, _ in
+                    guard let kind = sharedArtifactKind else { return }
+                    if activityType == .saveToCameraRoll {
+                        TelemetryManager.shared.trackExportSavedToGallery(kind: kind, success: completed)
+                    } else if completed {
+                        TelemetryManager.shared.trackExportShared(kind: kind)
+                    }
+                }
+            )
         }
         .onChange(of: selectedRatio) { _, ratio in
             guard !demoMode else { return }
@@ -171,28 +195,66 @@ struct ExportPreviewView: View {
             // the preview and the file are literally the same view. That is why iOS never had
             // Android's drift defect, and it is worth preserving: do not add a second code path that
             // draws this panel for export.
-            VStack(alignment: .leading, spacing: 6) {
-                    let aggregate = ride.aggregateSnapshot
-                    let duration = Double(aggregate.movingDurationMillis) / 1_000
-                    // TASK-241: formatted in the in-app language, not the device's.
-                    let dateStr = LocalizationHelper.mediumDateTime(ride.startTime, includeTime: false)
-                    // Compact, matching Android: "17min", never "00:17:00" — see `shareDuration`.
-                    let fields = [showDate ? dateStr : nil, showDuration ? UnitFormatter.shareDuration(seconds: duration) : nil, showDistance ? UnitFormatter.distance(meters: aggregate.distanceMeters, unit: unitSettings.unit) : nil].compactMap { $0 }
-                    if !fields.isEmpty {
-                        Text(fields.joined(separator: " • "))
-                            .font(.subheadline)
-                            .foregroundColor(darkOverlay ? .white : .black)
+            let aggregate = ride.aggregateSnapshot
+            let duration = Double(aggregate.movingDurationMillis) / 1_000
+            // TASK-241: formatted in the in-app language, not the device's.
+            let dateStr = LocalizationHelper.mediumDateTime(ride.startTime, includeTime: false)
+            // Compact, matching Android: "17min", never "00:17:00" — see `shareDuration`.
+            // TASK-305: one builder, shared with the video. The two used to choose their
+            // own figures *and* their own separator, which is the drift in miniature.
+            let fields = overlayFigures(aggregate: aggregate, duration: duration, dateStr: dateStr)
+            if !fields.isEmpty {
+                Text(fields.joined(separator: ExportOverlayContent.separator))
+                    .font(.subheadline)
+                    .foregroundColor(darkOverlay ? .white : .black)
+                    .padding(20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    // The panel hugs its figures. With every figure disabled there is no panel.
+                    .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
+            }
+
+            VStack {
+                HStack {
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("TrackMe") // TODO(attribution): replace with approved wordmark asset.
+                            .font(.subheadline.weight(.semibold))
+                        Text(ReplayDeepLink.forRide(ride))
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
                     }
-                    HStack { Spacer(); Text("TrackMe") // TODO(attribution): replace with approved wordmark asset.
-                        .font(.subheadline.weight(.semibold)).foregroundColor(darkOverlay ? .white : BrandColor.primary) }
+                    .foregroundColor(darkOverlay ? .white : BrandColor.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                // The panel hugs its figures: a VStack takes only the height its content needs, so
-                // one figure yields a one-line band. Android had to be taught this; SwiftUI gives it.
-                .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
+                Spacer()
+            }
+            .padding(16)
         }
         .frame(width: 350, height: 350 / selectedRatio.aspect)
+    }
+
+    /// TASK-305: the figures both artifacts show, chosen once.
+    ///
+    /// A method rather than an inline expression because the video needs the identical list, and
+    /// the video is a different renderer in a different file — the exact separation that let the
+    /// two disagree in the first place.
+    private func overlayFigures(
+        aggregate: RideAggregateSnapshot,
+        duration: Double,
+        dateStr: String
+    ) -> [String] {
+        ExportOverlayContent.figures(
+            date: dateStr,
+            duration: UnitFormatter.shareDuration(seconds: duration),
+            distance: UnitFormatter.distance(meters: aggregate.distanceMeters, unit: unitSettings.unit),
+            showDate: showDate,
+            showDuration: showDuration,
+            showDistance: showDistance
+        )
     }
 
     private func regenerateSnapshot(for ratio: ExportRatio) {
@@ -214,9 +276,25 @@ struct ExportPreviewView: View {
         } else {
             renderer.scale = 2.0
         }
+        let startedAt = DispatchTime.now().uptimeNanoseconds
+        let elapsedMillis = { Int64((DispatchTime.now().uptimeNanoseconds - startedAt) / 1_000_000) }
         if let uiImage = renderer.uiImage {
+            TelemetryManager.shared.trackExportRendered(
+                kind: "image", success: true, durationMillis: elapsedMillis()
+            )
             shareItems = [uiImage]
+            sharedArtifactKind = "image"
+            TelemetryManager.shared.trackExportShareSheetOpened(kind: "image")
             isShowingShareSheet = true
+        } else {
+            // ImageRenderer returning nil is silent today: no toast, no log, nothing. It is the
+            // one image-export failure mode we have never been able to see.
+            TelemetryManager.shared.trackExportRendered(
+                kind: "image",
+                success: false,
+                durationMillis: elapsedMillis(),
+                failureReason: "image_renderer_nil"
+            )
         }
     }
 
@@ -245,10 +323,30 @@ struct ExportPreviewView: View {
             durationMillis: aggregate.movingDurationMillis,
             averageSpeedMetersPerSecond: aggregate.avgSpeedMps
         )
-        let overlay = ReplayOverlay(personaLabel: ride.ridePersona.displayName, imperialUnits: unitSettings.unit == .imperial)
+        // TASK-305: `persona.displayName` is the raw English enum name. Every other surface in the
+        // app wraps it in LocalizationHelper — HomeView, HistoryView, HomeDashboardDeck all do —
+        // and this was the one that did not, on the single artifact designed to leave the device.
+        // A German user's shared video said "Cycling".
+        let overlay = ReplayOverlay(
+            personaLabel: LocalizationHelper.localized(ride.ridePersona.displayName),
+            imperialUnits: unitSettings.unit == .imperial,
+            figures: overlayFigures(
+                aggregate: aggregate,
+                duration: Double(aggregate.movingDurationMillis) / 1_000,
+                dateStr: LocalizationHelper.mediumDateTime(ride.startTime, includeTime: false)
+            ),
+            darkTheme: darkOverlay
+        )
         let config: ReplayExportConfig
         do {
-            config = try ReplayExportConfig(width: width, height: height, applyPrivacyTrim: privacyTrim, persona: ride.ridePersona, overlay: overlay)
+            config = try ReplayExportConfig(
+                width: width,
+                height: height,
+                applyPrivacyTrim: privacyTrim,
+                persona: ride.ridePersona,
+                deepLink: ReplayDeepLink.forRide(ride),
+                overlay: overlay
+            )
         } catch {
             ToastManager.shared.show(message: LocalizationHelper.localized("Couldn't create the video. Try again."), style: .error)
             return
@@ -256,6 +354,8 @@ struct ExportPreviewView: View {
         let trimmed = Self.renderPoints(untrimmed, privacyTrim: config.applyPrivacyTrim, trimMeters: config.privacyTrimDistanceMeters)
         isExportingVideo = true
         videoExportProgress = 0
+        let renderStartedAt = DispatchTime.now().uptimeNanoseconds
+        let elapsedMillis = { Int64((DispatchTime.now().uptimeNanoseconds - renderStartedAt) / 1_000_000) }
         videoExportTask = Task { @MainActor in
             let capture = await ReplayVideoExporter.captureRouteSnapshot(points: trimmed, size: CGSize(width: width / 2, height: height / 2))
             do {
@@ -265,13 +365,26 @@ struct ExportPreviewView: View {
                         Task { @MainActor in self.videoExportProgress = progress }
                     }
                 try Task.checkCancellation()
+                TelemetryManager.shared.trackExportRendered(
+                    kind: "video", success: true, durationMillis: elapsedMillis()
+                )
                 self.shareItems = [url]
+                self.sharedArtifactKind = "video"
+                TelemetryManager.shared.trackExportShareSheetOpened(kind: "video")
                 self.isShowingShareSheet = true
             } catch is CancellationError {
-                // User dismissed the sheet or tapped the action while encoding.
+                // User dismissed the sheet or tapped the action while encoding. A cancel is not a
+                // failure: recording it as one would make the failure rate a measure of how often
+                // people change their mind.
             } catch ReplayVideoExporterError.cancelled {
-                // Partial files are removed by the exporter.
+                // Partial files are removed by the exporter. Same reasoning as above.
             } catch {
+                TelemetryManager.shared.trackExportRendered(
+                    kind: "video",
+                    success: false,
+                    durationMillis: elapsedMillis(),
+                    failureReason: String(describing: type(of: error))
+                )
                 ToastManager.shared.show(message: LocalizationHelper.localized("Couldn't create the video. Try again."), style: .error)
             }
             self.isExportingVideo = false

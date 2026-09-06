@@ -105,14 +105,68 @@ enum ReplayFrameRenderer {
     }
 
     private static func drawChrome(context: CGContext, persona: RidePersona, stats: ReplayStats, config: ReplayExportConfig, size: CGSize) {
-        let label = config.overlay.personaLabel ?? persona.displayName
-        let distance = UnitFormatter.distance(meters: stats.distanceMeters, unit: config.overlay.imperialUnits ? .imperial : .metric, decimals: 1)
-        let duration = HistoryMetricFormat.duration(TimeInterval(stats.durationMillis) / 1000)
-        drawText(label, in: CGRect(x: 32, y: 30, width: size.width * 0.65, height: 40), font: .boldSystemFont(ofSize: max(22, size.width * 0.035)), color: .white, context: context)
-        let pill = CGRect(x: size.width - 185, y: 26, width: 153, height: 38)
-        context.setFillColor(UIColor(white: 0, alpha: 0.55).cgColor); context.addPath(CGPath(roundedRect: pill, cornerWidth: 19, cornerHeight: 19, transform: nil)); context.fillPath()
-        drawText("TrackMe", in: pill, font: .boldSystemFont(ofSize: 18), color: .white, context: context, alignment: .center)
-        drawText("\(distance) · \(duration)", in: CGRect(x: 32, y: size.height - 76, width: size.width - 64, height: 42), font: .systemFont(ofSize: max(18, size.width * 0.027), weight: .semibold), color: .white, context: context)
+        let overlay = config.overlay
+        let ink: UIColor = overlay.darkTheme ? .white : UIColor(white: 0.07, alpha: 1)
+
+        // The lockup is not chrome the user opted into — it is what makes the artifact traceable
+        // back to the app. It is drawn whatever the figure toggles say.
+        let link = ReplayDeepLink.isTrackMeLink(config.deepLink) ? config.deepLink : nil
+        let lockupWidth = min(size.width - 64, max(300, size.width * 0.44))
+        let pill = CGRect(
+            x: size.width - lockupWidth - 32,
+            y: 26,
+            width: lockupWidth,
+            height: link == nil ? 44 : 72
+        )
+        context.setFillColor(
+            overlay.darkTheme
+                ? UIColor(white: 0, alpha: 0.55).cgColor
+                : UIColor(white: 1, alpha: 0.86).cgColor
+        )
+        context.addPath(CGPath(roundedRect: pill, cornerWidth: 19, cornerHeight: 19, transform: nil))
+        context.fillPath()
+        drawText(
+            "TrackMe",
+            in: CGRect(x: pill.minX + 12, y: pill.minY + 5, width: pill.width - 24, height: 28),
+            font: .boldSystemFont(ofSize: 18),
+            color: ink,
+            context: context,
+            alignment: .right
+        )
+        if let link {
+            drawText(
+                link,
+                in: CGRect(x: pill.minX + 12, y: pill.minY + 35, width: pill.width - 24, height: 24),
+                font: .systemFont(ofSize: max(11, size.width * 0.014)),
+                color: ink.withAlphaComponent(0.82),
+                context: context,
+                alignment: .right
+            )
+        }
+
+        // TASK-305: the figures come from the preview, already formatted, rather than being
+        // re-derived here. The old code called `UnitFormatter.distance` and
+        // `HistoryMetricFormat.duration` itself and ignored the three toggles entirely — so the
+        // video showed figures the user had switched off, and showed the duration as `00:17:00`
+        // where the image showed `17min`.
+        guard overlay.drawsPanel else { return }
+
+        let label = overlay.personaLabel ?? persona.displayName
+        drawText(
+            label,
+            in: CGRect(x: 32, y: 30, width: size.width * 0.65, height: 40),
+            font: .boldSystemFont(ofSize: max(22, size.width * 0.035)),
+            color: ink,
+            context: context
+        )
+        drawText(
+            overlay.figures.joined(separator: ExportOverlayContent.separator),
+            in: CGRect(x: 32, y: size.height - 76, width: size.width - 64, height: 42),
+            font: .systemFont(ofSize: max(18, size.width * 0.027), weight: .semibold),
+            color: ink,
+            context: context
+        )
+
     }
 
     private static func drawText(_ value: String, in rect: CGRect, font: UIFont, color: UIColor, context: CGContext, alignment: NSTextAlignment = .left) {
