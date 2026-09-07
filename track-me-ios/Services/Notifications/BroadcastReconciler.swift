@@ -41,6 +41,9 @@ enum BroadcastReconciler {
                 // parser is what enforces the closed tag vocabulary and the length limits.
                 guard let broadcast = OperatorBroadcast.parse(document.data()),
                       broadcast.applies(toVersionCode: versionCode) else { continue }
+                // §6.1.7: into the feed whichever route it arrived by. A broadcast the push
+                // missed is exactly the one the user has no other way to find.
+                BulletinStore.shared.add(BulletinAdapters.from(broadcast))
                 if store.store(broadcast) { stored += 1 }
             }
             return stored

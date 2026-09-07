@@ -92,6 +92,9 @@ enum WeeklyRecapScheduler {
 
         ledger.recordProactiveSent(at: nowMillis)
         ledger.recordRecapNotified(weekStartEpochDay: recap.weekStartEpochDay)
+        // §6.1.7: the recap outlives its notification. Keyed by week, so the same recap read
+        // in-app later does not produce a second row.
+        BulletinStore.shared.add(BulletinAdapters.from(recap))
         return true
     }
 

@@ -114,6 +114,12 @@ enum RideRecoveryManager {
         // most need this are the ones whose phone died and have stopped expecting the ride to be
         // there. Class A — never rationed by the proactive budget.
         await RecoveryNotifier.notify(summary: summary)
+        // §6.1.7: one row per recovered ride. The notification says "3 rides were saved" because
+        // it has one line; the feed has room to say which three, and checking whether a particular
+        // ride survived is the reason to look.
+        await MainActor.run {
+            BulletinAdapters.from(summary).forEach { BulletinStore.shared.add($0) }
+        }
     }
 
     /// Part A — the orphan sweep.

@@ -41,6 +41,11 @@ enum OperatorBroadcastReceiver {
         // Only the first arrival may interrupt.
         guard store.store(broadcast) else { return false }
 
+        // §6.1.7: a copy of every notification actually sent. A fact that interrupted someone and
+        // is then not in the feed is worse than one that never interrupted — they saw it, swiped
+        // it, and now cannot find it.
+        BulletinStore.shared.add(BulletinAdapters.from(broadcast))
+
         post(broadcast)
         return true
     }

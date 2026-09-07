@@ -22,6 +22,7 @@ struct ContentView: View {
     // tab because a broadcast is about the app, not about riding — it has to reach someone who
     // opens straight into History or Settings too.
     @Bindable private var broadcasts = BroadcastStore.shared
+    @Bindable private var bulletin = BulletinStore.shared
     @State private var selectedTab: AppTab = .home
     @State private var tabScrollToTopRequest = 0
     // TASK-226. Per-tab so double-tapping History cannot pop Settings as a side effect.
@@ -57,6 +58,11 @@ struct ContentView: View {
 
             SettingsView(popToRootRequest: tabPopToRootRequest[.settings] ?? 0)
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                // §6.1.7: "a subtle unread badge". A dot rather than a count — a number turns a
+                // feed of things the app happened to notice into a queue the reader owes something
+                // to, which is the pressure the interruption budget exists to avoid. SwiftUI's
+                // .badge shows a dot for an empty string and nothing at all for nil.
+                .badge(bulletin.unread().isEmpty ? nil : "")
                 .tag(AppTab.settings)
         }
         .background(TabBarReselectObserver { index in

@@ -393,6 +393,18 @@ struct SettingsView: View {
                         Text(LocalizationHelper.localized("Find quick answers or send an editable support report."))
                             .font(.caption)
                             .foregroundColor(.secondary)
+                        // §6.1.7 — the way in to the bulletin. Everything the interruption budget
+                        // refuses lands there, so it has to be reachable without a notification
+                        // having pointed at it.
+                        NavigationLink(value: SettingsRoute.bulletin) {
+                            Text(LocalizationHelper.localized("What's new"))
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(BrandColor.primaryFill)
+                                .foregroundColor(.primary)
+                                .cornerRadius(24)
+                        }
                         NavigationLink(value: SettingsRoute.helpFeedback) {
                             Text(LocalizationHelper.localized("Open Help & Feedback"))
                                 .font(.headline)
@@ -439,6 +451,7 @@ struct SettingsView: View {
                 switch route {
                 case .accountManagement: AccountManagementView()
                 case .helpFeedback: HelpFeedbackView()
+                case .bulletin: BulletinView()
                 }
             }
             .navigationTitle("")
@@ -537,4 +550,8 @@ struct SettingsView: View {
 enum SettingsRoute: Hashable {
     case accountManagement
     case helpFeedback
+    /// SCOPE_1.8.7 §6.1.7 — the bulletin. Reached from Settings rather than as a fifth tab: the bar
+    /// already carries four, and a permanent tab for a surface that is empty most weeks would
+    /// advertise itself far more loudly than "subtle unread badge" allows.
+    case bulletin
 }
