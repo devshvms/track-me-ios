@@ -39,6 +39,20 @@ actor RideStatsStore {
 
     /// B2: recap for the most-recent completed active week, or nil. Read-only — acknowledgement
     /// is separate so a foreground race can't mark it seen before it's shown.
+    /// SCOPE_1.8.7 §6.1.3 #13 — whole days since the last recorded activity, or nil when there has
+    /// never been one.
+    ///
+    /// Nil rather than a huge number for a user with no rides: someone who installed the app and
+    /// has not yet ridden has not "been away", and a return notice would be the app welcoming them
+    /// back from something they never left.
+    func daysSinceLastActivity(now: Date = Date()) -> Int? {
+        let last = cached.lastRideFinishedAtMillis
+        guard last > 0 else { return nil }
+        let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
+        guard nowMillis > last else { return 0 }
+        return Int((nowMillis - last) / 86_400_000)
+    }
+
     func pendingWeeklyRecap(now: Date = Date(), calendar: Calendar = WeekKey.mondayAnchored()) -> WeeklyRecap? {
         WeeklyRecapSelector.select(cached, now: now, calendar: calendar)
     }

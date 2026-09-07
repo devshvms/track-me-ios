@@ -20279,6 +20279,46 @@
         }
       }
     },
+    "Sunset in %@ min": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anochece en %@ min"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coucher du soleil dans %@ min"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonnenuntergang in %@ Min"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ मिनट में सूर्यास्त"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あと %@ 分で日没"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 分钟后日落"
+          }
+        }
+      }
+    },
     "Support address and details copied": {
       "extractionState": "stale",
       "localizations": {
@@ -24647,6 +24687,46 @@
         }
       }
     },
+    "Your last recorded activity was %@ days ago. Everything you recorded is still on your phone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu última actividad registrada fue hace %@ días. Todo lo que grabaste sigue en tu teléfono."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre dernière activité enregistrée date de %@ jours. Tout ce que vous avez enregistré est toujours sur votre téléphone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre letzte aufgezeichnete Aktivität war vor %@ Tagen. Alles Aufgezeichnete ist weiterhin auf Ihrem Telefon."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी आखिरी दर्ज गतिविधि %@ दिन पहले थी। आपका दर्ज किया सब कुछ अब भी आपके फ़ोन में है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後に記録したアクティビティは %@ 日前です。記録した内容はすべて端末に残っています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次记录的活动是在 %@ 天前。你记录的一切仍保存在手机上。"
+          }
+        }
+      }
+    },
     "Your recent distance was steady.": {
       "localizations": {
         "de": {
@@ -24770,6 +24850,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的记录已保存"
+          }
+        }
+      }
+    },
+    "Your rides are still here": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus rutas siguen aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos sorties sont toujours là"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Fahrten sind noch da"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी राइड्स यहीं हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録はそのまま残っています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的记录都还在"
           }
         }
       }

@@ -34,6 +34,22 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private static let activeRideKey = "activeRideId"
 
     private let locationManager = CLLocationManager()
+
+    /// SCOPE_1.8.7 §6.1.6 #28 — the cached last fix, for the pre-ride sunset line.
+    ///
+    /// `CLLocationManager.location` is whatever iOS already had; reading it starts **no new
+    /// request, no new subscription and asks for no new permission**. That distinction is the whole
+    /// reason sunset ships while weather and AQI (#29, #30) are deferred, and a convenience
+    /// wrapper that quietly began updating would undo it.
+    ///
+    /// Nil when location has never been authorised or iOS has no recent fix — in which case the
+    /// caller shows nothing, which is correct: a sunset computed from a default map position is a
+    /// false fact stated confidently.
+    var cachedCoarseLocation: CLLocationCoordinate2D? {
+        guard locationManager.authorizationStatus == .authorizedAlways
+                || locationManager.authorizationStatus == .authorizedWhenInUse else { return nil }
+        return locationManager.location?.coordinate
+    }
     private let motionSensor = MotionSensorManager()
 
     // State exposed to SwiftUI

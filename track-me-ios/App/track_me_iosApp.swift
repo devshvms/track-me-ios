@@ -169,7 +169,8 @@ struct track_me_iosApp: App {
                         // background job for a once-a-week notification, so it schedules the
                         // notification itself rather than scheduling work that decides later.
                         await WeeklyRecapScheduler.scheduleIfDue(
-                            recap: await RideStatsStore.shared.pendingWeeklyRecap()
+                            recap: await RideStatsStore.shared.pendingWeeklyRecap(),
+                            daysSinceLastActivity: await RideStatsStore.shared.daysSinceLastActivity()
                         )
                         GroupRideManager.shared.restore()
                         _ = await AppUpdateManager.shared.checkForUpdate()

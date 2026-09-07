@@ -35,23 +35,53 @@ enum WeeklyRecapScheduler {
     /// read. Nothing about a completed week is time-sensitive.
     static let deliveryHour = 10
 
-    /// Decides, and if the answer is yes, hands the notification to the system.
+    /// Decides which Class C source — if any — gets this week, and hands it to the system.
+    ///
+    /// §6.0: when several are eligible, exactly one is sent and the losers are **not** consumed;
+    /// they stay eligible for their next window. `NotificationBudget.choose` decides by declared
+    /// rank rather than by whichever check happens to run first, which is the only reason two
+    /// sources can share one weekly allowance without one silently winning every time.
     ///
     /// - Returns: whether a notification was scheduled.
     @discardableResult
     static func scheduleIfDue(
         recap: WeeklyRecap?,
+        daysSinceLastActivity: Int? = nil,
         now: Date = Date(),
         ledger: ProactiveLedger = ProactiveLedger(),
         calendar: Calendar = .current
     ) async -> Bool {
         let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
-        guard WeeklyRecapNotice.shouldNotify(
+
+        var eligible: Set<NotificationBudget.ProactiveKind> = []
+        if WeeklyRecapNotice.shouldNotify(
             recap: recap,
             nowMillis: nowMillis,
             lastProactiveSentAtMillis: ledger.lastProactiveSentAtMillis,
             alreadyNotifiedWeekStart: ledger.lastRecapWeekStartEpochDay
-        ), let recap else { return false }
+        ) { eligible.insert(.weeklyRecap) }
+
+        if let days = daysSinceLastActivity,
+           NotificationBudget.allows(.proactive, nowMillis: nowMillis,
+                                     lastProactiveSentAtMillis: ledger.lastProactiveSentAtMillis),
+           NotificationBudget.allowsReturnNotice(
+                nowMillis: nowMillis,
+                lastReturnNoticeAtMillis: ledger.lastReturnNoticeAtMillis,
+                daysSinceLastActivity: days
+           ) { eligible.insert(.returnAfterAbsence) }
+
+        switch NotificationBudget.choose(eligible) {
+        case .returnAfterAbsence:
+            return await scheduleReturnNotice(
+                days: daysSinceLastActivity ?? 0, now: now, ledger: ledger, calendar: calendar
+            )
+        case .weeklyRecap:
+            break
+        case .none:
+            return false
+        }
+
+        guard let recap else { return false }
 
         // Follows the authorization already given, and never asks. TASK-284's rule is that a
         // permission prompt must arrive at a moment that earns it, and a weekly summary is the
@@ -97,6 +127,64 @@ enum WeeklyRecapScheduler {
         BulletinStore.shared.add(BulletinAdapters.from(recap))
         return true
     }
+
+    /// §6.1.3 scenario 13 — one notice, at 21 days or more, carrying a real fact.
+    ///
+    /// The closest this app comes to a line §4.2 N2 would otherwise forbid, and it survives only
+    /// because of what it is not. Not loss-framed: no streak, no missed days, no falling number. It
+    /// carries a fact someone might genuinely want — how long it has been, which people do lose
+    /// track of — and it arrives at most once a quarter.
+    ///
+    /// Rationed twice: the shared weekly budget, and its own 90-day ledger. It is the only
+    /// notification in the app that spends two allowances.
+    private static func scheduleReturnNotice(
+        days: Int,
+        now: Date,
+        ledger: ProactiveLedger,
+        calendar: Calendar
+    ) async -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional
+                || settings.authorizationStatus == .ephemeral else { return false }
+
+        let content = UNMutableNotificationContent()
+        content.title = LocalizationHelper.localized("Your rides are still here")
+        content.body = LocalizationHelper.formatted(
+            "Your last recorded activity was %@ days ago. Everything you recorded is still on your phone.",
+            String(days)
+        )
+        // .passive, like the recap. The most intrusive thing this app may say gets the quietest
+        // delivery it can have while still being visible.
+        content.interruptionLevel = .passive
+
+        var components = calendar.dateComponents(
+            [.year, .month, .day], from: nextDeliveryDate(after: now, calendar: calendar)
+        )
+        components.hour = deliveryHour
+        components.minute = 0
+
+        do {
+            try await UNUserNotificationCenter.current().add(
+                UNNotificationRequest(
+                    identifier: returnIdentifier,
+                    content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                )
+            )
+        } catch {
+            // Nothing recorded, so it stays eligible and the next foreground retries.
+            CrashlyticsErrorLogger.shared.recordError(error)
+            return false
+        }
+
+        let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
+        ledger.recordProactiveSent(at: nowMillis)
+        ledger.recordReturnNoticeSent(at: nowMillis)
+        return true
+    }
+
+    static let returnIdentifier = "trackme.recap.return"
 
     /// Cancels a pending recap notification — called when the rider has seen the recap in the app.
     ///
