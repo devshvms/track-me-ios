@@ -120,25 +120,36 @@ struct SyncFailureNotifier {
             )
         )
 
+        // Marked reported only once something has actually been shown — and the bulletin row above
+        // always is, so this is honest even when the notification below is skipped.
         defaults.set(true, forKey: notifiedKey)
 
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard settings.authorizationStatus == .authorized
                 || settings.authorizationStatus == .provisional
-                || settings.authorizationStatus == .ephemeral,
-              let lastSuccess else { return }
-
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+                || settings.authorizationStatus == .ephemeral else { return }
 
         let content = UNMutableNotificationContent()
         content.title = LocalizationHelper.localized("Cloud backup is not working")
-        content.body = LocalizationHelper.formatted(
-            "%1$@ activities have not reached your backup since %2$@.",
-            String(unsyncedRideCount),
-            formatter.string(from: lastSuccess)
-        )
+        if let lastSuccess {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+            content.body = LocalizationHelper.formatted(
+                "%1$@ activities have not reached your backup since %2$@.",
+                String(unsyncedRideCount),
+                formatter.string(from: lastSuccess)
+            )
+        } else {
+            // No date to quote — the first failing episode after an install or upgrade has none.
+            // Say the part that is true rather than nothing, which is what the old `guard let
+            // lastSuccess` did: it skipped the notification entirely for the user who had never
+            // had a working backup.
+            content.body = LocalizationHelper.formatted(
+                "%@ activities have not reached your cloud backup.",
+                String(unsyncedRideCount)
+            )
+        }
         // .active, not .timeSensitive: it is important and it is not an emergency. Breaking through
         // a Focus mode for a backup that has been failing for three days would be theatre.
         content.interruptionLevel = .active

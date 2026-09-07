@@ -53,6 +53,14 @@ enum WeeklyRecapScheduler {
     ) async -> Bool {
         let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
 
+        // §6.1.7: the fact reaches the feed whether or not it earns an interruption. A recap the
+        // budget refuses used to appear nowhere at all — which made "the bulletin is what lets the
+        // cap be a trade rather than a loss" untrue for the one case it was written about. The
+        // notification is a separate decision below; this is unconditional.
+        if let ready = recap, ready.rideCount > 0 {
+            BulletinStore.shared.add(BulletinAdapters.from(ready))
+        }
+
         var eligible: Set<NotificationBudget.ProactiveKind> = []
         if WeeklyRecapNotice.shouldNotify(
             recap: recap,
@@ -122,9 +130,6 @@ enum WeeklyRecapScheduler {
 
         ledger.recordProactiveSent(at: nowMillis)
         ledger.recordRecapNotified(weekStartEpochDay: recap.weekStartEpochDay)
-        // §6.1.7: the recap outlives its notification. Keyed by week, so the same recap read
-        // in-app later does not produce a second row.
-        BulletinStore.shared.add(BulletinAdapters.from(recap))
         return true
     }
 
