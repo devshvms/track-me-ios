@@ -99,7 +99,12 @@ final class WeeklyRecapCoordinator {
     }
 
     /// Acknowledge the recap after it has been presented (dedupe by week).
+    /// §6.1.2 scenario 8: the rider has seen the recap here, so the scheduled notification is
+    /// cancelled. The budget week is deliberately not refunded — they received the recap, it simply
+    /// arrived by the quieter route, and refunding it would let an in-app acknowledgement re-open
+    /// the budget for another Class C source. See `WeeklyRecapScheduler`.
     func acknowledge(weekStartEpochDay: Int? = nil) async {
+        WeeklyRecapScheduler.cancelPending()
         guard let week = weekStartEpochDay ?? pending?.weekStartEpochDay ?? lastPresentedWeek else { return }
         pending = nil
         lastPresentedWeek = nil

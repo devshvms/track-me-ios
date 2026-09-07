@@ -164,6 +164,13 @@ struct track_me_iosApp: App {
                         // yet complete — picks the broadcast up here instead, silently, because
                         // the moment to interrupt has passed.
                         await BroadcastReconciler.reconcile()
+                        // §6.1.2 scenario 8: hand the recap to the system ahead of time, so it
+                        // reaches someone who never opens the app again. iOS cannot rely on a
+                        // background job for a once-a-week notification, so it schedules the
+                        // notification itself rather than scheduling work that decides later.
+                        await WeeklyRecapScheduler.scheduleIfDue(
+                            recap: await RideStatsStore.shared.pendingWeeklyRecap()
+                        )
                         GroupRideManager.shared.restore()
                         _ = await AppUpdateManager.shared.checkForUpdate()
                     }
