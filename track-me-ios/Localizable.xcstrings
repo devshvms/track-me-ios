@@ -255,6 +255,46 @@
         }
       }
     },
+    "%@ activities have not reached your cloud backup.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ actividades no han llegado a tu copia en la nube."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ activités n'ont pas atteint votre sauvegarde cloud."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Aktivitäten haben Ihre Cloud-Sicherung nicht erreicht."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ गतिविधियाँ आपके क्लाउड बैकअप तक नहीं पहुँचीं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 件のアクティビティがクラウドバックアップに届いていません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 次活动尚未同步到你的云备份。"
+          }
+        }
+      }
+    },
     "%@ activities recorded": {
       "localizations": {
         "es": {

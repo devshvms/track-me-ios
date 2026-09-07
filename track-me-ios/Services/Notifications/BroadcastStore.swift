@@ -67,10 +67,10 @@ final class BroadcastStore {
     }
 
     /// Broadcasts that are both unread and true for this build.
-    func unread(versionCode: Int) -> [OperatorBroadcast] {
+    func unread(release: String) -> [OperatorBroadcast] {
         broadcasts.filter {
             $0.isUnread(lastSeenCreatedAtMillis: lastSeenCreatedAtMillis)
-                && $0.applies(toVersionCode: versionCode)
+                && $0.applies(toRelease: release)
         }
     }
 
@@ -83,8 +83,8 @@ final class BroadcastStore {
                 "body": broadcast.body,
                 "created_at_millis": NSNumber(value: broadcast.createdAtMillis),
             ]
-            if let ceiling = broadcast.appliesToVersionsAtOrBelow {
-                row["applies_to_versions_at_or_below"] = NSNumber(value: ceiling)
+            if let ceiling = broadcast.appliesToReleasesAtOrBelow {
+                row["applies_to_releases_at_or_below"] = ceiling
             }
             if let link = broadcast.learnMoreUrl { row["learn_more_url"] = link }
             return row

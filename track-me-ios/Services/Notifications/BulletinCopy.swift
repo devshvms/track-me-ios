@@ -37,8 +37,12 @@ enum BulletinCopy {
         var milestoneBody: String { get }
         var syncProblemTitle: String { get }
         func syncProblemBody(unsynced: Int, since: String) -> String
+        /// Used when there is no trustworthy last-success date — see the `.syncProblem` branch.
+        func syncProblemBodyNoDate(unsynced: Int) -> String
         func versionNoteTitle(version: String) -> String
         var versionNoteBody: String { get }
+        var returnNoticeTitle: String { get }
+        func returnNoticeBody(days: Int) -> String
     }
 
     /// The rendered row, or nil when the entry cannot be described.
@@ -81,10 +85,23 @@ enum BulletinCopy {
             return Row(title: strings.milestoneTitle(count: count), body: strings.milestoneBody)
 
         case .syncProblem:
-            guard let unsynced = entry.intFact(BulletinEntry.factUnsyncedCount),
-                  let since = entry.fact(formattedSince) else { return nil }
+            guard let unsynced = entry.intFact(BulletinEntry.factUnsyncedCount) else { return nil }
+            // A missing date is a real state, not a broken row: the last-success key does not exist
+            // until Track 2 has seen a sync succeed, so the FIRST failing episode after an install
+            // or upgrade has no date to quote. Requiring one made that episode render as nothing
+            // while still being marked reported — the user who has never had a working backup was
+            // the one guaranteed to hear nothing.
+            guard let since = entry.fact(formattedSince) else {
+                return Row(title: strings.syncProblemTitle,
+                           body: strings.syncProblemBodyNoDate(unsynced: unsynced))
+            }
             return Row(title: strings.syncProblemTitle,
                        body: strings.syncProblemBody(unsynced: unsynced, since: since))
+
+        case .returnNotice:
+            guard let days = entry.intFact(BulletinEntry.factDaysAway) else { return nil }
+            return Row(title: strings.returnNoticeTitle,
+                       body: strings.returnNoticeBody(days: days))
 
         case .versionNote:
             guard let version = entry.fact(BulletinEntry.factTitle) else { return nil }

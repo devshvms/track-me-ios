@@ -125,4 +125,14 @@ private struct Copy: BulletinCopy.Strings {
         LocalizationHelper.formatted("TrackMe %@", version)
     }
     var versionNoteBody: String { LocalizationHelper.localized("A newer version is available.") }
+    func syncProblemBodyNoDate(unsynced: Int) -> String {
+        LocalizationHelper.formatted("%@ activities have not reached your cloud backup.", String(unsynced))
+    }
+    var returnNoticeTitle: String { LocalizationHelper.localized("Your rides are still here") }
+    func returnNoticeBody(days: Int) -> String {
+        LocalizationHelper.formatted(
+            "Your last recorded activity was %@ days ago. Everything you recorded is still on your phone.",
+            String(days)
+        )
+    }
 }

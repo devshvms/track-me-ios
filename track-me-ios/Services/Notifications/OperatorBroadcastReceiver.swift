@@ -35,7 +35,7 @@ enum OperatorBroadcastReceiver {
 
         // Not true for this build. An update notice telling someone already on the fixed version to
         // update is the noise that teaches people to swipe away the one message that mattered.
-        guard broadcast.applies(toVersionCode: currentVersionCode()) else { return false }
+        guard broadcast.applies(toRelease: currentRelease()) else { return false }
 
         // The same broadcast genuinely arrives twice — once by push, once by the foreground read.
         // Only the first arrival may interrupt.
@@ -70,14 +70,14 @@ enum OperatorBroadcastReceiver {
         }
     }
 
-    /// The running build number.
+    /// The running **release**, i.e. `CFBundleShortVersionString` — the version people see.
     ///
-    /// `Int.max` when it cannot be read: a device whose own version we cannot determine must not be
-    /// told to update to fix a bug it may not have. Silence is the safe direction for a message
-    /// about correctness.
-    static func currentVersionCode() -> Int {
-        guard let raw = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
-              let value = Int(raw) else { return Int.max }
-        return value
+    /// A very large release when it cannot be read: a device whose own version we cannot determine
+    /// must not be told to update to fix a bug it may not have. Silence is the safe direction for a
+    /// message about correctness, and an unreachable ceiling produces silence.
+    static func currentRelease() -> String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+            .flatMap { ReleaseVersion.isValid($0) ? $0 : nil }
+            ?? "999999.0.0"
     }
 }

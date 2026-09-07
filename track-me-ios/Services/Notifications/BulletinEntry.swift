@@ -47,6 +47,7 @@ struct BulletinEntry: Equatable, Identifiable {
     static let factMilestoneCount = "milestone_count"
     static let factUnsyncedCount = "unsynced_count"
     static let factSinceMillis = "since_millis"
+    static let factDaysAway = "days_away"
 
     func isUnread(lastSeenCreatedAtMillis: Int64?) -> Bool {
         guard let seen = lastSeenCreatedAtMillis else { return true }
@@ -82,4 +83,11 @@ enum BulletinKind: String, CaseIterable {
     case milestone = "MILESTONE"
     /// §6.1.5 #26 — a new version. Already an in-app prompt; never escalated to a notification.
     case versionNote = "VERSION_NOTE"
+
+    /// §6.1.3 #13 — the return-after-absence notice.
+    ///
+    /// Present because §6.1.7's contract is "a copy of every notification actually sent". A Class C
+    /// notice that interrupted someone and then cannot be found in the feed is the exact failure
+    /// the bulletin exists to prevent — they saw it, swiped it, and it is gone.
+    case returnNotice = "RETURN_NOTICE"
 }

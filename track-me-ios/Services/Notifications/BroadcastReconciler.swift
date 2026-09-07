@@ -33,14 +33,14 @@ enum BroadcastReconciler {
                 .limit(to: limit)
                 .getDocuments()
 
-            let versionCode = OperatorBroadcastReceiver.currentVersionCode()
+            let release = OperatorBroadcastReceiver.currentRelease()
             var stored = 0
             for document in snapshot.documents {
                 // Parsed, not trusted. The rules make this collection unwritable by clients, but a
                 // security rule protects the collection, not the shape of what is in it — the
                 // parser is what enforces the closed tag vocabulary and the length limits.
                 guard let broadcast = OperatorBroadcast.parse(document.data()),
-                      broadcast.applies(toVersionCode: versionCode) else { continue }
+                      broadcast.applies(toRelease: release) else { continue }
                 // §6.1.7: into the feed whichever route it arrived by. A broadcast the push
                 // missed is exactly the one the user has no other way to find.
                 BulletinStore.shared.add(BulletinAdapters.from(broadcast))

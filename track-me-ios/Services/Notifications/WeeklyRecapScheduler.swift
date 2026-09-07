@@ -71,14 +71,14 @@ enum WeeklyRecapScheduler {
            ) { eligible.insert(.returnAfterAbsence) }
 
         switch NotificationBudget.choose(eligible) {
-        case .returnAfterAbsence:
-            return await scheduleReturnNotice(
-                days: daysSinceLastActivity ?? 0, now: now, ledger: ledger, calendar: calendar
-            )
+        case .returnAfterAbsence, .none:
+            // The return notice is never *sent* here — it is armed for a future date and cancelled
+            // if the rider comes back. See `armReturnNotice`. Arming happens on every foreground
+            // regardless of which source won, because the switch has to be reset whenever the
+            // last-activity date moves.
+            return false
         case .weeklyRecap:
             break
-        case .none:
-            return false
         }
 
         guard let recap else { return false }
@@ -128,39 +128,92 @@ enum WeeklyRecapScheduler {
         return true
     }
 
-    /// §6.1.3 scenario 13 — one notice, at 21 days or more, carrying a real fact.
+    /// §6.1.3 scenario 13 — the return notice, scheduled *ahead* rather than after the fact.
     ///
-    /// The closest this app comes to a line §4.2 N2 would otherwise forbid, and it survives only
-    /// because of what it is not. Not loss-framed: no streak, no missed days, no falling number. It
-    /// carries a fact someone might genuinely want — how long it has been, which people do lose
-    /// track of — and it arrives at most once a quarter.
+    /// ### Why the first version was wrong
     ///
-    /// Rationed twice: the shared weekly budget, and its own 90-day ledger. It is the only
-    /// notification in the app that spends two allowances.
-    private static func scheduleReturnNotice(
-        days: Int,
+    /// It ran from `ContentView.onAppear` and scheduled the notice for 10:00 today or tomorrow —
+    /// so the message "your last activity was 30 days ago" was queued at the exact moment the rider
+    /// had come back, and arrived the next morning, possibly after they had already ridden again.
+    /// A re-engagement notice sent *because* somebody re-engaged is worse than not sending one: it
+    /// is the app demonstrating that it is not paying attention.
+    ///
+    /// ### What it does instead
+    ///
+    /// It behaves as a dead man's switch. On every foreground the pending notice is cancelled and,
+    /// if the ledgers allow, re-armed for **21 days after the rider's last recorded activity**. Open
+    /// the app and it is simply re-armed for the same date; record a ride and the date moves out;
+    /// stop doing either and it eventually fires. That is the only shape in which "we have not
+    /// heard from you" can be true at the moment it is delivered.
+    ///
+    /// ### Why the ledgers are not written here
+    ///
+    /// Cancellation is the *expected* path — most people come back. Recording a send at schedule
+    /// time would spend a budget week and a 90-day quarter on a notification that is about to be
+    /// cancelled, every time the app is opened. So the due date is stored instead, and the first
+    /// launch after it has passed records the send. That is the only evidence iOS offers.
+    static func armReturnNotice(
+        daysSinceLastActivity: Int?,
         now: Date,
         ledger: ProactiveLedger,
         calendar: Calendar
     ) async -> Bool {
+        // Always clear the old one first. Re-arming without cancelling would leave a notice
+        // scheduled against a stale activity date.
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [returnIdentifier])
+
+        guard let daysAway = daysSinceLastActivity else {
+            // No recorded activity at all. Someone who has installed the app and not yet ridden has
+            // not "been away", and welcoming them back from something they never left is the kind
+            // of automated warmth that makes an app feel like it is not listening.
+            ledger.clearPendingReturn()
+            return false
+        }
+
+        let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
+        // The 90-day gate is checked against the moment it would *fire*, not now — the whole point
+        // is that it fires in the future.
+        let daysUntilEligible = NotificationBudget.returnNoticeMinAbsenceDays - daysAway
+        guard let fireDate = calendar.date(
+            byAdding: .day, value: max(daysUntilEligible, 0), to: now
+        ) else { return false }
+
+        let fireMillis = Int64(fireDate.timeIntervalSince1970 * 1000)
+        guard NotificationBudget.allowsReturnNotice(
+            nowMillis: fireMillis,
+            lastReturnNoticeAtMillis: ledger.lastReturnNoticeAtMillis,
+            daysSinceLastActivity: NotificationBudget.returnNoticeMinAbsenceDays
+        ) else {
+            ledger.clearPendingReturn()
+            return false
+        }
+
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard settings.authorizationStatus == .authorized
                 || settings.authorizationStatus == .provisional
-                || settings.authorizationStatus == .ephemeral else { return false }
+                || settings.authorizationStatus == .ephemeral else {
+            ledger.clearPendingReturn()
+            return false
+        }
 
+        // The body has to be written now for a notice that fires later, so it states the absence at
+        // firing time — which is the threshold itself, not today's count.
         let content = UNMutableNotificationContent()
         content.title = LocalizationHelper.localized("Your rides are still here")
+        // The body is written now for a notice that fires later, so it states the absence as it
+        // will be *at firing time* — the threshold — rather than today's count, which will be wrong
+        // by exactly the number of days we are waiting.
+        let daysAtFiring = max(daysAway, NotificationBudget.returnNoticeMinAbsenceDays)
         content.body = LocalizationHelper.formatted(
             "Your last recorded activity was %@ days ago. Everything you recorded is still on your phone.",
-            String(days)
+            String(daysAtFiring)
         )
         // .passive, like the recap. The most intrusive thing this app may say gets the quietest
         // delivery it can have while still being visible.
         content.interruptionLevel = .passive
 
-        var components = calendar.dateComponents(
-            [.year, .month, .day], from: nextDeliveryDate(after: now, calendar: calendar)
-        )
+        var components = calendar.dateComponents([.year, .month, .day], from: fireDate)
         components.hour = deliveryHour
         components.minute = 0
 
@@ -173,15 +226,40 @@ enum WeeklyRecapScheduler {
                 )
             )
         } catch {
-            // Nothing recorded, so it stays eligible and the next foreground retries.
             CrashlyticsErrorLogger.shared.recordError(error)
+            ledger.clearPendingReturn()
             return false
         }
 
-        let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
-        ledger.recordProactiveSent(at: nowMillis)
-        ledger.recordReturnNoticeSent(at: nowMillis)
+        ledger.recordReturnScheduled(fireAtMillis: fireMillis)
         return true
+    }
+
+    /// Records a return notice that has already fired, on the first launch after its due date.
+    ///
+    /// The only moment iOS gives evidence that the notification was delivered rather than
+    /// cancelled — so it is the only honest moment to spend the budget week and the quarter, and to
+    /// add the bulletin row §6.1.7 requires for every notification actually sent.
+    static func settleFiredReturnNotice(
+        now: Date = Date(),
+        ledger: ProactiveLedger = ProactiveLedger(),
+        bulletin: BulletinStore = .shared
+    ) {
+        guard let due = ledger.pendingReturnFireAtMillis else { return }
+        let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
+        guard nowMillis >= due else { return }
+
+        ledger.clearPendingReturn()
+        ledger.recordProactiveSent(at: due)
+        ledger.recordReturnNoticeSent(at: due)
+        bulletin.add(
+            BulletinEntry(
+                id: "return-notice:\(due)",
+                kind: .returnNotice,
+                createdAtMillis: due,
+                facts: [BulletinEntry.factDaysAway: String(NotificationBudget.returnNoticeMinAbsenceDays)]
+            )
+        )
     }
 
     static let returnIdentifier = "trackme.recap.return"

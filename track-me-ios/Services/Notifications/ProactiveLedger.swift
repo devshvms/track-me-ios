@@ -19,6 +19,7 @@ struct ProactiveLedger {
     private let lastSentKey = "trackme_proactive_last_sent_at"
     private let lastReturnKey = "trackme_proactive_last_return_at"
     private let lastRecapWeekKey = "trackme_proactive_last_recap_week"
+    private let pendingReturnFireKey = "trackme_proactive_pending_return_fire_at"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -59,5 +60,26 @@ struct ProactiveLedger {
 
     func recordRecapNotified(weekStartEpochDay: Int) {
         defaults.set(weekStartEpochDay, forKey: lastRecapWeekKey)
+    }
+
+    /// When a scheduled return notice is due to fire, or nil when none is pending.
+    ///
+    /// iOS cannot observe a notification firing, and for the return notice cancellation is the
+    /// *expected* path — most people come back. So the ledgers cannot be written at schedule time
+    /// the way the recap's are: doing that would spend a week and a quarter on a notification that
+    /// is about to be cancelled, every single time somebody opens the app.
+    ///
+    /// Instead the due date is remembered here, and the next launch after it has passed is what
+    /// records the send. That is the only moment iOS actually offers evidence.
+    var pendingReturnFireAtMillis: Int64? {
+        (defaults.object(forKey: pendingReturnFireKey) as? NSNumber)?.int64Value
+    }
+
+    func recordReturnScheduled(fireAtMillis: Int64) {
+        defaults.set(NSNumber(value: fireAtMillis), forKey: pendingReturnFireKey)
+    }
+
+    func clearPendingReturn() {
+        defaults.removeObject(forKey: pendingReturnFireKey)
     }
 }

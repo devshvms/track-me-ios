@@ -185,6 +185,20 @@ final class SunsetAndSyncTests: XCTestCase {
         }
     }
 
+    func testTheFirstEpisodeAfterAnUpgradeIsNotConsumedInSilence() {
+        // Codex review finding 3. The last-success key does not exist until Track 2 has seen a sync
+        // succeed, so the FIRST failing episode after an install or upgrade has no date to quote.
+        // The old code marked the episode reported and then bailed out for want of a date,
+        // producing an invisible bulletin row and no notification — for exactly the population that
+        // has never had a working backup, with no second chance until a success reset the flag.
+        XCTAssertTrue(
+            SyncFailureNotice.shouldNotify(
+                consecutiveFailures: threshold, unsyncedRideCount: 5, alreadyNotifiedThisEpisode: false
+            ),
+            "a failing backup with no prior success is still a failing backup"
+        )
+    }
+
     func testABrokenBackupIsNeverSuppressedByTheProactiveBudget() {
         XCTAssertTrue(NotificationBudget.allows(.consequential, nowMillis: 0, lastProactiveSentAtMillis: 0))
         XCTAssertFalse(NotificationBudget.Klass.consequential.spendsProactiveBudget)

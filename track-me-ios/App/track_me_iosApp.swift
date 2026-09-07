@@ -168,9 +168,22 @@ struct track_me_iosApp: App {
                         // reaches someone who never opens the app again. iOS cannot rely on a
                         // background job for a once-a-week notification, so it schedules the
                         // notification itself rather than scheduling work that decides later.
+                        // §6.1.3 #13: settle first, then re-arm. A notice whose due date has
+                        // passed fired — that is the only evidence iOS gives — and its budget must
+                        // be spent before the next arming decision reads the ledger.
+                        WeeklyRecapScheduler.settleFiredReturnNotice()
+                        let daysAway = await RideStatsStore.shared.daysSinceLastActivity()
                         await WeeklyRecapScheduler.scheduleIfDue(
                             recap: await RideStatsStore.shared.pendingWeeklyRecap(),
-                            daysSinceLastActivity: await RideStatsStore.shared.daysSinceLastActivity()
+                            daysSinceLastActivity: daysAway
+                        )
+                        // Re-armed on every foreground so the switch follows the last-activity date
+                        // rather than the date it was first set.
+                        await WeeklyRecapScheduler.armReturnNotice(
+                            daysSinceLastActivity: daysAway,
+                            now: Date(),
+                            ledger: ProactiveLedger(),
+                            calendar: .current
                         )
                         GroupRideManager.shared.restore()
                         _ = await AppUpdateManager.shared.checkForUpdate()

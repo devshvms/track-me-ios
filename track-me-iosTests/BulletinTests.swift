@@ -159,6 +159,36 @@ final class BulletinTests: XCTestCase {
         func syncProblemBody(unsynced: Int, since: String) -> String { "\(unsynced) since \(since)." }
         func versionNoteTitle(version: String) -> String { "TrackMe \(version)" }
         var versionNoteBody = "See what changed."
+        func syncProblemBodyNoDate(unsynced: Int) -> String { "\(unsynced) not backed up." }
+        var returnNoticeTitle = "Your rides are still here"
+        func returnNoticeBody(days: Int) -> String { "Last activity \(days) days ago." }
+    }
+
+    func testASyncProblemWithNoDateStillRenders() {
+        // Codex review finding 3. The last-success key does not exist until a sync has succeeded,
+        // so the first failing episode after an install or upgrade has no date. Requiring one made
+        // that row invisible — for the user who has never had a working backup.
+        XCTAssertEqual(
+            BulletinCopy.render(
+                BulletinEntry(id: "e", kind: .syncProblem, createdAtMillis: 1,
+                              facts: [BulletinEntry.factUnsyncedCount: "3"]),
+                strings: FakeStrings()
+            ),
+            BulletinCopy.Row(title: "Backup is not working", body: "3 not backed up.")
+        )
+    }
+
+    func testASentReturnNoticeIsInTheFeed() {
+        // §6.1.7: "a copy of every notification actually sent". A Class C notice that interrupted
+        // someone and cannot then be found is the exact failure the bulletin exists to prevent.
+        XCTAssertEqual(
+            BulletinCopy.render(
+                BulletinEntry(id: "e", kind: .returnNotice, createdAtMillis: 1,
+                              facts: [BulletinEntry.factDaysAway: "30"]),
+                strings: FakeStrings()
+            ),
+            BulletinCopy.Row(title: "Your rides are still here", body: "Last activity 30 days ago.")
+        )
     }
 
     func testAZeroRideWeekNeverReachesTheFeedEither() {
@@ -176,7 +206,7 @@ final class BulletinTests: XCTestCase {
     func testAnEntryWithMissingFactsIsDroppedNotPaddedWithAPlaceholder() {
         // A row reading "—" is worse than a row that is not there: it looks like the app knows
         // something and will not say it.
-        for kind in [BulletinKind.levelReached, .milestone, .syncProblem, .versionNote, .weeklyRecap, .broadcast] {
+        for kind in [BulletinKind.levelReached, .milestone, .versionNote, .weeklyRecap, .broadcast, .returnNotice] {
             XCTAssertNil(
                 BulletinCopy.render(
                     BulletinEntry(id: "e", kind: kind, createdAtMillis: 1),
@@ -203,7 +233,7 @@ final class BulletinTests: XCTestCase {
         // every stored row of that kind on the other after a restore.
         XCTAssertEqual(
             BulletinKind.allCases.map(\.rawValue),
-            ["BROADCAST", "RIDE_SAVED", "SYNC_PROBLEM", "WEEKLY_RECAP", "LEVEL_REACHED", "MILESTONE", "VERSION_NOTE"]
+            ["BROADCAST", "RIDE_SAVED", "SYNC_PROBLEM", "WEEKLY_RECAP", "LEVEL_REACHED", "MILESTONE", "VERSION_NOTE", "RETURN_NOTICE"]
         )
     }
 }

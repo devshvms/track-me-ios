@@ -22,13 +22,17 @@ struct OperatorBroadcast: Equatable {
     let title: String
     let body: String
     let createdAtMillis: Int64
-    /// Only meaningful for `.update`: the newest build the message is *true* for.
+    /// Only meaningful for `.update`: the newest **release** the message is true for, as a dotted
+    /// marketing version ("1.8.7").
     ///
     /// The single filter in the design, and it is about correctness rather than targeting. Telling
     /// someone already running the fixed build to update is noise, and noise on this channel is how
-    /// people learn to swipe away the one message that mattered. The client decides, not the
-    /// server, so the filter has exactly one axis and cannot quietly become segmentation.
-    var appliesToVersionsAtOrBelow: Int?
+    /// people learn to swipe away the one message that mattered.
+    ///
+    /// A *release* rather than a build number: `CFBundleVersion` is 7 here and Android's
+    /// `versionCode` is 29 for the same release, so the integer this replaced could not mean one
+    /// thing across platforms — the same broadcast selected two different populations.
+    var appliesToReleasesAtOrBelow: String?
     var learnMoreUrl: String?
 
     /// Longer than the notification banner shows is a title whose end nobody reads.
@@ -37,10 +41,12 @@ struct OperatorBroadcast: Equatable {
     /// Long enough for "what is wrong, what to do, when it will be fixed".
     static let maxBodyLength = 480
 
-    /// Whether this message is true for a build running `versionCode`. Inclusive at the boundary.
-    func applies(toVersionCode versionCode: Int) -> Bool {
-        guard let ceiling = appliesToVersionsAtOrBelow else { return true }
-        return versionCode <= ceiling
+    /// Whether this message is true for a device running `release`. Inclusive at the boundary.
+    ///
+    /// - Parameter release: the app's marketing version, i.e. `CFBundleShortVersionString`.
+    func applies(toRelease release: String) -> Bool {
+        guard let ceiling = appliesToReleasesAtOrBelow else { return true }
+        return ReleaseVersion.compare(release, ceiling) <= 0
     }
 
     func isUnread(lastSeenCreatedAtMillis: Int64?) -> Bool {
@@ -65,11 +71,17 @@ struct OperatorBroadcast: Equatable {
 
         guard let createdAt = int64(raw, "created_at_millis") else { return nil }
 
-        let ceiling = int(raw, "applies_to_versions_at_or_below")
-        // Version filtering has an operational meaning only for an update notice. Anywhere else it
-        // is a segmentation lever with no honest use, so the shape forbids it rather than relying
-        // on nobody reaching for it.
-        if ceiling != nil && tag != .update { return nil }
+        // v1's integer key is refused outright rather than accepted alongside the new one. It meant
+        // a different build on each platform, so a stale sender using it would silently target
+        // nobody — and a parser that quietly ignores a retired field never finds out.
+        if raw["applies_to_versions_at_or_below"] != nil { return nil }
+
+        var ceiling = string(raw, "applies_to_releases_at_or_below")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let candidate = ceiling, candidate.isEmpty { return nil }
+        if raw["applies_to_releases_at_or_below"] != nil && ceiling == nil { return nil }
+        if let candidate = ceiling, !ReleaseVersion.isValid(candidate) { return nil }
+        if ceiling != nil && tag != .update { ceiling = nil; return nil }
 
         var learnMore = string(raw, "learn_more_url")?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let candidate = learnMore, candidate.isEmpty { learnMore = nil }
@@ -81,7 +93,7 @@ struct OperatorBroadcast: Equatable {
             title: title,
             body: body,
             createdAtMillis: createdAt,
-            appliesToVersionsAtOrBelow: ceiling,
+            appliesToReleasesAtOrBelow: ceiling,
             learnMoreUrl: learnMore
         )
     }
@@ -118,4 +130,34 @@ enum BroadcastTag: String, CaseIterable {
     case maintenance = "MAINTENANCE"
     /// A defect in the running build that the user needs to know about now.
     case urgent = "URGENT"
+}
+
+/// Dotted release strings, compared the way a person means them.
+///
+/// Component-wise and **numeric**, not lexicographic. String comparison puts `"1.9.9"` above
+/// `"1.10.0"`, which would silently exclude every device that most needs an update notice — and the
+/// failure looks like the broadcast simply reaching nobody, which is the hardest kind to notice.
+///
+/// Missing components are zero, so `"1.8"` and `"1.8.0"` are the same release. Byte-for-byte with
+/// Android's `ReleaseVersion`.
+enum ReleaseVersion {
+
+    /// Dotted digits and nothing else. A ceiling the platforms might parse differently is worse
+    /// than no ceiling.
+    static func isValid(_ value: String) -> Bool {
+        !value.isEmpty && value.range(of: "^[0-9]+(\\.[0-9]+)*$", options: .regularExpression) != nil
+    }
+
+    /// -1, 0 or 1. Returns 0 for anything unparseable, so a malformed pair never excludes anyone.
+    static func compare(_ left: String, _ right: String) -> Int {
+        guard isValid(left), isValid(right) else { return 0 }
+        let a = left.split(separator: ".").map { Int($0) ?? 0 }
+        let b = right.split(separator: ".").map { Int($0) ?? 0 }
+        for index in 0..<max(a.count, b.count) {
+            let x = index < a.count ? a[index] : 0
+            let y = index < b.count ? b[index] : 0
+            if x != y { return x < y ? -1 : 1 }
+        }
+        return 0
+    }
 }

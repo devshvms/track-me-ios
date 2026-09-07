@@ -49,7 +49,7 @@ final class OperatorBroadcastVectorsTests: XCTestCase {
             let record = try XCTUnwrap(vector["record"] as? [String: Any], description)
             let parsed = try XCTUnwrap(OperatorBroadcast.parse(record), description)
             XCTAssertEqual(
-                parsed.applies(toVersionCode: try XCTUnwrap(vector["applies_to_version_code"] as? Int)),
+                parsed.applies(toRelease: try XCTUnwrap(vector["applies_to_release"] as? String)),
                 vector["expected_applies"] as? Bool,
                 description
             )
@@ -89,12 +89,13 @@ final class OperatorBroadcastVectorsTests: XCTestCase {
         let fromFirestore = OperatorBroadcast.parse([
             "id": "b1", "tag": "UPDATE", "title": "t", "body": "b",
             "created_at_millis": NSNumber(value: 1_757_000_000_000),
-            "applies_to_versions_at_or_below": NSNumber(value: 187),
+            "applies_to_releases_at_or_below": "1.8.7",
         ])
         let fromPush = OperatorBroadcast.parse([
             "id": "b1", "tag": "UPDATE", "title": "t", "body": "b",
             "created_at_millis": "1757000000000",
-            "applies_to_versions_at_or_below": "187",
+            // A string on both routes now, which is one fewer type the two paths can disagree about.
+            "applies_to_releases_at_or_below": "1.8.7",
         ])
         XCTAssertNotNil(fromPush)
         XCTAssertEqual(fromFirestore, fromPush)
@@ -108,29 +109,54 @@ final class OperatorBroadcastVectorsTests: XCTestCase {
         }
     }
 
-    func testAVersionCeilingIsRefusedOnEveryTagExceptUpdate() {
+    func testAReleaseCeilingIsRefusedOnEveryTagExceptUpdate() {
         for tag in BroadcastTag.allCases {
             let parsed = OperatorBroadcast.parse([
                 "id": "b", "tag": tag.rawValue, "title": "t", "body": "b",
                 "created_at_millis": NSNumber(value: 1),
-                "applies_to_versions_at_or_below": NSNumber(value: 187),
+                "applies_to_releases_at_or_below": "1.8.7",
             ])
             if tag == .update { XCTAssertNotNil(parsed, tag.rawValue) }
             else { XCTAssertNil(parsed, tag.rawValue) }
         }
     }
 
-    func testAnUnreadableBuildNumberIsNeverToldToUpdate() {
+    func testReleasesCompareNumericallyNotAsText() throws {
+        // "1.9.9" sorts above "1.10.0" as a string, which would silently exclude every device that
+        // most needs an update notice — and the failure looks like the broadcast reaching nobody.
+        for vector in try group("release_comparison") {
+            let left = try XCTUnwrap(vector["left"] as? String)
+            let right = try XCTUnwrap(vector["right"] as? String)
+            XCTAssertEqual(
+                ReleaseVersion.compare(left, right),
+                vector["expected"] as? Int,
+                "\(left) vs \(right)"
+            )
+        }
+    }
+
+    func testTheRetiredIntegerCeilingIsRefusedNotQuietlyIgnored() {
+        // v1's key meant a different build on each platform — CFBundleVersion 7 here, versionCode
+        // 29 on Android. Accepting it alongside the new one would let a stale sender target nobody
+        // while every test still passed.
+        XCTAssertNil(OperatorBroadcast.parse([
+            "id": "x", "tag": "UPDATE", "title": "t", "body": "b",
+            "created_at_millis": NSNumber(value: 1),
+            "applies_to_versions_at_or_below": NSNumber(value: 187),
+        ]))
+    }
+
+    func testAnUnreadableReleaseIsNeverToldToUpdate() {
         // currentVersionCode() returns Int.max when CFBundleVersion cannot be read, so a
         // version-limited notice never applies. Silence is the safe direction for a message about
         // correctness: telling a device to update to fix a bug it may not have is worse than
         // saying nothing.
         let notice = OperatorBroadcast(
             id: "b", tag: .update, title: "t", body: "b",
-            createdAtMillis: 1, appliesToVersionsAtOrBelow: 187
+            createdAtMillis: 1, appliesToReleasesAtOrBelow: "1.8.7"
         )
-        XCTAssertFalse(notice.applies(toVersionCode: Int.max))
-        XCTAssertTrue(notice.applies(toVersionCode: 187))
+        XCTAssertFalse(notice.applies(toRelease: "999999.0.0"))
+        XCTAssertTrue(notice.applies(toRelease: "1.8.7"))
     }
 
     // MARK: - The store
@@ -170,10 +196,10 @@ final class OperatorBroadcastVectorsTests: XCTestCase {
         store.store(OperatorBroadcast(id: "unseen", tag: .urgent, title: "t", body: "b", createdAtMillis: 300))
         store.store(OperatorBroadcast(
             id: "not-for-this-build", tag: .update, title: "t", body: "b",
-            createdAtMillis: 400, appliesToVersionsAtOrBelow: 50
+            createdAtMillis: 400, appliesToReleasesAtOrBelow: "1.0.0"
         ))
         store.markSeen(createdAtMillis: 100)
-        XCTAssertEqual(store.unread(versionCode: 187).map(\.id), ["unseen"])
+        XCTAssertEqual(store.unread(release: "1.8.7").map(\.id), ["unseen"])
     }
 
     func testMarkSeenNeverMovesBackwards() {

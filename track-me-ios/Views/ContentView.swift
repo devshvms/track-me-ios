@@ -100,7 +100,7 @@ struct ContentView: View {
                     // Only the newest unread one. A stack of banners is a wall, and an operator
                     // with three outstanding notices has a bigger problem than the UI can solve.
                     if let broadcast = broadcasts.unread(
-                        versionCode: OperatorBroadcastReceiver.currentVersionCode()
+                        release: OperatorBroadcastReceiver.currentRelease()
                     ).first {
                         BroadcastBanner(broadcast: broadcast) {
                             broadcasts.markSeen(createdAtMillis: broadcast.createdAtMillis)
