@@ -34,6 +34,22 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private static let activeRideKey = "activeRideId"
 
     private let locationManager = CLLocationManager()
+
+    /// SCOPE_1.8.7 §6.1.6 #28 — the cached last fix, for the pre-ride sunset line.
+    ///
+    /// `CLLocationManager.location` is whatever iOS already had; reading it starts **no new
+    /// request, no new subscription and asks for no new permission**. That distinction is the whole
+    /// reason sunset ships while weather and AQI (#29, #30) are deferred, and a convenience
+    /// wrapper that quietly began updating would undo it.
+    ///
+    /// Nil when location has never been authorised or iOS has no recent fix — in which case the
+    /// caller shows nothing, which is correct: a sunset computed from a default map position is a
+    /// false fact stated confidently.
+    var cachedCoarseLocation: CLLocationCoordinate2D? {
+        guard locationManager.authorizationStatus == .authorizedAlways
+                || locationManager.authorizationStatus == .authorizedWhenInUse else { return nil }
+        return locationManager.location?.coordinate
+    }
     private let motionSensor = MotionSensorManager()
 
     // State exposed to SwiftUI
@@ -45,6 +61,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var maxSpeedMps: Double = 0.0
     var durationInMillis: TimeInterval = 0
     var elapsedDurationInMillis: TimeInterval = 0
+
+    // §6.1.1 #4. When the rider stopped moving, and whether this ride has already been asked about.
+    // Not persisted: a ride restored after a termination has by definition not been asked yet, and
+    // re-asking a rider whose phone died is the least of what has gone wrong for them.
+    private var stillnessStartedAt: Date?
+    private var forgottenRideAsked = false
     var selectedPersona: RidePersona = .auto
     var isAutoPaused: Bool = false
     var timeSinceLastGps: TimeInterval = 0
@@ -202,11 +224,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             return
         }
 
-        // Open a fresh legacy-emergency suppression window before the ride exists. A restored ride
-        // deliberately does NOT call this (see restoreInterruptedSessionIfNeeded) — it keeps any
-        // persisted compatibility bit until finalization.
-        EmergencyManager.shared.beginRideSession()
-
         locationManager.activityType = Self.activityType(for: selectedPersona)
         let rideStartTime = Date()
         let newRide = Ride(
@@ -318,6 +335,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private func requestTrackingNotification() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
+            BroadcastSubscription.sync()
             let content = UNMutableNotificationContent()
             content.title = "Tracking Ride"
             content.body = "TrackMe is currently recording your route."
@@ -423,6 +441,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     func stopTracking() {
         locationManager.stopUpdatingLocation()
         motionSensor.stopListening()
+
+        // §6.1.1 #4. The question is about a ride that is running; leaving it on the lock screen
+        // after the ride ended makes the app look like it is still recording, which is the opposite
+        // of what this notification exists to prevent.
+        ForgottenRideNotifier.cancel()
+        stillnessStartedAt = nil
+        forgottenRideAsked = false
         state = .idle
         timer?.invalidate()
         timer = nil
@@ -451,6 +476,54 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
             LiveSharingManager.shared.stopSession(reason: "Ride ended successfully.")
         }
+
+        // §6.1.4 #22. Evaluated after the ride state is settled, so "is a ride active" is a fact
+        // rather than something read mid-teardown. A rider who finishes first and stays in the
+        // group for the back marker is doing something entirely ordinary — this tells them they are
+        // still visible; it never leaves the group for them.
+        let groupNow = GroupRideManager.shared.state
+        Task { await GroupPresenceNotifier.notifyIfStillLive(
+            groupId: groupNow.groupId,
+            groupName: groupNow.groupName,
+            isGroupLive: groupNow.isActive,
+            isRideActive: false
+        ) }
+    }
+
+    /// SCOPE_1.8.7 §6.1.1 scenario 4 — track how long the rider has been still, and ask once.
+    ///
+    /// - Parameter fixTime: the location's own timestamp, not the wall clock. A batch of fixes
+    ///   delivered late — which is exactly what happens when a suspended app is resumed — would
+    ///   otherwise look like 45 minutes of stillness compressed into a second, and the rider would
+    ///   be asked about a ride they are actively on.
+    private func updateStillness(isStill: Bool, fixTime: Date) {
+        guard isStill else {
+            // Moving again. Reset the clock but keep `forgottenRideAsked`: the policy is once per
+            // ride, and a rider who moves, stops again and gets asked a second time is being argued
+            // with by an app that already had its answer.
+            stillnessStartedAt = nil
+            ForgottenRideNotifier.cancel()
+            return
+        }
+
+        let startedAt = stillnessStartedAt ?? fixTime
+        if stillnessStartedAt == nil { stillnessStartedAt = fixTime }
+
+        let stillnessSeconds = fixTime.timeIntervalSince(startedAt)
+        guard stillnessSeconds >= 0 else { return }
+
+        guard ForgottenRideNotice.shouldAsk(
+            stillnessSeconds: stillnessSeconds,
+            alreadyAsked: forgottenRideAsked,
+            isTracking: state == .tracking
+        ) else { return }
+
+        forgottenRideAsked = true
+        let elapsedSeconds = durationInMillis / 1000
+        Task { await ForgottenRideNotifier.notifyForgottenRide(
+            elapsedSeconds: elapsedSeconds,
+            stillSince: startedAt
+        ) }
     }
 
     /// Cancels a just-started ride without finalization, cloud sync, or post-ride surfaces.
@@ -480,9 +553,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pausedElapsed: durationInMillis / 1000
         )
 
-        // Consume the legacy suppression bit just as normal finalization does, but deliberately
-        // skip finishRide/ride_completed/reveal generation for an explicit start abort.
-        _ = EmergencyManager.shared.consumeRideSuppression()
+        // Deliberately skips finishRide/ride_completed/reveal generation for an explicit start abort.
         DataRepository.shared.deleteRide(rideId: id)
         currentRideId = nil
         GroupRideManager.shared.refreshLocationSource()
@@ -618,6 +689,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 isPaused = GPSProcessor.calculateAutoPause(recentPoints: recentWindow)
             } else { isPaused = false }
 
+            // §6.1.1 #4. Deliberately the raw stillness signal rather than `isPaused`: auto-pause
+            // can be switched off, and a rider who switched it off is if anything more likely to
+            // end up with a ride running in a pocket, because nothing else is watching for
+            // stillness on their behalf.
+            updateStillness(
+                isStill: isHardwareStill || isStationaryDrift,
+                fixTime: smoothedLocation.timestamp
+            )
+
             currentSpeed = effectiveSpeed
             maxSpeedMps = max(maxSpeedMps, effectiveSpeed)
             // The persisted pause marker excludes the segment to this first accepted fix. Mirror
@@ -675,11 +755,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// segment distance/duration. Keeping finalization in one path ensures the
     /// A1 good-ride hook and telemetry fire consistently when recording stops.
     private func finalizeSegment(id: UUID, endedAt: Date) {
-        // Consume the single legacy suppression bit before the junk-ride early return, so a
-        // discarded segment cannot leave it set for the next ride. History still records a valid
-        // ride, while old upgraded data cannot create a reveal unexpectedly.
-        let suppressPostRideCelebrations = EmergencyManager.shared.consumeRideSuppression()
-
         let aggregate = RideAggregateSnapshot.live(
             distanceMeters: totalDistance,
             movingDurationMillis: durationInMillis,
@@ -696,11 +771,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 rideId: id.uuidString,
                 finishedAtMillis: Int64(endedAt.timeIntervalSince1970 * 1000),
                 durationMillis: Int64(durationInMillis),
-                distanceMeters: totalDistance,
-                suppressPostRideCelebrations: suppressPostRideCelebrations
+                distanceMeters: totalDistance
             )
             Task {
                 let transition = await RideStatsStore.shared.recordGoodRide(summary)
+                // The return notice is a dead-man switch keyed to the last completed activity. Move
+                // it immediately; waiting for a later cold launch can leave the old due date armed.
+                await WeeklyRecapScheduler.refresh()
                 if transition.isFirstRideOfWeek {
                     TelemetryManager.shared.trackWeeklyStreakUpdated(
                         streakWeeks: transition.streakWeeks, froze: transition.streakFroze)

@@ -1,0 +1,12 @@
+TrackMe 1.8.7 — notifications worth keeping on.
+
+This release is mostly about saying less, and meaning more when we do.
+
+- A new Activity bulletin collects everything the app has to say — recaps, levels, milestones, backup problems, service notices — in one place you read when you choose, rather than in your notification shade.
+- The app now interrupts you at most once a week, across every source combined. Anything it would have said beyond that goes to the bulletin instead.
+- New and genuinely useful: a weekly recap of what you recorded, a sunset warning before you set off, a notice if cloud backup has been quietly failing, and a check if a ride is still recording after you have stopped moving.
+- You can set your own weekly reminder, on a day and time you pick. It is off unless you turn it on, and the app will offer a suggestion from your own history rather than deciding for you.
+- If your ride ends while a group is still live, we tell you that you are still visible.
+- Nothing about streaks, and nothing promotional. Ever.
+
+Also in 1.8.7: exported images and videos carry a working route link, the emergency features retired in 1.8.5 are now fully removed along with their privacy-policy claims, and the app runs on iOS 17 and later.

@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseMessaging
 import FirebaseAuth
 import GoogleSignIn
 import UserNotifications
@@ -43,16 +44,57 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         AppLaunchEnvironment.configureFirebase()
         if !AppLaunchEnvironment.isUnitTesting {
             CrashlyticsErrorLogger.shared.initialize()
+            // The store is opened before Firebase exists, so a failure there cannot report itself.
+            // If it fell back to memory, the rider is looking at an app with no history: say so
+            // out loud rather than letting it read as "you have never ridden anywhere".
+            if let failure = ModelContainerDiagnostics.shared.takeFailure() {
+                CrashlyticsErrorLogger.shared.log("ModelContainer fell back to in-memory storage")
+                CrashlyticsErrorLogger.shared.recordError(failure)
+            }
             _ = Auth.auth().addStateDidChangeListener { _, user in
                 CrashlyticsErrorLogger.shared.setUserId(user?.uid)
             }
             TelemetryManager.shared.initializePostHog()
         }
         UNUserNotificationCenter.current().delegate = self
-        GroupStatusAlertCoordinator.shared.registerNotificationCategory()
+        GroupStatusAlertCoordinator.shared.registerNotificationCategory(
+            additionalCategories: [
+                WeeklyRecapScheduler.returnNotificationCategory,
+                ForgottenRideNotifier.notificationCategory,
+            ]
+        )
+        if !AppLaunchEnvironment.isUnitTesting {
+            // SCOPE_1.8.7 §6.3. Registering for remote notifications does not prompt — the prompt
+            // is `requestAuthorization`, which this deliberately does not call. TASK-284's rule is
+            // that a permission request has to arrive at a moment that earns it, and app launch is
+            // not that moment.
+            application.registerForRemoteNotifications()
+            // Follows the authorization the user has already given, in both directions. This is
+            // also the only thing that recovers a subscription after a reinstall, a restore, or the
+            // user turning notifications back on in Settings without opening anything of ours.
+            BroadcastSubscription.sync()
+        }
         // The age-range request is started from ContentView, where SwiftUI supplies the
         // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
+    }
+
+    /// SCOPE_1.8.7 §6.3 — a data-only operator broadcast.
+    ///
+    /// Data-only means iOS shows nothing by itself: this is where the payload is validated and,
+    /// only if it survives, turned into a local notification. An `alert` payload would have been
+    /// rendered before any of our code ran.
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        Task { @MainActor in
+            let stored = OperatorBroadcastReceiver.handle(userInfo)
+            // Reporting .newData for a duplicate or a refused payload teaches iOS to throttle
+            // background deliveries — including the ones the user does need.
+            completionHandler(stored ? .newData : .noData)
+        }
     }
 
     func userNotificationCenter(
@@ -62,6 +104,19 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) {
         Task { @MainActor in
             switch response.actionIdentifier {
+            // §6.1.1 #4. "Finish ride" goes through the ordinary stop path — a shortcut that
+            // skipped the save would turn a helpful question into the worst bug in the release.
+            case ForgottenRideNotifier.finishActionIdentifier:
+                TrackingManager.shared.stopTracking()
+            // "Keep recording" only dismisses. The once-per-ride flag was set when the question was
+            // asked, so there is no state to change: answering "yes I am still here" and answering
+            // nothing must lead to the same place.
+            case ForgottenRideNotifier.keepActionIdentifier:
+                break
+            case WeeklyRecapScheduler.stopReturnActionIdentifier:
+                if let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
+                    UIApplication.shared.open(settings)
+                }
             case GroupStatusAlertCoordinator.muteActionIdentifier:
                 GroupRideManager.shared.setAlertsMuted(true)
             case GroupStatusAlertCoordinator.viewActionIdentifier, UNNotificationDefaultActionIdentifier:
@@ -80,22 +135,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 struct track_me_iosApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Ride.self,
-            GPSPoint.self,
-            HomeDashboardIndex.self,
-            EmergencyContact.self,
-            EmergencySettings.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    /// The ride store. Built by a factory that never traps — see `ModelContainerFactory` for why
+    /// that matters more from 1.8.7 onwards than it did before.
+    var sharedModelContainer: ModelContainer = ModelContainerFactory.make()
     
     @AppStorage("appTheme") private var appTheme: String = "system"
     @AppStorage("appLanguage") private var appLanguage: String = "en"
@@ -110,39 +152,51 @@ struct track_me_iosApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .onOpenURL { url in
-                    if GIDSignIn.sharedInstance.handle(url) { return }
-                    if Auth.auth().canHandle(url) { return }
-                    _ = GroupRideManager.shared.handleIncomingURL(url)
+            Group {
+                if ModelContainerDiagnostics.shared.isUsingInMemoryFallback {
+                    PersistentStoreUnavailableView()
+                } else {
+                    ContentView()
+                        .onOpenURL { url in
+                            if GIDSignIn.sharedInstance.handle(url) { return }
+                            if Auth.auth().canHandle(url) { return }
+                            _ = GroupRideManager.shared.handleIncomingURL(url)
+                        }
+                        .onAppear {
+                            DataRepository.shared.setup(container: sharedModelContainer)
+                            HomeDashboardRepository.shared.configure(container: sharedModelContainer)
+                            let state = OnboardingState(
+                                rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
+                            ) ?? .legacy
+                            try? OnboardingSampleRideSeeder.seedIfNeeded(
+                                context: sharedModelContainer.mainContext,
+                                onboardingState: state,
+                                title: LocalizationHelper.localized("Sample ride")
+                            )
+                            Task {
+                                await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
+                                await HomeDashboardRepository.shared.prepare()
+                                // Dismiss any Live Activity left over from a crash/force-quit.
+                                RideActivityManager.shared.endOrphanedActivities(
+                                    activeRideId: TrackingManager.shared.currentRideId?.uuidString
+                                )
+                                FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                                // Push is the fast path, not the only one. Reconcile the durable
+                                // broadcast record for anyone APNs did not reach.
+                                await BroadcastReconciler.reconcile()
+                                // Settle any fired return notice, re-arm from the exact last
+                                // activity, then schedule the eligible recap inside the shared
+                                // Class C budget.
+                                await WeeklyRecapScheduler.refresh()
+                                GroupRideManager.shared.restore()
+                                _ = await AppUpdateManager.shared.checkForUpdate()
+                            }
+                        }
+                        .withGlobalToasts()
                 }
-                .onAppear {
-                    DataRepository.shared.setup(container: sharedModelContainer)
-                    HomeDashboardRepository.shared.configure(container: sharedModelContainer)
-                    let state = OnboardingState(
-                        rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
-                    ) ?? .legacy
-                    try? OnboardingSampleRideSeeder.seedIfNeeded(
-                        context: sharedModelContainer.mainContext,
-                        onboardingState: state,
-                        title: LocalizationHelper.localized("Sample ride")
-                    )
-                    EmergencyDataPurge.shared.purgeOnce(container: sharedModelContainer)
-                    Task {
-                        await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
-                        await HomeDashboardRepository.shared.prepare()
-                        // Dismiss any Live Activity left over from a crash/force-quit.
-                        RideActivityManager.shared.endOrphanedActivities(
-                            activeRideId: TrackingManager.shared.currentRideId?.uuidString
-                        )
-                        FirestoreSyncManager.shared.syncOnForegroundIfDue()
-                        GroupRideManager.shared.restore()
-                        _ = await AppUpdateManager.shared.checkForUpdate()
-                    }
-                }
-                .withGlobalToasts()
-                .preferredColorScheme(colorScheme)
-                .environment(\.locale, Locale(identifier: appLanguage))
+            }
+            .preferredColorScheme(colorScheme)
+            .environment(\.locale, Locale(identifier: appLanguage))
         }
         .modelContainer(sharedModelContainer)
     }

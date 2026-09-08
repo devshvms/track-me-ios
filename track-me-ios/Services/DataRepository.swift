@@ -276,7 +276,7 @@ final class DataRepository {
         }
     }
 
-    /// Deletes ALL locally-stored rides, GPS points, and legacy retired emergency records.
+    /// Deletes ALL locally-stored rides and GPS points.
     /// Serialized behind any pending point writes so a concurrent background insert can't resurrect a row after the wipe.
     /// Throws if the SwiftData delete/save fails (caller must NOT report success on throw).
     func wipeAllLocalData() async throws {
@@ -291,8 +291,6 @@ final class DataRepository {
         // container's delete rule. Bulk model-delete is available on this deployment target.
         try context.delete(model: GPSPoint.self)
         try context.delete(model: Ride.self)
-        try? context.delete(model: EmergencyContact.self)
-        try? context.delete(model: EmergencySettings.self)
         try context.save()
         HomeDashboardRepository.shared.resetAfterWipe()
     }

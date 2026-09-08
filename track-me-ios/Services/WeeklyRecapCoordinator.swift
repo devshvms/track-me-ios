@@ -5,8 +5,7 @@ import Foundation
 /// Byte-for-byte parity with Android `domain/stats/CalmMomentGate.kt`. Prompt 09
 /// (`release-hq/parity/claude-code-prompts/09-weekly-recap.md`, "Trigger") requires the weekly
 /// recap to fire only when the app is "calmly idle on Home" — never during an active/paused ride
-/// or a GPS-lost/storage-low state. The emergency flag remains a retired-state compatibility
-/// guard, matching Android's upgrade behavior.
+/// or a GPS-lost/storage-low state.
 ///
 /// Skipping is free: nothing is acknowledged when the gate says no, so the recap stays eligible
 /// for the rest of its week and surfaces at the next calm moment. Expressed as plain booleans so
@@ -18,24 +17,21 @@ struct CalmMomentGate {
     ///
     /// - `isTrackingIdle`: tracking state is `.idle` — i.e. NOT `.tracking`, `.paused`, `.gpsLost`
     ///   or `.storageLow`. Anything other than idle means the user is mid-task.
-    /// - `isEmergencyActive`: a legacy emergency flow is still marked active on an old install.
     /// - `hasPendingReveal`: a B1 post-ride reveal is queued or on screen; the two celebrations
     ///   must never stack (pre-existing rule, folded in here so there is one gate, not two).
     struct AppMoment {
         var isTrackingIdle: Bool = true
-        var isEmergencyActive: Bool = false
         var hasPendingReveal: Bool = false
 
-        init(isTrackingIdle: Bool = true, isEmergencyActive: Bool = false, hasPendingReveal: Bool = false) {
+        init(isTrackingIdle: Bool = true, hasPendingReveal: Bool = false) {
             self.isTrackingIdle = isTrackingIdle
-            self.isEmergencyActive = isEmergencyActive
             self.hasPendingReveal = hasPendingReveal
         }
     }
 
     /// True only when every condition above is calm.
     static func isCalm(_ moment: AppMoment) -> Bool {
-        moment.isTrackingIdle && !moment.isEmergencyActive && !moment.hasPendingReveal
+        moment.isTrackingIdle && !moment.hasPendingReveal
     }
 }
 
@@ -65,13 +61,12 @@ final class WeeklyRecapCoordinator {
     func currentCalmMoment() -> CalmMomentGate.AppMoment {
         CalmMomentGate.AppMoment(
             isTrackingIdle: TrackingManager.shared.state == .idle,
-            isEmergencyActive: EmergencyManager.shared.isEmergencyActive,
             hasPendingReveal: RevealCoordinator.shared.pending != nil
         )
     }
 
     /// Ask the store for a pending recap (idempotent while one is already queued). Suppressed
-    /// unless the app is calmly idle — no active/paused ride, no legacy emergency state, no GPS-lost/storage-low
+    /// unless the app is calmly idle — no active/paused ride, no GPS-lost/storage-low
     /// state, no post-ride reveal — so the two celebrations never stack and neither lands
     /// mid-task (TASK-119).
     func check() async {
@@ -104,7 +99,12 @@ final class WeeklyRecapCoordinator {
     }
 
     /// Acknowledge the recap after it has been presented (dedupe by week).
+    /// §6.1.2 scenario 8: the rider has seen the recap here, so the scheduled notification is
+    /// cancelled. The budget week is deliberately not refunded — they received the recap, it simply
+    /// arrived by the quieter route, and refunding it would let an in-app acknowledgement re-open
+    /// the budget for another Class C source. See `WeeklyRecapScheduler`.
     func acknowledge(weekStartEpochDay: Int? = nil) async {
+        WeeklyRecapScheduler.cancelPending()
         guard let week = weekStartEpochDay ?? pending?.weekStartEpochDay ?? lastPresentedWeek else { return }
         pending = nil
         lastPresentedWeek = nil

@@ -1,6 +1,19 @@
 import Foundation
 import Combine
-import DeclaredAgeRange
+
+/// Platform-neutral result of an age-range request.
+///
+/// TASK-288. Apple's `DeclaredAgeRange` framework is iOS 26+, and its types previously appeared in
+/// this file's method *signatures* — where the `#available` guard in the body could not help. That
+/// is what pinned the whole app to a 26.2 deployment target. Keeping Apple's types out of the
+/// domain layer is what lets TrackMe deploy to iOS 17, and it is the seam the "policy independent
+/// of SwiftUI presentation" comment below always wanted.
+enum AgeSignalResponse {
+    /// The user shared a range. `lowerBound` is nil when they are below the lowest gate requested.
+    case sharing(lowerBound: Int?)
+    /// Declined, unavailable, unsupported region — or an OS older than the framework itself.
+    case noSignal
+}
 
 enum AgeSignalCategory: String {
     case unknown
@@ -36,7 +49,7 @@ final class AgeSignalManager: ObservableObject {
     /// Performs the one-shot check. The SwiftUI environment action is supplied by ContentView
     /// because Apple's API presents its consent UI from a view-backed context.
     func checkAndPersist(
-        requestAgeRange: @escaping @Sendable (Int) async throws -> AgeRangeService.Response
+        requestAgeRange: @escaping @Sendable (Int) async throws -> AgeSignalResponse
     ) async {
         guard !hasCheckedBefore else { return }
 
@@ -59,16 +72,18 @@ final class AgeSignalManager: ObservableObject {
     }
 
     private func requestCategory(
-        requestAgeRange: @escaping @Sendable (Int) async throws -> AgeRangeService.Response
+        requestAgeRange: @escaping @Sendable (Int) async throws -> AgeSignalResponse
     ) async -> AgeSignalCategory {
-        guard #available(iOS 26.0, *) else { return .unknown }
+        // The availability check moved to the call site (`View.ageSignalCheck()`), which is the
+        // only place that can name an iOS 26 type. Below iOS 26 the caller supplies `.noSignal`,
+        // producing the identical `.unknown` -> `.allowed` outcome this guard used to produce.
         do {
             let response = try await requestAgeRange(18)
-            guard case let .sharing(range) = response else {
+            guard case let .sharing(lowerBound) = response else {
                 // Declined sharing (or a non-regulated region without a signal) fails open.
                 return .unknown
             }
-            return Self.category(forLowerBound: range.lowerBound)
+            return Self.category(forLowerBound: lowerBound)
         } catch {
             // Availability, region, and account errors must never block a legitimate user.
             return .unknown

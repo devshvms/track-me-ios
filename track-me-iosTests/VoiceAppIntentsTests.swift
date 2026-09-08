@@ -15,13 +15,18 @@ final class VoiceAppIntentsTests: XCTestCase {
     func testEveryIntentRunsHeadlessAndPersonalIntentsAllowLockedPhone() {
         XCTAssertEqual(TrackMeAppShortcuts.appShortcuts.count, 7)
 
-        XCTAssertEqual(StartRideIntent.supportedModes, .background)
-        XCTAssertEqual(PauseRideIntent.supportedModes, .background)
-        XCTAssertEqual(ResumeRideIntent.supportedModes, .background)
-        XCTAssertEqual(EndRideIntent.supportedModes, .background)
-        XCTAssertEqual(RideDistanceIntent.supportedModes, .background)
-        XCTAssertEqual(RidePaceIntent.supportedModes, .background)
-        XCTAssertEqual(RideDurationIntent.supportedModes, .background)
+        // TASK-288: IntentModes is iOS 26+. On 17-25 the headless invariant is carried by
+        // openAppWhenRun alone, which is asserted unconditionally below — so the invariant stays
+        // covered on every supported OS, just by a different property.
+        if #available(iOS 26.0, *) {
+            XCTAssertEqual(StartRideIntent.supportedModes, .background)
+            XCTAssertEqual(PauseRideIntent.supportedModes, .background)
+            XCTAssertEqual(ResumeRideIntent.supportedModes, .background)
+            XCTAssertEqual(EndRideIntent.supportedModes, .background)
+            XCTAssertEqual(RideDistanceIntent.supportedModes, .background)
+            XCTAssertEqual(RidePaceIntent.supportedModes, .background)
+            XCTAssertEqual(RideDurationIntent.supportedModes, .background)
+        }
 
         XCTAssertFalse(StartRideIntent.openAppWhenRun)
         XCTAssertFalse(PauseRideIntent.openAppWhenRun)

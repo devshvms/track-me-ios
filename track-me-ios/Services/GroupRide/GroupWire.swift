@@ -61,6 +61,18 @@ struct GroupSessionState: Equatable, Codable {
         max(roster.count, positions.count + 1)
     }
 }
+extension GroupSessionState {
+    /// TASK-289 — the leader is the only member of their own group.
+    ///
+    /// Lives here rather than inside `CommunityView` so it can be tested: it decides whether a
+    /// user is shown the one action that makes their group useful, and getting it wrong in either
+    /// direction is expensive. It is the exact counterpart of Android's
+    /// `CommunityUiState.aloneInGroup`, leader condition included — a member who joined by code and
+    /// happens to be looking at a roster of one must not be told to invite people to somebody
+    /// else's group.
+    var isAloneInGroup: Bool { isLeader && roster.count < 2 }
+}
+
 
 enum GroupWire {
     enum StatusRequestOperation: Equatable {
