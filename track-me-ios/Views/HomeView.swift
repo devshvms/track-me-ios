@@ -23,6 +23,14 @@ struct HomeView: View {
     /// §6.1.6 #28. Recomputed when the view appears rather than continuously: sunset moves by
     /// about a minute a day, and a timer for it would cost more than the fact is worth.
     @State private var minutesUntilSunset: Int?
+
+    // §6.1.2 #10b — "This one takes you past Explorer."
+    //
+    // In-app only, and that is a design constraint rather than an implementation detail. Scenario 10
+    // — the same sentence as a scheduled notification — was cut for implying "go exert yourself now,
+    // because the app is counting". The moment this line can reach someone who has not opened the
+    // app, it becomes that.
+    @State private var startProximity: StartButtonProximity.Line?
     @SceneStorage("home.camera_follow_mode") private var cameraFollowMode = true
     @State private var hasFollowCameraPosition = false
     @State private var mapStyle: TrackMeMapStyle = .standard
@@ -266,6 +274,16 @@ struct HomeView: View {
                         Text(LocalizationHelper.formatted("Sunset in %@ min", String(minutes)))
                             .font(.caption.weight(.medium))
                             .foregroundColor(.secondary)
+                    }
+                    // §6.1.2 #10b. Sits with the sunset line because both are the same kind of
+                    // thing: a fact only worth stating in the seconds before someone sets off,
+                    // stated once and never chased.
+                    if let proximity = startProximity {
+                        Text(LocalizationHelper.formatted(
+                            "This one takes you past %@.", proximity.levelName
+                        ))
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.secondary)
                     }
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
@@ -518,6 +536,15 @@ struct HomeView: View {
                 trackedInsightValue = nil
             }
         }
+        // §6.1.2 #10b. The answer depends on how long this rider typically rides *this* activity,
+        // so switching persona at the start button has to re-ask the question — a line computed for
+        // a walk and left on screen for a cycle is a prediction about the wrong ride.
+        .onChange(of: selectedDashboardPersona) { _, persona in
+            startProximity = RideHistoryProfileSource.startButtonProximityLine(
+                context: modelContext,
+                persona: persona
+            )
+        }
         .onAppear {
             // §6.1.6 #28: computed from the fix iOS already has. No new request, no new
             // subscription, no new permission — reading `CLLocationManager.location` is free when
@@ -533,6 +560,12 @@ struct HomeView: View {
                 )
             }
             selectedDashboardPersona = DashboardPersonaPreference.selected()
+            // §6.1.2 #10b. Purely local: a SwiftData read and two pure functions, no network and
+            // no new permission.
+            startProximity = RideHistoryProfileSource.startButtonProximityLine(
+                context: modelContext,
+                persona: selectedDashboardPersona
+            )
             updateFollowCamera()
             trackDashboardEntryIfNeeded()
         }

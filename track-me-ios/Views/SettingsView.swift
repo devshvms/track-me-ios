@@ -302,6 +302,11 @@ struct SettingsView: View {
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
 
+                    // SCOPE_1.8.7 §6.1.3 #12a. Placed above privacy rather than buried in Advanced:
+                    // someone who wants to turn a reminder off should find it where they would look
+                    // for it, and a setting the user cannot find is a setting they cannot revoke.
+                    ActivityReminderCard()
+
                     // Privacy & Analytics Card
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Privacy & Analytics")

@@ -58,7 +58,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         }
         UNUserNotificationCenter.current().delegate = self
         GroupStatusAlertCoordinator.shared.registerNotificationCategory(
-            additionalCategories: [WeeklyRecapScheduler.returnNotificationCategory]
+            additionalCategories: [
+                WeeklyRecapScheduler.returnNotificationCategory,
+                ForgottenRideNotifier.notificationCategory,
+            ]
         )
         if !AppLaunchEnvironment.isUnitTesting {
             // SCOPE_1.8.7 §6.3. Registering for remote notifications does not prompt — the prompt
@@ -101,6 +104,15 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) {
         Task { @MainActor in
             switch response.actionIdentifier {
+            // §6.1.1 #4. "Finish ride" goes through the ordinary stop path — a shortcut that
+            // skipped the save would turn a helpful question into the worst bug in the release.
+            case ForgottenRideNotifier.finishActionIdentifier:
+                TrackingManager.shared.stopTracking()
+            // "Keep recording" only dismisses. The once-per-ride flag was set when the question was
+            // asked, so there is no state to change: answering "yes I am still here" and answering
+            // nothing must lead to the same place.
+            case ForgottenRideNotifier.keepActionIdentifier:
+                break
             case WeeklyRecapScheduler.stopReturnActionIdentifier:
                 if let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
                     UIApplication.shared.open(settings)

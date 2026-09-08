@@ -162,6 +162,16 @@ final class BulletinTests: XCTestCase {
         func syncProblemBodyNoDate(unsynced: Int) -> String { "\(unsynced) not backed up." }
         var returnNoticeTitle = "Your rides are still here"
         func returnNoticeBody(days: Int) -> String { "Last activity \(days) days ago." }
+        var forgottenRideTitle: String { "Still recording" }
+        func forgottenRideBody(elapsedMinutes: Int, stillSince: String) -> String {
+            "\(elapsedMinutes) min recorded. No movement since \(stillSince)."
+        }
+        func forgottenRideBodyNoTime(elapsedMinutes: Int) -> String {
+            "\(elapsedMinutes) min recorded, with no movement for a while."
+        }
+        var groupStillLiveTitle: String { "Still sharing" }
+        func groupStillLiveBody(groupName: String) -> String { "Still visible in \(groupName)." }
+        var groupStillLiveBodyNoName: String { "Still visible in a live group." }
     }
 
     func testASyncProblemWithNoDateStillRenders() {
@@ -233,7 +243,7 @@ final class BulletinTests: XCTestCase {
         // every stored row of that kind on the other after a restore.
         XCTAssertEqual(
             BulletinKind.allCases.map(\.rawValue),
-            ["BROADCAST", "RIDE_SAVED", "SYNC_PROBLEM", "WEEKLY_RECAP", "LEVEL_REACHED", "MILESTONE", "VERSION_NOTE", "RETURN_NOTICE"]
+            ["BROADCAST", "RIDE_SAVED", "SYNC_PROBLEM", "WEEKLY_RECAP", "LEVEL_REACHED", "MILESTONE", "VERSION_NOTE", "RETURN_NOTICE", "FORGOTTEN_RIDE", "GROUP_STILL_LIVE"]
         )
     }
 }
