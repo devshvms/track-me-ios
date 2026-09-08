@@ -104,38 +104,44 @@ struct track_me_iosApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .onOpenURL { url in
-                    if GIDSignIn.sharedInstance.handle(url) { return }
-                    if Auth.auth().canHandle(url) { return }
-                    _ = GroupRideManager.shared.handleIncomingURL(url)
+            Group {
+                if ModelContainerDiagnostics.shared.isUsingInMemoryFallback {
+                    PersistentStoreUnavailableView()
+                } else {
+                    ContentView()
+                        .onOpenURL { url in
+                            if GIDSignIn.sharedInstance.handle(url) { return }
+                            if Auth.auth().canHandle(url) { return }
+                            _ = GroupRideManager.shared.handleIncomingURL(url)
+                        }
+                        .onAppear {
+                            DataRepository.shared.setup(container: sharedModelContainer)
+                            HomeDashboardRepository.shared.configure(container: sharedModelContainer)
+                            let state = OnboardingState(
+                                rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
+                            ) ?? .legacy
+                            try? OnboardingSampleRideSeeder.seedIfNeeded(
+                                context: sharedModelContainer.mainContext,
+                                onboardingState: state,
+                                title: LocalizationHelper.localized("Sample ride")
+                            )
+                            Task {
+                                await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
+                                await HomeDashboardRepository.shared.prepare()
+                                // Dismiss any Live Activity left over from a crash/force-quit.
+                                RideActivityManager.shared.endOrphanedActivities(
+                                    activeRideId: TrackingManager.shared.currentRideId?.uuidString
+                                )
+                                FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                                GroupRideManager.shared.restore()
+                                _ = await AppUpdateManager.shared.checkForUpdate()
+                            }
+                        }
+                        .withGlobalToasts()
                 }
-                .onAppear {
-                    DataRepository.shared.setup(container: sharedModelContainer)
-                    HomeDashboardRepository.shared.configure(container: sharedModelContainer)
-                    let state = OnboardingState(
-                        rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
-                    ) ?? .legacy
-                    try? OnboardingSampleRideSeeder.seedIfNeeded(
-                        context: sharedModelContainer.mainContext,
-                        onboardingState: state,
-                        title: LocalizationHelper.localized("Sample ride")
-                    )
-                    Task {
-                        await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
-                        await HomeDashboardRepository.shared.prepare()
-                        // Dismiss any Live Activity left over from a crash/force-quit.
-                        RideActivityManager.shared.endOrphanedActivities(
-                            activeRideId: TrackingManager.shared.currentRideId?.uuidString
-                        )
-                        FirestoreSyncManager.shared.syncOnForegroundIfDue()
-                        GroupRideManager.shared.restore()
-                        _ = await AppUpdateManager.shared.checkForUpdate()
-                    }
-                }
-                .withGlobalToasts()
-                .preferredColorScheme(colorScheme)
-                .environment(\.locale, Locale(identifier: appLanguage))
+            }
+            .preferredColorScheme(colorScheme)
+            .environment(\.locale, Locale(identifier: appLanguage))
         }
         .modelContainer(sharedModelContainer)
     }
