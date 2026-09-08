@@ -40,6 +40,10 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<!-- SCOPE_1.8.7 §6.3: operator broadcasts arrive as data-only pushes, so the app has to
+		     wake to validate and post them. An alert payload would need no background mode, and
+		     would also render before any of our validation ran. -->
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>

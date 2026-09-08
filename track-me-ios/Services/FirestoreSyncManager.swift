@@ -535,10 +535,41 @@ class FirestoreSyncManager {
     /// Bidirectional lightweight sync: upload unsynced local rides, then download the
     /// most-recent `limit` cloud rides and insert any not already present locally.
     /// Safe to call repeatedly; idempotent via firestoreId/id dedup.
-    func syncPeriodic(limit: Int = 10, completion: @escaping (Bool) -> Void) {
+    /// SCOPE_1.8.7 §6.1.5 #23: how many rides are waiting for the cloud.
+    ///
+    /// Reuses `isRideEligibleForCloudSync`, so a ride on its way out and the first-run sample are
+    /// excluded by exactly the rule the uploader uses. Telling someone their backup is failing to
+    /// save something they asked us to delete would be a false alarm with their trust as the cost.
+    @MainActor
+    static func unsyncedRideCount() -> Int {
+        DataRepository.shared.allRides().filter {
+            !$0.isSynced && isRideEligibleForCloudSync(
+                isSample: $0.isSample,
+                pendingDelete: $0.pendingDelete
+            )
+        }.count
+    }
+
+    func syncPeriodic(limit: Int = 10, completion rawCompletion: @escaping (Bool) -> Void) {
+        // Not signed in is not a broken backup — it is a user who has not asked for one. Reported
+        // before the wrapper below is in scope, deliberately, so it cannot count as a failure.
         guard let uid = Auth.auth().currentUser?.uid else {
-            completion(false)
+            rawCompletion(false)
             return
+        }
+
+        // SCOPE_1.8.7 §6.1.5 #23: every outcome is recorded, wherever in this method it is
+        // produced. Wrapping the completion rather than calling the notifier at each call site is
+        // what makes that true for the next path someone adds as well as the two that exist today
+        // — and an episode that is never told about a success never ends.
+        let completion: (Bool) -> Void = { succeeded in
+            Task { @MainActor in
+                await SyncFailureNotifier().recordAttempt(
+                    succeeded: succeeded,
+                    unsyncedRideCount: Self.unsyncedRideCount()
+                )
+            }
+            rawCompletion(succeeded)
         }
 
         Task { @MainActor in

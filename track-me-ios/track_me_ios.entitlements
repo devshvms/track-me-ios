@@ -8,5 +8,10 @@
 	</array>
 	<key>com.apple.developer.declared-age-range</key>
 	<true/>
+	<!-- SCOPE_1.8.7 §6.3: APNs, for operator broadcasts. `development` so a debug build talks to
+	     the sandbox gateway; Xcode rewrites it to `production` for a distribution build, and a
+	     mismatch here is the classic "push works in Xcode and never on TestFlight". -->
+	<key>aps-environment</key>
+	<string>development</string>
 </dict>
 </plist>

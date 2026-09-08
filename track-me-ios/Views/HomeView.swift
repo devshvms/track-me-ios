@@ -20,6 +20,9 @@ struct HomeView: View {
     private var unsyncedRides: [Ride]
     @State private var position: MapCameraPosition = .region(HomeMapCamera.neutralRegion)
     @State private var mapRegion: MKCoordinateRegion?
+    /// §6.1.6 #28. Recomputed when the view appears rather than continuously: sunset moves by
+    /// about a minute a day, and a timer for it would cost more than the fact is worth.
+    @State private var minutesUntilSunset: Int?
     @SceneStorage("home.camera_follow_mode") private var cameraFollowMode = true
     @State private var hasFollowCameraPosition = false
     @State private var mapStyle: TrackMeMapStyle = .standard
@@ -254,6 +257,16 @@ struct HomeView: View {
 
             VStack(spacing: 10) {
                 if trackingManager.state == .idle {
+                    // §6.1.6 #28 — the one moment the fact is actionable: the rider has not set off
+                    // yet and is deciding. A fact and a number, no advice — whether that is enough
+                    // daylight is their call, and an app that adds "be careful" is saying something
+                    // it cannot know. Absent entirely when sunset is far away, already past, or
+                    // when there is no cached fix to compute it from.
+                    if let minutes = minutesUntilSunset {
+                        Text(LocalizationHelper.formatted("Sunset in %@ min", String(minutes)))
+                            .font(.caption.weight(.medium))
+                            .foregroundColor(.secondary)
+                    }
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
                         preselectedPersona: selectedDashboardPersona,
@@ -506,6 +519,19 @@ struct HomeView: View {
             }
         }
         .onAppear {
+            // §6.1.6 #28: computed from the fix iOS already has. No new request, no new
+            // subscription, no new permission — reading `CLLocationManager.location` is free when
+            // the app is already authorised, and nil when it is not, in which case nothing shows.
+            if let here = trackingManager.cachedCoarseLocation {
+                let now = Calendar.current.dateComponents([.hour, .minute], from: Date())
+                minutesUntilSunset = SunsetCalculator.minutesUntilSunset(
+                    latitude: here.latitude,
+                    longitude: here.longitude,
+                    dayOfYear: Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1,
+                    minutesAfterLocalMidnightNow: (now.hour ?? 0) * 60 + (now.minute ?? 0),
+                    utcOffsetMinutes: SunsetCalculator.utcOffsetMinutes()
+                )
+            }
             selectedDashboardPersona = DashboardPersonaPreference.selected()
             updateFollowCamera()
             trackDashboardEntryIfNeeded()

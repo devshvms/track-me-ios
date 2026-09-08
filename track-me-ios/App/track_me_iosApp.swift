@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseMessaging
 import FirebaseAuth
 import GoogleSignIn
 import UserNotifications
@@ -56,10 +57,41 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             TelemetryManager.shared.initializePostHog()
         }
         UNUserNotificationCenter.current().delegate = self
-        GroupStatusAlertCoordinator.shared.registerNotificationCategory()
+        GroupStatusAlertCoordinator.shared.registerNotificationCategory(
+            additionalCategories: [WeeklyRecapScheduler.returnNotificationCategory]
+        )
+        if !AppLaunchEnvironment.isUnitTesting {
+            // SCOPE_1.8.7 §6.3. Registering for remote notifications does not prompt — the prompt
+            // is `requestAuthorization`, which this deliberately does not call. TASK-284's rule is
+            // that a permission request has to arrive at a moment that earns it, and app launch is
+            // not that moment.
+            application.registerForRemoteNotifications()
+            // Follows the authorization the user has already given, in both directions. This is
+            // also the only thing that recovers a subscription after a reinstall, a restore, or the
+            // user turning notifications back on in Settings without opening anything of ours.
+            BroadcastSubscription.sync()
+        }
         // The age-range request is started from ContentView, where SwiftUI supplies the
         // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
+    }
+
+    /// SCOPE_1.8.7 §6.3 — a data-only operator broadcast.
+    ///
+    /// Data-only means iOS shows nothing by itself: this is where the payload is validated and,
+    /// only if it survives, turned into a local notification. An `alert` payload would have been
+    /// rendered before any of our code ran.
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        Task { @MainActor in
+            let stored = OperatorBroadcastReceiver.handle(userInfo)
+            // Reporting .newData for a duplicate or a refused payload teaches iOS to throttle
+            // background deliveries — including the ones the user does need.
+            completionHandler(stored ? .newData : .noData)
+        }
     }
 
     func userNotificationCenter(
@@ -69,6 +101,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) {
         Task { @MainActor in
             switch response.actionIdentifier {
+            case WeeklyRecapScheduler.stopReturnActionIdentifier:
+                if let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
+                    UIApplication.shared.open(settings)
+                }
             case GroupStatusAlertCoordinator.muteActionIdentifier:
                 GroupRideManager.shared.setAlertsMuted(true)
             case GroupStatusAlertCoordinator.viewActionIdentifier, UNNotificationDefaultActionIdentifier:
@@ -133,6 +169,13 @@ struct track_me_iosApp: App {
                                     activeRideId: TrackingManager.shared.currentRideId?.uuidString
                                 )
                                 FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                                // Push is the fast path, not the only one. Reconcile the durable
+                                // broadcast record for anyone APNs did not reach.
+                                await BroadcastReconciler.reconcile()
+                                // Settle any fired return notice, re-arm from the exact last
+                                // activity, then schedule the eligible recap inside the shared
+                                // Class C budget.
+                                await WeeklyRecapScheduler.refresh()
                                 GroupRideManager.shared.restore()
                                 _ = await AppUpdateManager.shared.checkForUpdate()
                             }
