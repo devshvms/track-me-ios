@@ -121,6 +121,171 @@
         { "kind": "sample", "elapsedMillis": 100000, "eastMeters": 300.0, "northMeters": 0.0, "accuracyMeters": 18.0, "gpsSpeedMps": null, "gpsSpeedAccuracyMps": null, "motionEnergy": 0.28, "motionAgeMillis": 0, "steps": null, "stepAgeMillis": null, "cadenceHz": null, "powerMode": "GPS_DISABLED_WHEN_SCREEN_OFF" }
       ],
       "expected": { "distanceMinMeters": 285.0, "distanceMaxMeters": 315.0, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 11, "missingSpeedCount": 11, "powerRestrictedSampleCount": 11, "poorAccuracySampleCount": 4, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 10000, "degradedSampleCount": 11, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
+    },
+    {
+      "id": "manual_pause_ignores_samples",
+      "persona": "CYCLING",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 10, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 20, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 30, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 40, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "pause" },
+        { "kind": "pause" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 100, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 110, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "resume" },
+        { "kind": "resume" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 500, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 22000, "eastMeters": 510, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 24000, "eastMeters": 520, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 26000, "eastMeters": 530, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 28000, "eastMeters": 540, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 78, "distanceMaxMeters": 82, "finalState": "MOVING", "routeSegmentsMin": 2, "routeSegmentsMax": 2, "sampleCount": 10, "missingSpeedCount": 0, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 2000, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0, "manualPauseCount": 1, "ignoredManualPauseSampleCount": 2 }
+    },
+    {
+      "id": "pause_before_first_fix_stop_while_paused",
+      "persona": "RUN",
+      "events": [
+        { "kind": "pause" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 80, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 2, "motionEnergy": 0.3, "steps": 40, "stepAgeMillis": 0, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 0, "distanceMaxMeters": 0, "finalState": "UNKNOWN", "routeSegmentsMin": 0, "routeSegmentsMax": 0, "sampleCount": 0, "missingSpeedCount": 0, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 0, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0, "manualPauseCount": 1, "ignoredManualPauseSampleCount": 1, "manualPauseActive": true }
+    },
+    {
+      "id": "auto_pause_drift_and_resume",
+      "persona": "CYCLING",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 10, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 20, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 30, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 40, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 50, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 48, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 14000, "eastMeters": 52, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 16000, "eastMeters": 48, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 18000, "eastMeters": 52, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 48, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 22000, "eastMeters": 52, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 24000, "eastMeters": 48, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 26000, "eastMeters": 50, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 0, "motionEnergy": 0.02, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 28000, "eastMeters": 60, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 30000, "eastMeters": 70, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 32000, "eastMeters": 80, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 34000, "eastMeters": 90, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 36000, "eastMeters": 100, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 70, "distanceMaxMeters": 120, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 19, "missingSpeedCount": 0, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 2000, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0, "stationaryEntryCount": 1, "movingEntryCountMax": 2 }
+    },
+    {
+      "id": "walk_gap_with_live_steps",
+      "persona": "WALK",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "steps": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 100, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "steps": 20, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 22000, "eastMeters": 102, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "steps": 21, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 24000, "eastMeters": 104, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "steps": 22, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 26000, "eastMeters": 106, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "steps": 23, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 28000, "eastMeters": 108, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "steps": 24, "stepAgeMillis": 0, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 20, "distanceMaxMeters": 24, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 6, "missingSpeedCount": 6, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 1, "maximumSampleIntervalMillis": 20000, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 24, "estimatedGapStepCount": 20 }
+    },
+    {
+      "id": "walk_gap_without_steps",
+      "persona": "WALK",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 500, "northMeters": 0, "accuracyMeters": 6, "motionEnergy": 0.2, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 0, "distanceMaxMeters": 0, "finalState": "GPS_DEGRADED", "routeSegmentsMin": 0, "routeSegmentsMax": 0, "sampleCount": 2, "missingSpeedCount": 2, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 1, "maximumSampleIntervalMillis": 20000, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0, "estimatedGapStepCount": 0 }
+    },
+    {
+      "id": "slow_run_warmup_with_cadence_burst",
+      "persona": "RUN",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 0.4, "motionEnergy": 0.22, "steps": 0, "stepAgeMillis": 0, "cadenceHz": 1, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 2, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 0.4, "motionEnergy": 0.22, "steps": 2, "stepAgeMillis": 0, "cadenceHz": 1, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 4, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 0.4, "motionEnergy": 0.22, "steps": 4, "stepAgeMillis": 0, "cadenceHz": 1, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 6, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 6, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 8, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 8, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 10, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 10, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 12, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 110, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 14000, "eastMeters": 14, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 112, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 16000, "eastMeters": 16, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 114, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 18000, "eastMeters": 18, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 116, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 20, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 118, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 22000, "eastMeters": 22, "northMeters": 0, "accuracyMeters": 6, "gpsSpeedMps": 1, "motionEnergy": 0.22, "steps": 120, "stepAgeMillis": 0, "cadenceHz": 2, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 18, "distanceMaxMeters": 32, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 12, "missingSpeedCount": 0, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 2000, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 30, "discardedImplausibleStepCountMin": 90 }
+    },
+    {
+      "id": "explicit_persona_locked_for_non_pedestrian",
+      "persona": "CYCLING",
+      "events": [
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 0, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 2000, "eastMeters": 10, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 8, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 4000, "eastMeters": 20, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 16, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 6000, "eastMeters": 30, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 24, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 8000, "eastMeters": 40, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 32, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 10000, "eastMeters": 50, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 40, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 12000, "eastMeters": 60, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 48, "stepAgeMillis": 0, "powerMode": "NORMAL" },
+        { "kind": "sample", "samplePersona": "WALK", "elapsedMillis": 14000, "eastMeters": 70, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "steps": 56, "stepAgeMillis": 0, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 68, "distanceMaxMeters": 72, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 8, "missingSpeedCount": 0, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 2000, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 56, "personaMismatchCount": 8 }
+    },
+    {
+      "id": "right_angle_display_geometry",
+      "persona": "CYCLING",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 2000, "eastMeters": 10, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 4000, "eastMeters": 20, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 6000, "eastMeters": 30, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 8000, "eastMeters": 40, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 50, "northMeters": 0, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 12000, "eastMeters": 50, "northMeters": 10, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 14000, "eastMeters": 50, "northMeters": 20, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 16000, "eastMeters": 50, "northMeters": 30, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 18000, "eastMeters": 50, "northMeters": 40, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 50, "northMeters": 50, "accuracyMeters": 5, "gpsSpeedMps": 5, "motionEnergy": 0.3, "powerMode": "NORMAL" }
+      ],
+      "expected": { "distanceMinMeters": 85, "distanceMaxMeters": 115, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 11, "missingSpeedCount": 0, "powerRestrictedSampleCount": 0, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 2000, "degradedSampleCount": 0, "rejectedOutlierCount": 0, "detectedStepCount": 0, "cleanedRoutePointsMin": 3 }
+    },
+    {
+      "id": "battery_saver_vehicle",
+      "persona": "BIKE_DRIVE",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "BATTERY_SAVER" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 30, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "BATTERY_SAVER" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 60, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "BATTERY_SAVER" },
+        { "kind": "sample", "elapsedMillis": 30000, "eastMeters": 90, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "BATTERY_SAVER" }
+      ],
+      "expected": { "distanceMinMeters": 85, "distanceMaxMeters": 95, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 4, "missingSpeedCount": 4, "powerRestrictedSampleCount": 4, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 10000, "degradedSampleCount": 4, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
+    },
+    {
+      "id": "foreground_only_vehicle",
+      "persona": "BIKE_DRIVE",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "FOREGROUND_ONLY" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 30, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "FOREGROUND_ONLY" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 60, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "FOREGROUND_ONLY" },
+        { "kind": "sample", "elapsedMillis": 30000, "eastMeters": 90, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "FOREGROUND_ONLY" }
+      ],
+      "expected": { "distanceMinMeters": 85, "distanceMaxMeters": 95, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 4, "missingSpeedCount": 4, "powerRestrictedSampleCount": 4, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 10000, "degradedSampleCount": 4, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
+    },
+    {
+      "id": "all_location_disabled_vehicle",
+      "persona": "BIKE_DRIVE",
+      "events": [
+        { "kind": "sample", "elapsedMillis": 0, "eastMeters": 0, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "ALL_LOCATION_DISABLED" },
+        { "kind": "sample", "elapsedMillis": 10000, "eastMeters": 30, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "ALL_LOCATION_DISABLED" },
+        { "kind": "sample", "elapsedMillis": 20000, "eastMeters": 60, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "ALL_LOCATION_DISABLED" },
+        { "kind": "sample", "elapsedMillis": 30000, "eastMeters": 90, "northMeters": 0, "accuracyMeters": 18, "motionEnergy": 0.3, "powerMode": "ALL_LOCATION_DISABLED" }
+      ],
+      "expected": { "distanceMinMeters": 85, "distanceMaxMeters": 95, "finalState": "MOVING", "routeSegmentsMin": 1, "routeSegmentsMax": 1, "sampleCount": 4, "missingSpeedCount": 4, "powerRestrictedSampleCount": 4, "poorAccuracySampleCount": 0, "unobservedGapCount": 0, "maximumSampleIntervalMillis": 10000, "degradedSampleCount": 4, "rejectedOutlierCount": 0, "detectedStepCount": 0 }
     }
   ]
 }

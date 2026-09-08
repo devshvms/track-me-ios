@@ -3,6 +3,8 @@ import Foundation
 nonisolated enum TrackingV2ReplayEvent: Sendable {
     case sample(TrackingV2Sample)
     case discontinuity
+    case pause
+    case resume
 }
 
 nonisolated struct TrackingV2ReplayScenario: Sendable {
@@ -22,6 +24,8 @@ nonisolated enum TrackingV2ReplayHarness {
             switch event {
             case .sample(let sample): estimator.add(sample)
             case .discontinuity: estimator.markDiscontinuity()
+            case .pause: estimator.pause()
+            case .resume: estimator.resume()
             }
         }
         return estimator.finish()
