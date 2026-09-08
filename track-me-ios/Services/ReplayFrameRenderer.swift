@@ -108,36 +108,28 @@ enum ReplayFrameRenderer {
         let overlay = config.overlay
         let ink: UIColor = overlay.darkTheme ? .white : UIColor(white: 0.07, alpha: 1)
 
-        // The lockup is not chrome the user opted into — it is what makes the artifact traceable
-        // back to the app. It is drawn whatever the figure toggles say.
-        let link = ReplayDeepLink.isTrackMeLink(config.deepLink) ? config.deepLink : nil
-        let lockupWidth = min(size.width - 64, max(300, size.width * 0.44))
-        let pill = CGRect(
-            x: size.width - lockupWidth - 32,
-            y: 26,
-            width: lockupWidth,
-            height: link == nil ? 44 : 72
-        )
-        context.setFillColor(
-            overlay.darkTheme
-                ? UIColor(white: 0, alpha: 0.55).cgColor
-                : UIColor(white: 1, alpha: 0.86).cgColor
-        )
-        context.addPath(CGPath(roundedRect: pill, cornerWidth: 19, cornerHeight: 19, transform: nil))
-        context.fillPath()
-        drawText(
-            "TrackMe",
-            in: CGRect(x: pill.minX + 12, y: pill.minY + 5, width: pill.width - 24, height: 28),
-            font: .boldSystemFont(ofSize: 18),
-            color: ink,
-            context: context,
-            alignment: .right
-        )
-        if let link {
+        // The link is not chrome the user opted into — it is what makes the artifact traceable
+        // back to the app, so it is drawn whatever the figure toggles say. The pill that used to
+        // carry an icon and a "TrackMe" wordmark above it is gone: a shared video of someone's ride
+        // is theirs, and a branded plate in the corner is the app inserting itself into it. The
+        // link alone does the job the pill was justified by.
+        //
+        // Bottom-right, matching the Android renderer and the still exporter. The map's own Google
+        // attribution runs along the bottom-left and must not be crowded.
+        if let link = config.deepLink, ReplayDeepLink.isTrackMeLink(link) {
+            let inset = min(size.width, size.height) * 0.022
+            let linkHeight: CGFloat = 20
             drawText(
                 link,
-                in: CGRect(x: pill.minX + 12, y: pill.minY + 35, width: pill.width - 24, height: 24),
-                font: .systemFont(ofSize: max(11, size.width * 0.014)),
+                in: CGRect(
+                    x: size.width * 0.35,
+                    y: size.height - inset - linkHeight,
+                    width: size.width * 0.65 - inset,
+                    height: linkHeight
+                ),
+                // Roughly half the old wordmark, and the same ratio against the shorter edge that
+                // the Android renderer uses, so a video exported on either phone reads the same.
+                font: .systemFont(ofSize: max(9, min(size.width, size.height) * 0.014)),
                 color: ink.withAlphaComponent(0.82),
                 context: context,
                 alignment: .right
