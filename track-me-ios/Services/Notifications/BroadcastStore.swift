@@ -40,6 +40,8 @@ final class BroadcastStore {
             ?? (defaults.object(forKey: lastSeenKey) as? NSNumber)?.int64Value
     }
 
+    nonisolated deinit {}
+
     /// Stores a broadcast, ignoring any later copy with the same id.
     ///
     /// Idempotent by id because the same broadcast genuinely arrives twice: once by push, once by

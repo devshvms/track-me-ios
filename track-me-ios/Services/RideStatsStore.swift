@@ -53,6 +53,11 @@ actor RideStatsStore {
         return Int((nowMillis - last) / 86_400_000)
     }
 
+    /// Exact marker used to ensure one absence episode can produce only one return notice.
+    func lastActivityFinishedAtMillis() -> Int64? {
+        cached.lastRideFinishedAtMillis > 0 ? cached.lastRideFinishedAtMillis : nil
+    }
+
     func pendingWeeklyRecap(now: Date = Date(), calendar: Calendar = WeekKey.mondayAnchored()) -> WeeklyRecap? {
         WeeklyRecapSelector.select(cached, now: now, calendar: calendar)
     }

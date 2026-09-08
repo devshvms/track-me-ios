@@ -20184,6 +20184,17 @@
         }
       }
     },
+    "Stop these": {
+      "localizations": {
+        "de": { "stringUnit": { "state": "translated", "value": "Diese Hinweise stoppen" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Stop these" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Detener estos avisos" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Arrêter ces rappels" } },
+        "hi": { "stringUnit": { "state": "translated", "value": "ये सूचनाएँ बंद करें" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "この通知を停止" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "停止此类通知" } }
+      }
+    },
     "Stop live sharing": {
       "extractionState": "stale",
       "localizations": {

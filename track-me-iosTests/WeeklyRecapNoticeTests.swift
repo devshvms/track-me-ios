@@ -150,6 +150,32 @@ final class WeeklyRecapNoticeTests: XCTestCase {
         )
     }
 
+    func testReturnDeliveryIsTheFirstTenAMAfterTheExactThreshold() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+
+        let beforeTen = calendar.date(
+            from: DateComponents(year: 2026, month: 9, day: 7, hour: 8)
+        )!
+        let sameDay = WeeklyRecapScheduler.returnDeliveryDate(
+            onOrAfter: beforeTen,
+            calendar: calendar
+        )
+        XCTAssertEqual(calendar.component(.day, from: sameDay), 7)
+        XCTAssertEqual(calendar.component(.hour, from: sameDay), 10)
+
+        let afterTen = calendar.date(
+            from: DateComponents(year: 2026, month: 9, day: 7, hour: 15)
+        )!
+        let nextDay = WeeklyRecapScheduler.returnDeliveryDate(
+            onOrAfter: afterTen,
+            calendar: calendar
+        )
+        XCTAssertEqual(calendar.component(.day, from: nextDay), 8)
+        XCTAssertEqual(calendar.component(.hour, from: nextDay), 10)
+        XCTAssertGreaterThan(nextDay, afterTen)
+    }
+
     func testTheLedgerRoundTripsThroughTheBudgetsRules() {
         let defaults = UserDefaults(suiteName: "WeeklyRecapNoticeTests.\(UUID().uuidString)")!
         let ledger = ProactiveLedger(defaults: defaults)
@@ -164,5 +190,16 @@ final class WeeklyRecapNoticeTests: XCTestCase {
 
         ledger.recordRecapNotified(weekStartEpochDay: week)
         XCTAssertEqual(ledger.lastRecapWeekStartEpochDay, week)
+
+        ledger.recordReturnNoticeSent(at: 9_000, activityAtMillis: 8_000)
+        XCTAssertEqual(ledger.lastReturnNoticeAtMillis, 9_000)
+        XCTAssertEqual(ledger.lastReturnNoticeActivityAtMillis, 8_000)
+
+        ledger.recordReturnScheduled(fireAtMillis: 12_000, activityAtMillis: 10_000)
+        XCTAssertEqual(ledger.pendingReturnFireAtMillis, 12_000)
+        XCTAssertEqual(ledger.pendingReturnActivityAtMillis, 10_000)
+        ledger.clearPendingReturn()
+        XCTAssertNil(ledger.pendingReturnFireAtMillis)
+        XCTAssertNil(ledger.pendingReturnActivityAtMillis)
     }
 }

@@ -18,7 +18,7 @@ final class GroupStatusAlertCoordinator {
         self.store = store ?? .shared
     }
 
-    func registerNotificationCategory() {
+    func registerNotificationCategory(additionalCategories: Set<UNNotificationCategory> = []) {
         let view = UNNotificationAction(
             identifier: Self.viewActionIdentifier,
             title: LocalizationHelper.localized("View group"),
@@ -41,7 +41,9 @@ final class GroupStatusAlertCoordinator {
             intentIdentifiers: [],
             options: []
         )
-        UNUserNotificationCenter.current().setNotificationCategories([alertCategory, resolutionCategory])
+        UNUserNotificationCenter.current().setNotificationCategories(
+            Set([alertCategory, resolutionCategory]).union(additionalCategories)
+        )
     }
 
     func removeSessionNotifications() {

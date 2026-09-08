@@ -78,6 +78,10 @@ final class ModelContainerDiagnostics: @unchecked Sendable {
 
     init() {}
 
+    // Xcode 26's simulator runtime can otherwise synthesize a main-actor-isolated
+    // destructor for this value and abort while tearing it down from XCTest.
+    nonisolated deinit {}
+
     func record(_ error: Error) {
         lock.lock()
         defer { lock.unlock() }

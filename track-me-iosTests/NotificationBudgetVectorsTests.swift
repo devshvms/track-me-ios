@@ -152,6 +152,35 @@ final class NotificationBudgetVectorsTests: XCTestCase {
         }
     }
 
+    func testASecondReturnNoticeRequiresAnInterveningActivity() {
+        let describedActivity: Int64 = 1_000
+        let firstNotice: Int64 = 2_000
+
+        XCTAssertTrue(NotificationBudget.hasInterveningActivity(
+            lastActivityAtMillis: describedActivity,
+            lastReturnNoticeAtMillis: nil,
+            lastReturnNoticeActivityAtMillis: nil
+        ))
+        XCTAssertFalse(NotificationBudget.hasInterveningActivity(
+            lastActivityAtMillis: describedActivity,
+            lastReturnNoticeAtMillis: firstNotice,
+            lastReturnNoticeActivityAtMillis: describedActivity
+        ))
+        XCTAssertTrue(NotificationBudget.hasInterveningActivity(
+            lastActivityAtMillis: 3_000,
+            lastReturnNoticeAtMillis: firstNotice,
+            lastReturnNoticeActivityAtMillis: describedActivity
+        ))
+        XCTAssertFalse(
+            NotificationBudget.hasInterveningActivity(
+                lastActivityAtMillis: describedActivity,
+                lastReturnNoticeAtMillis: firstNotice,
+                lastReturnNoticeActivityAtMillis: nil
+            ),
+            "a pre-fix ledger with no activity marker must fail closed"
+        )
+    }
+
     // MARK: - Properties no single vector states
 
     func testARefusedProactiveNotificationIsNotConsumed() {

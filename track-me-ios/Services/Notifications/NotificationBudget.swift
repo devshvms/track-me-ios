@@ -126,4 +126,20 @@ enum NotificationBudget {
         if nowMillis < last { return false }
         return nowMillis - last >= returnNoticeIntervalMillis
     }
+
+    /// A 90-day timer alone would send the same absence message forever. A second return notice is
+    /// eligible only after a ride newer than the one described by the prior notice.
+    ///
+    /// A pre-fix ledger has no activity marker. Falling back to the send time fails closed because
+    /// the activity described by that notice necessarily happened before the send.
+    static func hasInterveningActivity(
+        lastActivityAtMillis: Int64?,
+        lastReturnNoticeAtMillis: Int64?,
+        lastReturnNoticeActivityAtMillis: Int64?
+    ) -> Bool {
+        guard let activity = lastActivityAtMillis else { return false }
+        guard let sent = lastReturnNoticeAtMillis else { return true }
+        let describedActivity = lastReturnNoticeActivityAtMillis ?? sent
+        return activity > describedActivity
+    }
 }

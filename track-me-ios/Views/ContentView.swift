@@ -132,6 +132,8 @@ struct ContentView: View {
             if newPhase == .active {
                 Task { await recapCoordinator.check() }
                 FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                BroadcastSubscription.sync()
+                Task { await WeeklyRecapScheduler.refresh() }
                 Task { _ = await updateManager.checkForUpdate() }
             }
         }

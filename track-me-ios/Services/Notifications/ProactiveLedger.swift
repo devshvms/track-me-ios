@@ -18,8 +18,10 @@ struct ProactiveLedger {
     private let defaults: UserDefaults
     private let lastSentKey = "trackme_proactive_last_sent_at"
     private let lastReturnKey = "trackme_proactive_last_return_at"
+    private let lastReturnActivityKey = "trackme_proactive_last_return_activity_at"
     private let lastRecapWeekKey = "trackme_proactive_last_recap_week"
     private let pendingReturnFireKey = "trackme_proactive_pending_return_fire_at"
+    private let pendingReturnActivityKey = "trackme_proactive_pending_return_activity_at"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -33,6 +35,11 @@ struct ProactiveLedger {
     /// The last time a return-after-absence notice was sent — scenario 13's second gate.
     var lastReturnNoticeAtMillis: Int64? {
         (defaults.object(forKey: lastReturnKey) as? NSNumber)?.int64Value
+    }
+
+    /// The activity the last return notice described.
+    var lastReturnNoticeActivityAtMillis: Int64? {
+        (defaults.object(forKey: lastReturnActivityKey) as? NSNumber)?.int64Value
     }
 
     /// The last completed week whose recap was notified, so a week is never announced twice.
@@ -54,8 +61,9 @@ struct ProactiveLedger {
         defaults.set(NSNumber(value: updated), forKey: lastSentKey)
     }
 
-    func recordReturnNoticeSent(at sentAtMillis: Int64) {
+    func recordReturnNoticeSent(at sentAtMillis: Int64, activityAtMillis: Int64) {
         defaults.set(NSNumber(value: sentAtMillis), forKey: lastReturnKey)
+        defaults.set(NSNumber(value: activityAtMillis), forKey: lastReturnActivityKey)
     }
 
     func recordRecapNotified(weekStartEpochDay: Int) {
@@ -75,11 +83,17 @@ struct ProactiveLedger {
         (defaults.object(forKey: pendingReturnFireKey) as? NSNumber)?.int64Value
     }
 
-    func recordReturnScheduled(fireAtMillis: Int64) {
+    var pendingReturnActivityAtMillis: Int64? {
+        (defaults.object(forKey: pendingReturnActivityKey) as? NSNumber)?.int64Value
+    }
+
+    func recordReturnScheduled(fireAtMillis: Int64, activityAtMillis: Int64) {
         defaults.set(NSNumber(value: fireAtMillis), forKey: pendingReturnFireKey)
+        defaults.set(NSNumber(value: activityAtMillis), forKey: pendingReturnActivityKey)
     }
 
     func clearPendingReturn() {
         defaults.removeObject(forKey: pendingReturnFireKey)
+        defaults.removeObject(forKey: pendingReturnActivityKey)
     }
 }

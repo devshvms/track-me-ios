@@ -329,6 +329,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private func requestTrackingNotification() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
+            BroadcastSubscription.sync()
             let content = UNMutableNotificationContent()
             content.title = "Tracking Ride"
             content.body = "TrackMe is currently recording your route."
@@ -704,6 +705,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             )
             Task {
                 let transition = await RideStatsStore.shared.recordGoodRide(summary)
+                // The return notice is a dead-man switch keyed to the last completed activity. Move
+                // it immediately; waiting for a later cold launch can leave the old due date armed.
+                await WeeklyRecapScheduler.refresh()
                 if transition.isFirstRideOfWeek {
                     TelemetryManager.shared.trackWeeklyStreakUpdated(
                         streakWeeks: transition.streakWeeks, froze: transition.streakFroze)

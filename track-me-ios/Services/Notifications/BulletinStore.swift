@@ -28,6 +28,8 @@ final class BulletinStore {
         self.lastSeenCreatedAtMillis = (defaults.object(forKey: lastSeenKey) as? NSNumber)?.int64Value
     }
 
+    nonisolated deinit {}
+
     /// Adds an entry, ignoring one whose id is already present.
     ///
     /// Idempotent by id because the same fact reaches here by more than one route — a broadcast by

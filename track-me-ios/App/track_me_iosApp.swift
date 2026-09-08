@@ -57,7 +57,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             TelemetryManager.shared.initializePostHog()
         }
         UNUserNotificationCenter.current().delegate = self
-        GroupStatusAlertCoordinator.shared.registerNotificationCategory()
+        GroupStatusAlertCoordinator.shared.registerNotificationCategory(
+            additionalCategories: [WeeklyRecapScheduler.returnNotificationCategory]
+        )
         if !AppLaunchEnvironment.isUnitTesting {
             // SCOPE_1.8.7 §6.3. Registering for remote notifications does not prompt — the prompt
             // is `requestAuthorization`, which this deliberately does not call. TASK-284's rule is
@@ -99,6 +101,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) {
         Task { @MainActor in
             switch response.actionIdentifier {
+            case WeeklyRecapScheduler.stopReturnActionIdentifier:
+                if let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
+                    UIApplication.shared.open(settings)
+                }
             case GroupStatusAlertCoordinator.muteActionIdentifier:
                 GroupRideManager.shared.setAlertsMuted(true)
             case GroupStatusAlertCoordinator.viewActionIdentifier, UNNotificationDefaultActionIdentifier:
@@ -171,20 +177,7 @@ struct track_me_iosApp: App {
                         // §6.1.3 #13: settle first, then re-arm. A notice whose due date has
                         // passed fired — that is the only evidence iOS gives — and its budget must
                         // be spent before the next arming decision reads the ledger.
-                        WeeklyRecapScheduler.settleFiredReturnNotice()
-                        let daysAway = await RideStatsStore.shared.daysSinceLastActivity()
-                        await WeeklyRecapScheduler.scheduleIfDue(
-                            recap: await RideStatsStore.shared.pendingWeeklyRecap(),
-                            daysSinceLastActivity: daysAway
-                        )
-                        // Re-armed on every foreground so the switch follows the last-activity date
-                        // rather than the date it was first set.
-                        await WeeklyRecapScheduler.armReturnNotice(
-                            daysSinceLastActivity: daysAway,
-                            now: Date(),
-                            ledger: ProactiveLedger(),
-                            calendar: .current
-                        )
+                        await WeeklyRecapScheduler.refresh()
                         GroupRideManager.shared.restore()
                         _ = await AppUpdateManager.shared.checkForUpdate()
                     }

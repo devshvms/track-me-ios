@@ -142,17 +142,27 @@ enum BroadcastTag: String, CaseIterable {
 /// Android's `ReleaseVersion`.
 enum ReleaseVersion {
 
+    static let maxLength = 64
+    static let maxComponent = Int32.max
+
     /// Dotted digits and nothing else. A ceiling the platforms might parse differently is worse
     /// than no ceiling.
     static func isValid(_ value: String) -> Bool {
-        !value.isEmpty && value.range(of: "^[0-9]+(\\.[0-9]+)*$", options: .regularExpression) != nil
+        guard !value.isEmpty, value.count <= maxLength,
+              value.range(of: "^[0-9]+(\\.[0-9]+)*$", options: .regularExpression) != nil else {
+            return false
+        }
+        return value.split(separator: ".").allSatisfy {
+            guard let component = Int64($0) else { return false }
+            return component <= Int64(maxComponent)
+        }
     }
 
     /// -1, 0 or 1. Returns 0 for anything unparseable, so a malformed pair never excludes anyone.
     static func compare(_ left: String, _ right: String) -> Int {
         guard isValid(left), isValid(right) else { return 0 }
-        let a = left.split(separator: ".").map { Int($0) ?? 0 }
-        let b = right.split(separator: ".").map { Int($0) ?? 0 }
+        let a = left.split(separator: ".").map { Int($0)! }
+        let b = right.split(separator: ".").map { Int($0)! }
         for index in 0..<max(a.count, b.count) {
             let x = index < a.count ? a[index] : 0
             let y = index < b.count ? b[index] : 0
