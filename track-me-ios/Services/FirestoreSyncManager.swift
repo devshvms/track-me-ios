@@ -722,7 +722,8 @@ class FirestoreSyncManager {
 
     func deleteCloudData() async throws {
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        let ridesRef = db.collection("users").document(uid).collection("rides")
+        let userRef = db.collection("users").document(uid)
+        let ridesRef = userRef.collection("rides")
         let snapshot = try await ridesRef.getDocuments()
         for doc in snapshot.documents {
             let chunks = try await doc.reference
@@ -736,6 +737,29 @@ class FirestoreSyncManager {
                 parentRef: doc.reference
             )
         }
-        try await db.collection("users").document(uid).delete()
+
+        // TASK-309: account deletion must cover the sensitive subcollections written by shipped
+        // Android SOS builds even when the account is deleted from iOS. Deleting a Firestore parent
+        // document never deletes its subcollections; without these queries, legacy contact phone
+        // numbers and delivery logs become orphaned after Firebase Auth is removed.
+        for legacyCollection in ["emergency_config", "emergency_logs"] {
+            let legacy = try await userRef.collection(legacyCollection).getDocuments()
+            try await commitDeleteBatches(
+                childRefs: legacy.documents.map(\.reference),
+                parentRef: nil
+            )
+        }
+
+        // Feedback is stored outside users/{uid}, so it needs its own ownership query just as it
+        // does on Android and the web account portal.
+        let feedback = try await db.collection("feedbacks")
+            .whereField("uid", isEqualTo: uid)
+            .getDocuments()
+        try await commitDeleteBatches(
+            childRefs: feedback.documents.map(\.reference),
+            parentRef: nil
+        )
+
+        try await userRef.delete()
     }
 }

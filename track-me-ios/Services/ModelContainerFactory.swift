@@ -70,11 +70,12 @@ enum ModelContainerFactory {
 
 /// Carries a store-open failure from launch — which happens before Firebase exists — to the first
 /// moment something can report it.
-final class ModelContainerDiagnostics: @unchecked Sendable {
+nonisolated final class ModelContainerDiagnostics: @unchecked Sendable {
     static let shared = ModelContainerDiagnostics()
 
     private let lock = NSLock()
     private var failure: Error?
+    private var usingInMemoryFallback = false
 
     init() {}
 
@@ -86,6 +87,18 @@ final class ModelContainerDiagnostics: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         failure = error
+        usingInMemoryFallback = true
+    }
+
+    /// True for the lifetime of this process once the persistent store failed to open.
+    ///
+    /// Unlike `takeFailure`, this is not consumed by Crashlytics reporting: the root UI uses it to
+    /// keep every write path unavailable. Letting somebody record into the emergency in-memory
+    /// container would turn a recoverable old store into a brand-new ride lost at process exit.
+    var isUsingInMemoryFallback: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return usingInMemoryFallback
     }
 
     /// Returns the failure once, then forgets it. Reporting the same launch failure on every

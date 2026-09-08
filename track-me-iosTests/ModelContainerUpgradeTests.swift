@@ -173,10 +173,15 @@ final class ModelContainerUpgradeTests: XCTestCase {
         XCTAssertNil(diagnostics.takeFailure(), "nothing to report before anything has failed")
 
         diagnostics.record(StoreUnavailable())
+        XCTAssertTrue(diagnostics.isUsingInMemoryFallback)
         XCTAssertTrue(diagnostics.takeFailure() is StoreUnavailable)
         XCTAssertNil(
             diagnostics.takeFailure(),
             "one launch failure is one report; repeating it on every foreground says nothing new"
+        )
+        XCTAssertTrue(
+            diagnostics.isUsingInMemoryFallback,
+            "reporting the error must not reopen volatile recording paths"
         )
     }
 }

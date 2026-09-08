@@ -25514,6 +25514,100 @@
         }
       }
     },
+    "Ride storage is unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrtspeicher ist nicht verfügbar"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride storage is unavailable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El almacenamiento de actividades no está disponible"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le stockage des activités est indisponible"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइड स्टोरेज उपलब्ध नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライドストレージを利用できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "骑行存储不可用"
+          }
+        }
+      }
+    },
+    "TrackMe could not safely open your saved rides. Recording is disabled so a new ride cannot be lost. Restart the app; if this continues, contact support.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe konnte deine gespeicherten Fahrten nicht sicher öffnen. Die Aufzeichnung ist deaktiviert, damit keine neue Fahrt verloren geht. Starte die App neu. Wenn das Problem weiterhin besteht, kontaktiere den Support."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe could not safely open your saved rides. Recording is disabled so a new ride cannot be lost. Restart the app; if this continues, contact support."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe no pudo abrir de forma segura tus actividades guardadas. La grabación está desactivada para evitar que se pierda una actividad nueva. Reinicia la app; si el problema continúa, contacta con soporte."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe n’a pas pu ouvrir vos activités enregistrées en toute sécurité. L’enregistrement est désactivé afin qu’aucune nouvelle activité ne soit perdue. Redémarrez l’app ; si le problème persiste, contactez l’assistance."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe आपकी सेव की गई राइड सुरक्षित रूप से नहीं खोल सका। नई राइड खोने से बचाने के लिए रिकॉर्डिंग बंद है। ऐप को फिर से शुरू करें; समस्या बनी रहे तो सहायता से संपर्क करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMeは保存済みのライドを安全に開けませんでした。新しいライドが失われないよう、記録は無効になっています。アプリを再起動し、問題が続く場合はサポートに連絡してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe 无法安全打开已保存的骑行记录。为避免新的骑行记录丢失，记录功能已停用。请重新启动 App；如果问题仍然存在，请联系支持。"
+          }
+        }
+      }
+    },
     "🛡️ Offline Tracking Shield • Ready to Record Locally": {
       "extractionState": "stale",
       "localizations": {

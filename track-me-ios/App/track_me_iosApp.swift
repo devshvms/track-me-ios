@@ -140,51 +140,51 @@ struct track_me_iosApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .onOpenURL { url in
-                    if GIDSignIn.sharedInstance.handle(url) { return }
-                    if Auth.auth().canHandle(url) { return }
-                    _ = GroupRideManager.shared.handleIncomingURL(url)
+            Group {
+                if ModelContainerDiagnostics.shared.isUsingInMemoryFallback {
+                    PersistentStoreUnavailableView()
+                } else {
+                    ContentView()
+                        .onOpenURL { url in
+                            if GIDSignIn.sharedInstance.handle(url) { return }
+                            if Auth.auth().canHandle(url) { return }
+                            _ = GroupRideManager.shared.handleIncomingURL(url)
+                        }
+                        .onAppear {
+                            DataRepository.shared.setup(container: sharedModelContainer)
+                            HomeDashboardRepository.shared.configure(container: sharedModelContainer)
+                            let state = OnboardingState(
+                                rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
+                            ) ?? .legacy
+                            try? OnboardingSampleRideSeeder.seedIfNeeded(
+                                context: sharedModelContainer.mainContext,
+                                onboardingState: state,
+                                title: LocalizationHelper.localized("Sample ride")
+                            )
+                            Task {
+                                await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
+                                await HomeDashboardRepository.shared.prepare()
+                                // Dismiss any Live Activity left over from a crash/force-quit.
+                                RideActivityManager.shared.endOrphanedActivities(
+                                    activeRideId: TrackingManager.shared.currentRideId?.uuidString
+                                )
+                                FirestoreSyncManager.shared.syncOnForegroundIfDue()
+                                // Push is the fast path, not the only one. Reconcile the durable
+                                // broadcast record for anyone APNs did not reach.
+                                await BroadcastReconciler.reconcile()
+                                // Settle any fired return notice, re-arm from the exact last
+                                // activity, then schedule the eligible recap inside the shared
+                                // Class C budget.
+                                await WeeklyRecapScheduler.refresh()
+                                GroupRideManager.shared.restore()
+                                _ = await AppUpdateManager.shared.checkForUpdate()
+                            }
+                        }
+                        .withGlobalToasts()
                 }
-                .onAppear {
-                    DataRepository.shared.setup(container: sharedModelContainer)
-                    HomeDashboardRepository.shared.configure(container: sharedModelContainer)
-                    let state = OnboardingState(
-                        rawValue: UserDefaults.standard.string(forKey: OnboardingGate.stateKey) ?? ""
-                    ) ?? .legacy
-                    try? OnboardingSampleRideSeeder.seedIfNeeded(
-                        context: sharedModelContainer.mainContext,
-                        onboardingState: state,
-                        title: LocalizationHelper.localized("Sample ride")
-                    )
-                    Task {
-                        await RideRecoveryManager.runLaunchRecovery(container: sharedModelContainer)
-                        await HomeDashboardRepository.shared.prepare()
-                        // Dismiss any Live Activity left over from a crash/force-quit.
-                        RideActivityManager.shared.endOrphanedActivities(
-                            activeRideId: TrackingManager.shared.currentRideId?.uuidString
-                        )
-                        FirestoreSyncManager.shared.syncOnForegroundIfDue()
-                        // §6.3: push is the fast path, not the only one. Anyone the push missed —
-                        // authorization declined, device off, APNs dropped it, subscription not
-                        // yet complete — picks the broadcast up here instead, silently, because
-                        // the moment to interrupt has passed.
-                        await BroadcastReconciler.reconcile()
-                        // §6.1.2 scenario 8: hand the recap to the system ahead of time, so it
-                        // reaches someone who never opens the app again. iOS cannot rely on a
-                        // background job for a once-a-week notification, so it schedules the
-                        // notification itself rather than scheduling work that decides later.
-                        // §6.1.3 #13: settle first, then re-arm. A notice whose due date has
-                        // passed fired — that is the only evidence iOS gives — and its budget must
-                        // be spent before the next arming decision reads the ledger.
-                        await WeeklyRecapScheduler.refresh()
-                        GroupRideManager.shared.restore()
-                        _ = await AppUpdateManager.shared.checkForUpdate()
-                    }
-                }
-                .withGlobalToasts()
-                .preferredColorScheme(colorScheme)
-                .environment(\.locale, Locale(identifier: appLanguage))
+            }
+            .preferredColorScheme(colorScheme)
+            .environment(\.locale, Locale(identifier: appLanguage))
         }
         .modelContainer(sharedModelContainer)
     }
