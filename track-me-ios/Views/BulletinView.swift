@@ -135,4 +135,26 @@ private struct Copy: BulletinCopy.Strings {
             String(days)
         )
     }
+    var forgottenRideTitle: String { LocalizationHelper.localized("Still recording") }
+    func forgottenRideBody(elapsedMinutes: Int, stillSince: String) -> String {
+        LocalizationHelper.formatted(
+            "%1$@ min recorded. No movement since %2$@.", String(elapsedMinutes), stillSince
+        )
+    }
+    func forgottenRideBodyNoTime(elapsedMinutes: Int) -> String {
+        LocalizationHelper.formatted(
+            "%@ min recorded, with no movement for a while.", String(elapsedMinutes)
+        )
+    }
+    var groupStillLiveTitle: String {
+        LocalizationHelper.localized("You are still sharing with a group")
+    }
+    func groupStillLiveBody(groupName: String) -> String {
+        LocalizationHelper.formatted(
+            "Your ride ended, but you are still visible in %@.", groupName
+        )
+    }
+    var groupStillLiveBodyNoName: String {
+        LocalizationHelper.localized("Your ride ended, but you are still visible in a live group.")
+    }
 }

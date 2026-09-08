@@ -61,6 +61,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var maxSpeedMps: Double = 0.0
     var durationInMillis: TimeInterval = 0
     var elapsedDurationInMillis: TimeInterval = 0
+
+    // §6.1.1 #4. When the rider stopped moving, and whether this ride has already been asked about.
+    // Not persisted: a ride restored after a termination has by definition not been asked yet, and
+    // re-asking a rider whose phone died is the least of what has gone wrong for them.
+    private var stillnessStartedAt: Date?
+    private var forgottenRideAsked = false
     var selectedPersona: RidePersona = .auto
     var isAutoPaused: Bool = false
     var timeSinceLastGps: TimeInterval = 0
@@ -435,6 +441,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     func stopTracking() {
         locationManager.stopUpdatingLocation()
         motionSensor.stopListening()
+
+        // §6.1.1 #4. The question is about a ride that is running; leaving it on the lock screen
+        // after the ride ended makes the app look like it is still recording, which is the opposite
+        // of what this notification exists to prevent.
+        ForgottenRideNotifier.cancel()
+        stillnessStartedAt = nil
+        forgottenRideAsked = false
         state = .idle
         timer?.invalidate()
         timer = nil
@@ -463,6 +476,54 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
             LiveSharingManager.shared.stopSession(reason: "Ride ended successfully.")
         }
+
+        // §6.1.4 #22. Evaluated after the ride state is settled, so "is a ride active" is a fact
+        // rather than something read mid-teardown. A rider who finishes first and stays in the
+        // group for the back marker is doing something entirely ordinary — this tells them they are
+        // still visible; it never leaves the group for them.
+        let groupNow = GroupRideManager.shared.state
+        Task { await GroupPresenceNotifier.notifyIfStillLive(
+            groupId: groupNow.groupId,
+            groupName: groupNow.groupName,
+            isGroupLive: groupNow.isActive,
+            isRideActive: false
+        ) }
+    }
+
+    /// SCOPE_1.8.7 §6.1.1 scenario 4 — track how long the rider has been still, and ask once.
+    ///
+    /// - Parameter fixTime: the location's own timestamp, not the wall clock. A batch of fixes
+    ///   delivered late — which is exactly what happens when a suspended app is resumed — would
+    ///   otherwise look like 45 minutes of stillness compressed into a second, and the rider would
+    ///   be asked about a ride they are actively on.
+    private func updateStillness(isStill: Bool, fixTime: Date) {
+        guard isStill else {
+            // Moving again. Reset the clock but keep `forgottenRideAsked`: the policy is once per
+            // ride, and a rider who moves, stops again and gets asked a second time is being argued
+            // with by an app that already had its answer.
+            stillnessStartedAt = nil
+            ForgottenRideNotifier.cancel()
+            return
+        }
+
+        let startedAt = stillnessStartedAt ?? fixTime
+        if stillnessStartedAt == nil { stillnessStartedAt = fixTime }
+
+        let stillnessSeconds = fixTime.timeIntervalSince(startedAt)
+        guard stillnessSeconds >= 0 else { return }
+
+        guard ForgottenRideNotice.shouldAsk(
+            stillnessSeconds: stillnessSeconds,
+            alreadyAsked: forgottenRideAsked,
+            isTracking: state == .tracking
+        ) else { return }
+
+        forgottenRideAsked = true
+        let elapsedSeconds = durationInMillis / 1000
+        Task { await ForgottenRideNotifier.notifyForgottenRide(
+            elapsedSeconds: elapsedSeconds,
+            stillSince: startedAt
+        ) }
     }
 
     /// Cancels a just-started ride without finalization, cloud sync, or post-ride surfaces.
@@ -627,6 +688,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 let recentWindow = points.filter { $0.timestamp >= fifteenSecAgo }
                 isPaused = GPSProcessor.calculateAutoPause(recentPoints: recentWindow)
             } else { isPaused = false }
+
+            // §6.1.1 #4. Deliberately the raw stillness signal rather than `isPaused`: auto-pause
+            // can be switched off, and a rider who switched it off is if anything more likely to
+            // end up with a ride running in a pocket, because nothing else is watching for
+            // stillness on their behalf.
+            updateStillness(
+                isStill: isHardwareStill || isStationaryDrift,
+                fixTime: smoothedLocation.timestamp
+            )
 
             currentSpeed = effectiveSpeed
             maxSpeedMps = max(maxSpeedMps, effectiveSpeed)

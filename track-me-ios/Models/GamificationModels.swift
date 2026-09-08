@@ -19,6 +19,11 @@ public struct GamificationSnapshot: Codable, Equatable, Sendable {
     public let currentActivityCount: Int
     public let currentThresholdMinutes: Int64
     public let nextThresholdMinutes: Int64?
+    /// SCOPE_1.8.7 §6.1.2 #10b needs to *name* the next level, not just count minutes to it.
+    ///
+    /// Defaulted so the existing constructions of this snapshot are untouched — and nil at the
+    /// maximum level, where ``nextThresholdMinutes`` is nil too.
+    public let nextLevelNameKey: String?
     public let progressNumeratorMinutes: Int64
     public let progressDenominatorMinutes: Int64
     public let latestUnlockedMilestoneId: String?
@@ -32,6 +37,7 @@ public struct GamificationSnapshot: Codable, Equatable, Sendable {
         currentActivityCount: Int,
         currentThresholdMinutes: Int64,
         nextThresholdMinutes: Int64?,
+        nextLevelNameKey: String? = nil,
         progressNumeratorMinutes: Int64,
         progressDenominatorMinutes: Int64,
         latestUnlockedMilestoneId: String?,
@@ -44,6 +50,7 @@ public struct GamificationSnapshot: Codable, Equatable, Sendable {
         self.currentActivityCount = currentActivityCount
         self.currentThresholdMinutes = currentThresholdMinutes
         self.nextThresholdMinutes = nextThresholdMinutes
+        self.nextLevelNameKey = nextLevelNameKey
         self.progressNumeratorMinutes = progressNumeratorMinutes
         self.progressDenominatorMinutes = progressDenominatorMinutes
         self.latestUnlockedMilestoneId = latestUnlockedMilestoneId

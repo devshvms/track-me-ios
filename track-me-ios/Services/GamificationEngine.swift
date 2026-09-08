@@ -57,6 +57,7 @@ public enum GamificationEngine: Sendable {
             currentActivityCount: activityCount,
             currentThresholdMinutes: currentLevel.thresholdMinutes,
             nextThresholdMinutes: nextLevel?.thresholdMinutes,
+            nextLevelNameKey: nextLevel?.nameKey,
             progressNumeratorMinutes: progressNumerator,
             progressDenominatorMinutes: progressDenominator,
             latestUnlockedMilestoneId: unlockedMilestones.last,

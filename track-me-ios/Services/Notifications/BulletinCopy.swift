@@ -43,6 +43,13 @@ enum BulletinCopy {
         var versionNoteBody: String { get }
         var returnNoticeTitle: String { get }
         func returnNoticeBody(days: Int) -> String
+        var forgottenRideTitle: String { get }
+        func forgottenRideBody(elapsedMinutes: Int, stillSince: String) -> String
+        /// Used when the stillness start cannot be formatted — see the `.forgottenRide` branch.
+        func forgottenRideBodyNoTime(elapsedMinutes: Int) -> String
+        var groupStillLiveTitle: String { get }
+        func groupStillLiveBody(groupName: String) -> String
+        var groupStillLiveBodyNoName: String { get }
     }
 
     /// The rendered row, or nil when the entry cannot be described.
@@ -106,6 +113,29 @@ enum BulletinCopy {
         case .versionNote:
             guard let version = entry.fact(BulletinEntry.factTitle) else { return nil }
             return Row(title: strings.versionNoteTitle(version: version), body: strings.versionNoteBody)
+
+        case .forgottenRide:
+            guard let elapsed = entry.intFact(BulletinEntry.factElapsedMinutes) else { return nil }
+            // Same shape as `.syncProblem`: the clock time is the useful half — "no movement since
+            // 15:10" is what lets someone reconstruct what happened — but a row that vanishes
+            // because a timestamp would not format is a row that fails exactly when the ride it
+            // describes was strangest.
+            guard let since = entry.fact(formattedSince) else {
+                return Row(title: strings.forgottenRideTitle,
+                           body: strings.forgottenRideBodyNoTime(elapsedMinutes: elapsed))
+            }
+            return Row(title: strings.forgottenRideTitle,
+                       body: strings.forgottenRideBody(elapsedMinutes: elapsed, stillSince: since))
+
+        case .groupStillLive:
+            // The group name is stored because it is the only way to tell two groups apart months
+            // later, and it is text the user already sees. A group whose name did not survive still
+            // gets a row: "which group" is less important than "you were live".
+            guard let name = entry.fact(BulletinEntry.factGroupName) else {
+                return Row(title: strings.groupStillLiveTitle, body: strings.groupStillLiveBodyNoName)
+            }
+            return Row(title: strings.groupStillLiveTitle,
+                       body: strings.groupStillLiveBody(groupName: name))
         }
     }
 }

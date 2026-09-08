@@ -48,6 +48,9 @@ struct BulletinEntry: Equatable, Identifiable {
     static let factUnsyncedCount = "unsynced_count"
     static let factSinceMillis = "since_millis"
     static let factDaysAway = "days_away"
+    static let factElapsedMinutes = "elapsed_minutes"
+    static let factStillSinceMillis = "still_since_millis"
+    static let factGroupName = "group_name"
 
     func isUnread(lastSeenCreatedAtMillis: Int64?) -> Bool {
         guard let seen = lastSeenCreatedAtMillis else { return true }
@@ -90,4 +93,18 @@ enum BulletinKind: String, CaseIterable {
     /// notice that interrupted someone and then cannot be found in the feed is the exact failure
     /// the bulletin exists to prevent — they saw it, swiped it, and it is gone.
     case returnNotice = "RETURN_NOTICE"
+
+    /// §6.1.1 #4 — the app asked whether a still, still-recording ride was over.
+    ///
+    /// Kept because the answer matters after the fact: a rider who missed the notification and
+    /// finds a six-hour ride in their history is owed the record of when the app noticed and what
+    /// it asked.
+    case forgottenRide = "FORGOTTEN_RIDE"
+
+    /// §6.1.4 #22 — the rider was still in a live group after their ride ended.
+    ///
+    /// The one kind here that is about *disclosure* rather than about data. It stays in the feed
+    /// because "when was I visible, and to which group" is a question someone may want to answer
+    /// later, and a swiped notification answers nothing.
+    case groupStillLive = "GROUP_STILL_LIVE"
 }
