@@ -326,6 +326,69 @@ class TelemetryManager {
         ])
     }
     
+    // MARK: - Export / share funnel (TASK-305)
+    //
+    // The share artifact is the only channel that compounds, and until 1.8.7 it was completely
+    // dark on both platforms: sixty days of PostHog matching %export%, %replay%, %image%,
+    // %artifact%, %share% returned only the live-location link events and the account ZIP. Nobody
+    // could say whether a single route image had ever been exported.
+    //
+    // Guardrail: count exports, never contents. No coordinates, ride titles, names or emails.
+    // Byte-for-byte parity with Android's AnalyticsManager — same event names, same properties.
+
+    /// The preview opened. Top of the funnel; every ratio below is measured against it.
+    func trackExportPreviewOpened(surface: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("export_preview_opened", properties: ["surface": surface])
+    }
+
+    /// A style control changed — the control's identity, never its value. Recording the value
+    /// would make the event a description of the user's export, which the guardrail forbids.
+    func trackExportStyleChanged(control: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("export_style_changed", properties: ["control": control])
+    }
+
+    /// A render finished or failed. One event with both fields, because a render that fails after
+    /// forty seconds and one that fails instantly are different bugs.
+    func trackExportRendered(kind: String, success: Bool, durationMillis: Int64, failureReason: String? = nil) {
+        guard shouldTrack() else { return }
+        var properties: [String: Any] = [
+            "kind": kind,
+            "success": success,
+            "duration_ms": durationMillis
+        ]
+        if let failureReason { properties["failure_reason"] = failureReason }
+        PostHogSDK.shared.capture("export_rendered", properties: properties)
+    }
+
+    /// Written to Photos. A real outcome even when nothing is then shared.
+    func trackExportSavedToGallery(kind: String, success: Bool) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("export_saved_to_gallery", properties: ["kind": kind, "success": success])
+    }
+
+    /// The share sheet was presented. Distinct from `export_shared` — see that comment.
+    func trackExportShareSheetOpened(kind: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("export_share_sheet_opened", properties: ["kind": kind])
+    }
+
+    /// The user completed a share.
+    ///
+    /// Two events rather than one, for the TASK-289 reason: `group_invite_sent` fired on sheet
+    /// *presentation*, so its 2-of-42 baseline counted openings and could not separate "nobody
+    /// shared" from "everybody opened the sheet and backed out". `export_shared ÷ export_rendered`
+    /// is this task's stated success metric, and a baseline cannot be retrofitted.
+    ///
+    /// `UIActivityViewController` hands us the chosen activity type. It is **deliberately not
+    /// recorded**, matching Android: a share target is a record of what else is on someone's phone
+    /// and how they use it. Overruling that is shvm's call and should be written down.
+    func trackExportShared(kind: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("export_shared", properties: ["kind": kind])
+    }
+
     // MARK: - 5. User Authentication
     func identifyUser(userId: String) {
         guard shouldTrack() else { return }

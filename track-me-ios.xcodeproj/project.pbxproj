@@ -16,6 +16,7 @@
 		BB000000000000000000000F /* TrackMeWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* TrackMeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BB000000000000000000001B /* BrandColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* BrandColor.swift */; };
 		CC0000000000000000000002 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000000000000000000003 /* FirebaseCrashlytics */; };
+		CC0000000000000000000006 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000000000000000000007 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -107,6 +108,7 @@
 				702018E12E6FEF201B7BB950 /* FirebaseAuth in Frameworks */,
 				161D4F25E3C595034CEE4D3A /* FirebaseFirestore in Frameworks */,
 				CC0000000000000000000002 /* FirebaseCrashlytics in Frameworks */,
+				CC0000000000000000000006 /* FirebaseMessaging in Frameworks */,
 				16EA495C2A889D003036CA95 /* GoogleSignIn in Frameworks */,
 				16CD17A3EBB12F24F820700D /* PostHog in Frameworks */,
 			);
@@ -186,6 +188,7 @@
 				BE023F3E41E46AB63B7FEB31 /* FirebaseAuth */,
 				45C95C550C3CC2B63ACAC768 /* FirebaseFirestore */,
 				CC0000000000000000000003 /* FirebaseCrashlytics */,
+				CC0000000000000000000007 /* FirebaseMessaging */,
 				188E4B7AA7D5FEEFFF870518 /* GoogleSignIn */,
 				7D46285C00EE50DEBC5E9129 /* PostHog */,
 			);
@@ -504,7 +507,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -561,7 +564,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -579,7 +582,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.8.8;
 				PRODUCT_BUNDLE_IDENTIFIER = "in.shvms.track-me-iosTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -598,7 +601,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.8.8;
 				PRODUCT_BUNDLE_IDENTIFIER = "in.shvms.track-me-iosTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -617,7 +620,7 @@
 				DEVELOPMENT_TEAM = 5BS87KKKN8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TrackMeWidgets/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -641,7 +644,7 @@
 				DEVELOPMENT_TEAM = 5BS87KKKN8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = TrackMeWidgets/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -755,6 +758,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B5A0DAEEA01AC80476D73CDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCrashlytics;
+		};
+		CC0000000000000000000007 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B5A0DAEEA01AC80476D73CDC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

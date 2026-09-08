@@ -2,6 +2,126 @@
   "sourceLanguage": "en",
   "strings": {
     "": {},
+    "%1$@ activities have not reached your backup since %2$@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ actividades no han llegado a tu copia desde %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ activités n'ont pas atteint votre sauvegarde depuis %2$@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Aktivitäten haben Ihre Sicherung seit %2$@ nicht erreicht."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@ से %1$@ गतिविधियाँ आपके बैकअप तक नहीं पहुँचीं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@ 以降、%1$@ 件のアクティビティがバックアップに届いていません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自 %2$@ 起，%1$@ 次活动尚未同步到你的备份。"
+          }
+        }
+      }
+    },
+    "%1$@ activities, %2$@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ actividades, %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ activités, %2$@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Aktivitäten, %2$@."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ गतिविधियाँ, %2$@।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 件のアクティビティ、%2$@。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 次活动，%2$@。"
+          }
+        }
+      }
+    },
+    "%1$@ min recorded. No movement since %2$@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ min grabados. Sin movimiento desde las %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ min enregistrées. Aucun mouvement depuis %2$@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Min aufgezeichnet. Keine Bewegung seit %2$@."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ मिनट रिकॉर्ड हुए। %2$@ से कोई हलचल नहीं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@分を記録。%2$@から動きがありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已记录 %1$@ 分钟。自 %2$@ 起没有移动。"
+          }
+        }
+      }
+    },
     "%@ %@": {
       "localizations": {
         "en": {
@@ -171,6 +291,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ 次活动"
+          }
+        }
+      }
+    },
+    "%@ activities have not reached your cloud backup.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ actividades no han llegado a tu copia en la nube."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ activités n'ont pas atteint votre sauvegarde cloud."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Aktivitäten haben Ihre Cloud-Sicherung nicht erreicht."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ गतिविधियाँ आपके क्लाउड बैकअप तक नहीं पहुँचीं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 件のアクティビティがクラウドバックアップに届いていません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 次活动尚未同步到你的云备份。"
+          }
+        }
+      }
+    },
+    "%@ activities recorded": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ actividades registradas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ activités enregistrées"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Aktivitäten aufgezeichnet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ गतिविधियाँ दर्ज हुईं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 件のアクティビティを記録"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已记录 %@ 次活动"
           }
         }
       }
@@ -636,6 +836,46 @@
         }
       }
     },
+    "%@ min recorded, with no movement for a while.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ min grabados, sin movimiento desde hace un rato."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ min enregistrées, sans mouvement depuis un moment."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Min aufgezeichnet, seit einer Weile ohne Bewegung."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ मिनट रिकॉर्ड हुए, कुछ समय से कोई हलचल नहीं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@分を記録。しばらく動きがありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已记录 %@ 分钟，有一段时间没有移动。"
+          }
+        }
+      }
+    },
     "%@ min · %@ to go": {
       "extractionState": "manual",
       "localizations": {
@@ -878,6 +1118,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "剩余%@"
+          }
+        }
+      }
+    },
+    "%@ rides were saved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se guardaron %@ rutas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sorties ont été enregistrées"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Fahrten wurden gespeichert"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ राइड सहेजी गईं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 件のライドを保存しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存 %@ 次记录"
           }
         }
       }
@@ -1760,6 +2040,46 @@
     },
     "5m": {},
     "5s": {},
+    "A group of one is just you. Invite someone and you'll see each other on the map.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Gruppe aus einer Person bist nur du. Lade jemanden ein und ihr seht euch auf der Karte."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un grupo de uno eres solo tú. Invita a alguien y os veréis en el mapa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un groupe d’une personne, c’est juste vous. Invitez quelqu’un et vous vous verrez sur la carte."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक व्यक्ति का समूह सिर्फ़ आप हैं। किसी को आमंत्रित करें और आप एक-दूसरे को मानचित्र पर देखेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1人のグループはあなただけです。誰かを招待すると、地図でお互いが見えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有一个人的群组就只有你。邀请别人，你们就能在地图上看到彼此。"
+          }
+        }
+      }
+    },
     "A lighter recent period.": {
       "localizations": {
         "de": {
@@ -1796,6 +2116,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "最近是一段较轻松的时期。"
+          }
+        }
+      }
+    },
+    "A milestone worth noting.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un hito que vale la pena señalar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une étape qui mérite d'être notée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Meilenstein, der Erwähnung verdient."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक उल्लेखनीय पड़ाव।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録に値する節目です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个值得记录的里程碑。"
           }
         }
       }
@@ -1843,6 +2203,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "TrackMe 有新版本可用。"
+          }
+        }
+      }
+    },
+    "A newer version is available.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hay una versión más reciente disponible."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une version plus récente est disponible."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine neuere Version ist verfügbar."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक नया संस्करण उपलब्ध है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいバージョンが利用できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版本可用。"
           }
         }
       }
@@ -2051,6 +2451,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "活动"
+          }
+        }
+      }
+    },
+    "Activity reminder": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorio de actividad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappel d'activité"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivitätserinnerung"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गतिविधि अनुस्मारक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティビティのリマインダー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活动提醒"
           }
         }
       }
@@ -3701,47 +4141,6 @@
         }
       }
     },
-    "Cancel Emergency SOS": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notruf SOS abbrechen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar SOS de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annuler le SOS d'urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन SOS रद्द करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急SOSをキャンセル"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消紧急求救"
-          }
-        }
-      }
-    },
     "Cannot send SMS": {
       "extractionState": "stale",
       "localizations": {
@@ -4093,6 +4492,46 @@
         }
       }
     },
+    "Clear": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साफ़ करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "消去"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除"
+          }
+        }
+      }
+    },
     "Clear status": {
       "extractionState": "manual",
       "localizations": {
@@ -4315,6 +4754,46 @@
         }
       }
     },
+    "Cloud backup is not working": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copia en la nube no funciona"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sauvegarde cloud ne fonctionne pas"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Cloud-Sicherung funktioniert nicht"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्लाउड बैकअप काम नहीं कर रहा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クラウドバックアップが機能していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "云备份未在工作"
+          }
+        }
+      }
+    },
     "Code": {
       "localizations": {
         "de": {
@@ -4479,47 +4958,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "社区"
-          }
-        }
-      }
-    },
-    "Configure Emergency Setup": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notfall einrichten"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configurar emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configurer les urgences"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन सेटअप कॉन्फ़िगर करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急設定を構成"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "配置紧急设置"
           }
         }
       }
@@ -5486,6 +5924,46 @@
         }
       }
     },
+    "Day": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Día"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jour"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दिन"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曜日"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "星期"
+          }
+        }
+      }
+    },
     "Delete": {
       "localizations": {
         "de": {
@@ -6434,47 +6912,6 @@
         }
       }
     },
-    "Double tap to start the ten second SOS countdown": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zum Starten des zehnsekündigen SOS-Countdowns doppeltippen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toca dos veces para iniciar la cuenta atrás de SOS de diez segundos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Touchez deux fois pour lancer le compte à rebours SOS de dix secondes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दस सेकंड का SOS काउंटडाउन शुरू करने के लिए डबल टैप करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダブルタップで10秒間のSOSカウントダウンを開始"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "双击开始十秒求救倒计时"
-          }
-        }
-      }
-    },
     "Download All My Data (GPX/JSON Archive)": {
       "localizations": {
         "de": {
@@ -6799,129 +7236,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "累计爬升"
-          }
-        }
-      }
-    },
-    "Emergency Contacts": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notfallkontakte"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contactos de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contacts d’urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन संपर्क"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急連絡先"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紧急联系人"
-          }
-        }
-      }
-    },
-    "Emergency SOS": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notruf SOS"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS d'urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन SOS"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急SOS"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紧急求救"
-          }
-        }
-      }
-    },
-    "Emergency Setup": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notfalleinrichtung"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configuración de emergencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configuration d’urgence"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपातकालीन सेटअप"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急設定"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紧急设置"
           }
         }
       }
@@ -7648,6 +7962,46 @@
       "comment": "Label for the last location in a map view.",
       "isCommentAutoGenerated": true
     },
+    "Finish ride": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finalizar actividad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminer la sortie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivität beenden"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गतिविधि समाप्त करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティビティを終了"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束活动"
+          }
+        }
+      }
+    },
     "Finish setup": {
       "extractionState": "stale",
       "localizations": {
@@ -8041,6 +8395,46 @@
       }
     },
     "Frequency": {},
+    "From the active minutes you have recorded.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Según los minutos activos que has registrado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D'après les minutes actives que vous avez enregistrées."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus den aktiven Minuten, die Sie aufgezeichnet haben."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके दर्ज किए गए सक्रिय मिनटों के आधार पर।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録された活動時間に基づいています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据你记录的活动时长。"
+          }
+        }
+      }
+    },
     "Fuel stop": {
       "extractionState": "manual",
       "localizations": {
@@ -9454,53 +9848,6 @@
         }
       }
     },
-    "I understand": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ich verstehe"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I understand"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entiendo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "J'ai compris"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मैं समझता/समझती हूँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "理解しました"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我知道了"
-          }
-        }
-      }
-    },
     "Identical ride already exists": {
       "extractionState": "stale",
       "localizations": {
@@ -10303,6 +10650,46 @@
         }
       }
     },
+    "Keep recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir grabando"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer l'enregistrement"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter aufzeichnen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिकॉर्डिंग जारी रखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録を続ける"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续记录"
+          }
+        }
+      }
+    },
     "Kilometers (km)": {
       "extractionState": "stale",
       "localizations": {
@@ -10559,6 +10946,46 @@
         }
       }
     },
+    "Last week": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La semana pasada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La semaine dernière"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Woche"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछला हफ़्ता"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先週"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上周"
+          }
+        }
+      }
+    },
     "Later": {
       "extractionState": "manual",
       "localizations": {
@@ -10683,6 +11110,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "纬度"
+          }
+        }
+      }
+    },
+    "Learn more": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más información"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En savoir plus"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr erfahren"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "और जानें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詳しく見る"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "了解更多"
           }
         }
       }
@@ -13722,6 +14189,46 @@
         }
       }
     },
+    "Nothing to report. Anything TrackMe needs to tell you shows up here.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada que informar. Lo que TrackMe necesite decirte aparecerá aquí."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien à signaler. Ce que TrackMe doit vous dire apparaîtra ici."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts zu berichten. Was TrackMe Ihnen sagen muss, erscheint hier."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बताने के लिए कुछ नहीं। TrackMe को जो कहना होगा वह यहाँ दिखेगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お知らせはありません。TrackMe からの連絡はここに表示されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无内容。TrackMe 需要告诉你的事情会显示在这里。"
+          }
+        }
+      }
+    },
     "Notification authorization": {
       "extractionState": "stale",
       "localizations": {
@@ -14163,6 +14670,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "在 iPhone 上将位置访问设为始终允许，并检查低电量模式和后台 App 刷新。"
+          }
+        }
+      }
+    },
+    "One reminder a week, at a time you choose. Off unless you turn it on.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un recordatorio por semana, a la hora que elijas. Desactivado hasta que lo actives."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un rappel par semaine, à l'heure de votre choix. Désactivé tant que vous ne l'activez pas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Erinnerung pro Woche, zu einer Zeit deiner Wahl. Aus, bis du sie einschaltest."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सप्ताह में एक अनुस्मारक, आपके चुने समय पर। जब तक आप चालू न करें, बंद रहेगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "週に1回、選んだ時間に。オンにするまでは無効です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周一次提醒，时间由你选择。除非开启，否则不会发送。"
           }
         }
       }
@@ -15619,6 +16166,46 @@
         }
       }
     },
+    "Record a few activities and we can suggest a time.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Graba algunas actividades y podremos sugerirte una hora."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrez quelques activités et nous pourrons vous suggérer une heure."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeichne ein paar Aktivitäten auf, dann können wir eine Zeit vorschlagen."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुछ गतिविधियाँ रिकॉर्ड करें, फिर हम समय सुझा सकेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティビティをいくつか記録すると、時間を提案できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记录几次活动后，我们就能建议时间。"
+          }
+        }
+      }
+    },
     "Recording details": {
       "localizations": {
         "de": {
@@ -15655,6 +16242,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "记录详情"
+          }
+        }
+      }
+    },
+    "Recording stopped at %1$@ because the app was closed. %2$@ was kept.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación se detuvo a las %1$@ porque la app se cerró. Se conservaron %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'enregistrement s'est arrêté à %1$@ car l'app s'est fermée. %2$@ ont été conservés."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufzeichnung endete um %1$@, weil die App geschlossen wurde. %2$@ wurden behalten."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐप बंद होने से रिकॉर्डिंग %1$@ पर रुक गई। %2$@ सहेजा गया।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリが終了したため %1$@ に記録が停止しました。%2$@ を保存しています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用关闭，记录于 %1$@ 停止。已保留 %2$@。"
           }
         }
       }
@@ -15696,6 +16323,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "常行者"
+          }
+        }
+      }
+    },
+    "Remind me weekly": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordármelo cada semana"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me rappeler chaque semaine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wöchentlich erinnern"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साप्ताहिक याद दिलाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎週リマインドする"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周提醒我"
           }
         }
       }
@@ -16384,6 +17051,53 @@
         }
       }
     },
+    "Ride storage is unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrtspeicher ist nicht verfügbar"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride storage is unavailable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El almacenamiento de actividades no está disponible"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le stockage des activités est indisponible"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइड स्टोरेज उपलब्ध नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライドストレージを利用できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "骑行存储不可用"
+          }
+        }
+      }
+    },
     "Ride together": {
       "extractionState": "manual",
       "localizations": {
@@ -16764,129 +17478,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "跑步—出现问题"
-          }
-        }
-      }
-    },
-    "SOS Sent": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS gesendet"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS enviado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS envoyé"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS भेजा गया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSを送信しました"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS已发送"
-          }
-        }
-      }
-    },
-    "SOS cancelled": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS abgebrochen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS cancelado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS annulé"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS रद्द किया गया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSをキャンセルしました"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已取消求救"
-          }
-        }
-      }
-    },
-    "SOS countdown started. Double tap to cancel.": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS-Countdown gestartet. Zum Abbrechen doppeltippen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cuenta atrás de SOS iniciada. Toca dos veces para cancelar."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Compte à rebours SOS démarré. Touchez deux fois pour annuler."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS काउंटडाउन शुरू हुआ। रद्द करने के लिए डबल टैप करें।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSカウントダウンを開始しました。ダブルタップでキャンセル。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "求救倒计时已开始。双击取消。"
           }
         }
       }
@@ -17500,47 +18091,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "设置状态"
-          }
-        }
-      }
-    },
-    "Set up emergency contacts to use SOS": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Richten Sie Notfallkontakte ein, um SOS zu verwenden"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configura contactos de emergencia para usar SOS"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configurez des contacts d'urgence pour utiliser SOS"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOS का उपयोग करने के लिए आपातकालीन संपर्क सेट करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SOSを使用するには緊急連絡先を設定してください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置紧急联系人以使用SOS"
           }
         }
       }
@@ -20096,6 +20646,46 @@
         }
       }
     },
+    "Still recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando todavía"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement en cours"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nimmt weiter auf"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी भी रिकॉर्ड हो रहा है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録を継続中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仍在记录"
+          }
+        }
+      }
+    },
     "Stop Sharing": {
       "extractionState": "stale",
       "localizations": {
@@ -20231,6 +20821,52 @@
         }
       }
     },
+    "Stop these": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Hinweise stoppen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop these"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detener estos avisos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter ces rappels"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ये सूचनाएँ बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この通知を停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止此类通知"
+          }
+        }
+      }
+    },
     "Stop tracking": {
       "extractionState": "stale",
       "localizations": {
@@ -20315,6 +20951,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "存储空间不足"
+          }
+        }
+      }
+    },
+    "Suggested from your history: %1$@, %2$@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sugerido a partir de tu historial: %1$@, %2$@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggéré d'après votre historique : %1$@, %2$@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus deinem Verlauf vorgeschlagen: %1$@, %2$@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके इतिहास से सुझाया गया: %1$@, %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴からの提案: %1$@ %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据你的历史记录建议：%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Sunset in %@ min": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anochece en %@ min"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coucher du soleil dans %@ min"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonnenuntergang in %@ Min"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ मिनट में सूर्यास्त"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あと %@ 分で日没"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 分钟后日落"
           }
         }
       }
@@ -20657,49 +21373,82 @@
         }
       }
     },
-    "The SOS button has been removed": {
-      "extractionState": "stale",
+    "The app closed while they were recording. They were finished and kept.": {
       "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die SOS-Taste wurde entfernt"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The SOS button has been removed"
-          }
-        },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se eliminó el botón SOS"
+            "value": "La app se cerró mientras se grababan. Se finalizaron y se conservaron."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le bouton SOS a été supprimé"
+            "value": "L'app s'est fermée pendant l'enregistrement. Elles ont été terminées et conservées."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App wurde während der Aufzeichnung geschlossen. Sie wurden beendet und behalten."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "SOS बटन हटा दिया गया है"
+            "value": "रिकॉर्डिंग के दौरान ऐप बंद हो गया। उन्हें पूरा करके सहेज लिया गया।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "SOSボタンは削除されました"
+            "value": "記録中にアプリが終了しました。すべて終了して保存しています。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "SOS 按钮已移除"
+            "value": "记录期间应用关闭，已全部结束并保留。"
+          }
+        }
+      }
+    },
+    "The app closed while you were recording, so the ride was finished and kept.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La app se cerró mientras grababas, así que la ruta se finalizó y se conservó."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app s'est fermée pendant l'enregistrement ; la sortie a été terminée et conservée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App wurde während der Aufzeichnung geschlossen, die Fahrt wurde beendet und behalten."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिकॉर्डिंग के दौरान ऐप बंद हो गया, इसलिए राइड पूरी करके सहेज ली गई।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録中にアプリが終了したため、ライドを終了して保存しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记录期间应用关闭，已结束并保留这次记录。"
           }
         }
       }
@@ -21580,6 +22329,46 @@
         }
       }
     },
+    "This one takes you past %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta te lleva más allá de %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Celle-ci vous fait dépasser %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese bringt dich über %@ hinaus."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह आपको %@ के पार ले जाएगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これで%@を超えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一次将带你越过 %@。"
+          }
+        }
+      }
+    },
     "This ride is already in your history": {
       "localizations": {
         "de": {
@@ -21868,6 +22657,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "剩余时间"
+          }
+        }
+      }
+    },
+    "Time of day": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heure"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uhrzeit"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समय"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時刻"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时间"
           }
         }
       }
@@ -22258,6 +23087,53 @@
         }
       }
     },
+    "TrackMe could not safely open your saved rides. Recording is disabled so a new ride cannot be lost. Restart the app; if this continues, contact support.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe konnte deine gespeicherten Fahrten nicht sicher öffnen. Die Aufzeichnung ist deaktiviert, damit keine neue Fahrt verloren geht. Starte die App neu. Wenn das Problem weiterhin besteht, kontaktiere den Support."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe could not safely open your saved rides. Recording is disabled so a new ride cannot be lost. Restart the app; if this continues, contact support."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe no pudo abrir de forma segura tus actividades guardadas. La grabación está desactivada para evitar que se pierda una actividad nueva. Reinicia la app; si el problema continúa, contacta con soporte."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe n’a pas pu ouvrir vos activités enregistrées en toute sécurité. L’enregistrement est désactivé afin qu’aucune nouvelle activité ne soit perdue. Redémarrez l’app ; si le problème persiste, contactez l’assistance."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe आपकी सेव की गई राइड सुरक्षित रूप से नहीं खोल सका। नई राइड खोने से बचाने के लिए रिकॉर्डिंग बंद है। ऐप को फिर से शुरू करें; समस्या बनी रहे तो सहायता से संपर्क करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMeは保存済みのライドを安全に開けませんでした。新しいライドが失われないよう、記録は無効になっています。アプリを再起動し、問題が続く場合はサポートに連絡してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe 无法安全打开已保存的骑行记录。为避免新的骑行记录丢失，记录功能已停用。请重新启动 App；如果问题仍然存在，请联系支持。"
+          }
+        }
+      }
+    },
     "TrackMe drains my battery.": {
       "extractionState": "stale",
       "localizations": {
@@ -22381,53 +23257,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "TrackMe 面向成人用户，根据我们的隐私政策，未满 18 岁的用户无法使用。如果你认为这是错误，请联系我们。"
-          }
-        }
-      }
-    },
-    "TrackMe no longer includes in-app SOS or automatic SMS alerts. Your saved emergency contacts were removed from this device. For a real emergency, use your phone's built-in Emergency SOS or call local emergency services.": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe enthält keine SOS-Funktion und keine automatischen SMS-Warnungen mehr. Deine gespeicherten Notfallkontakte wurden von diesem Gerät entfernt. Verwende in einem echten Notfall die integrierte Notruf-SOS-Funktion deines Telefons oder rufe den örtlichen Notdienst an."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe no longer includes in-app SOS or automatic SMS alerts. Your saved emergency contacts were removed from this device. For a real emergency, use your phone's built-in Emergency SOS or call local emergency services."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe ya no incluye SOS dentro de la app ni alertas SMS automáticas. Tus contactos de emergencia guardados se eliminaron de este dispositivo. En una emergencia real, usa el SOS integrado del teléfono o llama a los servicios de emergencia locales."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe n'inclut plus de SOS intégré ni d'alertes SMS automatiques. Vos contacts d'urgence enregistrés ont été supprimés de cet appareil. En cas d'urgence réelle, utilisez le SOS intégré à votre téléphone ou appelez les secours locaux."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe में अब ऐप के अंदर SOS या अपने-आप भेजे जाने वाले SMS अलर्ट शामिल नहीं हैं। आपके सहेजे गए आपातकालीन संपर्क इस डिवाइस से हटा दिए गए हैं। वास्तविक आपात स्थिति में फ़ोन के अंतर्निहित Emergency SOS का उपयोग करें या स्थानीय आपातकालीन सेवाओं को कॉल करें।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMeではアプリ内SOSと自動SMS通知を利用できなくなりました。このデバイスに保存されていた緊急連絡先は削除されました。実際の緊急時には、電話に内蔵された緊急SOSを使用するか、地域の緊急サービスに連絡してください。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TrackMe 不再提供应用内 SOS 或自动短信提醒。你保存的紧急联系人已从此设备中删除。如遇真正的紧急情况，请使用手机内置的紧急 SOS，或拨打当地急救电话。"
           }
         }
       }
@@ -23397,6 +24226,46 @@
         }
       }
     },
+    "Use this": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar esto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übernehmen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसे उपयोग करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これを使う"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用此建议"
+          }
+        }
+      }
+    },
     "Value": {
       "comment": "The speed value is normalized to a range of 0-1.",
       "isCommentAutoGenerated": true
@@ -23848,6 +24717,46 @@
         }
       }
     },
+    "What's new": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novedades"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveautés"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuigkeiten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया क्या है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お知らせ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新动态"
+          }
+        }
+      }
+    },
     "When active, your location, speed, and battery level are shared securely.\n\n• Coordinates are pushed every %@.\n• Max concurrent viewers is determined by server capability (default: 100+ viewers).\n• Sharing automatically stops when the timer expires or you end your ride.": {
       "extractionState": "stale",
       "localizations": {
@@ -24117,53 +25026,6 @@
         }
       }
     },
-    "Yes. Recording is local-first. A connection is needed only for cloud sync, live sharing, and SOS.": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ja. Die Aufzeichnung erfolgt lokal. Eine Verbindung ist nur für Cloud-Sync, Live-Share und SOS nötig."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yes. Recording is local-first. A connection is needed only for cloud sync, live sharing, and SOS."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sí. La grabación es local. Solo se necesita conexión para sincronizar, compartir en vivo y SOS."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oui. L'enregistrement est local. Une connexion est nécessaire uniquement pour la synchronisation, le partage en direct et le SOS."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हां। रिकॉर्डिंग पहले स्थानीय होती है। कनेक्शन केवल क्लाउड सिंक, लाइव शेयर और SOS के लिए चाहिए।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "はい。記録はまず端末に保存されます。接続はクラウド同期、ライブ共有、SOSにのみ必要です。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可以。记录优先保存在本地。仅云同步、实时共享和 SOS 需要连接。"
-          }
-        }
-      }
-    },
     "Yesterday": {
       "extractionState": "stale",
       "localizations": {
@@ -24289,6 +25151,126 @@
           "stringUnit": {
             "state": "translated",
             "value": "当前位置"
+          }
+        }
+      }
+    },
+    "You are still sharing with a group": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigues compartiendo con un grupo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous partagez toujours avec un groupe"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du teilst weiterhin mit einer Gruppe"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप अब भी एक समूह के साथ साझा कर रहे हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループとの共有が続いています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你仍在与群组共享位置"
+          }
+        }
+      }
+    },
+    "You asked to be reminded at this time.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pediste que te recordáramos a esta hora."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez demandé un rappel à cette heure."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast um eine Erinnerung zu dieser Zeit gebeten."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने इस समय याद दिलाने के लिए कहा था।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この時間に通知するよう設定されています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你设置了在此时间提醒。"
+          }
+        }
+      }
+    },
+    "You reached %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alcanzaste %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez atteint %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie haben %@ erreicht"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने %@ हासिल किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に到達しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你达到了 %@"
           }
         }
       }
@@ -24501,6 +25483,46 @@
         }
       }
     },
+    "You're the only one here": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du bist allein hier"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eres el único aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous êtes seul ici"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यहाँ सिर्फ़ आप हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだあなただけです"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前只有你一个人"
+          }
+        }
+      }
+    },
     "You're up to date": {
       "extractionState": "manual",
       "localizations": {
@@ -24544,6 +25566,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "You're up to date"
+          }
+        }
+      }
+    },
+    "Your %@ reminder": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu recordatorio de %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre rappel %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine %@-Erinnerung"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका %@ अनुस्मारक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のリマインダー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的%@提醒"
           }
         }
       }
@@ -24628,6 +25690,46 @@
         }
       }
     },
+    "Your last recorded activity was %@ days ago. Everything you recorded is still on your phone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu última actividad registrada fue hace %@ días. Todo lo que grabaste sigue en tu teléfono."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre dernière activité enregistrée date de %@ jours. Tout ce que vous avez enregistré est toujours sur votre téléphone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre letzte aufgezeichnete Aktivität war vor %@ Tagen. Alles Aufgezeichnete ist weiterhin auf Ihrem Telefon."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी आखिरी दर्ज गतिविधि %@ दिन पहले थी। आपका दर्ज किया सब कुछ अब भी आपके फ़ोन में है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後に記録したアクティビティは %@ 日前です。記録した内容はすべて端末に残っています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次记录的活动是在 %@ 天前。你记录的一切仍保存在手机上。"
+          }
+        }
+      }
+    },
     "Your recent distance was steady.": {
       "localizations": {
         "de": {
@@ -24664,6 +25766,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "你最近的距离保持稳定。"
+          }
+        }
+      }
+    },
+    "Your ride ended, but you are still visible in %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu actividad terminó, pero sigues visible en %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre sortie est terminée, mais vous restez visible dans %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Aktivität ist beendet, aber du bist in %@ weiterhin sichtbar."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी गतिविधि समाप्त हो गई, लेकिन आप %@ में अब भी दिख रहे हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティビティは終了しましたが、%@ではまだ表示されています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的活动已结束，但在 %@ 中仍然可见。"
+          }
+        }
+      }
+    },
+    "Your ride ended, but you are still visible in a live group.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu actividad terminó, pero sigues visible en un grupo activo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre sortie est terminée, mais vous restez visible dans un groupe actif."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Aktivität ist beendet, aber du bist in einer aktiven Gruppe weiterhin sichtbar."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी गतिविधि समाप्त हो गई, लेकिन आप एक सक्रिय समूह में अब भी दिख रहे हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティビティは終了しましたが、アクティブなグループではまだ表示されています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的活动已结束，但在活跃群组中仍然可见。"
           }
         }
       }
@@ -24711,6 +25893,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "您的骑行达到9,000个点并已自动拆分。"
+          }
+        }
+      }
+    },
+    "Your ride was saved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu ruta se ha guardado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre sortie a été enregistrée"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Fahrt wurde gespeichert"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी राइड सहेज ली गई"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライドを保存しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的记录已保存"
+          }
+        }
+      }
+    },
+    "Your rides are still here": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus rutas siguen aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos sorties sont toujours là"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Fahrten sind noch da"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी राइड्स यहीं हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録はそのまま残っています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的记录都还在"
           }
         }
       }

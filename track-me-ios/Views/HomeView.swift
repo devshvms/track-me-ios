@@ -20,6 +20,17 @@ struct HomeView: View {
     private var unsyncedRides: [Ride]
     @State private var position: MapCameraPosition = .region(HomeMapCamera.neutralRegion)
     @State private var mapRegion: MKCoordinateRegion?
+    /// §6.1.6 #28. Recomputed when the view appears rather than continuously: sunset moves by
+    /// about a minute a day, and a timer for it would cost more than the fact is worth.
+    @State private var minutesUntilSunset: Int?
+
+    // §6.1.2 #10b — "This one takes you past Explorer."
+    //
+    // In-app only, and that is a design constraint rather than an implementation detail. Scenario 10
+    // — the same sentence as a scheduled notification — was cut for implying "go exert yourself now,
+    // because the app is counting". The moment this line can reach someone who has not opened the
+    // app, it becomes that.
+    @State private var startProximity: StartButtonProximity.Line?
     @SceneStorage("home.camera_follow_mode") private var cameraFollowMode = true
     @State private var hasFollowCameraPosition = false
     @State private var mapStyle: TrackMeMapStyle = .standard
@@ -254,6 +265,26 @@ struct HomeView: View {
 
             VStack(spacing: 10) {
                 if trackingManager.state == .idle {
+                    // §6.1.6 #28 — the one moment the fact is actionable: the rider has not set off
+                    // yet and is deciding. A fact and a number, no advice — whether that is enough
+                    // daylight is their call, and an app that adds "be careful" is saying something
+                    // it cannot know. Absent entirely when sunset is far away, already past, or
+                    // when there is no cached fix to compute it from.
+                    if let minutes = minutesUntilSunset {
+                        Text(LocalizationHelper.formatted("Sunset in %@ min", String(minutes)))
+                            .font(.caption.weight(.medium))
+                            .foregroundColor(.secondary)
+                    }
+                    // §6.1.2 #10b. Sits with the sunset line because both are the same kind of
+                    // thing: a fact only worth stating in the seconds before someone sets off,
+                    // stated once and never chased.
+                    if let proximity = startProximity {
+                        Text(LocalizationHelper.formatted(
+                            "This one takes you past %@.", proximity.levelName
+                        ))
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.secondary)
+                    }
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
                         preselectedPersona: selectedDashboardPersona,
@@ -505,8 +536,36 @@ struct HomeView: View {
                 trackedInsightValue = nil
             }
         }
+        // §6.1.2 #10b. The answer depends on how long this rider typically rides *this* activity,
+        // so switching persona at the start button has to re-ask the question — a line computed for
+        // a walk and left on screen for a cycle is a prediction about the wrong ride.
+        .onChange(of: selectedDashboardPersona) { _, persona in
+            startProximity = RideHistoryProfileSource.startButtonProximityLine(
+                context: modelContext,
+                persona: persona
+            )
+        }
         .onAppear {
+            // §6.1.6 #28: computed from the fix iOS already has. No new request, no new
+            // subscription, no new permission — reading `CLLocationManager.location` is free when
+            // the app is already authorised, and nil when it is not, in which case nothing shows.
+            if let here = trackingManager.cachedCoarseLocation {
+                let now = Calendar.current.dateComponents([.hour, .minute], from: Date())
+                minutesUntilSunset = SunsetCalculator.minutesUntilSunset(
+                    latitude: here.latitude,
+                    longitude: here.longitude,
+                    dayOfYear: Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1,
+                    minutesAfterLocalMidnightNow: (now.hour ?? 0) * 60 + (now.minute ?? 0),
+                    utcOffsetMinutes: SunsetCalculator.utcOffsetMinutes()
+                )
+            }
             selectedDashboardPersona = DashboardPersonaPreference.selected()
+            // §6.1.2 #10b. Purely local: a SwiftData read and two pure functions, no network and
+            // no new permission.
+            startProximity = RideHistoryProfileSource.startButtonProximityLine(
+                context: modelContext,
+                persona: selectedDashboardPersona
+            )
             updateFollowCamera()
             trackDashboardEntryIfNeeded()
         }
