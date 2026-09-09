@@ -286,14 +286,6 @@ struct HomeView: View {
                         .font(.caption.weight(.medium))
                         .foregroundColor(.secondary)
                     }
-                    Button {
-                        showDashboardPersonaPicker = true
-                    } label: {
-                        Label(LocalizationHelper.localized(selectedDashboardPersona.displayName),
-                            systemImage: "chevron.down")
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityHint(LocalizationHelper.localized("Change activity"))
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
                         preselectedPersona: selectedDashboardPersona,
@@ -1796,6 +1788,15 @@ struct RadialStartTrackingControl: View {
             let showPersonas = isExpanded || launchState.isPending
 
             ZStack {
+                if !showPersonas {
+                    Button(action: onOpenAllPersonas) {
+                        Label(LocalizationHelper.localized(preselectedPersona.displayName),
+                            systemImage: "chevron.down")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityHint(LocalizationHelper.localized("Change activity"))
+                    .position(x: center.x, y: center.y - 80)
+                }
                 ForEach(Array(personas.enumerated()), id: \.element) { index, persona in
                     Button {
                         startPersonaImmediately(persona)
@@ -1868,28 +1869,28 @@ struct RadialStartTrackingControl: View {
                             handleDragEnded(value, center: center)
                         }
                 )
+                .accessibilityLabel(LocalizationHelper.localized("Start tracking"))
+                .accessibilityValue(LocalizationHelper.localized(
+                    (hoveredPersona ?? preselectedPersona).displayName
+                ))
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    if launchState.isPending {
+                        commitPendingLaunch()
+                    } else {
+                        beginLaunch(preselectedPersona, awaitsPersonaChoice: true)
+                    }
+                }
+                .accessibilityActions {
+                    Button(LocalizationHelper.localized("Auto")) { startPersonaImmediately(.auto) }
+                    ForEach(personas, id: \.self) { persona in
+                        Button(LocalizationHelper.localized(persona.displayName)) { startPersonaImmediately(persona) }
+                    }
+                }
             }
             .coordinateSpace(name: "radialStart")
         }
         .frame(width: 300, height: 260)
-        .accessibilityLabel(LocalizationHelper.localized("Start tracking"))
-        .accessibilityValue(LocalizationHelper.localized(
-            (hoveredPersona ?? preselectedPersona).displayName
-        ))
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction {
-            if launchState.isPending {
-                commitPendingLaunch()
-            } else {
-                beginLaunch(preselectedPersona, awaitsPersonaChoice: true)
-            }
-        }
-        .accessibilityActions {
-            Button(LocalizationHelper.localized("Auto")) { startPersonaImmediately(.auto) }
-            ForEach(personas, id: \.self) { persona in
-                Button(LocalizationHelper.localized(persona.displayName)) { startPersonaImmediately(persona) }
-            }
-        }
         .task(id: launchState.pendingToken) {
             guard let token = launchState.pendingToken else { return }
             let persona = pendingPersona

@@ -178,17 +178,10 @@ struct HomeDashboardDeck: View {
     private var groupRideCard: some View {
         DashboardCard {
             VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: "person.2.circle").font(.system(size: 36)).foregroundStyle(BrandColor.primary)
                 HStack {
-                    Label(
-                        groupActive
-                            ? "\(LocalizationHelper.localized("Group session active")) • "
-                                + LocalizationHelper.formatted("%@ members", String(groupMemberCount))
-                            : LocalizationHelper.localized("Ride together"),
-                        systemImage: "person.2.fill"
-                    )
-                    .font(.headline)
-                    .foregroundStyle(BrandColor.primary)
+                    Image(systemName: "person.2.circle")
+                        .font(.system(size: 36)).foregroundStyle(BrandColor.primary)
+                        .accessibilityHidden(true)
 
                     if !groupActive {
                         Spacer()
@@ -203,6 +196,13 @@ struct HomeDashboardDeck: View {
                         .accessibilityLabel(LocalizationHelper.localized("How group rides work"))
                     }
                 }
+                Text(groupActive
+                    ? "\(LocalizationHelper.localized("Group session active")) • "
+                        + LocalizationHelper.formatted("%@ members", String(groupMemberCount))
+                    : LocalizationHelper.localized("Ride together"))
+                    .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
 
                 if !groupActive && showHowItWorks {
                     Text(LocalizationHelper.localized(
