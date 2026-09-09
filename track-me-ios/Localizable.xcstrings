@@ -1,6 +1,286 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Open groups": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir grupos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir les groupes"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppen öffnen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह खोलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを開く"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开群组"
+          }
+        }
+      }
+    },
+    "Set up sharing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करना सेट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有を設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置共享"
+          }
+        }
+      }
+    },
+    "Manage sharing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gérer le partage"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabe verwalten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करना प्रबंधित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有を管理"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理共享"
+          }
+        }
+      }
+    },
+    "Start sharing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar a compartir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Démarrer le partage"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabe starten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करना शुरू करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有を開始"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始共享"
+          }
+        }
+      }
+    },
+    "Stop sharing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dejar de compartir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter le partage"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabe beenden"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करना बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有を停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止共享"
+          }
+        }
+      }
+    },
+    "Prepare a link valid for 30 minutes. Your location appears while recording. Anyone with the link can view it. Opening this page shares nothing.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepara un enlace válido durante 30 minutos. Tu ubicación aparece al grabar. Cualquiera con el enlace puede verla. Abrir esta página no comparte nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Préparez un lien valable 30 minutes. Votre position apparaît pendant l’enregistrement. Toute personne ayant le lien peut la voir. Ouvrir cette page ne partage rien."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstelle einen Link für 30 Minuten. Dein Standort erscheint während der Aufzeichnung. Jeder mit dem Link kann ihn sehen. Das Öffnen dieser Seite teilt nichts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 मिनट के लिए मान्य लिंक बनाएँ। रिकॉर्डिंग के दौरान आपका स्थान दिखेगा। लिंक वाला कोई भी व्यक्ति देख सकता है। यह पेज खोलने से कुछ साझा नहीं होता।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30分間有効なリンクを準備します。記録中に位置が表示され、リンクを持つ人が閲覧できます。このページを開くだけでは共有されません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "准备一个有效期为30分钟的链接。记录时显示你的位置，持有链接的人均可查看。打开此页面不会共享任何内容。"
+          }
+        }
+      }
+    },
+    "Off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बंद"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
     "": {},
     "%1$@ activities have not reached your backup since %2$@.": {
       "localizations": {
@@ -14674,42 +14954,42 @@
         }
       }
     },
-    "One reminder a week, at a time you choose. Off unless you turn it on.": {
+    "Reminders on the days and at the time you choose. Off unless you turn them on.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un recordatorio por semana, a la hora que elijas. Desactivado hasta que lo actives."
+            "value": "Recordatorios los días y a la hora que elijas. Desactivados hasta que los actives."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un rappel par semaine, à l'heure de votre choix. Désactivé tant que vous ne l'activez pas."
+            "value": "Des rappels aux jours et à l’heure de votre choix. Désactivés tant que vous ne les activez pas."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Eine Erinnerung pro Woche, zu einer Zeit deiner Wahl. Aus, bis du sie einschaltest."
+            "value": "Erinnerungen an den gewählten Tagen und zur gewählten Uhrzeit. Aus, bis du sie einschaltest."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "सप्ताह में एक अनुस्मारक, आपके चुने समय पर। जब तक आप चालू न करें, बंद रहेगा।"
+            "value": "आपके चुने दिनों और समय पर अनुस्मारक। चालू करने तक बंद रहेंगे।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "週に1回、選んだ時間に。オンにするまでは無効です。"
+            "value": "選んだ曜日と時間にリマインドします。オンにするまでは無効です。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每周一次提醒，时间由你选择。除非开启，否则不会发送。"
+            "value": "在你选择的日期和时间提醒。开启后才会发送。"
           }
         }
       }

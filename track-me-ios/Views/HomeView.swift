@@ -39,6 +39,7 @@ struct HomeView: View {
     @Bindable var networkMonitor = NetworkMonitor.shared
     @ObservedObject private var unitSettings = UnitSettings.shared
     @State private var liveSharingManager = LiveSharingManager.shared
+    @State private var showHomeSharing = false
     @Bindable private var groupRide = GroupRideManager.shared
     @State private var liveShareSharePayload: LiveShareSharePayload?
     @State private var showGroupSheet = false
@@ -285,6 +286,14 @@ struct HomeView: View {
                         .font(.caption.weight(.medium))
                         .foregroundColor(.secondary)
                     }
+                    Button {
+                        showDashboardPersonaPicker = true
+                    } label: {
+                        Label(LocalizationHelper.localized(selectedDashboardPersona.displayName),
+                            systemImage: "chevron.down")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityHint(LocalizationHelper.localized("Change activity"))
                     RadialStartTrackingControl(
                         launchState: $rideStartLaunch,
                         preselectedPersona: selectedDashboardPersona,
@@ -399,7 +408,7 @@ struct HomeView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.bottom, 12)
+            .padding(.bottom, trackingManager.state == .idle ? 12 : 4)
             .animation(
                 reduceMotion ? nil : .timingCurve(0.4, 0, 0.2, 1, duration: 0.3),
                 value: presentationMode
@@ -407,6 +416,37 @@ struct HomeView: View {
         }
         .sheet(item: $liveShareSharePayload) { payload in
             ActivityView(activityItems: [payload.url])
+        }
+        .sheet(isPresented: $showHomeSharing) {
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 20) {
+                    Label(LocalizationHelper.localized("Live sharing"), systemImage: "location.circle")
+                        .font(.title2)
+                    Text(LocalizationHelper.localized("Prepare a link valid for 30 minutes. Your location appears while recording. Anyone with the link can view it. Opening this page shares nothing."))
+                    if groupRide.state.isActive {
+                        Text(LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."))
+                    } else if liveSharingManager.isActive {
+                        if let link = liveSharingManager.shareLink, let url = URL(string: link) {
+                            ShareLink(item: url)
+                        }
+                        Button(LocalizationHelper.localized("Stop sharing"), role: .destructive) {
+                            liveSharingManager.stopSession()
+                        }
+                    } else {
+                        Button(LocalizationHelper.localized("Start sharing")) {
+                            liveSharingManager.startSession(durationMinutes: 30, stopOnRideEnd: true)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(liveSharingManager.isStarting)
+                    }
+                    Spacer()
+                }.padding()
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(LocalizationHelper.localized("Done")) { showHomeSharing = false }
+                    }
+                }
+            }.presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showGroupSheet) {
             CommunityView()
@@ -625,7 +665,9 @@ struct HomeView: View {
             onOpenCommunity: onNavigateCommunity,
             onOpenGroupMap: openExplicitGroupMap,
             onOpenGamification: { showGamificationCollection = true },
-            scrollToTopRequest: scrollToTopRequest
+            scrollToTopRequest: scrollToTopRequest,
+            onOpenLiveSharing: { showHomeSharing = true },
+            liveSharingActive: liveSharingManager.isActive
         )
     }
 
@@ -735,11 +777,6 @@ struct HomeView: View {
         if !didTrackDashboardEntry {
             didTrackDashboardEntry = true
             TelemetryManager.shared.trackHomeDashboardViewed(historyBucket: summary.historyBucket)
-        }
-        if let insight = summary.insight,
-           trackedInsightValue != insight.analyticsValue {
-            trackedInsightValue = insight.analyticsValue
-            TelemetryManager.shared.trackHomeInsightShown(insight)
         }
     }
 
@@ -1268,7 +1305,7 @@ struct ActiveRideHUD: View {
                 isOffline: isOffline
             )
 
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 RideStatsRow(
                     isTracking: true,
                     duration: duration,
@@ -1312,7 +1349,7 @@ struct ActiveRideHUD: View {
                 }
                 .frame(height: 54)
             }
-            .padding(14)
+            .padding(10)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -1881,13 +1918,13 @@ struct RadialStartTrackingControl: View {
         if launchState.isPending { return pendingPersona.systemImage }
         if let hoveredPersona { return hoveredPersona.systemImage }
         if isExpanded { return "xmark" }
-        return preselectedPersona == .auto ? "play.fill" : preselectedPersona.systemImage
+        return "play.fill"
     }
 
     private var centerLabelPersona: RidePersona? {
         if launchState.isPending { return nil }
         if let hoveredPersona { return hoveredPersona }
-        return !isExpanded && preselectedPersona != .auto ? preselectedPersona : nil
+        return nil
     }
 
     private func optionPosition(index: Int, center: CGPoint) -> CGPoint {

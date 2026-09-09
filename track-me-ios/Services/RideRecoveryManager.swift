@@ -144,7 +144,9 @@ enum RideRecoveryManager {
 
             // The ride ended when the phone died, not now.
             ride.endTime = lastPoint.timestamp
-            ride.applyAggregate(RideMetrics.reconstructed(from: points))
+            if ride.trackingAlgorithmVersion != 2 || !ride.hasCompleteAggregate {
+                ride.applyAggregate(RideMetrics.reconstructed(from: points))
+            }
             ride.refreshDashboardMetadata()
             if RideTitleGenerator.isGeneratedTitle(ride.title) {
                 ride.title = RideTitleGenerator.make(

@@ -8,6 +8,15 @@ import XCTest
 /// draws a real part of someone's ride as though we had not recorded it.
 final class RideGapsTests: XCTestCase {
 
+    func testV2GapSplitsDisplayWithoutChangingLegacyInterpretation() {
+        let a = point(0, lat: 12.97, lon: 77.59)
+        let b = northOf(a, metres: 20, afterSeconds: 20)
+        XCTAssertFalse(RideGaps.isUnrecordedGap(from: a, to: b, persona: .walk))
+        a.cumulativeDistanceMeters = 0
+        b.cumulativeDistanceMeters = 0
+        XCTAssertTrue(RideGaps.isUnrecordedGap(from: a, to: b, persona: .walk))
+    }
+
     private let start = Date(timeIntervalSince1970: 1_700_000_000)
 
     private func point(_ second: Int, lat: Double, lon: Double, paused: Bool = false) -> GPSPoint {

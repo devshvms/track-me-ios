@@ -64,7 +64,7 @@ class LiveSharingManager {
         return val == 0 ? 10 : TimeInterval(val)
     }
 
-    func startSession(durationMinutes: Int?) {
+    func startSession(durationMinutes: Int?, stopOnRideEnd: Bool = false) {
         guard !isActive, !isStarting else { return }
         guard Auth.auth().currentUser != nil else {
             ToastManager.shared.show(
@@ -76,7 +76,7 @@ class LiveSharingManager {
         guard let url = URL(string: APIConfig.LiveShare.startSession) else { return }
 
         isStarting = true
-        self.isRideLinked = (durationMinutes == nil)
+        self.isRideLinked = (durationMinutes == nil) || stopOnRideEnd
 
         var request = Self.makeLiveShareRequest(url: url)
 
@@ -265,7 +265,7 @@ class LiveSharingManager {
 
             DispatchQueue.main.async {
                 if remaining <= 0 {
-                    let durStr = self.isRideLinked ? "24 hours" : "the configured duration"
+                    let durStr = "the configured duration"
                     self.stopSession(reason: "Max share duration reached (\(durStr)).")
                 } else {
                     self.remainingSeconds = remaining

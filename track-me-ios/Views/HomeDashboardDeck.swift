@@ -16,9 +16,12 @@ struct HomeDashboardDeck: View {
     let onOpenGroupMap: () -> Void
     let onOpenGamification: () -> Void
     let scrollToTopRequest: Int
+    var onOpenLiveSharing: () -> Void = {}
+    var liveSharingActive = false
 
     @ObservedObject private var unitSettings = UnitSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showHowItWorks = false
 
     var body: some View {
@@ -33,7 +36,7 @@ struct HomeDashboardDeck: View {
                             reduceMotion: reduceMotion
                         )
 
-                    groupRideCard
+                    actionCards
                         .dashboardCardMotion(
                             // Second in the deck, so it staggers in after the contextual notice
                             // rather than alongside it.
@@ -65,15 +68,6 @@ struct HomeDashboardDeck: View {
                             .padding(.vertical, 8)
                     }
 
-                    if let insight = summary.insight {
-                        InsightCard(insight: insight, unit: unitSettings.unit)
-                            .dashboardCardMotion(
-                                orderFromTop: 2,
-                                total: 4,
-                                isVisible: isVisible,
-                                reduceMotion: reduceMotion
-                            )
-                    }
 
                     let facts = summary.toGamificationFacts()
                     let snapshot = GamificationEngine.deriveSnapshot(facts: facts)
@@ -162,9 +156,29 @@ struct HomeDashboardDeck: View {
     /// prominence because it is the reason people trust this feature, so the entry point carries it
     /// rather than making the promise only where the rider has already committed.
     @ViewBuilder
+    private var actionCards: some View {
+        let layout = dynamicTypeSize >= .accessibility1
+            ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+        layout {
+            groupRideCard
+            DashboardCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Image(systemName: "location.circle").font(.system(size: 36)).foregroundStyle(BrandColor.primary)
+                    Text(LocalizationHelper.localized("Live sharing")).font(.headline)
+                    Spacer(minLength: 0)
+                    Button(LocalizationHelper.localized(liveSharingActive ? "Manage sharing" : "Set up sharing"),
+                        action: onOpenLiveSharing).buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var groupRideCard: some View {
         DashboardCard {
             VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: "person.2.circle").font(.system(size: 36)).foregroundStyle(BrandColor.primary)
                 HStack {
                     Label(
                         groupActive
@@ -203,6 +217,7 @@ struct HomeDashboardDeck: View {
                     VStack(alignment: .leading, spacing: 8) { groupActions }
                 }
             }
+            .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
         }
     }
 
@@ -213,7 +228,7 @@ struct HomeDashboardDeck: View {
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: 44)
         } else {
-            Button(LocalizationHelper.localized("Ride together"), action: onOpenCommunity)
+            Button(LocalizationHelper.localized("Open groups"), action: onOpenCommunity)
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: 44)
         }

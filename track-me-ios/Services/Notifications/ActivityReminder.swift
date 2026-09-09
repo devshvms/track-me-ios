@@ -36,6 +36,8 @@ enum ActivityReminder {
         var hour: Int
         var minute: Int
         var persona: String
+        var daysOfWeek: Set<Int>?
+        var selectedDays: Set<Int> { daysOfWeek ?? [dayOfWeek] }
 
         /// Saturday morning. Only ever seen by someone who opened the screen with no history to
         /// suggest from and did not touch the pickers — the least presumptuous slot available, not
@@ -49,18 +51,21 @@ enum ActivityReminder {
             dayOfWeek: Int = Settings.defaultDay,
             hour: Int = Settings.defaultHour,
             minute: Int = 0,
-            persona: String = Settings.defaultPersona
+            persona: String = Settings.defaultPersona,
+            daysOfWeek: Set<Int>? = nil
         ) {
             self.enabled = enabled
             self.dayOfWeek = dayOfWeek
             self.hour = hour
             self.minute = minute
             self.persona = persona
+            self.daysOfWeek = daysOfWeek
         }
 
         /// Whether these settings describe something schedulable.
         var isValid: Bool {
-            (1...7).contains(dayOfWeek) && (0...23).contains(hour) && (0...59).contains(minute)
+            !selectedDays.isEmpty && selectedDays.allSatisfy { (1...7).contains($0) }
+                && (0...23).contains(hour) && (0...59).contains(minute)
         }
     }
 
@@ -92,7 +97,7 @@ enum ActivityReminder {
         lastFiredEpochDay: Int64?
     ) -> Bool {
         guard settings.enabled, settings.isValid else { return false }
-        guard nowDayOfWeek == settings.dayOfWeek else { return false }
+        guard settings.selectedDays.contains(nowDayOfWeek) else { return false }
         if let lastFiredEpochDay, lastFiredEpochDay >= nowEpochDay { return false }
         return true
     }

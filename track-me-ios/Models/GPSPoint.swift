@@ -16,6 +16,7 @@ final class GPSPoint {
     var speed: Double
     var timestamp: Date
     var isPaused: Bool
+    var cumulativeDistanceMeters: Double? = nil
     
     var ride: Ride?
     

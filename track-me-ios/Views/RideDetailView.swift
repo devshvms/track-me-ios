@@ -73,6 +73,17 @@ struct RideDetailView: View {
     private var cumulativeDistances: [Double] {
         let pts = sortedPoints
         guard !pts.isEmpty else { return [] }
+        if ride.trackingAlgorithmVersion == 2 {
+            // Boundary markers from older V2 builds may lack a checkpoint. Carry
+            // the last known value; never substitute a chord across a pause.
+            var distance = 0.0
+            return pts.map { point in
+                if let checkpoint = point.cumulativeDistanceMeters, checkpoint.isFinite {
+                    distance = max(distance, checkpoint)
+                }
+                return distance
+            }
+        }
         var distances = [Double](repeating: 0, count: pts.count)
         var totalDist = 0.0
         for i in 1..<pts.count {
@@ -148,13 +159,14 @@ struct RideDetailView: View {
 
                         CombinedMetricLineChart(
                             points: sortedPoints,
-                            scrubIndex: scrubIndex
+                            scrubIndex: scrubIndex ?? (sortedPoints.count - 1),
+                            onScrub: { scrubIndex = $0 }
                         )
                             .padding(.horizontal)
                             .padding(.top, 16)
                         
                         // Scrubber Details
-                        let index = scrubIndex ?? (sortedPoints.count - 1)
+                        let index = min(sortedPoints.count - 1, max(0, scrubIndex ?? (sortedPoints.count - 1)))
                         let elapsed = sortedPoints[index].timestamp.timeIntervalSince(ride.startTime)
                         Text(LocalizationHelper.formatted(
                             "Time: %@  |  Dist: %@",
@@ -171,28 +183,6 @@ struct RideDetailView: View {
                                 .accessibilityLabel(ride.ridePersona.displayName)
                         }
                         
-                        if sortedPoints.count > 1 {
-                            Slider(
-                                value: Binding(
-                                    get: { Double(scrubIndex ?? (sortedPoints.count - 1)) },
-                                    set: { scrubIndex = Int($0) }
-                                ),
-                                in: 0...Double(sortedPoints.count - 1),
-                                step: 1
-                            )
-                            .tint(BrandColor.primary)
-                            .padding(.horizontal, 24)
-                            .accessibilityLabel(LocalizationHelper.localized("Timeline scrubber"))
-                            .accessibilityHint(LocalizationHelper.localized(
-                                "Adjust to inspect speed, altitude, and route position"))
-                            .accessibilityValue(scrubberAccessibilityValue(index: index))
-                        } else {
-                            Slider(value: .constant(0), in: 0...1)
-                                .disabled(true)
-                                .tint(.gray)
-                                .padding(.horizontal, 24)
-                                .accessibilityHidden(true)
-                        }
                         
                         // Recording details stay after the route and chart so diagnostics remain
                         // available without competing with the summary a rider reads first.

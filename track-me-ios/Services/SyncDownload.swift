@@ -18,6 +18,7 @@ struct DownloadedRide: Equatable {
     let pointCount: Int?
     let elevationGainMeters: Double?
     let chunkCount: Int?
+    var trackingAlgorithmVersion: Int? = nil
 
     var persistedAggregate: RideAggregateSnapshot? {
         guard let distanceMeters,
@@ -54,6 +55,7 @@ struct DownloadedPoint: Equatable {
     let latitude, longitude, altitude, accuracy, speed: Double
     let timestamp: Date
     let isPaused: Bool
+    var cumulativeDistanceMeters: Double? = nil
 }
 
 extension FirestoreSyncManager {
@@ -126,7 +128,8 @@ extension FirestoreSyncManager {
             avgSpeedMps: decodeDouble(data["avgSpeed"]),
             pointCount: decodeInt64(data["pointCount"]).map(Int.init),
             elevationGainMeters: decodeDouble(data["elevationGainMeters"]),
-            chunkCount: chunkCount
+            chunkCount: chunkCount,
+            trackingAlgorithmVersion: decodeInt64(data["trackingAlgorithmVersion"]).map(Int.init)
         )
     }
 }

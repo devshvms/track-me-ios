@@ -15,6 +15,11 @@ final class MotionSensorManager {
     private var emaEnergy: Double = 0.0
     private let emaAlpha: Double = 0.15
     private var sampleReceived: Bool = false
+    private var lastSampleUptime: TimeInterval?
+    var currentEnergy: Float? { sampleReceived ? Float(emaEnergy) : nil }
+    var sampleAgeMillis: Int64? {
+        lastSampleUptime.map { Int64(max(0, ProcessInfo.processInfo.systemUptime - $0) * 1_000) }
+    }
 
     private var gravityX: Double = 0.0
     private var gravityY: Double = 0.0
@@ -51,6 +56,7 @@ final class MotionSensorManager {
     }
 
     private func processAcceleration(acc: CMAcceleration) {
+        lastSampleUptime = ProcessInfo.processInfo.systemUptime
         // userAcceleration is in Gs. Convert to m/s² (1 G = 9.81 m/s²)
         let magnitudeG = sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z)
         let magnitudeMS2 = MotionSensorManager.convertGToMS2(g: magnitudeG)
@@ -73,6 +79,7 @@ final class MotionSensorManager {
         // Reset to "moving" so a stale reading doesn't mistakenly pause
         emaEnergy = 0.0
         sampleReceived = false
+        lastSampleUptime = nil
         gravityX = 0.0
         gravityY = 0.0
         gravityZ = 0.0

@@ -128,6 +128,10 @@ enum RideGaps {
 
     static func isUnrecordedGap(from previous: GPSPoint, to current: GPSPoint, persona: RidePersona) -> Bool {
         let elapsed = current.timestamp.timeIntervalSince(previous.timestamp)
+        // Only V2 points carry checkpoints. Keep its unobserved intervals out
+        // of solid route geometry without changing legacy ride interpretation.
+        if previous.cumulativeDistanceMeters != nil, current.cumulativeDistanceMeters != nil,
+           elapsed > 15 { return true }
         guard elapsed > gapThresholdSeconds else { return false }
 
         let from = CLLocation(latitude: previous.latitude, longitude: previous.longitude)
