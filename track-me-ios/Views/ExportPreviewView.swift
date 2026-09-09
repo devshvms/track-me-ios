@@ -213,26 +213,29 @@ struct ExportPreviewView: View {
                     .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
             }
 
+            // The preview must show what the file will contain, so this mirrors
+            // `ReplayFrameRenderer` exactly: the link alone, small, bottom-right, no plate.
+            //
+            // The wordmark-and-link card that used to sit top-right is gone. A shared image of
+            // someone's ride is theirs, and a branded box in the corner is the app signing their
+            // photograph. The link survives because an artifact travels far from the app that made
+            // it and a way back is a courtesy — the branding did not survive because it was not.
+            //
+            // Bottom-right, not bottom-left: the map's own Google attribution sits bottom-left and
+            // is a required mark that must not be crowded.
             VStack {
+                Spacer()
                 HStack {
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("TrackMe") // TODO(attribution): replace with approved wordmark asset.
-                            .font(.subheadline.weight(.semibold))
-                        Text(ReplayDeepLink.forRide(ride))
-                            .font(.caption2)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                    }
-                    .foregroundColor(darkOverlay ? .white : BrandColor.primary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background((darkOverlay ? Color.black : Color.white).opacity(darkOverlay ? 0.6 : 0.86))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    Text(ReplayDeepLink.forRide(ride))
+                        .font(.system(size: 8))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .foregroundColor((darkOverlay ? Color.white : Color.black).opacity(0.8))
+                        .shadow(color: .black.opacity(0.8), radius: 1.5)
                 }
-                Spacer()
             }
-            .padding(16)
+            .padding(8)
         }
         .frame(width: 350, height: 350 / selectedRatio.aspect)
     }
