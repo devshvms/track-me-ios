@@ -61,25 +61,52 @@ nonisolated enum RideMetrics {
 
         var distanceMeters = 0.0
         var movingDurationMillis: Int64 = 0
-        var maxSpeedMps = nonNegativeFinite(sorted[0].speed)
+        var maxSpeedMps = 0.0
 
         for (previous, current) in zip(sorted, sorted.dropFirst()) {
-            maxSpeedMps = max(maxSpeedMps, nonNegativeFinite(current.speed))
-            guard !previous.isPaused, !current.isPaused else { continue }
-
-            distanceMeters += distance(from: previous, to: current)
-            // TASK-259: was a private 60s cap — a *fourth* number for one idea. Android carried
-            // three (none, 15s, 60s) and this was the fourth, so the same ride reconstructed to a
-            // different duration depending on platform as well as on code path.
+            // TASK-286: eligibility is decided ONCE and applied to distance, duration and peak
+            // together.
             //
-            // Now the shared threshold: 25s is what this app already *calls* a GPS signal gap, the
-            // number behind the count in Recording details and behind TASK-257's dotted segments. A
-            // stretch reported to a rider as a gap should not also be counted as time they moved.
+            // Distance used to be added for every unpaused pair while duration was gated on the
+            // gap threshold, so a GPS-loss chord contributed metres with no seconds. The existing
+            // vector encoded that as expected: 222.4 m against 10 s of moving time, an average of
+            // 22.24 m/s beside a stored maximum of 5. Incompatible evidence in one aggregate is
+            // source corruption, not a presentation defect — no clamp downstream can repair it,
+            // because the distance itself was never travelled in the time recorded.
+            //
+            // TASK-259's threshold reasoning is unchanged and now simply governs both halves: 25s
+            // is what this app already *calls* a GPS signal gap, the number behind the count in
+            // Recording details and behind TASK-257's dotted segments. A stretch reported to a
+            // rider as a gap is not time they moved — and it is not distance they covered either.
             let intervalMillis = Int64(current.timestamp.timeIntervalSince(previous.timestamp) * 1_000)
-            if intervalMillis > 0,
-               intervalMillis <= Int64(RideGaps.gapThresholdSeconds * 1_000) {
-                movingDurationMillis += intervalMillis
-            }
+            let isEligible = !previous.isPaused
+                && !current.isPaused
+                && intervalMillis > 0
+                && intervalMillis <= Int64(RideGaps.gapThresholdSeconds * 1_000)
+            guard isEligible else { continue }
+
+            let segmentMeters = distance(from: previous, to: current)
+            distanceMeters += segmentMeters
+            movingDurationMillis += intervalMillis
+
+            // Peak comes only from evidence inside eligible movement — the endpoints' own speed
+            // readings, plus the interval's chord speed.
+            //
+            // The chord is observed, not invented: two recorded positions over two recorded
+            // timestamps. It matters because the average below is derived from geometry while the
+            // stored `speed` is a separate sensor reading, and the two can disagree. Without it a
+            // ride whose GPS speeds under-read produces an average faster than its own peak — the
+            // very invariant this task exists to restore, and the one TASK-285 fixed on Android.
+            //
+            // This is NOT max(maxSpeed, avgSpeed): that fallback is forbidden and would be
+            // circular. A chord speed is a per-interval observation; the average is a
+            // distance-weighted aggregate across all of them. On a variable route they differ, and
+            // the maximum of the set is necessarily at least the weighted mean of the set — so the
+            // invariant holds by construction rather than by clamping.
+            let chordSpeed = segmentMeters / (Double(intervalMillis) / 1_000)
+            maxSpeedMps = max(maxSpeedMps, nonNegativeFinite(previous.speed))
+            maxSpeedMps = max(maxSpeedMps, nonNegativeFinite(current.speed))
+            maxSpeedMps = max(maxSpeedMps, nonNegativeFinite(chordSpeed))
         }
 
         let average = movingDurationMillis > 0
