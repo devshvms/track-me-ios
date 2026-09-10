@@ -199,8 +199,17 @@ struct HomeDashboardDeck: View {
                     }
                     Text(LocalizationHelper.localized("Live sharing")).font(.headline)
                     Spacer(minLength: 0)
-                    Button(LocalizationHelper.localized(liveSharingActive ? "Manage sharing" : "Set up sharing"),
-                        action: onOpenLiveSharing).buttonStyle(.borderedProminent)
+                    // A bare verb: the tile is already titled "Live sharing", and repeating the
+                    // object wrapped the button onto two lines. es/fr/de had already dropped it
+                    // ("Configurar", "Configurer", "Einrichten") — English was the outlier.
+                    Button(LocalizationHelper.localized(liveSharingActive ? "Manage" : "Set up"),
+                        action: onOpenLiveSharing)
+                        .buttonStyle(.borderedProminent)
+                        .lineLimit(1)
+                        // VoiceOver reads a control's name without the heading above it, so the
+                        // accessible name keeps the full phrase the visible label drops.
+                        .accessibilityLabel(LocalizationHelper.localized(
+                            liveSharingActive ? "Manage live sharing" : "Set up live sharing"))
                 }
                 .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
             }

@@ -12580,7 +12580,8 @@
         }
       }
     },
-    "Manage sharing": {
+    "Manage": {
+      "extractionState": "manual",
       "localizations": {
         "es": {
           "stringUnit": {
@@ -12591,31 +12592,72 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gérer le partage"
+            "value": "Gérer"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Freigabe verwalten"
+            "value": "Verwalten"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "साझा करना प्रबंधित करें"
+            "value": "प्रबंधित करें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "共有を管理"
+            "value": "管理"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "管理共享"
+            "value": "管理"
+          }
+        }
+      }
+    },
+    "Manage live sharing": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrar uso compartido en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gérer le partage en direct"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Teilen verwalten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव शेयरिंग प्रबंधित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ共有を管理"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理实时共享"
           }
         }
       }
@@ -18644,7 +18686,8 @@
         }
       }
     },
-    "Set up sharing": {
+    "Set up": {
+      "extractionState": "manual",
       "localizations": {
         "es": {
           "stringUnit": {
@@ -18667,19 +18710,60 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "साझा करना सेट करें"
+            "value": "सेट अप"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "共有を設定"
+            "value": "設定"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "设置共享"
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Set up live sharing": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar uso compartido en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurer le partage en direct"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Teilen einrichten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव शेयरिंग सेट अप करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ共有を設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置实时共享"
           }
         }
       }
