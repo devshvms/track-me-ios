@@ -24,6 +24,8 @@ final class Ride {
     /// IANA timezone captured when recording starts. Legacy/imported rows stay nil and retain the
     /// shipped read-time fallback to the device timezone.
     var startZoneId: String?
+    /// Nil is a legacy ride. Never infer algorithm version from the installed app version.
+    var trackingAlgorithmVersion: Int? = nil
 
     // Finalized, filtered metrics. Optional fields keep the SwiftData migration
     // additive for rides recorded before aggregate persistence was introduced.

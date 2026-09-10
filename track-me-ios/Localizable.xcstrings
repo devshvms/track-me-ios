@@ -3241,6 +3241,47 @@
         }
       }
     },
+    "Anyone with the link sees your location while you are recording. The link expires when the session does, and only you can start or stop it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cualquier persona con el enlace ve tu ubicación mientras grabas. El enlace caduca cuando termina la sesión y solo tú puedes iniciarla o detenerla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toute personne disposant du lien voit votre position pendant l'enregistrement. Le lien expire avec la session, et vous seul pouvez la démarrer ou l'arrêter."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle mit dem Link sehen deinen Standort, während du aufzeichnest. Der Link läuft mit der Sitzung ab, und nur du kannst sie starten oder beenden."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक रखने वाला कोई भी व्यक्ति रिकॉर्डिंग के दौरान आपका स्थान देख सकता है। सत्र समाप्त होने पर लिंक भी समाप्त हो जाता है, और केवल आप ही इसे शुरू या बंद कर सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを知っている人は、記録中のあなたの位置を見ることができます。リンクはセッションの終了とともに無効になり、開始と停止はあなただけが行えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何拥有该链接的人都能在你记录时看到你的位置。链接会随会话一起失效，只有你可以开始或停止。"
+          }
+        }
+      }
+    },
     "App language": {
       "extractionState": "stale",
       "localizations": {
@@ -5964,6 +6005,129 @@
         }
       }
     },
+    "Debug Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug-Einstellungen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes de depuración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages de débogage"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डीबग सेटिंग्स"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバッグ設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试设置"
+          }
+        }
+      }
+    },
+    "Debug mode": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug-Modus"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo de depuración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode débogage"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डीबग मोड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバッグモード"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试模式"
+          }
+        }
+      }
+    },
+    "Debug mode is enabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Debug-Modus ist aktiviert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modo de depuración está activado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le mode débogage est activé"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डीबग मोड चालू है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバッグモードが有効になりました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试模式已启用"
+          }
+        }
+      }
+    },
     "Delete": {
       "localizations": {
         "de": {
@@ -6421,6 +6585,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "设备区域"
+          }
+        }
+      }
+    },
+    "Diagnostic controls for controlled TrackMe testing": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnosesteuerung für kontrollierte TrackMe-Tests"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controles de diagnóstico para pruebas controladas de TrackMe"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commandes de diagnostic pour les tests contrôlés de TrackMe"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नियंत्रित TrackMe परीक्षण के लिए डायग्नोस्टिक कंट्रोल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMeの管理されたテスト用診断コントロール"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用于 TrackMe 受控测试的诊断控制"
           }
         }
       }
@@ -6936,6 +7141,47 @@
         }
       }
     },
+    "Dynamically pauses moving time based on the activity speed profile.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausiert die Bewegungszeit dynamisch anhand des Geschwindigkeitsprofils der Aktivität."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa dinámicamente el tiempo en movimiento según el perfil de velocidad de la actividad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Met dynamiquement en pause le temps de déplacement selon le profil de vitesse de l’activité."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गतिविधि की गति प्रोफ़ाइल के अनुसार चलते समय को अपने-आप रोकता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティビティの速度特性に応じて移動時間を自動的に一時停止します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据活动速度特征动态暂停移动计时。"
+          }
+        }
+      }
+    },
     "Dynamically pauses the moving timer at traffic signals or stops based on activity speed.": {
       "extractionState": "stale",
       "localizations": {
@@ -7093,6 +7339,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "累计爬升"
+          }
+        }
+      }
+    },
+    "Enable debug mode (tap 5 times)": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug-Modus aktivieren (5-mal tippen)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar el modo de depuración (toca 5 veces)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer le mode débogage (touchez 5 fois)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डीबग मोड चालू करें (5 बार टैप करें)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバッグモードを有効化（5回タップ）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用调试模式（点按 5 次）"
           }
         }
       }
@@ -8467,6 +8754,47 @@
         }
       }
     },
+    "GPS drift while stopped, tunnels, and urban canyons can affect distance. TrackMe filters implausible fixes while recording; a signal gap is shown as a straight line.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS-Drift im Stillstand, Tunnel und Häuserschluchten können die Entfernung beeinflussen. TrackMe filtert unplausible Punkte während der Aufzeichnung; eine Signallücke wird als gerade Linie angezeigt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La deriva GPS al estar detenido, los túneles y los cañones urbanos pueden afectar la distancia. TrackMe filtra los puntos inverosímiles durante la grabación; un hueco de señal aparece como una línea recta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La dérive GPS à l’arrêt, les tunnels et les canyons urbains peuvent modifier la distance. TrackMe filtre les points invraisemblables pendant l’enregistrement ; un trou de signal apparaît comme une ligne droite."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रुके रहने पर GPS ड्रिफ्ट, सुरंग और ऊंची इमारतें दूरी बदल सकती हैं। TrackMe रिकॉर्डिंग के दौरान असंभव पॉइंट फ़िल्टर करता है; सिग्नल गैप सीधी रेखा दिखता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止中のGPSドリフト、トンネル、高層ビルで距離が変わることがあります。TrackMeは記録中に不自然な位置情報を除外し、信号の空白は直線で表示します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "静止时的 GPS 漂移、隧道和城市高楼可能影响距离。TrackMe 会在记录时过滤不合理的定位点；信号中断会显示为直线。"
+          }
+        }
+      }
+    },
     "GPS lost": {
       "extractionState": "stale",
       "localizations": {
@@ -9576,6 +9904,47 @@
         }
       }
     },
+    "How do I get Pro data customizations?": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie erhalte ich Pro-Datenanpassungen?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cómo obtengo personalizaciones de datos Pro?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment obtenir les personnalisations de données Pro ?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro डेटा कस्टमाइज़ेशन कैसे मिलेगा?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proデータカスタマイズを利用するには？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如何获得 Pro 数据自定义？"
+          }
+        }
+      }
+    },
     "How do I get my data out, or delete it?": {
       "extractionState": "stale",
       "localizations": {
@@ -9660,6 +10029,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "群组骑行如何运作"
+          }
+        }
+      }
+    },
+    "How live sharing works": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cómo funciona el uso compartido en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment fonctionne le partage en direct"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So funktioniert Live-Teilen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव शेयरिंग कैसे काम करती है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ共有の仕組み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时共享的工作方式"
           }
         }
       }
@@ -10127,6 +10537,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "服务器返回了无效响应"
+          }
+        }
+      }
+    },
+    "Invite at least one other person before starting the group.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invita al menos a otra persona antes de iniciar el grupo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitez au moins une autre personne avant de démarrer le groupe."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lade mindestens eine weitere Person ein, bevor du die Gruppe startest."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह शुरू करने से पहले कम से कम एक अन्य व्यक्ति को आमंत्रित करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを開始する前に、少なくとももう1人招待してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始群组前，请至少邀请另一人加入。"
           }
         }
       }
@@ -12126,6 +12576,88 @@
           "stringUnit": {
             "state": "translated",
             "value": "低电量模式"
+          }
+        }
+      }
+    },
+    "Manage": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gérer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwalten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रबंधित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理"
+          }
+        }
+      }
+    },
+    "Manage live sharing": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrar uso compartido en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gérer le partage en direct"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Teilen verwalten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव शेयरिंग प्रबंधित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ共有を管理"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理实时共享"
           }
         }
       }
@@ -14267,6 +14799,46 @@
         }
       }
     },
+    "Off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बंद"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
     "Offline mode. Rides will record locally.": {
       "extractionState": "stale",
       "localizations": {
@@ -14531,46 +15103,6 @@
         }
       }
     },
-    "One reminder a week, at a time you choose. Off unless you turn it on.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un recordatorio por semana, a la hora que elijas. Desactivado hasta que lo actives."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un rappel par semaine, à l'heure de votre choix. Désactivé tant que vous ne l'activez pas."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eine Erinnerung pro Woche, zu einer Zeit deiner Wahl. Aus, bis du sie einschaltest."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सप्ताह में एक अनुस्मारक, आपके चुने समय पर। जब तक आप चालू न करें, बंद रहेगा।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "週に1回、選んだ時間に。オンにするまでは無効です。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每周一次提醒，时间由你选择。除非开启，否则不会发送。"
-          }
-        }
-      }
-    },
     "Open Community": {
       "localizations": {
         "de": {
@@ -14607,6 +15139,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开社区"
+          }
+        }
+      }
+    },
+    "Open Debug Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug-Einstellungen öffnen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir ajustes de depuración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir les réglages de débogage"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डीबग सेटिंग्स खोलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デバッグ設定を開く"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开调试设置"
           }
         }
       }
@@ -14828,6 +15401,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开活动详情"
+          }
+        }
+      }
+    },
+    "Open groups": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir grupos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir les groupes"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppen öffnen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह खोलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを開く"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开群组"
           }
         }
       }
@@ -15431,6 +16044,46 @@
         }
       }
     },
+    "Prepare a link valid for 30 minutes. Your location appears while recording. Anyone with the link can view it. Opening this page shares nothing.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepara un enlace válido durante 30 minutos. Tu ubicación aparece al grabar. Cualquiera con el enlace puede verla. Abrir esta página no comparte nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Préparez un lien valable 30 minutes. Votre position apparaît pendant l’enregistrement. Toute personne ayant le lien peut la voir. Ouvrir cette page ne partage rien."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstelle einen Link für 30 Minuten. Dein Standort erscheint während der Aufzeichnung. Jeder mit dem Link kann ihn sehen. Das Öffnen dieser Seite teilt nichts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 मिनट के लिए मान्य लिंक बनाएँ। रिकॉर्डिंग के दौरान आपका स्थान दिखेगा। लिंक वाला कोई भी व्यक्ति देख सकता है। यह पेज खोलने से कुछ साझा नहीं होता।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30分間有効なリンクを準備します。記録中に位置が表示され、リンクを持つ人が閲覧できます。このページを開くだけでは共有されません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "准备一个有效期为30分钟的链接。记录时显示你的位置，持有链接的人均可查看。打开此页面不会共享任何内容。"
+          }
+        }
+      }
+    },
     "Preparing Archive...": {
       "localizations": {
         "de": {
@@ -15848,6 +16501,47 @@
         }
       }
     },
+    "Pro data customizations are not available yet. Debug controls are for controlled testing and can reduce tracking accuracy.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro-Datenanpassungen sind noch nicht verfügbar. Debug-Steuerungen dienen kontrollierten Tests und können die Tracking-Genauigkeit verringern."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las personalizaciones de datos Pro aún no están disponibles. Los controles de depuración son para pruebas controladas y pueden reducir la precisión del seguimiento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les personnalisations de données Pro ne sont pas encore disponibles. Les commandes de débogage servent aux tests contrôlés et peuvent réduire la précision du suivi."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro डेटा कस्टमाइज़ेशन अभी उपलब्ध नहीं है। डीबग कंट्रोल केवल नियंत्रित परीक्षण के लिए हैं और ट्रैकिंग की सटीकता घटा सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proデータカスタマイズはまだ利用できません。デバッグコントロールは管理されたテスト用で、追跡精度を下げる場合があります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro 数据自定义尚未开放。调试控制仅用于受控测试，并可能降低跟踪准确性。"
+          }
+        }
+      }
+    },
     "Puncture": {
       "extractionState": "manual",
       "localizations": {
@@ -16220,6 +16914,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "每周提醒我"
+          }
+        }
+      }
+    },
+    "Reminders on the days and at the time you choose. Off unless you turn them on.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorios los días y a la hora que elijas. Desactivados hasta que los actives."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des rappels aux jours et à l’heure de votre choix. Désactivés tant que vous ne les activez pas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungen an den gewählten Tagen und zur gewählten Uhrzeit. Aus, bis du sie einschaltest."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके चुने दिनों और समय पर अनुस्मारक। चालू करने तक बंद रहेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ曜日と時間にリマインドします。オンにするまでは無効です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在你选择的日期和时间提醒。开启后才会发送。"
           }
         }
       }
@@ -17948,6 +18682,88 @@
           "stringUnit": {
             "state": "translated",
             "value": "设置状态"
+          }
+        }
+      }
+    },
+    "Set up": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेट अप"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Set up live sharing": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar uso compartido en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurer le partage en direct"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Teilen einrichten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव शेयरिंग सेट अप करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ共有を設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置实时共享"
           }
         }
       }
@@ -20099,6 +20915,46 @@
         }
       }
     },
+    "Start sharing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar a compartir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Démarrer le partage"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabe starten"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करना शुरू करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有を開始"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始共享"
+          }
+        }
+      }
+    },
     "Start time": {
       "localizations": {
         "de": {
@@ -20678,6 +21534,46 @@
         }
       }
     },
+    "Stop sharing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dejar de compartir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter le partage"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabe beenden"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करना बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有を停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止共享"
+          }
+        }
+      }
+    },
     "Stop these": {
       "localizations": {
         "de": {
@@ -20808,6 +21704,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "存储空间不足"
+          }
+        }
+      }
+    },
+    "Stored diagnostic preference only. iOS currently filters fixes live and has no post-ride pipeline connected to this flag.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur gespeicherte Diagnoseeinstellung. iOS filtert Punkte derzeit live; dieser Schalter ist mit keiner Nachbearbeitung nach der Aktivität verbunden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preferencia de diagnóstico almacenada únicamente. iOS filtra los puntos en directo y no tiene un proceso posterior conectado a este control."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Préférence de diagnostic enregistrée uniquement. iOS filtre actuellement les points en direct et aucun traitement après l’activité n’est relié à ce réglage."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह केवल सहेजी गई डायग्नोस्टिक पसंद है। iOS अभी पॉइंट लाइव फ़िल्टर करता है और इस सेटिंग से कोई पोस्ट-राइड प्रक्रिया जुड़ी नहीं है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存される診断設定のみです。iOSは現在位置情報をリアルタイムでフィルタリングし、この設定に接続された終了後処理はありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这只是保存的诊断偏好。iOS 目前会实时过滤定位点，没有与此设置相连的行程后处理流程。"
           }
         }
       }
@@ -21517,6 +22454,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "导出中没有安全的下载链接。请重新请求存档。"
+          }
+        }
+      }
+    },
+    "The group request could not be completed. Please try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo completar la solicitud del grupo. Inténtalo de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La demande du groupe n’a pas pu être effectuée. Veuillez réessayer."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Gruppenanfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह का अनुरोध पूरा नहीं हो सका। कृपया फिर से कोशिश करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループのリクエストを完了できませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法完成群组请求。请重试。"
           }
         }
       }
@@ -23300,6 +24277,47 @@
       }
     },
     "TrackMe v%@": {},
+    "Tracking controls": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracking-Steuerung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controles de seguimiento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commandes de suivi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रैकिंग कंट्रोल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追跡コントロール"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟踪控制"
+          }
+        }
+      }
+    },
     "Turn on to save raw, uncompressed data. Skipping processing increases storage and keeps glitches.": {
       "localizations": {
         "de": {
@@ -23336,6 +24354,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "开启后会保存原始的未压缩数据。跳过处理会增加存储用量并保留异常数据。"
+          }
+        }
+      }
+    },
+    "Turning this off restores diagnostic settings to defaults and removes this page.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Ausschalten werden die Diagnoseeinstellungen zurückgesetzt und diese Seite entfernt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al desactivarlo, se restauran los ajustes de diagnóstico y se elimina esta página."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sa désactivation rétablit les réglages de diagnostic par défaut et supprime cette page."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसे बंद करने पर डायग्नोस्टिक सेटिंग्स डिफ़ॉल्ट हो जाएंगी और यह पेज हट जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフにすると診断設定が初期値に戻り、このページが削除されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后会恢复诊断设置默认值，并移除此页面。"
           }
         }
       }

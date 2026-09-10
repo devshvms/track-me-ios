@@ -16,10 +16,14 @@ struct HomeDashboardDeck: View {
     let onOpenGroupMap: () -> Void
     let onOpenGamification: () -> Void
     let scrollToTopRequest: Int
+    var onOpenLiveSharing: () -> Void = {}
+    var liveSharingActive = false
 
     @ObservedObject private var unitSettings = UnitSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showHowItWorks = false
+    @State private var showLiveSharingInfo = false
 
     var body: some View {
         ScrollView {
@@ -33,7 +37,7 @@ struct HomeDashboardDeck: View {
                             reduceMotion: reduceMotion
                         )
 
-                    groupRideCard
+                    actionCards
                         .dashboardCardMotion(
                             // Second in the deck, so it staggers in after the contextual notice
                             // rather than alongside it.
@@ -65,15 +69,6 @@ struct HomeDashboardDeck: View {
                             .padding(.vertical, 8)
                     }
 
-                    if let insight = summary.insight {
-                        InsightCard(insight: insight, unit: unitSettings.unit)
-                            .dashboardCardMotion(
-                                orderFromTop: 2,
-                                total: 4,
-                                isVisible: isVisible,
-                                reduceMotion: reduceMotion
-                            )
-                    }
 
                     let facts = summary.toGamificationFacts()
                     let snapshot = GamificationEngine.deriveSnapshot(facts: facts)
@@ -162,19 +157,73 @@ struct HomeDashboardDeck: View {
     /// prominence because it is the reason people trust this feature, so the entry point carries it
     /// rather than making the promise only where the rider has already committed.
     @ViewBuilder
+    private var actionCards: some View {
+        let layout = dynamicTypeSize >= .accessibility1
+            ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+        layout {
+            groupRideCard
+            DashboardCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "location.circle")
+                            .font(.system(size: 36)).foregroundStyle(BrandColor.primary)
+                            .accessibilityHidden(true)
+
+                        if !liveSharingActive {
+                            Spacer()
+                            Button {
+                                showLiveSharingInfo.toggle()
+                            } label: {
+                                Image(systemName: "info.circle")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .accessibilityLabel(LocalizationHelper.localized("How live sharing works"))
+                            // Same treatment as the group card's explainer, for the same reason:
+                            // these two cards share an HStack and size to the taller one, so an
+                            // inline paragraph here would stretch Ride together beside it.
+                            .popover(isPresented: $showLiveSharingInfo) {
+                                Text(LocalizationHelper.localized(
+                                    "Anyone with the link sees your location while you are recording. The link expires when the session does, and only you can start or stop it."
+                                ))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(width: 250, alignment: .leading)
+                                .padding(16)
+                                .presentationCompactAdaptation(.popover)
+                            }
+                        }
+                    }
+                    Text(LocalizationHelper.localized("Live sharing")).font(.headline)
+                    Spacer(minLength: 0)
+                    // A bare verb: the tile is already titled "Live sharing", and repeating the
+                    // object wrapped the button onto two lines. es/fr/de had already dropped it
+                    // ("Configurar", "Configurer", "Einrichten") — English was the outlier.
+                    Button(LocalizationHelper.localized(liveSharingActive ? "Manage" : "Set up"),
+                        action: onOpenLiveSharing)
+                        .buttonStyle(.borderedProminent)
+                        .lineLimit(1)
+                        // VoiceOver reads a control's name without the heading above it, so the
+                        // accessible name keeps the full phrase the visible label drops.
+                        .accessibilityLabel(LocalizationHelper.localized(
+                            liveSharingActive ? "Manage live sharing" : "Set up live sharing"))
+                }
+                .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var groupRideCard: some View {
         DashboardCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Label(
-                        groupActive
-                            ? "\(LocalizationHelper.localized("Group session active")) • "
-                                + LocalizationHelper.formatted("%@ members", String(groupMemberCount))
-                            : LocalizationHelper.localized("Ride together"),
-                        systemImage: "person.2.fill"
-                    )
-                    .font(.headline)
-                    .foregroundStyle(BrandColor.primary)
+                    Image(systemName: "person.2.circle")
+                        .font(.system(size: 36)).foregroundStyle(BrandColor.primary)
+                        .accessibilityHidden(true)
 
                     if !groupActive {
                         Spacer()
@@ -187,22 +236,46 @@ struct HomeDashboardDeck: View {
                         .buttonStyle(.plain)
                         .frame(minWidth: 44, minHeight: 44)
                         .accessibilityLabel(LocalizationHelper.localized("How group rides work"))
+                        // Anchored to the button rather than expanded inside the card. These two
+                        // cards share an HStack, which sizes both to the taller one — so growing
+                        // this card by a paragraph also grew Live sharing beside it, leaving a
+                        // large empty gap in a card whose content had not changed at all.
+                        //
+                        // A popover also keeps the explanation next to the control that asked for
+                        // it. `presentationCompactAdaptation(.popover)` stops iPhone promoting it
+                        // to a sheet, which for two sentences is far heavier than the question.
+                        .popover(isPresented: $showHowItWorks) {
+                            Text(LocalizationHelper.localized(
+                                "Everyone in the group sees everyone else while the group is live. Nobody sees where you have been, and nothing is saved."
+                            ))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            // A definite width, not a maximum. A popover sizes itself to its
+                            // content's ideal size, and with only an upper bound the width stays
+                            // indefinite, so the height is computed for fewer lines than actually
+                            // render and the last line is clipped.
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(width: 250, alignment: .leading)
+                            .padding(16)
+                            .presentationCompactAdaptation(.popover)
+                        }
                     }
                 }
-
-                if !groupActive && showHowItWorks {
-                    Text(LocalizationHelper.localized(
-                        "Everyone in the group sees everyone else while the group is live. Nobody sees where you have been, and nothing is saved."
-                    ))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                }
+                Text(groupActive
+                    ? "\(LocalizationHelper.localized("Group session active")) • "
+                        + LocalizationHelper.formatted("%@ members", String(groupMemberCount))
+                    : LocalizationHelper.localized("Ride together"))
+                    .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 10) { groupActions }
                     VStack(alignment: .leading, spacing: 8) { groupActions }
                 }
             }
+            .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
         }
     }
 
@@ -213,7 +286,7 @@ struct HomeDashboardDeck: View {
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: 44)
         } else {
-            Button(LocalizationHelper.localized("Ride together"), action: onOpenCommunity)
+            Button(LocalizationHelper.localized("Open groups"), action: onOpenCommunity)
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: 44)
         }

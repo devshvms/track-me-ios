@@ -14,14 +14,12 @@ struct SettingsView: View {
     /// TASK-277: one derivation for both the signed-in and signed-out cards.
     @State private var levelIndex: Int = 0
 
-    @AppStorage("enableGPSPostProcessing") var isPostProcessingEnabled: Bool = true
-    @AppStorage("intelligentAutoPause") var isAutoPauseEnabled: Bool = true
+    @AppStorage("debugModeEnabled") private var debugModeEnabled = false
     @State private var isLoggedOut = Auth.auth().currentUser == nil || Auth.auth().currentUser?.isAnonymous == true
     @State private var isSigningIn = false
     @State private var signingInProvider: SignInProvider?
     @State private var authStateListenerHandle: AuthStateDidChangeListenerHandle?
 
-    @State private var showGpsInfo = false
     @State private var isSyncing = false
     @State private var lastSyncString = FirestoreSyncManager.formattedLastSyncTime()
 
@@ -336,59 +334,28 @@ struct SettingsView: View {
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(16)
 
-                    // Advanced Settings Card
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Advanced Settings")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(LocalizationHelper.localized("Intelligent Auto-Pause"))
-                                    .font(.subheadline)
+                    if debugModeEnabled {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(LocalizationHelper.localized("Debug Settings"))
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text(LocalizationHelper.localized("Diagnostic controls for controlled TrackMe testing"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            NavigationLink(value: SettingsRoute.debugSettings) {
+                                Text(LocalizationHelper.localized("Open Debug Settings"))
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(BrandColor.primaryFill)
                                     .foregroundColor(.primary)
-                                Text(LocalizationHelper.localized("Dynamically pauses the moving timer at traffic signals or stops based on activity speed."))
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .cornerRadius(24)
                             }
-                            Spacer()
-                            Toggle("", isOn: $isAutoPauseEnabled)
-                                .labelsHidden()
-                                .tint(BrandColor.primary)
-                                .accessibilityLabel(LocalizationHelper.localized("Intelligent auto-pause"))
                         }
-
-                        Divider()
-
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text("Disable GPS Post-Processing")
-                                        .font(.subheadline)
-                                        .foregroundColor(.primary)
-                                    Button(action: { showGpsInfo = true }) {
-                                        Image(systemName: "info.circle.fill")
-                                            .foregroundColor(.gray)
-                                            .font(.caption)
-                                    }
-                                }
-                                Text("Turn on to save raw, uncompressed data. Skipping processing increases storage and keeps glitches.")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { !isPostProcessingEnabled },
-                                set: { isPostProcessingEnabled = !$0 }
-                            ))
-                            .labelsHidden()
-                            .tint(BrandColor.primary)
-                            .accessibilityLabel(LocalizationHelper.localized("Disable GPS post-processing"))
-                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .cornerRadius(16)
                     }
-                    .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(16)
 
                     // Help & Feedback Card
                     VStack(alignment: .leading, spacing: 16) {
@@ -456,17 +423,13 @@ struct SettingsView: View {
                 switch route {
                 case .accountManagement: AccountManagementView()
                 case .helpFeedback: HelpFeedbackView()
+                case .debugSettings: DebugSettingsView()
                 case .bulletin: BulletinView()
                 }
             }
             .navigationTitle("")
         .task { refreshLevel() }
             .navigationBarHidden(true)
-            .alert("GPS Post-Processing", isPresented: $showGpsInfo) {
-                Button("Got it", role: .cancel) { }
-            } message: {
-                Text(LocalizationHelper.localized("This feature uses advanced algorithms to clean up your raw GPS data immediately after a ride finishes.\n\n• Filters out GPS 'teleportation' glitches.\n• Smooths out noisy altitude and speed readings.\n• Detects when you were stopped and retroactively pauses the ride.\n• Compresses the total amount of data to save storage space."))
-            }
             .alert("Live Location Sharing", isPresented: $showLiveShareInfo) {
                 Button("Got it", role: .cancel) { }
             } message: {
@@ -555,6 +518,7 @@ struct SettingsView: View {
 enum SettingsRoute: Hashable {
     case accountManagement
     case helpFeedback
+    case debugSettings
     /// SCOPE_1.8.7 §6.1.7 — the bulletin. Reached from Settings rather than as a fifth tab: the bar
     /// already carries four, and a permanent tab for a surface that is empty most weeks would
     /// advertise itself far more loudly than "subtle unread badge" allows.

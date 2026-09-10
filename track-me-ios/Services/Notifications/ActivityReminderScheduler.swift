@@ -27,6 +27,8 @@ enum ActivityReminderScheduler {
 
     private static let enabledKey = "trackme.reminder.enabled"
     private static let dayKey = "trackme.reminder.day"
+    private static let daysKey = "trackme.reminder.days"
+    private static var scheduleRevision = 0
     private static let hourKey = "trackme.reminder.hour"
     private static let minuteKey = "trackme.reminder.minute"
     private static let personaKey = "trackme.reminder.persona"
@@ -39,7 +41,8 @@ enum ActivityReminderScheduler {
             dayOfWeek: defaults.object(forKey: dayKey) as? Int ?? ActivityReminder.Settings.defaultDay,
             hour: defaults.object(forKey: hourKey) as? Int ?? ActivityReminder.Settings.defaultHour,
             minute: defaults.object(forKey: minuteKey) as? Int ?? 0,
-            persona: defaults.string(forKey: personaKey) ?? ActivityReminder.Settings.defaultPersona
+            persona: defaults.string(forKey: personaKey) ?? ActivityReminder.Settings.defaultPersona,
+            daysOfWeek: (defaults.array(forKey: daysKey) as? [Int]).map { Set($0) }
         )
     }
 
@@ -48,6 +51,7 @@ enum ActivityReminderScheduler {
         let defaults = UserDefaults.standard
         defaults.set(settings.enabled, forKey: enabledKey)
         defaults.set(settings.dayOfWeek, forKey: dayKey)
+        defaults.set(settings.selectedDays.sorted(), forKey: daysKey)
         defaults.set(settings.hour, forKey: hourKey)
         defaults.set(settings.minute, forKey: minuteKey)
         defaults.set(settings.persona, forKey: personaKey)
@@ -59,8 +63,10 @@ enum ActivityReminderScheduler {
         // Resolved inside the body rather than as a default argument: a default expression is
         // evaluated in the caller's isolation, and this one reads main-actor state.
         let settings = override ?? ActivityReminderScheduler.settings
+        scheduleRevision += 1
+        let revision = scheduleRevision
         UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: [identifier])
+            .removePendingNotificationRequests(withIdentifiers: [identifier] + (1...7).map { "\(identifier).\($0)" })
 
         guard settings.enabled, settings.isValid else { return }
 
@@ -68,6 +74,7 @@ enum ActivityReminderScheduler {
         // reminder stored and will get it if they later allow notifications — removing the stored
         // setting because the OS permission is off would silently discard a choice they made.
         let authorization = await UNUserNotificationCenter.current().notificationSettings()
+        guard revision == scheduleRevision else { return }
         guard authorization.authorizationStatus == .authorized
                 || authorization.authorizationStatus == .provisional
                 || authorization.authorizationStatus == .ephemeral else { return }
@@ -86,16 +93,24 @@ enum ActivityReminderScheduler {
         // thing they asked for.
         content.interruptionLevel = .active
 
+        for day in settings.selectedDays.sorted() {
+        guard revision == scheduleRevision else { return }
         var components = DateComponents()
-        components.weekday = RideHistoryProfileSource.foundationWeekday(settings.dayOfWeek)
+        components.weekday = RideHistoryProfileSource.foundationWeekday(day)
         components.hour = settings.hour
         components.minute = settings.minute
 
         let request = UNNotificationRequest(
-            identifier: identifier,
+            identifier: "\(identifier).\(day)",
             content: content,
             trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
         )
         try? await UNUserNotificationCenter.current().add(request)
+        // A newer edit may have cancelled while add was suspended. Repair to current settings.
+        if revision != scheduleRevision {
+            await reschedule()
+            return
+        }
+        }
     }
 }

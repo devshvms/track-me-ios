@@ -18,6 +18,7 @@ struct CombinedMetricLineChart: View {
 
     let points: [GPSPoint]
     let scrubIndex: Int?
+    var onScrub: ((Int) -> Void)? = nil
 
     @ObservedObject private var unitSettings = UnitSettings.shared
 
@@ -155,6 +156,21 @@ struct CombinedMetricLineChart: View {
         .frame(height: 200)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                if onScrub != nil, let plotFrame = proxy.plotFrame {
+                    let frame = geometry[plotFrame]
+                    Rectangle().fill(.clear).contentShape(Rectangle())
+                        .simultaneousGesture(SpatialTapGesture().onEnded { value in
+                            select(at: value.location.x - frame.minX, proxy: proxy)
+                        })
+                        .simultaneousGesture(DragGesture(minimumDistance: 12).onChanged { value in
+                            guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                            select(at: value.location.x - frame.minX, proxy: proxy)
+                        })
+                }
+            }
+        }
         .padding()
         .background(Color(UIColor.darkGray))
         .cornerRadius(12)
@@ -164,5 +180,32 @@ struct CombinedMetricLineChart: View {
         .accessibilityLabel(
             ChartAccessibility.description(points: sortedPoints, unit: unitSettings.unit)
         )
+        .accessibilityValue(selectionDescription)
+        .accessibilityAdjustableAction { direction in
+            guard !sortedPoints.isEmpty else { return }
+            let index = scrubIndex ?? sortedPoints.count - 1
+            switch direction {
+            case .increment: onScrub?(min(sortedPoints.count - 1, index + 1))
+            case .decrement: onScrub?(max(0, index - 1))
+            @unknown default: break
+            }
+        }
+    }
+
+    private func select(at x: CGFloat, proxy: ChartProxy) {
+        guard let date: Date = proxy.value(atX: max(0, min(proxy.plotSize.width, x))),
+              let index = sortedPoints.indices.min(by: {
+                  abs(sortedPoints[$0].timestamp.timeIntervalSince(date)) <
+                    abs(sortedPoints[$1].timestamp.timeIntervalSince(date))
+              }) else { return }
+        onScrub?(index)
+    }
+
+    private var selectionDescription: String {
+        guard !sortedPoints.isEmpty else { return "" }
+        let index = min(sortedPoints.count - 1, max(0, scrubIndex ?? sortedPoints.count - 1))
+        let point = sortedPoints[index]
+        return point.timestamp.formatted(date: .omitted, time: .standard) + " · " +
+            UnitFormatter.speed(mps: point.speed, unit: unitSettings.unit)
     }
 }

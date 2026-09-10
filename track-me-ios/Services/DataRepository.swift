@@ -69,12 +69,14 @@ final class DataRepository {
             ride.firestoreId = d.firestoreId
             ride.cloudChunkCount = d.chunkCount
             ride.startZoneId = d.startZoneId
+            ride.trackingAlgorithmVersion = d.trackingAlgorithmVersion
             ctx.insert(ride)
             var importedPoints: [GPSPoint] = []
             for p in d.points {
                 let point = GPSPoint(latitude: p.latitude, longitude: p.longitude,
                                      altitude: p.altitude, accuracy: p.accuracy,
                                      speed: p.speed, timestamp: p.timestamp, isPaused: p.isPaused)
+                point.cumulativeDistanceMeters = p.cumulativeDistanceMeters
                 point.ride = ride
                 ctx.insert(point)
                 importedPoints.append(point)
@@ -95,7 +97,7 @@ final class DataRepository {
             HomeDashboardRepository.shared.invalidate()
         }
     }
-    func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool) {
+    func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool, checkpoint: RideAggregateSnapshot? = nil) {
         guard let container = container else { return }
 
         let previousWrite = pointWriteChain
@@ -109,8 +111,14 @@ final class DataRepository {
             do {
                 guard let ride = try context.fetch(descriptor).first else { return }
                 let point = GPSPoint(latitude: lat, longitude: lng, altitude: alt, accuracy: acc, speed: spd, timestamp: ts, isPaused: paused)
-                ride.points?.append(point)
+                point.ride = ride
                 context.insert(point)
+                // Point and totals commit together. Recovery never reconstructs V2 step distance
+                // from a coordinate chord, nor replays a point already represented in the totals.
+                if let checkpoint, ride.trackingAlgorithmVersion == 2 {
+                    ride.applyAggregate(checkpoint)
+                    point.cumulativeDistanceMeters = checkpoint.distanceMeters
+                }
                 try context.save()
             } catch {
                 if Self.isOutOfSpace(error) {

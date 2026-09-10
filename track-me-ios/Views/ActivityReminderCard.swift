@@ -22,15 +22,40 @@ struct ActivityReminderCard: View {
     @State private var settings = ActivityReminder.Settings()
     @State private var suggestion: RideHistoryProfile.SuggestedSlot?
     @State private var historyLoaded = false
+    @State private var expanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(LocalizationHelper.localized("Activity reminder"))
-                .font(.headline)
-                .foregroundColor(.primary)
+            DisclosureGroup(isExpanded: $expanded) {
+                reminderOptions
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(LocalizationHelper.localized("Activity reminder")).font(.headline)
+                    Text(settings.enabled
+                        ? settings.selectedDays.sorted().map(weekdayShortName).joined(separator: ", ")
+                            + " · " + timeLabel(hour: settings.hour, minute: settings.minute)
+                            + " · " + LocalizationHelper.localized(RidePersona.fromStoredName(settings.persona).displayName)
+                        : LocalizationHelper.localized("Off"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
+        .task {
+            settings = ActivityReminderScheduler.settings
+            suggestion = RideHistoryProfile.suggestSlot(
+                RideHistoryProfileSource.samples(context: modelContext)
+            )
+            historyLoaded = true
+        }
+    }
 
+    private var reminderOptions: some View {
+        VStack(alignment: .leading, spacing: 16) {
             Text(LocalizationHelper.localized(
-                "One reminder a week, at a time you choose. Off unless you turn it on."
+                "Reminders on the days and at the time you choose. Off unless you turn them on."
             ))
             .font(.caption)
             .foregroundColor(.gray)
@@ -43,7 +68,7 @@ struct ActivityReminderCard: View {
                 Toggle("", isOn: Binding(
                     get: { settings.enabled },
                     set: { enabled in
-                        settings.enabled = enabled
+                        settings.enabled = enabled && settings.isValid
                         persist()
                     }
                 ))
@@ -89,15 +114,23 @@ struct ActivityReminderCard: View {
                 Text(LocalizationHelper.localized("Day"))
                     .font(.subheadline)
                     .foregroundColor(.primary)
-                Picker("", selection: Binding(
-                    get: { settings.dayOfWeek },
-                    set: { settings.dayOfWeek = $0; persist() }
-                )) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 64))], spacing: 8) {
                     ForEach(1...7, id: \.self) { iso in
-                        Text(weekdayShortName(iso)).tag(iso)
+                        Button {
+                            var days = settings.selectedDays
+                            if days.contains(iso) { days.remove(iso) } else { days.insert(iso) }
+                            guard !days.isEmpty else { return }
+                            settings.daysOfWeek = days
+                            persist()
+                        } label: {
+                            Text(weekdayShortName(iso)).frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(settings.selectedDays.contains(iso) ? BrandColor.primary : .secondary)
+                        .accessibilityLabel(weekdayName(iso))
+                        .accessibilityAddTraits(settings.selectedDays.contains(iso) ? .isSelected : [])
                     }
                 }
-                .pickerStyle(.segmented)
                 .accessibilityLabel(LocalizationHelper.localized("Day"))
             }
 
@@ -133,16 +166,6 @@ struct ActivityReminderCard: View {
                 .pickerStyle(.menu)
                 .accessibilityLabel(LocalizationHelper.localized("Activity"))
             }
-        }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
-        .task {
-            settings = ActivityReminderScheduler.settings
-            suggestion = RideHistoryProfile.suggestSlot(
-                RideHistoryProfileSource.samples(context: modelContext)
-            )
-            historyLoaded = true
         }
     }
 

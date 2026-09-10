@@ -89,7 +89,8 @@ nonisolated func parseFirestorePoints(_ value: Any?) -> [DownloadedPoint] {
             accuracy: decodeFirestoreDouble(p["accuracy"]) ?? 0,
             speed: decodeFirestoreDouble(p["speed"]) ?? 0,
             timestamp: ts,
-            isPaused: (p["isPaused"] as? Bool) ?? false
+            isPaused: (p["isPaused"] as? Bool) ?? false,
+            cumulativeDistanceMeters: decodeFirestoreDouble(p["cumulativeDistanceMeters"])
         )
     }
 }
@@ -155,6 +156,7 @@ class FirestoreSyncManager {
             "title": ride.title ?? "",
             "persona": ride.persona,
             "startZoneId": ride.startZoneId ?? NSNull(),
+            "trackingAlgorithmVersion": ride.trackingAlgorithmVersion ?? NSNull(),
             "maxSpeed": aggregate.maxSpeedMps,
             "distance": aggregate.distanceMeters,
             "avgSpeed": aggregate.avgSpeedMps,
@@ -244,7 +246,7 @@ class FirestoreSyncManager {
     }
 
     private static func pointPayload(_ point: GPSPoint) -> [String: Any] {
-        [
+        var payload: [String: Any] = [
             "lat": point.latitude,
             "lng": point.longitude,
             "altitude": point.altitude,
@@ -253,6 +255,10 @@ class FirestoreSyncManager {
             "timestamp": point.timestamp,
             "isPaused": point.isPaused
         ]
+        if let distance = point.cumulativeDistanceMeters {
+            payload["cumulativeDistanceMeters"] = distance
+        }
+        return payload
     }
 
     nonisolated static func chunkDocumentId(_ index: Int) -> String {

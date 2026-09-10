@@ -51,6 +51,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         return locationManager.location?.coordinate
     }
     private let motionSensor = MotionSensorManager()
+    private let v2Session = TrackingV2Session()
+    private let v2Pedometer = TrackingV2Pedometer()
+    private var trackingAlgorithmVersion = 2
 
     // State exposed to SwiftUI
     var state: TrackingState = .idle
@@ -235,6 +238,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             )
         )
         newRide.persona = selectedPersona.rawValue
+        newRide.trackingAlgorithmVersion = 2
+        trackingAlgorithmVersion = 2
+        v2Session.reset(persona: selectedPersona)
+        v2Pedometer.stop()
+        v2Pedometer.start(persona: selectedPersona)
+        newRide.applyAggregate(RideAggregateSnapshot.live(
+            distanceMeters: 0, movingDurationMillis: 0, maxSpeedMps: 0, pointCount: 0
+        ))
         newRide.startZoneId = TimeZone.current.identifier
         // TASK-232: was a group live when this ride began? A marker and a count, never a group id
         // and never a name — see Ride's note. The roster may not have synced yet at start, so an
@@ -311,6 +322,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// timer only accumulates for `.tracking`/`.gpsLost`), and tells the user.
     /// Internal so the repository can route a disk-full write failure here too.
     func enterStorageLowState() {
+        v2Session.pause()
+        v2Pedometer.stop()
         guard !(state == .storageLow && storageWarningShown) else { return }
         storageWarningShown = true
         state = .storageLow
@@ -354,11 +367,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
             if self.state == .tracking || self.state == .gpsLost {
                 let previousAutoPaused = self.isAutoPaused
-                if self.state == .tracking {
+                if self.trackingAlgorithmVersion == 2 {
+                    self.isAutoPaused = AutoPausePreference.isEnabled()
+                        && self.v2Session.snapshot.movementState == .stationary
+                } else if self.state == .tracking {
                     let start = Date().addingTimeInterval(-GPSProcessor.autoPauseWindow)
                     self.isAutoPaused = AutoPausePreference.isEnabled() && GPSProcessor.calculateAutoPause(recentPoints: self.points.filter { $0.timestamp >= start })
                 } else { self.isAutoPaused = false }
-                if !self.isAutoPaused { self.durationInMillis += 1000 }
+                if self.trackingAlgorithmVersion != 2 && !self.isAutoPaused { self.durationInMillis += 1000 }
                 if let lastTs = self.lastGpsTimestamp {
                     self.timeSinceLastGps = Date().timeIntervalSince(lastTs)
                     let previous = self.state
@@ -415,11 +431,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 timestamp: $0.timestamp
             )
         }
-        let restoredAggregate = RideMetrics.reconstructed(from: sorted)
+        trackingAlgorithmVersion = ride.trackingAlgorithmVersion ?? 1
+        let restoredAggregate = trackingAlgorithmVersion == 2 && ride.hasCompleteAggregate
+            ? ride.aggregateSnapshot : RideMetrics.reconstructed(from: sorted)
         totalDistance = restoredAggregate.distanceMeters
         durationInMillis = Double(restoredAggregate.movingDurationMillis)
         elapsedDurationInMillis = max(0, Date().timeIntervalSince(ride.startTime)) * 1000
         selectedPersona = ride.ridePersona
+        v2Session.reset(persona: selectedPersona, distance: restoredAggregate.distanceMeters,
+            duration: restoredAggregate.movingDurationMillis, peak: restoredAggregate.maxSpeedMps)
         locationManager.activityType = Self.activityType(for: selectedPersona)
         lastGpsTimestamp = last.timestamp
         timeSinceLastGps = Date().timeIntervalSince(last.timestamp)
@@ -439,6 +459,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     func stopTracking() {
+        v2Pedometer.stop()
         locationManager.stopUpdatingLocation()
         motionSensor.stopListening()
 
@@ -538,6 +559,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
               ) else { return false }
 
         locationManager.stopUpdatingLocation()
+        v2Pedometer.stop()
         motionSensor.stopListening()
         timer?.invalidate()
         timer = nil
@@ -591,6 +613,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             skipsNextDistanceSegmentAfterManualPause = true
             markPauseBoundary()
             state = .paused
+            v2Session.pause()
+            v2Pedometer.stop()
             currentSpeed = 0.0
             updateLiveActivity(force: true)
         }
@@ -611,7 +635,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             acc: last.horizontalAccuracy,
             spd: 0,
             ts: Date(),
-            paused: true
+            paused: true,
+            checkpoint: trackingAlgorithmVersion == 2 ? RideAggregateSnapshot.live(
+                distanceMeters: totalDistance, movingDurationMillis: durationInMillis,
+                maxSpeedMps: maxSpeedMps, pointCount: points.count) : nil
         )
     }
 
@@ -632,6 +659,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             locationManager.startUpdatingLocation()
         }
 
+        v2Session.resume()
+        v2Pedometer.start(persona: selectedPersona)
         state = .tracking
         if MotionSensorManager.isMotionFusionEnabled {
             motionSensor.startListening()
@@ -662,6 +691,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
 
         for location in locations {
+            if trackingAlgorithmVersion == 2 {
+                processV2Location(location, rideId: rideId)
+                continue
+            }
             // 1. Outlier removal
             if let previous = points.last {
                 if GPSProcessor.isOutlier(current: location, previous: previous) {
@@ -750,6 +783,47 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     // MARK: - Finalization Helpers
+
+    private func processV2Location(_ location: CLLocation, rideId: UUID) {
+        v2Pedometer.start(persona: selectedPersona)
+        guard location.horizontalAccuracy >= 0,
+              location.timestamp.timeIntervalSinceNow <= 1,
+              location.timestamp.timeIntervalSinceNow >= -30 else { return }
+        let before = v2Session.snapshot
+        let snapshot = v2Session.add(TrackingV2Sample(
+            latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
+            horizontalAccuracyMeters: Float(location.horizontalAccuracy),
+            elapsedRealtimeMillis: Int64((ProcessInfo.processInfo.systemUptime
+                + location.timestamp.timeIntervalSinceNow) * 1_000),
+            gpsSpeedMetersPerSecond: location.speed >= 0 ? Float(location.speed) : nil,
+            gpsSpeedAccuracyMetersPerSecond: location.speedAccuracy >= 0 ? Float(location.speedAccuracy) : nil,
+            motionEnergyMetersPerSecondSquared: motionSensor.currentEnergy,
+            motionSampleAgeMillis: motionSensor.sampleAgeMillis,
+            cumulativeStepCount: v2Pedometer.steps, stepAgeMillis: v2Pedometer.ageMillis,
+            stepCadenceHz: v2Pedometer.cadence,
+            persona: selectedPersona,
+            powerMode: ProcessInfo.processInfo.isLowPowerModeEnabled ? .batterySaver : .normal
+        ))
+        guard snapshot.rejectedOutlierCount == before.rejectedOutlierCount else { return }
+        currentSpeed = Double(snapshot.currentSpeedMetersPerSecond)
+        totalDistance = v2Session.distanceMeters
+        durationInMillis = Double(v2Session.movingDurationMillis)
+        maxSpeedMps = v2Session.maxSpeedMps
+        isAutoPaused = AutoPausePreference.isEnabled() && snapshot.movementState == .stationary
+        updateStillness(isStill: snapshot.movementState == .stationary, fixTime: location.timestamp)
+        points.append(location)
+        let checkpoint = RideAggregateSnapshot.live(distanceMeters: totalDistance,
+            movingDurationMillis: durationInMillis, maxSpeedMps: maxSpeedMps, pointCount: points.count)
+        DataRepository.shared.savePointBackground(rideId: rideId,
+            lat: location.coordinate.latitude, lng: location.coordinate.longitude,
+            alt: location.altitude, acc: location.horizontalAccuracy, spd: currentSpeed,
+            ts: location.timestamp, paused: isAutoPaused, checkpoint: checkpoint)
+        if LiveSharingManager.shared.isActive { LiveSharingManager.shared.updateLatestLocation(location) }
+        if GroupRideManager.shared.state.isActive {
+            GroupRideManager.shared.updateLatestLocation(location, moving: currentSpeed > 0.5,
+                riding: currentRideId != nil)
+        }
+    }
 
     /// Finalize the ride identified by `id` using the authoritative in-memory
     /// segment distance/duration. Keeping finalization in one path ensures the

@@ -62,6 +62,12 @@ struct GroupSessionState: Equatable, Codable {
     }
 }
 extension GroupSessionState {
+    /// Match the Android start gate. The server remains authoritative if the roster changes
+    /// between this check and the request; GROUP_OF_ONE must also have a readable error.
+    var canStartGroup: Bool {
+        isLeader && status == .preparing && roster.count >= 2
+    }
+
     /// TASK-289 — the leader is the only member of their own group.
     ///
     /// Lives here rather than inside `CommunityView` so it can be tested: it decides whether a
