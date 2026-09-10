@@ -23,6 +23,7 @@ struct HomeDashboardDeck: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showHowItWorks = false
+    @State private var showLiveSharingInfo = false
 
     var body: some View {
         ScrollView {
@@ -163,7 +164,39 @@ struct HomeDashboardDeck: View {
             groupRideCard
             DashboardCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Image(systemName: "location.circle").font(.system(size: 36)).foregroundStyle(BrandColor.primary)
+                    HStack {
+                        Image(systemName: "location.circle")
+                            .font(.system(size: 36)).foregroundStyle(BrandColor.primary)
+                            .accessibilityHidden(true)
+
+                        if !liveSharingActive {
+                            Spacer()
+                            Button {
+                                showLiveSharingInfo.toggle()
+                            } label: {
+                                Image(systemName: "info.circle")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .accessibilityLabel(LocalizationHelper.localized("How live sharing works"))
+                            // Same treatment as the group card's explainer, for the same reason:
+                            // these two cards share an HStack and size to the taller one, so an
+                            // inline paragraph here would stretch Ride together beside it.
+                            .popover(isPresented: $showLiveSharingInfo) {
+                                Text(LocalizationHelper.localized(
+                                    "Anyone with the link sees your location while you are recording. The link expires when the session does, and only you can start or stop it."
+                                ))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(width: 250, alignment: .leading)
+                                .padding(16)
+                                .presentationCompactAdaptation(.popover)
+                            }
+                        }
+                    }
                     Text(LocalizationHelper.localized("Live sharing")).font(.headline)
                     Spacer(minLength: 0)
                     Button(LocalizationHelper.localized(liveSharingActive ? "Manage sharing" : "Set up sharing"),
@@ -194,6 +227,30 @@ struct HomeDashboardDeck: View {
                         .buttonStyle(.plain)
                         .frame(minWidth: 44, minHeight: 44)
                         .accessibilityLabel(LocalizationHelper.localized("How group rides work"))
+                        // Anchored to the button rather than expanded inside the card. These two
+                        // cards share an HStack, which sizes both to the taller one — so growing
+                        // this card by a paragraph also grew Live sharing beside it, leaving a
+                        // large empty gap in a card whose content had not changed at all.
+                        //
+                        // A popover also keeps the explanation next to the control that asked for
+                        // it. `presentationCompactAdaptation(.popover)` stops iPhone promoting it
+                        // to a sheet, which for two sentences is far heavier than the question.
+                        .popover(isPresented: $showHowItWorks) {
+                            Text(LocalizationHelper.localized(
+                                "Everyone in the group sees everyone else while the group is live. Nobody sees where you have been, and nothing is saved."
+                            ))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            // A definite width, not a maximum. A popover sizes itself to its
+                            // content's ideal size, and with only an upper bound the width stays
+                            // indefinite, so the height is computed for fewer lines than actually
+                            // render and the last line is clipped.
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(width: 250, alignment: .leading)
+                            .padding(16)
+                            .presentationCompactAdaptation(.popover)
+                        }
                     }
                 }
                 Text(groupActive
@@ -203,14 +260,6 @@ struct HomeDashboardDeck: View {
                     .font(.headline)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
-
-                if !groupActive && showHowItWorks {
-                    Text(LocalizationHelper.localized(
-                        "Everyone in the group sees everyone else while the group is live. Nobody sees where you have been, and nothing is saved."
-                    ))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                }
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 10) { groupActions }
