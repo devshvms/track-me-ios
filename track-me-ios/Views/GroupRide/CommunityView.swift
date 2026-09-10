@@ -464,6 +464,12 @@ struct CommunityView: View {
                     } label: {
                         Label(LocalizationHelper.localized("Start group"), systemImage: "play.fill")
                     }
+                    .disabled(!groupRide.state.canStartGroup)
+                    if groupRide.state.isAloneInGroup {
+                        Text(LocalizationHelper.localized("Invite at least one other person before starting the group."))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 if groupRide.state.isLeader {
                     Button(role: .destructive) {

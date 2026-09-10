@@ -18,8 +18,10 @@ struct GroupHttpError: LocalizedError, Equatable {
             LocalizationHelper.localized("This group could not be found.")
         case "JOIN_RATE_LIMITED":
             LocalizationHelper.localized("Too many join attempts. Please wait and try again.")
+        case "GROUP_OF_ONE":
+            LocalizationHelper.localized("Invite at least one other person before starting the group.")
         default:
-            nil
+            LocalizationHelper.localized("The group request could not be completed. Please try again.")
         }
     }
 }

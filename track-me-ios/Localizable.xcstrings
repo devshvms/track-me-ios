@@ -1,6 +1,86 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Invite at least one other person before starting the group.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invita al menos a otra persona antes de iniciar el grupo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitez au moins une autre personne avant de démarrer le groupe."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lade mindestens eine weitere Person ein, bevor du die Gruppe startest."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह शुरू करने से पहले कम से कम एक अन्य व्यक्ति को आमंत्रित करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを開始する前に、少なくとももう1人招待してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始群组前，请至少邀请另一人加入。"
+          }
+        }
+      }
+    },
+    "The group request could not be completed. Please try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo completar la solicitud del grupo. Inténtalo de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La demande du groupe n’a pas pu être effectuée. Veuillez réessayer."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Gruppenanfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह का अनुरोध पूरा नहीं हो सका। कृपया फिर से कोशिश करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループのリクエストを完了できませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法完成群组请求。请重试。"
+          }
+        }
+      }
+    },
     "Open groups": {
       "localizations": {
         "es": {
