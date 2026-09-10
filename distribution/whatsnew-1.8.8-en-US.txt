@@ -1,0 +1,6 @@
+TrackMe 1.8.8
+
+- Rebuilt distance and pace estimation. Walking and running are measured more accurately, pauses are detected more reliably, and stretches with no GPS are shown as gaps rather than guessed at.
+- Routes no longer draw a straight line through a section the app could not see.
+- Home cards explain themselves without pushing the page around, and Live sharing now says who can see your location.
+- Start is enabled once a second person is in your group, and group errors are explained in plain language.
