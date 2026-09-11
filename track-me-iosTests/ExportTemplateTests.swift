@@ -259,6 +259,41 @@ final class ExportTemplateTests: XCTestCase {
         }
     }
 
+    /// The basemap's veil and fade are lifted off Apple's mark whatever scale MapKit hands back. The
+    /// first cut cropped the corner in `cgImage` pixels from a 3× snapshot: a magnified sliver of map
+    /// with most of the mark cut away — caught only by looking, on the simulator.
+    @MainActor
+    func testTheBasemapKeepsApplesMarkUnveiledAtAnyImageScale() {
+        let canvas = TemplateCanvas.portrait
+        let width: CGFloat = 720
+        let size = CGSize(width: width, height: (width / canvas.aspect).rounded(.down))
+        let k = width / canvas.pixelSize.width
+        // A grey map with a white mark where MapKit puts one: 14 pt in, 11–27 pt up, in frame points.
+        let mark = CGRect(x: 14 * k, y: size.height - 27 * k, width: 49 * k, height: 16 * k)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        let map = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor(white: 0.5, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor.white.setFill()
+            context.fill(mark)
+        }
+        let radii = TemplateBackdrop.attributionFramePoints
+        let backdrop = MapBackdrop(image: map, runs: [], joins: [], attributionSize: CGSize(width: radii.width * k, height: radii.height * k))
+        let image = TemplateRenderer.render(.trace, canvas: canvas, content: content(place: nil), widthPx: width, backdrop: backdrop)
+
+        func brightness(_ point: CGPoint) -> CGFloat {
+            var pixel = [UInt8](repeating: 0, count: 4)
+            let context = CGContext(data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            context.translateBy(x: -point.x, y: point.y - image.size.height + 1)
+            context.draw(image.cgImage!, in: CGRect(origin: .zero, size: image.size))
+            return CGFloat(Int(pixel[0]) + Int(pixel[1]) + Int(pixel[2])) / (3 * 255)
+        }
+        XCTAssertGreaterThan(brightness(CGPoint(x: mark.midX, y: mark.midY)), 0.9, "Apple's mark shows at full strength")
+        XCTAssertLessThan(brightness(CGPoint(x: size.width * 0.85, y: size.height * 0.2)), 0.3, "the map elsewhere stays shaded")
+    }
+
     @MainActor
     func testTheStickerIsTransparentOutsideItsPlate() {
         let image = TemplateRenderer.render(.sticker, canvas: .card, content: content())

@@ -203,38 +203,59 @@ enum PlaceLabelResolver {
 /// with every position then read back from `Snapshot.point(for:)`. The frame is ours; the projection is
 /// MapKit's (`EXPORT_SHARE_CONTRACTS.md` "Never re-derive the map projection").
 enum TemplateBackdrop {
+    /// Apple's mark in a snapshot is a fixed size in **points**: about 49 × 16 pt, 14 pt from the left
+    /// and 11 pt from the bottom, at every frame size (measured on iOS 26.5, 2026-09-11). The shade is
+    /// lifted in an ellipse with these radii about the bottom-left corner, in frame points: the mark
+    /// with a margin, and room for the wider attributions some regions carry.
+    static let attributionFramePoints = CGSize(width: 240, height: 80)
+
     static func capture(content: TemplateContent, canvas: TemplateCanvas, widthPx: CGFloat) async -> MapBackdrop? {
-        let size = CGSize(width: widthPx.rounded(), height: (widthPx / canvas.aspect).rounded(.down))
+        // Always captured at the canvas's full frame, whatever the output width. The mark is a fixed
+        // size in points, so a narrower capture makes it a bigger share of the preview than of the file.
+        let frame = canvas.pixelSize
         let all = (content.runs + content.joins).flatMap { $0 }
         guard all.count >= 2 else { return nil }
         let mapPoints = all.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) }
         let minX = mapPoints.map(\.x).min()!, maxX = mapPoints.map(\.x).max()!
         let minY = mapPoints.map(\.y).min()!, maxY = mapPoints.map(\.y).max()!
-        let unit = size.width / TemplateRenderer.designWidth
+        let unit = frame.width / TemplateRenderer.designWidth
         let design = traceRouteBoxDesign(canvas)
         let box = CGRect(x: design.minX * unit, y: design.minY * unit, width: design.width * unit, height: design.height * unit)
-        // Pixels per MapKit map point, from the tighter axis; then the frame that puts the route's
-        // centre at the box's centre.
+        // Frame points per MapKit map point, from the tighter axis; then the frame that puts the
+        // route's centre at the box's centre.
         let pixelsPerPoint = Swift.min(Double(box.width) / Swift.max(maxX - minX, 1), Double(box.height) / Swift.max(maxY - minY, 1))
         let options = MKMapSnapshotter.Options()
         options.mapRect = MKMapRect(
             x: (minX + maxX) / 2 - Double(box.midX) / pixelsPerPoint,
             y: (minY + maxY) / 2 - Double(box.midY) / pixelsPerPoint,
-            width: Double(size.width) / pixelsPerPoint,
-            height: Double(size.height) / pixelsPerPoint
+            width: Double(frame.width) / pixelsPerPoint,
+            height: Double(frame.height) / pixelsPerPoint
         )
-        options.size = size
-        options.scale = 1
+        options.size = frame
         options.mapType = .mutedStandard
         options.pointOfInterestFilter = .excludingAll
         options.showsBuildings = false
-        options.traitCollection = UITraitCollection(userInterfaceStyle: .dark)
+        // Scale 1 is asked for but not relied on: MapKit returned 3× for most frames even so.
+        options.traitCollection = UITraitCollection { $0.userInterfaceStyle = .dark; $0.displayScale = 1 }
         guard let snapshot = try? await MKMapSnapshotter(options: options).start() else { return nil }
-        func place(_ line: [TemplateCoordinate]) -> [CGPoint] {
-            line.map { snapshot.point(for: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) }
+        // Redrawn at exactly the output size at scale 1, so nothing downstream depends on the scale
+        // MapKit chose, and a 9:16 frame at 3× (75 MB) is released at once.
+        let output = CGSize(width: widthPx.rounded(), height: (widthPx.rounded() / canvas.aspect).rounded(.down))
+        let k = output.width / frame.width
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let image = UIGraphicsImageRenderer(size: output, format: format).image { _ in
+            snapshot.image.draw(in: CGRect(origin: .zero, size: output))
         }
-        return MapBackdrop(image: snapshot.image, runs: content.runs.map(place), joins: content.joins.map(place),
-                           attributionSize: CGSize(width: size.width * 0.3, height: size.height * 0.05))
+        func place(_ line: [TemplateCoordinate]) -> [CGPoint] {
+            line.map {
+                let point = snapshot.point(for: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude))
+                return CGPoint(x: point.x * k, y: point.y * k)
+            }
+        }
+        return MapBackdrop(image: image, runs: content.runs.map(place), joins: content.joins.map(place),
+                           attributionSize: CGSize(width: attributionFramePoints.width * k, height: attributionFramePoints.height * k))
     }
 }
 

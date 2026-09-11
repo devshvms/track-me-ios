@@ -7,7 +7,8 @@ struct MapBackdrop {
     let image: UIImage
     let runs: [[CGPoint]]
     let joins: [[CGPoint]]
-    /// Apple's attribution corner, bottom-left, in image pixels — re-drawn unveiled.
+    /// Radii of the ellipse about the bottom-left corner, in image points, where the shade is lifted
+    /// off Apple's mark.
     var attributionSize: CGSize = .zero
 }
 
@@ -254,6 +255,22 @@ private final class TemplateDrawScope {
         context.restoreGState()
     }
 
+    /// Erases the shade drawn so far in the current transparency layer, in an ellipse about `corner`:
+    /// wholly out to 60 % of the radii, where the mark sits, then feathered so the corner has no edge.
+    func liftShade(corner: CGPoint, radii: CGSize) {
+        let erase = UIColor.black
+        guard radii.width > 0, radii.height > 0,
+              let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                        colors: [erase.cgColor, erase.cgColor, erase.withAlphaComponent(0).cgColor] as CFArray,
+                                        locations: [0, 0.6, 1]) else { return }
+        context.saveGState()
+        context.setBlendMode(.destinationOut)
+        context.translateBy(x: corner.x, y: corner.y)
+        context.scaleBy(x: radii.width, y: radii.height)
+        context.drawRadialGradient(gradient, startCenter: .zero, startRadius: 0, endCenter: .zero, endRadius: 1, options: [])
+        context.restoreGState()
+    }
+
     func hairline(_ x0: CGFloat, _ x1: CGFloat, y: CGFloat, color: UIColor) {
         context.setFillColor(color.cgColor)
         context.fill(CGRect(x: px(x0), y: px(y), width: px(x1 - x0), height: Swift.max(1, px(2))))
@@ -370,20 +387,21 @@ private final class TemplateDrawScope {
         var geometry: (runs: [[CGPoint]], joins: [[CGPoint]])?
         if let backdrop {
             backdrop.image.draw(in: CGRect(x: 0, y: 0, width: width, height: height))
-            // "Lite shade": the map is texture, not subject.
+            // Points, never `cgImage` pixels: MapKit may hand back 3× whatever was asked for, and the
+            // first cut cropped the corner in pixels, magnifying a sliver and burying the mark.
+            let sx = width / backdrop.image.size.width
+            let sy = height / backdrop.image.size.height
+            // "Lite shade": the map is texture, not subject. One layer, so it can be lifted off Apple's
+            // mark — the attribution is required, and the veil and the fade would bury it.
+            context.beginTransparencyLayer(auxiliaryInfo: nil)
             context.setFillColor(UIColor(red: 12 / 255, green: 18 / 255, blue: 24 / 255, alpha: 168 / 255).cgColor)
             context.fill(CGRect(x: 0, y: 0, width: width, height: height))
             fadeToward(UIColor(rgb: 0x080D11), fromY: layout.place - 180, bottomAlpha: 225 / 255)
-            let sx = width / backdrop.image.size.width
-            let sy = height / backdrop.image.size.height
-            // Apple's attribution is required, and the veil would bury it — its corner is drawn again.
-            if backdrop.attributionSize.width > 0, let cg = backdrop.image.cgImage {
-                let source = CGRect(x: 0, y: CGFloat(cg.height) - backdrop.attributionSize.height,
-                                    width: backdrop.attributionSize.width, height: backdrop.attributionSize.height)
-                if let corner = cg.cropping(to: source) {
-                    UIImage(cgImage: corner).draw(in: CGRect(x: 0, y: height - source.height * sy, width: source.width * sx, height: source.height * sy))
-                }
+            if backdrop.attributionSize.width > 0 {
+                liftShade(corner: CGPoint(x: 0, y: height),
+                          radii: CGSize(width: backdrop.attributionSize.width * sx, height: backdrop.attributionSize.height * sy))
             }
+            context.endTransparencyLayer()
             geometry = (backdrop.runs.map { $0.map { CGPoint(x: $0.x * sx, y: $0.y * sy) } },
                         backdrop.joins.map { $0.map { CGPoint(x: $0.x * sx, y: $0.y * sy) } })
         } else {
