@@ -3,7 +3,6 @@ import Foundation
 enum DebugSettings {
     static let modeEnabledKey = "debugModeEnabled"
     static let autoPauseKey = "intelligentAutoPause"
-    static let postProcessingKey = "enableGPSPostProcessing"
 
     static func isEnabled(_ defaults: UserDefaults = .standard) -> Bool {
         defaults.bool(forKey: modeEnabledKey)
@@ -16,7 +15,6 @@ enum DebugSettings {
     /// Restores only preferences owned by Debug Settings; customer preferences are untouched.
     static func disableAndReset(_ defaults: UserDefaults = .standard) {
         defaults.set(true, forKey: autoPauseKey)
-        defaults.set(true, forKey: postProcessingKey)
         // Lock last so a partial write can never leave unlocked disabled algorithms behind.
         defaults.set(false, forKey: modeEnabledKey)
     }

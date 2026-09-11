@@ -230,7 +230,7 @@ actor HomeDashboardWorker {
         descriptor.fetchLimit = 1
         guard let ride = try modelContext.fetch(descriptor).first else { return [] }
         let points = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }.map {
-            HomeDashboardRoutePoint(latitude: $0.latitude, longitude: $0.longitude)
+            HomeDashboardRoutePoint(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
         }
         return Self.downsample(points, limit: limit)
     }
