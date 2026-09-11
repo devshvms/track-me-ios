@@ -70,6 +70,9 @@ final class DataRepository {
             ride.cloudChunkCount = d.chunkCount
             ride.startZoneId = d.startZoneId
             ride.trackingAlgorithmVersion = d.trackingAlgorithmVersion
+            ride.revealKind = d.revealKind
+            ride.revealPreviousBest = d.revealPreviousBest
+            ride.revealMilestoneCount = d.revealMilestoneCount
             ctx.insert(ride)
             var importedPoints: [GPSPoint] = []
             for p in d.points {
@@ -221,6 +224,45 @@ final class DataRepository {
 
     /// Removes a ride that was explicitly abandoned during the near-empty start window.
     /// Serialized behind point writes so an in-flight location callback cannot resurrect it.
+    /// SCOPE_1.8.9 §13 — what the ride earned, written once at save. Queued behind the ride's own
+    /// writes like `finishRide`, so it lands on the finished row instead of racing it. A ride already
+    /// uploaded is marked for another pass, so the reveal reaches the cloud rather than stranding here.
+    func recordEarnedReveal(rideId: UUID, kind: RevealKind, previousBest: Double?, milestoneCount: Int?) {
+        guard let container = container else { return }
+        let pendingWrites = pointWriteChain
+        pointWriteChain = Task { [weak self] in
+            await pendingWrites?.value
+            guard self != nil else { return }
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
+            do {
+                guard let ride = try context.fetch(descriptor).first else { return }
+                ride.revealKind = kind.wireName
+                ride.revealPreviousBest = previousBest
+                ride.revealMilestoneCount = milestoneCount
+                if ride.isSynced { ride.isSynced = false }
+                try context.save()
+            } catch {
+                NSLog("TrackMe: failed to record earned reveal: %@", error.localizedDescription)
+            }
+        }
+    }
+
+    /// SCOPE_1.8.9 §7 — caches the place names for the trimmed route's ends. Local only.
+    func setPlaceLabels(rideId: UUID, start: String?, end: String?) {
+        guard let context = container?.mainContext else { return }
+        let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
+        guard let ride = try? context.fetch(descriptor).first else { return }
+        ride.placeLabelStart = start
+        ride.placeLabelEnd = end
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            NSLog("TrackMe: failed to cache place labels: %@", error.localizedDescription)
+        }
+    }
+
     func deleteRide(rideId: UUID) {
         guard let container = container else { return }
 
