@@ -198,8 +198,8 @@ struct RideDetailView: View {
 
                 // TASK-245, shvm: outside the points check. A ride with no points is precisely the
                 // one a rider wants rid of, and hiding Delete with the charts left the only way out
-                // a swipe on the History row — undiscoverable from here. Share and GPX self-guard on
-                // `snapshotImage`/`gpxURL`, both nil without points, so this degrades to Delete
+                // a swipe on the History row — undiscoverable from here. Share guards on the ride
+                // having points and GPX on `gpxURL` (nil without them), so this degrades to Delete
                 // alone. Android already behaved this way: its "No GPS data available" is only the
                 // map's empty state, not a gate on the whole tail.
                 actionButtons
@@ -578,14 +578,15 @@ struct RideDetailView: View {
     }
 
     private func formatElevation(_ meters: Double) -> String {
-        let value = unitSettings.unit == .imperial ? meters * 3.28084 : meters
-        return String(format: "%.0f %@", value, unitSettings.unit == .imperial ? "ft" : "m")
+        UnitFormatter.elevation(meters: meters, unit: unitSettings.unit)
     }
     
     @ViewBuilder
     var actionButtons: some View {
         HStack {
-            if snapshotImage != nil {
+            // Points, not the MapKit snapshot (SCOPE_1.8.9): the default Templates tab draws without a
+            // map, so waiting on one hid Share offline and until the snapshot landed. Android's gate.
+            if !(ride.points?.isEmpty ?? true) {
                 Button(action: {
                     showImagePreview = true
                 }) {
@@ -608,9 +609,7 @@ struct RideDetailView: View {
         }
         .padding(.horizontal)
         .sheet(isPresented: $showImagePreview) {
-            if let image = snapshotImage {
-                ExportPreviewView(ride: ride, snapshotImage: image)
-            }
+            ExportPreviewView(ride: ride, snapshotImage: snapshotImage)
         }
     }
     

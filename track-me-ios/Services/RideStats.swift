@@ -100,6 +100,10 @@ nonisolated struct RideStatsTransition {
     let streakAdvanced: Bool
     /// True when this ride's week-rollover forgave a single missed week (B3 auto-freeze).
     let streakFroze: Bool
+    /// SCOPE_1.8.9 §13: the records as they stood **before** this ride. The store overwrites them the
+    /// moment the ride is folded in, so this transition is the last place they exist.
+    let previousLongestDistanceMeters: Double
+    let previousLongestDurationMillis: Int64
 
     /// Explicit memberwise init so the fields can stay `let`.
     init(
@@ -118,7 +122,9 @@ nonisolated struct RideStatsTransition {
         streakWeeks: Int,
         isFirstRideOfWeek: Bool,
         streakAdvanced: Bool,
-        streakFroze: Bool
+        streakFroze: Bool,
+        previousLongestDistanceMeters: Double = 0,
+        previousLongestDurationMillis: Int64 = 0
     ) {
         self.rideId = rideId
         self.alreadyProcessed = alreadyProcessed
@@ -136,6 +142,8 @@ nonisolated struct RideStatsTransition {
         self.isFirstRideOfWeek = isFirstRideOfWeek
         self.streakAdvanced = streakAdvanced
         self.streakFroze = streakFroze
+        self.previousLongestDistanceMeters = previousLongestDistanceMeters
+        self.previousLongestDurationMillis = previousLongestDurationMillis
     }
 }
 
@@ -233,7 +241,9 @@ nonisolated enum RideStatsReducer {
                 streakWeeks: old.streakWeeks,
                 isFirstRideOfWeek: false,
                 streakAdvanced: false,
-                streakFroze: false
+                streakFroze: false,
+                previousLongestDistanceMeters: old.longestDistanceMeters,
+                previousLongestDurationMillis: old.longestDurationMillis
             )
             return (old, noOp)
         }
@@ -318,7 +328,9 @@ nonisolated enum RideStatsReducer {
             streakWeeks: newStreakWeeks,
             isFirstRideOfWeek: isFirstRideOfWeek,
             streakAdvanced: streakAdvanced,
-            streakFroze: streakFroze
+            streakFroze: streakFroze,
+            previousLongestDistanceMeters: old.longestDistanceMeters,
+            previousLongestDurationMillis: old.longestDurationMillis
         )
 
         return (newStats, transition)

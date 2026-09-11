@@ -858,6 +858,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 }
                 if let reveal = RevealSelector.select(transition) {
                     RevealCoordinator.shared.put(reveal)
+                    // SCOPE_1.8.9 §13: the coordinator is a one-shot that Home consumes; the ride row
+                    // is where The Award reads it back, and this is the only moment it exists.
+                    DataRepository.shared.recordEarnedReveal(
+                        rideId: id,
+                        kind: reveal.kind,
+                        previousBest: RevealSelector.previousBest(for: reveal.kind, in: transition),
+                        milestoneCount: reveal.milestoneRideCount
+                    )
                 }
             }
         } else {

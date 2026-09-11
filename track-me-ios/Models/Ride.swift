@@ -68,6 +68,19 @@ final class Ride {
     /// How many riders were in the group, including this one. Nil when it was never observed —
     /// §5.5's honesty rule: an unknown count renders no count, never `0`.
     var groupRiderCount: Int?
+    /// SCOPE_1.8.9 §13 — what this ride earned **at the moment it was saved**, for The Award. Written
+    /// once, at save, because that is the only moment the answer is knowable: a PR is a comparison
+    /// against a stats snapshot the very next ride overwrites. Nil means never evaluated — every ride
+    /// from before 1.8.9 and every import. Stored as Android's enum name (`RevealKind.wireName`) and
+    /// synced, so a restore on either platform cannot un-earn an Award.
+    var revealKind: String? = nil
+    /// Metres for a distance PR, active milliseconds for a duration PR; nil otherwise.
+    var revealPreviousBest: Double? = nil
+    var revealMilestoneCount: Int? = nil
+    /// SCOPE_1.8.9 §7 — neighbourhood-or-coarser names for the trimmed route's ends, resolved only
+    /// after the user turned the place reference on. Not synced: a re-derivable, on-device cache.
+    var placeLabelStart: String? = nil
+    var placeLabelEnd: String? = nil
     
     @Relationship(deleteRule: .cascade, inverse: \GPSPoint.ride)
     var points: [GPSPoint]?

@@ -39,6 +39,12 @@ enum UnitFormatter {
 
     static func distanceUnitLabel(_ unit: UnitSystem) -> String { unit == .imperial ? "mi" : "km" }
 
+    /// Elevation gain as the ride detail screen shows it: whole metres, or whole feet in imperial.
+    /// One helper for the screen and every artifact made from it (EXPORT_SHARE_CONTRACTS §2).
+    static func elevation(meters: Double, unit: UnitSystem) -> String {
+        String(format: "%.0f %@", unit == .imperial ? meters * 3.28084 : meters, unit == .imperial ? "ft" : "m")
+    }
+
     static func speed(mps: Double, unit: UnitSystem) -> String {
         String(format: "%.1f %@", locale: Locale.current, mps * (unit == .imperial ? 2.236936 : 3.6), speedUnitLabel(unit))
     }

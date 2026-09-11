@@ -5,7 +5,7 @@ import Foundation
 ///
 /// Stored as a `String` rather than an enum so an unknown future value degrades to "not recorded
 /// here" instead of failing to decode, and so SwiftData needs no custom transformer.
-enum RideSource {
+nonisolated enum RideSource {
     /// Produced by this app's recorder on this device. Earns levels and milestones.
     static let recorded = "RECORDED"
 
