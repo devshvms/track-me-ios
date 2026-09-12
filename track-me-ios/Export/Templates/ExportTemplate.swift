@@ -5,6 +5,9 @@ import Foundation
 /// stable: The Award sits last so its appearing and disappearing never moves the others.
 nonisolated enum ExportTemplateID: String, CaseIterable, Identifiable {
     case trace, instrument, sticker, hour, award
+    /// SCOPE_1.8.9 Part 2. Appended rather than slotted in: the order is the strip's, and an
+    /// aggregate-only template appearing in the middle would move the five a rider already knows.
+    case itinerary
     var id: String { rawValue }
     /// Telemetry identity — identical to Android's `analyticsValue`.
     var analyticsValue: String { rawValue }
@@ -57,6 +60,9 @@ nonisolated enum ExportTemplates {
         ExportTemplateSpec(id: .sticker, scope: .both, canvases: [.card], transparent: true),
         ExportTemplateSpec(id: .hour, scope: .single, canvases: [.story, .portrait, .square]),
         ExportTemplateSpec(id: .award, scope: .single, canvases: [.story, .portrait, .square]),
+        // Aggregate, not both: a single ride has no sequence, and an itinerary of one leg is a worse
+        // Trace. The strip therefore offers this only for a selection.
+        ExportTemplateSpec(id: .itinerary, scope: .aggregate, canvases: [.story, .portrait, .square]),
     ]
 
     static func spec(_ id: ExportTemplateID) -> ExportTemplateSpec { all.first { $0.id == id }! }

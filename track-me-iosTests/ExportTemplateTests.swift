@@ -176,7 +176,13 @@ final class ExportTemplateTests: XCTestCase {
     // MARK: Declarations (§5, §9.3)
 
     func testTheStripOrderScopeAndCanvasesAreTheContract() {
-        XCTAssertEqual(ExportTemplates.all.map(\.id), [.trace, .instrument, .sticker, .hour, .award])
+        // The contract is about the single-ride strip: those five must not reshuffle under a rider who
+        // has learned where they are. Part 2's aggregate templates are appended after them and never
+        // appear in that strip, so they cannot shift it — which is why the assertion is now "the
+        // single-ride ids, in this order, first" rather than "these are all of them".
+        XCTAssertEqual(ExportTemplates.all.filter { $0.scope != .aggregate }.map(\.id), [.trace, .instrument, .sticker, .hour, .award])
+        XCTAssertEqual(ExportTemplates.all.filter { $0.scope == .aggregate }.map(\.id), [.itinerary],
+                       "aggregate templates belong after the single-ride ones")
         XCTAssertEqual([ExportTemplateID.award, .instrument, .hour].map { ExportTemplates.spec($0).scope }, [.single, .single, .single])
         XCTAssertEqual(ExportTemplates.spec(.instrument).defaultCanvas, .portrait)
         XCTAssertEqual(ExportTemplates.canvas(for: .sticker, preferred: .story), .card)

@@ -136,6 +136,9 @@ enum ExportTemplateBuilder {
         case .sticker: return LocalizationHelper.localized("Sticker", localeCode: localeCode)
         case .hour: return LocalizationHelper.localized("Hour", localeCode: localeCode)
         case .award: return LocalizationHelper.localized("Award", localeCode: localeCode)
+        // One word, like its siblings: the strip is a fixed-width control and §12 R3 holds it to
+        // fitting on one line in every catalogue.
+        case .itinerary: return LocalizationHelper.localized("Route", localeCode: localeCode)
         }
     }
 
@@ -194,7 +197,8 @@ enum PlaceLabelResolver {
         guard let placemark = placemarks?.first else { return nil }
         return PlaceParts(subLocality: placemark.subLocality, locality: placemark.locality,
                           subAdministrativeArea: placemark.subAdministrativeArea,
-                          administrativeArea: placemark.administrativeArea, thoroughfare: placemark.thoroughfare)
+                          administrativeArea: placemark.administrativeArea, thoroughfare: placemark.thoroughfare,
+                          countryName: placemark.country)
     }
 }
 

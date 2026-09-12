@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// What a supporting figure is, so a template can place or drop it by meaning, not position.
 nonisolated enum FigureRole: Equatable { case duration, elevation, effort }
@@ -42,4 +43,26 @@ nonisolated struct TemplateContent {
     var award: AwardText?
     var light: LightPhase
     var lightLine: String?
+    /// SCOPE_1.8.9 Part 2. Non-nil only for a selection `AggregateSelection.shape` called a `.tour` —
+    /// which is what stops the Itinerary rendering a list of unrelated places as though it were a
+    /// journey. Defaulted so every single-ride call site is untouched.
+    var itinerary: Itinerary? = nil
+    /// The regions the selection touched, in the order ridden. Aggregate only.
+    var regions: [(name: String, role: RegionRole)] = []
+    /// "Karnataka · Goa", already chosen and localised by the caller — the same division of labour as
+    /// `lightLine`. The renderer resolves no strings (`EXPORT_SHARE_CONTRACTS.md` §4).
+    var coverageLine: String? = nil
+    /// One colour per entry in `runs`, for an aggregate whose runs come from different rides.
+    ///
+    /// Aggregate only, and nil everywhere else: a single ride's line is coloured by pace
+    /// (`runIntensities`), and a selection's lines by *which ride they are*. The two meanings cannot
+    /// share a channel, which is why this is a second field rather than a reuse of the first.
+    var runPalette: [UIColor]? = nil
+
+    /// The palette as the renderer wants it, or nil when there is none. An index past the end wraps,
+    /// because a selection can be longer than the palette and a render is not the place to find out.
+    func paletteColorOfRun() -> ((Int) -> UIColor)? {
+        guard let palette = runPalette, !palette.isEmpty else { return nil }
+        return { palette[((($0 % palette.count) + palette.count) % palette.count)] }
+    }
 }

@@ -13,6 +13,9 @@ nonisolated struct PlaceParts: Equatable {
     var subAdministrativeArea: String? = nil
     var administrativeArea: String? = nil
     var thoroughfare: String? = nil
+    /// Read by the aggregate coverage rules (1.8.9 Part 2) and deliberately never part of `label`:
+    /// a country is not a place a ride happened *at*. The twin of Android's `countryName`.
+    var countryName: String? = nil
 }
 
 /// Neighbourhood or coarser, **never a street** (SCOPE_1.8.9 §7). The route's ends are trimmed 200 m

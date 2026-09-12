@@ -36,11 +36,18 @@ nonisolated enum TemplateAnalytics {
     private static let smoothingWindow = 5
 
     static func haversineMeters(_ a: TemplatePoint, _ b: TemplatePoint) -> Double {
+        haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude)
+    }
+
+    /// The same formula on bare coordinates, for callers that have no points — `AggregateSelection`
+    /// measures between the ends of different rides. One implementation on purpose: both thresholds
+    /// in Part 2 are distances, and two haversines that rounded differently would move them.
+    static func haversineMeters(_ aLat: Double, _ aLon: Double, _ bLat: Double, _ bLon: Double) -> Double {
         let radius = 6_371_000.0
-        let dLat = (b.latitude - a.latitude) * .pi / 180
-        let dLon = (b.longitude - a.longitude) * .pi / 180
-        let lat1 = a.latitude * .pi / 180
-        let lat2 = b.latitude * .pi / 180
+        let dLat = (bLat - aLat) * .pi / 180
+        let dLon = (bLon - aLon) * .pi / 180
+        let lat1 = aLat * .pi / 180
+        let lat2 = bLat * .pi / 180
         let h = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2)
         return radius * 2 * atan2(sqrt(h), sqrt(1 - h))
     }

@@ -104,6 +104,7 @@ enum TemplateRenderer {
             case .sticker: scope.drawSticker(content)
             case .hour: scope.drawHour(content)
             case .award: scope.drawAward(content)
+            case .itinerary: scope.drawItinerary(content)
             }
         }
     }
@@ -285,8 +286,12 @@ private final class TemplateDrawScope {
 
     /// Runs as strokes coloured along their length, joins as dots, and the ends different by
     /// construction — hollow start, solid finish — so direction reads without an arrow.
+    /// `colorOfRun`, when given, is the colour of run *i* — one ride, one colour — and the pace
+    /// gradient is not consulted for that run at all (SCOPE_1.8.9 Part 2 §9.3). A selection's lines
+    /// say *which ride*; a single ride's line says *how fast*. Both cannot be true of one stroke.
     func route(_ runs: [[CGPoint]], joins: [[CGPoint]], intensities: [[Float]]?, stroke: CGFloat,
-               colorAt: (CGFloat) -> UIColor, groundAt: (CGPoint) -> UIColor, hollowStart: Bool = true) {
+               colorAt: (CGFloat) -> UIColor, groundAt: (CGPoint) -> UIColor, hollowStart: Bool = true,
+               colorOfRun: ((Int) -> UIColor)? = nil) {
         let strokePx = px(stroke)
         context.saveGState()
         context.setLineCap(.round)
@@ -301,7 +306,9 @@ private final class TemplateDrawScope {
         context.setLineDash(phase: 0, lengths: [])
         context.setLineWidth(strokePx)
         for (index, run) in runs.enumerated() where run.count >= 2 {
-            let values = intensities.flatMap { $0.indices.contains(index) ? $0[index] : nil }.flatMap { $0.count == run.count ? $0 : nil }
+            let fixed = colorOfRun?(index)
+            let values = fixed != nil ? nil
+                : intensities.flatMap { $0.indices.contains(index) ? $0[index] : nil }.flatMap { $0.count == run.count ? $0 : nil }
             let kept = TemplateGeometry.decimate(run, minStep: Swift.max(1, strokePx * 0.35))
             if let values, !values.allSatisfy({ $0 == values[0] }) {
                 // Eased along the thinned line: raw per-sample pace flickers, and round caps of
@@ -314,28 +321,31 @@ private final class TemplateDrawScope {
                     context.strokePath()
                 }
             } else {
-                context.setStrokeColor(colorAt(CGFloat(values?.first ?? TemplateAnalytics.flatPaceIntensity)).cgColor)
+                context.setStrokeColor((fixed ?? colorAt(CGFloat(values?.first ?? TemplateAnalytics.flatPaceIntensity))).cgColor)
                 context.addLines(between: kept.map { run[$0] })
                 context.strokePath()
             }
         }
         context.restoreGState()
         guard let start = runs.first(where: { !$0.isEmpty })?.first, let finish = runs.last(where: { !$0.isEmpty })?.last else { return }
-        let marker = colorAt(1)
+        // The start belongs to the first ride and the finish to the last, so with a palette each
+        // marker takes its own line's colour rather than a gradient end that matches neither.
+        let startColor = colorOfRun.map { $0(runs.firstIndex(where: { !$0.isEmpty }) ?? 0) } ?? colorAt(1)
+        let marker = colorOfRun.map { $0(runs.lastIndex(where: { !$0.isEmpty }) ?? 0) } ?? colorAt(1)
         let ring = strokePx * 1.3
         let startRect = CGRect(x: start.x - ring, y: start.y - ring, width: ring * 2, height: ring * 2)
         if hollowStart {
             context.setFillColor(groundAt(start).cgColor)
             context.fillEllipse(in: startRect)
         }
-        context.setStrokeColor(marker.cgColor)
+        context.setStrokeColor(startColor.cgColor)
         context.setLineWidth(strokePx * 0.55)
         context.strokeEllipse(in: startRect)
         if !hollowStart {
             // On a ground nobody can know — the Sticker goes on someone's photo — the start is a ring
             // around a dot instead of a hole cut out of the line.
             let dot = strokePx * 0.5
-            context.setFillColor(marker.cgColor)
+            context.setFillColor(startColor.cgColor)
             context.fillEllipse(in: CGRect(x: start.x - dot, y: start.y - dot, width: dot * 2, height: dot * 2))
         }
         let finishRadius = strokePx * 1.05
@@ -411,7 +421,8 @@ private final class TemplateDrawScope {
         }
         if let geometry {
             route(geometry.runs, joins: geometry.joins, intensities: content.runIntensities, stroke: layout.stroke,
-                  colorAt: { lerpColor(TemplateColors.cyanPace, $0) }, groundAt: { _ in ground }, hollowStart: backdrop == nil)
+                  colorAt: { lerpColor(TemplateColors.cyanPace, $0) }, groundAt: { _ in ground }, hollowStart: backdrop == nil,
+                  colorOfRun: content.paletteColorOfRun())
         }
         text(content.placeLine, x: 120, baseline: layout.place, font: font(34, weight: 600), color: TemplateColors.cyan, tracking: 0.14, maxWidth: 840)
         hero(content.heroValue, unit: content.heroUnit, x: 120, baseline: layout.hero, size: layout.heroSize,
@@ -554,7 +565,8 @@ private final class TemplateDrawScope {
         context.fillPath()
         if let geometry = project(content, into: box(CGRect(x: 60, y: 72, width: 380, height: 531))) {
             route(geometry.runs, joins: geometry.joins, intensities: content.runIntensities, stroke: 11,
-                  colorAt: { lerpColor(TemplateColors.cyanPace, $0) }, groundAt: { _ in .clear }, hollowStart: false)
+                  colorAt: { lerpColor(TemplateColors.cyanPace, $0) }, groundAt: { _ in .clear }, hollowStart: false,
+                  colorOfRun: content.paletteColorOfRun())
         }
         text(content.heroValue, x: 500, baseline: 262, font: font(170, weight: 760, tabular: true), color: .white, tracking: -0.035, maxWidth: 530)
         text(content.heroUnitLong, x: 506, baseline: 322, font: font(28, weight: 600), color: UIColor(rgb: 0xA9BCC7), tracking: 0.16, maxWidth: 520)
@@ -572,6 +584,123 @@ private final class TemplateDrawScope {
             text(link, x: 1036, baseline: 640, font: UIFont.systemFont(ofSize: px(15)), color: UIColor(rgb: 0xA9BCC7).withAlphaComponent(210 / 255), align: .right)
         }
     }
+
+    // MARK: The Itinerary
+
+    private struct ItineraryLayout {
+        let top, stopGap, nameSize, regionSize, hopSize, heroBaseline, heroSize, footer: CGFloat
+    }
+
+    private func itineraryLayout(stops: Int) -> ItineraryLayout {
+        let base: ItineraryLayout
+        switch canvas {
+        case .portrait: base = ItineraryLayout(top: 250, stopGap: 190, nameSize: 62, regionSize: 25, hopSize: 38, heroBaseline: 1230, heroSize: 118, footer: 1300)
+        case .square: base = ItineraryLayout(top: 210, stopGap: 150, nameSize: 52, regionSize: 22, hopSize: 32, heroBaseline: 960, heroSize: 96, footer: 1020)
+        default: base = ItineraryLayout(top: 300, stopGap: 230, nameSize: 70, regionSize: 27, hopSize: 42, heroBaseline: 1700, heroSize: 140, footer: 1790)
+        }
+        guard stops >= 2 else { return base }
+
+        // The chain must end clear of the hairline above the hero, not of the hero's baseline — and
+        // the last stop is not its dot: a district line sits beneath the name, and that is what
+        // actually collides. Reserving for the dot alone is what put "Nashik" through the figure.
+        let hairlineY = base.heroBaseline - base.heroSize * 0.95
+        let underLastStop = base.nameSize * 0.34 + base.regionSize * 1.5 + 36
+        let available = hairlineY - base.top - underLastStop
+        let natural = CGFloat(stops - 1) * base.stopGap
+
+        if natural <= available {
+            // Room to spare: centre the chain in the band rather than hanging it from the top, which
+            // left a four-stop tour with a dead third of a frame under it.
+            return ItineraryLayout(top: base.top + (available - natural) / 2, stopGap: base.stopGap, nameSize: base.nameSize,
+                                   regionSize: base.regionSize, hopSize: base.hopSize, heroBaseline: base.heroBaseline,
+                                   heroSize: base.heroSize, footer: base.footer)
+        }
+
+        // Too many stops for the natural pitch. Tighten the gap to exactly the band, and the type
+        // with it, so the column stays balanced instead of names colliding at the new spacing.
+        let squeeze = Swift.min(Swift.max(available / natural, 0.4), 1)
+        return ItineraryLayout(top: base.top, stopGap: base.stopGap * squeeze, nameSize: base.nameSize * Swift.max(squeeze, 0.62),
+                               regionSize: base.regionSize * Swift.max(squeeze, 0.7), hopSize: base.hopSize * Swift.max(squeeze, 0.7),
+                               heroBaseline: base.heroBaseline, heroSize: base.heroSize, footer: base.footer)
+    }
+
+    /// The journey as a chain of named stops — the one template that exists because a *selection* can
+    /// say something a single ride cannot (SCOPE_1.8.9 Part 2). Metric for metric with Android's
+    /// `drawItinerary`; the layout arithmetic above is the same arithmetic, not a second guess at it.
+    func drawItinerary(_ content: TemplateContent) {
+        skyGradient([UIColor(rgb: 0x101A16), UIColor(rgb: 0x0C1410), UIColor(rgb: 0x080F0C)])
+        // No tour, nothing to draw. The caller should not have offered this template at all, and a
+        // half-drawn chain would assert a journey the selection is not.
+        guard let itinerary = content.itinerary, !itinerary.stops.isEmpty else {
+            text(content.heroValue, x: 80, baseline: 540, font: font(140, weight: 760, tabular: true), color: .white, tracking: -0.03)
+            return
+        }
+
+        let layout = itineraryLayout(stops: itinerary.stops.count)
+        let railX: CGFloat = 132
+        let textX: CGFloat = 208
+        let rail = UIColor(rgb: 0x20362C)
+        let lastY = layout.top + CGFloat(itinerary.stops.count - 1) * layout.stopGap
+
+        // The rail is drawn first and once, so the dots sit on a single continuous line rather than a
+        // series of segments that betray any rounding between them.
+        context.setFillColor(rail.cgColor)
+        context.fill(CGRect(x: px(railX - 2.5), y: px(layout.top), width: px(5), height: px(lastY - layout.top)))
+
+        for (index, stop) in itinerary.stops.enumerated() {
+            let y = layout.top + CGFloat(index) * layout.stopGap
+            let terminal = index == 0 || index == itinerary.stops.count - 1
+            if index == 0 {
+                // Hollow at the start, solid everywhere after: the same grammar the single-ride
+                // templates use, so a rider reads direction without a legend.
+                let radius = px(17)
+                let rect = CGRect(x: px(railX) - radius, y: px(y) - radius, width: radius * 2, height: radius * 2)
+                context.setFillColor(UIColor(rgb: 0x101A16).cgColor)
+                context.fillEllipse(in: rect)
+                context.setStrokeColor(TemplateColors.cyan.cgColor)
+                context.setLineWidth(px(7))
+                context.strokeEllipse(in: rect)
+            } else {
+                let radius = px(terminal ? 17 : 13)
+                context.setFillColor(TemplateColors.cyan.cgColor)
+                context.fillEllipse(in: CGRect(x: px(railX) - radius, y: px(y) - radius, width: radius * 2, height: radius * 2))
+            }
+
+            let nameBaseline = y + layout.nameSize * 0.34
+            text(stop.name, x: textX, baseline: nameBaseline, font: font(layout.nameSize, weight: 720),
+                 color: UIColor(rgb: 0xEAF2ED), tracking: -0.02, maxWidth: 1080 - textX - 60)
+            if let region = stop.region {
+                text(region.uppercased(), x: textX, baseline: nameBaseline + layout.regionSize * 1.5,
+                     font: font(layout.regionSize, weight: 600), color: UIColor(rgb: 0x6E8C7E), tracking: 0.14,
+                     maxWidth: 1080 - textX - 60)
+            }
+
+            if index < itinerary.hops.count {
+                text(Self.kilometres(itinerary.hops[index].distanceMeters), x: textX, baseline: y + layout.stopGap * 0.55,
+                     font: font(layout.hopSize, weight: 600, tabular: true), color: TemplateColors.cyan, maxWidth: 300)
+            }
+        }
+
+        hairline(80, 1000, y: layout.heroBaseline - layout.heroSize * 0.95, color: rail)
+        let heroFont = font(layout.heroSize, weight: 760, tabular: true)
+        text(content.heroValue, x: 80, baseline: layout.heroBaseline, font: heroFont, color: .white, tracking: -0.035)
+        let heroWidth = width(of: content.heroValue, font: heroFont, tracking: -0.035) / u
+        text(content.heroUnit, x: 80 + heroWidth + 24, baseline: layout.heroBaseline,
+             font: font(layout.heroSize * 0.3, weight: 500), color: UIColor(rgb: 0x6E8C7E))
+        // The date and the coverage share the footer: what the trip was, and what it crossed.
+        let footer = [content.dateLine.isEmpty ? nil : content.dateLine, content.coverageLine]
+            .compactMap { $0 }
+            .joined(separator: "  ·  ")
+        text(footer, x: 80, baseline: layout.footer, font: font(26, weight: 500), color: UIColor(rgb: 0x4E6B5E),
+             tracking: 0.08, maxWidth: 900)
+        if let url = content.link, ReplayDeepLink.isTrackMeLink(url) {
+            text(url, x: 1000, baseline: layout.footer + 46, font: font(20, weight: 400),
+                 color: UIColor(rgb: 0x6E8C7E).withAlphaComponent(200 / 255), align: .right)
+        }
+    }
+
+    /// Whole kilometres, as Android's `formatKm`: a hop is a leg of a journey, not a measurement.
+    private static func kilometres(_ meters: Double) -> String { "\(Int(meters / 1000)) km" }
 
     // MARK: The Award
 
