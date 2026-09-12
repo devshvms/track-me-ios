@@ -19,6 +19,10 @@ struct DownloadedRide: Equatable {
     let elevationGainMeters: Double?
     let chunkCount: Int?
     var trackingAlgorithmVersion: Int? = nil
+    /// SCOPE_1.8.9 §13 — the earned reveal travels with the ride; wire names are Android's.
+    var revealKind: String? = nil
+    var revealPreviousBest: Double? = nil
+    var revealMilestoneCount: Int? = nil
 
     var persistedAggregate: RideAggregateSnapshot? {
         guard let distanceMeters,
@@ -56,6 +60,8 @@ struct DownloadedPoint: Equatable {
     let timestamp: Date
     let isPaused: Bool
     var cumulativeDistanceMeters: Double? = nil
+    var displayLatitude: Double? = nil
+    var displayLongitude: Double? = nil
 }
 
 extension FirestoreSyncManager {
@@ -129,7 +135,10 @@ extension FirestoreSyncManager {
             pointCount: decodeInt64(data["pointCount"]).map(Int.init),
             elevationGainMeters: decodeDouble(data["elevationGainMeters"]),
             chunkCount: chunkCount,
-            trackingAlgorithmVersion: decodeInt64(data["trackingAlgorithmVersion"]).map(Int.init)
+            trackingAlgorithmVersion: decodeInt64(data["trackingAlgorithmVersion"]).map(Int.init),
+            revealKind: data["revealKind"] as? String,
+            revealPreviousBest: decodeDouble(data["revealPreviousBest"]),
+            revealMilestoneCount: decodeInt64(data["revealMilestoneCount"]).map(Int.init)
         )
     }
 }

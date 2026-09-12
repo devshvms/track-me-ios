@@ -31,6 +31,7 @@ struct SettingsView: View {
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appTheme") private var appTheme: String = "system"
     @ObservedObject private var unitSettings = UnitSettings.shared
+    @Bindable private var bulletin = BulletinStore.shared
     // Static so the shipped set can be regression-tested without instantiating the View
     // (see track-me-iosTests/LanguagePickerTests.swift). Codes must match the
     // Localizable.xcstrings localization keys exactly so Locale(identifier:) resolves the
@@ -369,14 +370,30 @@ struct SettingsView: View {
                         // refuses lands there, so it has to be reachable without a notification
                         // having pointed at it.
                         NavigationLink(value: SettingsRoute.bulletin) {
-                            Text(LocalizationHelper.localized("What's new"))
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(BrandColor.primaryFill)
-                                .foregroundColor(.primary)
-                                .cornerRadius(24)
+                            HStack(spacing: 8) {
+                                Text(LocalizationHelper.localized("What's new"))
+                                    .font(.headline)
+                                // The tab carried §6.1.7's unread dot and nothing inside Settings
+                                // did, so the badge said "open Settings" and then abandoned the
+                                // reader — no row admitted to being the one it meant.
+                                if !bulletin.unread().isEmpty {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 8, height: 8)
+                                        .accessibilityHidden(true)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(BrandColor.primaryFill)
+                            .foregroundColor(.primary)
+                            .cornerRadius(24)
                         }
+                        .accessibilityLabel(
+                            bulletin.unread().isEmpty
+                                ? LocalizationHelper.localized("What's new")
+                                : LocalizationHelper.localized("What's new, unread")
+                        )
                         NavigationLink(value: SettingsRoute.helpFeedback) {
                             Text(LocalizationHelper.localized("Open Help & Feedback"))
                                 .font(.headline)

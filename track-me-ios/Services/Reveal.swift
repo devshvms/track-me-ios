@@ -125,3 +125,42 @@ final class RevealCoordinator {
         pending = nil
     }
 }
+
+extension RevealSelector {
+    /// SCOPE_1.8.9 §13 — the record a reveal beat, in the unit its kind compares: metres for a
+    /// distance PR, active milliseconds for a duration PR. Parity with Android's `previousBestFor`.
+    nonisolated static func previousBest(for kind: RevealKind, in transition: RideStatsTransition) -> Double? {
+        switch kind {
+        case .distancePR: return transition.previousLongestDistanceMeters
+        case .durationPR: return Double(transition.previousLongestDurationMillis)
+        case .firstRide, .milestone, .standard: return nil
+        }
+    }
+}
+
+extension RevealKind {
+    /// The name persisted on the ride and synced to the cloud. Android's enum names, deliberately:
+    /// the reveal travels through Firestore, and a ride restored on the other platform has to read
+    /// the same outcome it was saved with.
+    nonisolated var wireName: String {
+        switch self {
+        case .firstRide: return "FIRST_RIDE"
+        case .distancePR: return "DISTANCE_PR"
+        case .durationPR: return "DURATION_PR"
+        case .milestone: return "MILESTONE"
+        case .standard: return "DEFAULT"
+        }
+    }
+
+    /// Nil for an unknown name — a newer build's outcome is treated as none, never as a guess.
+    nonisolated init?(wireName: String) {
+        switch wireName {
+        case "FIRST_RIDE": self = .firstRide
+        case "DISTANCE_PR": self = .distancePR
+        case "DURATION_PR": self = .durationPR
+        case "MILESTONE": self = .milestone
+        case "DEFAULT": self = .standard
+        default: return nil
+        }
+    }
+}

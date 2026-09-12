@@ -90,7 +90,9 @@ nonisolated func parseFirestorePoints(_ value: Any?) -> [DownloadedPoint] {
             speed: decodeFirestoreDouble(p["speed"]) ?? 0,
             timestamp: ts,
             isPaused: (p["isPaused"] as? Bool) ?? false,
-            cumulativeDistanceMeters: decodeFirestoreDouble(p["cumulativeDistanceMeters"])
+            cumulativeDistanceMeters: decodeFirestoreDouble(p["cumulativeDistanceMeters"]),
+            displayLatitude: decodeFirestoreDouble(p["displayLat"]),
+            displayLongitude: decodeFirestoreDouble(p["displayLng"])
         )
     }
 }
@@ -164,6 +166,11 @@ class FirestoreSyncManager {
             "movingDurationMillis": aggregate.movingDurationMillis,
             "pointCount": aggregate.pointCount,
             "elevationGainMeters": aggregate.elevationGainMeters ?? NSNull(),
+            // SCOPE_1.8.9 §13.5: synced so a restore cannot un-earn an Award — the same keys and
+            // values Android writes. Place labels stay on the device.
+            "revealKind": ride.revealKind ?? NSNull(),
+            "revealPreviousBest": ride.revealPreviousBest ?? NSNull(),
+            "revealMilestoneCount": ride.revealMilestoneCount ?? NSNull(),
             RideChunkingContract.chunkCountField: chunkCount,
             "contentHash": Self.contentHash(points)
         ]
@@ -245,7 +252,7 @@ class FirestoreSyncManager {
         }
     }
 
-    private static func pointPayload(_ point: GPSPoint) -> [String: Any] {
+    static func pointPayload(_ point: GPSPoint) -> [String: Any] {
         var payload: [String: Any] = [
             "lat": point.latitude,
             "lng": point.longitude,
@@ -257,6 +264,12 @@ class FirestoreSyncManager {
         ]
         if let distance = point.cumulativeDistanceMeters {
             payload["cumulativeDistanceMeters"] = distance
+        }
+        if let displayLatitude = point.displayLatitude {
+            payload["displayLat"] = displayLatitude
+        }
+        if let displayLongitude = point.displayLongitude {
+            payload["displayLng"] = displayLongitude
         }
         return payload
     }

@@ -23,8 +23,16 @@ nonisolated enum RoutePolyline {
     static func encoded(from points: [GPSPoint]) -> String? {
         guard points.count >= 2 else { return nil }
         let ordered = points.sorted { $0.timestamp < $1.timestamp }
+        let presentation = ordered.reduce(into: [HomeDashboardRoutePoint]()) { result, point in
+            let coordinate = point.coordinate
+            let next = HomeDashboardRoutePoint(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )
+            if result.last != next { result.append(next) }
+        }
         let sampled = HomeDashboardWorker.downsample(
-            ordered.map { HomeDashboardRoutePoint(latitude: $0.latitude, longitude: $0.longitude) },
+            presentation,
             limit: maxPoints
         )
         guard sampled.count >= 2 else { return nil }

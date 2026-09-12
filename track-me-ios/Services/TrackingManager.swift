@@ -28,6 +28,34 @@ struct LocationSessionConfig {
     static let recordingRide = LocationSessionConfig()
 }
 
+/// Admission boundary between Core Location delivery and Tracking V2.
+///
+/// iOS may legitimately deliver ride-owned fixes minutes late after suspending the app. Their age
+/// is not a reason to discard them; ownership, coordinate validity and monotonic ordering are.
+nonisolated enum TrackingV2LocationAdmissionPolicy {
+    static let futureTolerance: TimeInterval = 1
+    static let sessionStartTolerance: TimeInterval = 1
+
+    static func accepts(
+        timestamp: Date,
+        coordinate: CLLocationCoordinate2D,
+        horizontalAccuracy: CLLocationAccuracy,
+        eligibleAfter: Date,
+        lastAcceptedAt: Date?,
+        now: Date
+    ) -> Bool {
+        guard horizontalAccuracy.isFinite,
+              horizontalAccuracy >= 0,
+              CLLocationCoordinate2DIsValid(coordinate),
+              timestamp.timeIntervalSince(now) <= futureTolerance,
+              timestamp >= eligibleAfter.addingTimeInterval(-sessionStartTolerance) else {
+            return false
+        }
+        if let lastAcceptedAt, timestamp <= lastAcceptedAt { return false }
+        return true
+    }
+}
+
 @Observable
 class TrackingManager: NSObject, CLLocationManagerDelegate {
     static let shared = TrackingManager()
@@ -54,6 +82,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private let v2Session = TrackingV2Session()
     private let v2Pedometer = TrackingV2Pedometer()
     private var trackingAlgorithmVersion = 2
+    private var v2LocationEligibleAfter = Date.distantPast
+    private var lastAcceptedV2LocationTimestamp: Date?
+    private var lastV2RawLocation: CLLocation?
+    private var lastV2DisplayCoordinate: CLLocationCoordinate2D?
 
     // State exposed to SwiftUI
     var state: TrackingState = .idle
@@ -243,6 +275,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         v2Session.reset(persona: selectedPersona)
         v2Pedometer.stop()
         v2Pedometer.start(persona: selectedPersona)
+        v2LocationEligibleAfter = rideStartTime
+        lastAcceptedV2LocationTimestamp = nil
+        lastV2RawLocation = nil
+        lastV2DisplayCoordinate = nil
         newRide.applyAggregate(RideAggregateSnapshot.live(
             distanceMeters: 0, movingDurationMillis: 0, maxSpeedMps: 0, pointCount: 0
         ))
@@ -421,8 +457,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // Rebuild live state and continue the SAME ride so new points append to it.
         currentRideId = rideId
         points = sorted.map {
-            CLLocation(
-                coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
+            let coordinate = $0.coordinate
+            return CLLocation(
+                coordinate: coordinate,
                 altitude: $0.altitude,
                 horizontalAccuracy: $0.accuracy,
                 verticalAccuracy: $0.accuracy,
@@ -440,6 +477,18 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         selectedPersona = ride.ridePersona
         v2Session.reset(persona: selectedPersona, distance: restoredAggregate.distanceMeters,
             duration: restoredAggregate.movingDurationMillis, peak: restoredAggregate.maxSpeedMps)
+        v2LocationEligibleAfter = ride.startTime
+        lastAcceptedV2LocationTimestamp = last.timestamp
+        lastV2RawLocation = CLLocation(
+            coordinate: last.rawCoordinate,
+            altitude: last.altitude,
+            horizontalAccuracy: last.accuracy,
+            verticalAccuracy: last.accuracy,
+            course: -1,
+            speed: last.speed,
+            timestamp: last.timestamp
+        )
+        lastV2DisplayCoordinate = last.coordinate
         locationManager.activityType = Self.activityType(for: selectedPersona)
         lastGpsTimestamp = last.timestamp
         timeSinceLastGps = Date().timeIntervalSince(last.timestamp)
@@ -489,6 +538,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         currentRideId = nil
         elapsedDurationInMillis = 0
         skipsNextDistanceSegmentAfterManualPause = false
+        v2LocationEligibleAfter = .distantPast
+        lastAcceptedV2LocationTimestamp = nil
+        lastV2RawLocation = nil
+        lastV2DisplayCoordinate = nil
         selectedPersona = .auto
         locationManager.activityType = LocationSessionConfig.recordingRide.activityType
         GroupRideManager.shared.refreshLocationSource()
@@ -585,6 +638,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         maxSpeedMps = 0
         durationInMillis = 0
         elapsedDurationInMillis = 0
+        v2LocationEligibleAfter = .distantPast
+        lastAcceptedV2LocationTimestamp = nil
+        lastV2RawLocation = nil
+        lastV2DisplayCoordinate = nil
         selectedPersona = .auto
         locationManager.activityType = LocationSessionConfig.recordingRide.activityType
         isAutoPaused = false
@@ -627,15 +684,19 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// time-and-speed rule still dots it.
     private func markPauseBoundary() {
         guard let rideId = currentRideId, let last = points.last else { return }
+        let raw = trackingAlgorithmVersion == 2 ? (lastV2RawLocation ?? last) : last
+        let display = trackingAlgorithmVersion == 2 ? (lastV2DisplayCoordinate ?? last.coordinate) : nil
         DataRepository.shared.savePointBackground(
             rideId: rideId,
-            lat: last.coordinate.latitude,
-            lng: last.coordinate.longitude,
-            alt: last.altitude,
-            acc: last.horizontalAccuracy,
+            lat: raw.coordinate.latitude,
+            lng: raw.coordinate.longitude,
+            alt: raw.altitude,
+            acc: raw.horizontalAccuracy,
             spd: 0,
             ts: Date(),
             paused: true,
+            displayLat: display?.latitude,
+            displayLng: display?.longitude,
             checkpoint: trackingAlgorithmVersion == 2 ? RideAggregateSnapshot.live(
                 distanceMeters: totalDistance, movingDurationMillis: durationInMillis,
                 maxSpeedMps: maxSpeedMps, pointCount: points.count) : nil
@@ -665,8 +726,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         if MotionSensorManager.isMotionFusionEnabled {
             motionSensor.startListening()
         }
-        lastGpsTimestamp = Date()
-        timeSinceLastGps = 0
+        if trackingAlgorithmVersion == 2 {
+            // A delayed batch can contain fixes captured during the explicit manual pause. They
+            // belong to the ride's wall-clock span but not its recorded movement.
+            v2LocationEligibleAfter = Date()
+            timeSinceLastGps = lastGpsTimestamp.map { max(0, Date().timeIntervalSince($0)) } ?? 0
+        } else {
+            lastGpsTimestamp = Date()
+            timeSinceLastGps = 0
+        }
         updateLiveActivity(force: true)
     }
 
@@ -674,12 +742,6 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         guard state == .tracking || state == .gpsLost, let rideId = currentRideId else { return }
 
         let accumulationState = state
-        let recoveredFromGpsLost = state == .gpsLost
-        lastGpsTimestamp = Date()
-        timeSinceLastGps = 0
-        if state == .gpsLost {
-            state = .tracking
-        }
 
         // Storage guard (throttled — the resource-values call is a syscall).
         if Date().timeIntervalSince(lastStorageCheck) >= 5 {
@@ -690,11 +752,51 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             }
         }
 
-        for location in locations {
-            if trackingAlgorithmVersion == 2 {
-                processV2Location(location, rideId: rideId)
-                continue
+        if trackingAlgorithmVersion == 2 {
+            let stateBeforeDelivery = state
+            let now = Date()
+            var newestAdmitted: CLLocation?
+            var newestRecorded: CLLocation?
+            let orderedLocations = locations.enumerated().sorted { lhs, rhs in
+                if lhs.element.timestamp == rhs.element.timestamp { return lhs.offset < rhs.offset }
+                return lhs.element.timestamp < rhs.element.timestamp
+            }.map { $0.element }
+
+            for location in orderedLocations {
+                let result = processV2Location(location, rideId: rideId, now: now)
+                if result.admitted { newestAdmitted = location }
+                if result.recorded { newestRecorded = location }
             }
+
+            if let newestAdmitted {
+                lastGpsTimestamp = newestAdmitted.timestamp
+                timeSinceLastGps = max(0, now.timeIntervalSince(newestAdmitted.timestamp))
+                state = timeSinceLastGps > 10 ? .gpsLost : .tracking
+            }
+
+            // Presence and live-share need only the newest route-admitted fix from a delivered
+            // batch. Sending every historical fix can make a remote marker walk backward.
+            if let newestRecorded, LiveSharingManager.shared.isActive {
+                LiveSharingManager.shared.updateLatestLocation(newestRecorded)
+            }
+            if let newestRecorded, GroupRideManager.shared.state.isActive {
+                GroupRideManager.shared.updateLatestLocation(
+                    newestRecorded,
+                    moving: currentSpeed > 0.5,
+                    riding: currentRideId != nil
+                )
+            }
+
+            updateLiveActivity(force: state != stateBeforeDelivery)
+            return
+        }
+
+        let recoveredFromGpsLost = state == .gpsLost
+        lastGpsTimestamp = Date()
+        timeSinceLastGps = 0
+        if state == .gpsLost { state = .tracking }
+
+        for location in locations {
             // 1. Outlier removal
             if let previous = points.last {
                 if GPSProcessor.isOutlier(current: location, previous: previous) {
@@ -784,17 +886,27 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     // MARK: - Finalization Helpers
 
-    private func processV2Location(_ location: CLLocation, rideId: UUID) {
+    private func processV2Location(
+        _ location: CLLocation,
+        rideId: UUID,
+        now: Date
+    ) -> (admitted: Bool, recorded: Bool) {
+        guard TrackingV2LocationAdmissionPolicy.accepts(
+            timestamp: location.timestamp,
+            coordinate: location.coordinate,
+            horizontalAccuracy: location.horizontalAccuracy,
+            eligibleAfter: v2LocationEligibleAfter,
+            lastAcceptedAt: lastAcceptedV2LocationTimestamp,
+            now: now
+        ) else { return (false, false) }
+        lastAcceptedV2LocationTimestamp = location.timestamp
         v2Pedometer.start(persona: selectedPersona)
-        guard location.horizontalAccuracy >= 0,
-              location.timestamp.timeIntervalSinceNow <= 1,
-              location.timestamp.timeIntervalSinceNow >= -30 else { return }
         let before = v2Session.snapshot
         let snapshot = v2Session.add(TrackingV2Sample(
             latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
             horizontalAccuracyMeters: Float(location.horizontalAccuracy),
             elapsedRealtimeMillis: Int64((ProcessInfo.processInfo.systemUptime
-                + location.timestamp.timeIntervalSinceNow) * 1_000),
+                + location.timestamp.timeIntervalSince(now)) * 1_000),
             gpsSpeedMetersPerSecond: location.speed >= 0 ? Float(location.speed) : nil,
             gpsSpeedAccuracyMetersPerSecond: location.speedAccuracy >= 0 ? Float(location.speedAccuracy) : nil,
             motionEnergyMetersPerSecondSquared: motionSensor.currentEnergy,
@@ -804,25 +916,41 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             persona: selectedPersona,
             powerMode: ProcessInfo.processInfo.isLowPowerModeEnabled ? .batterySaver : .normal
         ))
-        guard snapshot.rejectedOutlierCount == before.rejectedOutlierCount else { return }
+        guard snapshot.rejectedOutlierCount == before.rejectedOutlierCount else {
+            // A current but implausible coordinate proves delivery, not route position.
+            return (true, false)
+        }
         currentSpeed = Double(snapshot.currentSpeedMetersPerSecond)
         totalDistance = v2Session.distanceMeters
         durationInMillis = Double(v2Session.movingDurationMillis)
         maxSpeedMps = v2Session.maxSpeedMps
         isAutoPaused = AutoPausePreference.isEnabled() && snapshot.movementState == .stationary
         updateStillness(isStill: snapshot.movementState == .stationary, fixTime: location.timestamp)
-        points.append(location)
+        let displayPoint = snapshot.routeSegments.last?.last
+        let displayCoordinate = displayPoint.map {
+            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+        } ?? lastV2DisplayCoordinate ?? location.coordinate
+        lastV2DisplayCoordinate = displayCoordinate
+        lastV2RawLocation = location
+        points.append(CLLocation(
+            coordinate: displayCoordinate,
+            altitude: location.altitude,
+            horizontalAccuracy: location.horizontalAccuracy,
+            verticalAccuracy: location.verticalAccuracy,
+            course: location.course,
+            speed: currentSpeed,
+            timestamp: location.timestamp
+        ))
         let checkpoint = RideAggregateSnapshot.live(distanceMeters: totalDistance,
             movingDurationMillis: durationInMillis, maxSpeedMps: maxSpeedMps, pointCount: points.count)
         DataRepository.shared.savePointBackground(rideId: rideId,
             lat: location.coordinate.latitude, lng: location.coordinate.longitude,
             alt: location.altitude, acc: location.horizontalAccuracy, spd: currentSpeed,
-            ts: location.timestamp, paused: isAutoPaused, checkpoint: checkpoint)
-        if LiveSharingManager.shared.isActive { LiveSharingManager.shared.updateLatestLocation(location) }
-        if GroupRideManager.shared.state.isActive {
-            GroupRideManager.shared.updateLatestLocation(location, moving: currentSpeed > 0.5,
-                riding: currentRideId != nil)
-        }
+            ts: location.timestamp, paused: isAutoPaused,
+            displayLat: displayCoordinate.latitude,
+            displayLng: displayCoordinate.longitude,
+            checkpoint: checkpoint)
+        return (true, true)
     }
 
     /// Finalize the ride identified by `id` using the authoritative in-memory
@@ -858,6 +986,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 }
                 if let reveal = RevealSelector.select(transition) {
                     RevealCoordinator.shared.put(reveal)
+                    // SCOPE_1.8.9 §13: the coordinator is a one-shot that Home consumes; the ride row
+                    // is where The Award reads it back, and this is the only moment it exists.
+                    DataRepository.shared.recordEarnedReveal(
+                        rideId: id,
+                        kind: reveal.kind,
+                        previousBest: RevealSelector.previousBest(for: reveal.kind, in: transition),
+                        milestoneCount: reveal.milestoneRideCount
+                    )
                 }
             }
         } else {

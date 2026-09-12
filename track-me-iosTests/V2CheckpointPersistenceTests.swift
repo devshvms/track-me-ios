@@ -19,6 +19,8 @@ final class V2CheckpointPersistenceTests: XCTestCase {
         XCTAssertEqual(restored.aggregateSnapshot.movingDurationMillis, 323_000)
         XCTAssertEqual(restored.points?.count, 1)
         XCTAssertEqual(try XCTUnwrap(restored.points?.first?.cumulativeDistanceMeters), 477, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(restored.points?.first?.displayLatitude), 0.1, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(restored.points?.first?.displayLongitude), 0.2, accuracy: 0.001)
         XCTAssertTrue(try XCTUnwrap(restored.points?.first).isPaused)
         XCTAssertNil(try XCTUnwrap(rides.first { $0.id != id }).trackingAlgorithmVersion)
     }
@@ -39,6 +41,8 @@ final class V2CheckpointPersistenceTests: XCTestCase {
         let point = GPSPoint(latitude: 0, longitude: 0, altitude: 0, accuracy: 5,
                              speed: 0, timestamp: Date(), isPaused: true, ride: ride)
         point.cumulativeDistanceMeters = 477
+        point.displayLatitude = 0.1
+        point.displayLongitude = 0.2
         context.insert(point)
         context.insert(Ride())
         try context.save()

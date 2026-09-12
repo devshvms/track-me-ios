@@ -23,7 +23,7 @@ struct RoutePreviewThumbnail: View {
             
             if points.count >= 2 {
                 Canvas { context, size in
-                    let coordinates = points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+                    let coordinates = points.map(\.coordinate)
                     
                     guard let first = coordinates.first else { return }
                     var minLat = first.latitude

@@ -65,6 +65,12 @@ struct HistoryView: View {
     @State private var customEnd = Date()
     @State private var selectedDistanceThresholdKm: Double = 0
     @State private var filterRevision = 0
+    /// SCOPE_1.8.9 Part 2. Off by default: History is scanned far more often than it is shared, and a
+    /// list that is always in selection mode costs every rider a tap to open a ride.
+    @State private var selecting = false
+    @State private var selection: [UUID] = []
+    @State private var selectedRides: [Ride] = []
+    @State private var selectionMessage: String?
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var unitSettings = UnitSettings.shared
 
@@ -159,10 +165,25 @@ struct HistoryView: View {
                             Section {
                                 ForEach(bucketSummaries) { summary in
                                     HStack(spacing: 8) {
+                                        if selecting {
+                                            // A button rather than a NavigationLink: in selection mode
+                                            // a tap must choose the ride, not leave the screen.
+                                            Button { toggle(summary.id) } label: {
+                                                HStack(spacing: 10) {
+                                                    Image(systemName: selection.contains(summary.id) ? "checkmark.circle.fill" : "circle")
+                                                        .foregroundStyle(selection.contains(summary.id) ? BrandColor.primary : .secondary)
+                                                        .imageScale(.large)
+                                                    CompactRideSummaryRow(summary: summary)
+                                                }
+                                            }
+                                            .buttonStyle(.plain)
+                                            .accessibilityAddTraits(selection.contains(summary.id) ? [.isSelected] : [])
+                                        } else {
                                         NavigationLink(value: summary.id) {
                                             CompactRideSummaryRow(summary: summary)
                                         }
-                                        if summary.isSample {
+                                        }
+                                        if summary.isSample && !selecting {
                                             Button(role: .destructive) { deleteSampleRide(id: summary.id) } label: {
                                                 Image(systemName: "trash").frame(width: 44, height: 44)
                                             }
@@ -208,6 +229,15 @@ struct HistoryView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showFileImporter = true } label: { Image(systemName: "square.and.arrow.down") }
                 }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(LocalizationHelper.localized(selecting ? "Cancel" : "Select rides")) {
+                        selecting.toggle()
+                        selection.removeAll()
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if selecting { selectionBar }
             }
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.xml, .init(filenameExtension: "gpx")!]) { result in
                 if case .success(let url) = result { importGPX(from: url) }
@@ -231,6 +261,13 @@ struct HistoryView: View {
         // popping is not the same thing as starting over.
         .onChange(of: popToRootRequest) { _, _ in navigationPath.removeAll() }
         .trackScreen("HistoryView")
+        .sheet(isPresented: Binding(get: { !selectedRides.isEmpty }, set: { if !$0 { selectedRides = [] } })) {
+            AggregateExportView(rides: selectedRides) {
+                selectedRides = []
+                selecting = false
+                selection.removeAll()
+            }
+        }
         .sheet(isPresented: $showCustomRange) {
             NavigationStack {
                 Form {
@@ -318,6 +355,68 @@ struct HistoryView: View {
         summaries = (try? modelContext.fetch(descriptor)
             .filter { ride in ride.endTime.map { $0 > ride.startTime } ?? false }
             .map(HistoryRideSummary.init(ride:))) ?? []
+    }
+
+    /// The selection's own controls, pinned below the list so the count and the action stay in reach
+    /// however far the rider has scrolled.
+    private var selectionBar: some View {
+        VStack(spacing: 6) {
+            if let selectionMessage {
+                Text(selectionMessage).font(.footnote).foregroundColor(.secondary)
+            }
+            Button {
+                loadSelectedRides()
+            } label: {
+                HStack {
+                    Image(systemName: "square.and.arrow.up")
+                    // "0 rides" on a disabled button says nothing about what to do next; below two,
+                    // the label is the instruction.
+                    Text(selection.count >= 2
+                         ? LocalizationHelper.formatted("%d rides", selection.count)
+                         : LocalizationHelper.localized("Select at least two rides to aggregate."))
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(selection.count >= 2 ? BrandColor.primaryFill : Color.secondary)
+                .cornerRadius(12)
+            }
+            .disabled(selection.count < 2)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.bar)
+    }
+
+    /// Selection order is not the order ridden, and the aggregate templates need the latter — so the
+    /// ids are kept as tapped and sorted only when the rides themselves are loaded.
+    private func toggle(_ id: UUID) {
+        if let index = selection.firstIndex(of: id) {
+            selection.remove(at: index)
+            selectionMessage = nil
+        } else if selection.count >= ExportTemplateAggregate.maxRides {
+            selectionMessage = LocalizationHelper.localized("You can aggregate up to 8 rides.")
+        } else {
+            selection.append(id)
+            selectionMessage = nil
+        }
+    }
+
+    /// The list is a projection with no route points in it (`propertiesToFetch`), so the rides the
+    /// export needs are fetched here — once, on the way into the sheet, rather than per row.
+    private func loadSelectedRides() {
+        let ids = Set(selection)
+        let descriptor = FetchDescriptor<Ride>(
+            predicate: #Predicate { ids.contains($0.id) },
+            sortBy: [SortDescriptor(\Ride.startTime)]
+        )
+        let rides = (try? modelContext.fetch(descriptor)) ?? []
+        guard rides.count >= 2 else {
+            selectionMessage = LocalizationHelper.localized("Select at least two rides to aggregate.")
+            return
+        }
+        selectedRides = rides
     }
 
     private func detail(for id: UUID) -> some View {

@@ -351,7 +351,7 @@ class TelemetryManager {
 
     /// A render finished or failed. One event with both fields, because a render that fails after
     /// forty seconds and one that fails instantly are different bugs.
-    func trackExportRendered(kind: String, success: Bool, durationMillis: Int64, failureReason: String? = nil) {
+    func trackExportRendered(kind: String, success: Bool, durationMillis: Int64, failureReason: String? = nil, template: String? = nil) {
         guard shouldTrack() else { return }
         var properties: [String: Any] = [
             "kind": kind,
@@ -359,7 +359,18 @@ class TelemetryManager {
             "duration_ms": durationMillis
         ]
         if let failureReason { properties["failure_reason"] = failureReason }
+        // SCOPE_1.8.9: which template produced it; nil for the Custom tab.
+        if let template { properties["template"] = template }
         PostHogSDK.shared.capture("export_rendered", properties: properties)
+    }
+
+    /// SCOPE_1.8.9 §12 R2 — a template was chosen. The one place this funnel records a control's
+    /// *value*, argued rather than slipped in: a template's identity says nothing about the ride — no
+    /// place, no distance, no time — and it is the whole question five templates were built to answer.
+    /// Identical to Android's `export_template_selected`.
+    func trackExportTemplateSelected(template: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("export_template_selected", properties: ["template": template])
     }
 
     /// Written to Photos. A real outcome even when nothing is then shared.

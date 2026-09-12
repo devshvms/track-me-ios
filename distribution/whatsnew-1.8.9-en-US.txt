@@ -1,0 +1,7 @@
+TrackMe 1.8.9
+
+- Five new designs for sharing a ride: the route on its own, a data card, a transparent sticker for your own photos, one coloured by the light you rode in, and one that appears only when you beat a record.
+- Pick several rides in History and share them as one picture — a journey with its stops named, or every route on one ground.
+- Place names on an export are looked up only when you ask for them, and kept on your phone.
+- Steadier recording when a ride is mostly stop-start.
+- What's new now has a header, keeps its formatting, and marks itself unread until you have read it.

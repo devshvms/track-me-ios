@@ -3,7 +3,9 @@ import MapKit
 
 struct ExportPreviewView: View {
     let ride: Ride
-    let snapshotImage: UIImage
+    /// Only seeds the Custom tab's first frame; the view draws its own map on appear. Optional since
+    /// 1.8.9: Templates need no map, so the sheet no longer waits for MapKit — offline included.
+    let snapshotImage: UIImage?
     let demoMode: Bool
     let onDemoSave: (() -> Void)?
     
@@ -13,7 +15,7 @@ struct ExportPreviewView: View {
     @State private var privacyTrim = true
     @State private var darkOverlay = true
     @State private var selectedRatio: ExportRatio = .square
-    @State private var renderedImage: UIImage
+    @State private var renderedImage: UIImage?
     @State private var isRendering = false
     @State private var ratioDebounce: DispatchWorkItem?
     
@@ -25,6 +27,10 @@ struct ExportPreviewView: View {
     @State private var videoExportProgress: Float = 0
     @State private var videoExportTask: Task<Void, Never>?
     @ObservedObject private var unitSettings = UnitSettings.shared
+    /// SCOPE_1.8.9 §9 — Templates is the default tab; Custom is this view exactly as it was.
+    @State private var mode: ExportMode = .templates
+
+    enum ExportMode: Hashable { case templates, custom }
 
     enum ExportRatio: String, CaseIterable, Identifiable {
         case square = "1:1", portrait = "4:5", story = "9:16"
@@ -35,7 +41,7 @@ struct ExportPreviewView: View {
 
     init(
         ride: Ride,
-        snapshotImage: UIImage,
+        snapshotImage: UIImage?,
         demoMode: Bool = false,
         onDemoSave: (() -> Void)? = nil
     ) {
@@ -55,6 +61,77 @@ struct ExportPreviewView: View {
     
     var body: some View {
         VStack {
+            if !demoMode {
+                Picker("", selection: $mode) {
+                    Text(LocalizationHelper.localized("Templates")).tag(ExportMode.templates)
+                    Text(LocalizationHelper.localized("Custom")).tag(ExportMode.custom)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
+            // The onboarding demo exists to show one clean outcome, so it keeps the single Custom
+            // surface it was built around; every real ride opens on Templates.
+            if mode == .templates && !demoMode {
+                TemplateExportPanel(ride: ride, ratio: $selectedRatio, privacyTrim: $privacyTrim) { url, template in
+                    shareTemplate(url: url, template: template)
+                }
+            } else {
+                customContent
+            }
+        }
+        .navigationTitle(LocalizationHelper.localized("Export Preview"))
+        .navigationBarTitleDisplayMode(.inline)
+        // TASK-305: top of the export funnel. `.task` runs once per appearance, not per redraw —
+        // a toggle flip is not a new export attempt, and counting it as one would make every
+        // downstream ratio look worse than it is.
+        .task { TelemetryManager.shared.trackExportPreviewOpened(surface: "ride_detail") }
+        .onChange(of: showDate) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
+        .onChange(of: showDuration) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
+        .onChange(of: showDistance) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
+        .onChange(of: privacyTrim) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "privacy_trim") }
+        .onChange(of: darkOverlay) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "theme") }
+        .onChange(of: selectedRatio) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "ratio") }
+        .onChange(of: mode) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "mode") }
+        .background(Color(UIColor.systemGroupedBackground))
+        .sheet(isPresented: $isShowingShareSheet) {
+            // ShareSheet rather than ActivityView: it is the one that reports completion, which is
+            // what separates "shared" from "opened the sheet and backed out" (TASK-289).
+            ShareSheet(
+                activityItems: shareItems,
+                onActivityCompletion: { activityType, completed, _ in
+                    guard let kind = sharedArtifactKind else { return }
+                    if activityType == .saveToCameraRoll {
+                        TelemetryManager.shared.trackExportSavedToGallery(kind: kind, success: completed)
+                    } else if completed {
+                        TelemetryManager.shared.trackExportShared(kind: kind)
+                    }
+                }
+            )
+        }
+        .onChange(of: selectedRatio) { _, ratio in
+            guard !demoMode else { return }
+            ratioDebounce?.cancel()
+            let work = DispatchWorkItem { regenerateSnapshot(for: ratio) }
+            ratioDebounce = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        }
+        .onChange(of: privacyTrim) { _, _ in
+            guard !demoMode else { return }
+            ratioDebounce?.cancel()
+            let work = DispatchWorkItem { regenerateSnapshot(for: selectedRatio) }
+            ratioDebounce = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        }
+        .onAppear {
+            if !demoMode { regenerateSnapshot(for: selectedRatio) }
+        }
+        .onDisappear { videoExportTask?.cancel() }
+    }
+    
+    /// Today's export, unchanged — the Custom tab (§9.1).
+    @ViewBuilder
+    private var customContent: some View {
             Spacer()
             exportFrame
                 .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -93,9 +170,10 @@ struct ExportPreviewView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(BrandColor.primaryFill)
+                .background(renderedImage != nil ? BrandColor.primaryFill : BrandColor.primaryFill.opacity(0.4))
                 .cornerRadius(12)
             }
+            .disabled(renderedImage == nil)
             .padding(.horizontal)
 
             if !demoMode {
@@ -129,64 +207,27 @@ struct ExportPreviewView: View {
                 }
             }
             Spacer(minLength: 8)
-        }
-        .navigationTitle(LocalizationHelper.localized("Export Preview"))
-        .navigationBarTitleDisplayMode(.inline)
-        // TASK-305: top of the export funnel. `.task` runs once per appearance, not per redraw —
-        // a toggle flip is not a new export attempt, and counting it as one would make every
-        // downstream ratio look worse than it is.
-        .task { TelemetryManager.shared.trackExportPreviewOpened(surface: "ride_detail") }
-        .onChange(of: showDate) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
-        .onChange(of: showDuration) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
-        .onChange(of: showDistance) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "figures") }
-        .onChange(of: privacyTrim) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "privacy_trim") }
-        .onChange(of: darkOverlay) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "theme") }
-        .onChange(of: selectedRatio) { _, _ in TelemetryManager.shared.trackExportStyleChanged(control: "ratio") }
-        .background(Color(UIColor.systemGroupedBackground))
-        .sheet(isPresented: $isShowingShareSheet) {
-            // ShareSheet rather than ActivityView: it is the one that reports completion, which is
-            // what separates "shared" from "opened the sheet and backed out" (TASK-289).
-            ShareSheet(
-                activityItems: shareItems,
-                onActivityCompletion: { activityType, completed, _ in
-                    guard let kind = sharedArtifactKind else { return }
-                    if activityType == .saveToCameraRoll {
-                        TelemetryManager.shared.trackExportSavedToGallery(kind: kind, success: completed)
-                    } else if completed {
-                        TelemetryManager.shared.trackExportShared(kind: kind)
-                    }
-                }
-            )
-        }
-        .onChange(of: selectedRatio) { _, ratio in
-            guard !demoMode else { return }
-            ratioDebounce?.cancel()
-            let work = DispatchWorkItem { regenerateSnapshot(for: ratio) }
-            ratioDebounce = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
-        }
-        .onChange(of: privacyTrim) { _, _ in
-            guard !demoMode else { return }
-            ratioDebounce?.cancel()
-            let work = DispatchWorkItem { regenerateSnapshot(for: selectedRatio) }
-            ratioDebounce = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
-        }
-        .onAppear {
-            if !demoMode { regenerateSnapshot(for: selectedRatio) }
-        }
-        .onDisappear { videoExportTask?.cancel() }
     }
-    
+
     var exportFrame: some View {
         ZStack(alignment: .bottom) {
             if isRendering { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
-            Image(uiImage: renderedImage)
-                .resizable()
-                .scaledToFill()
-                .aspectRatio(selectedRatio.aspect, contentMode: .fit)
-                .clipped()
-            
+            if let renderedImage {
+                Image(uiImage: renderedImage)
+                    .resizable()
+                    .scaledToFill()
+                    .aspectRatio(selectedRatio.aspect, contentMode: .fit)
+                    .clipped()
+            } else if !isRendering {
+                // MapKit drew nothing (offline, or it refused). This tab has no picture without a
+                // map, so it stays visibly empty and Share image stays off; Templates still work.
+                Image(systemName: "map")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(UIColor.secondarySystemBackground))
+            }
+
             // Figures only — no ride title. It is a name the sharer already knows and the viewer
             // gets from the caption, and it cost a fifth of the frame to repeat. Android removed it
             // in 1.8.0 and shvm confirmed the same for iOS on 2026-08-22 (SCOPE_1.8.4 §8).
@@ -299,6 +340,18 @@ struct ExportPreviewView: View {
                 failureReason: "image_renderer_nil"
             )
         }
+    }
+
+    /// SCOPE_1.8.9: a rendered template goes out as a PNG file — the format that keeps the Sticker's
+    /// transparency through the share sheet and into Photos. The sheet itself is the one above, so a
+    /// template share is counted by the same completion handler as every other export.
+    @MainActor
+    private func shareTemplate(url: URL, template: ExportTemplateID) {
+        let kind = template == .sticker ? "sticker" : "image"
+        shareItems = [url]
+        sharedArtifactKind = kind
+        TelemetryManager.shared.trackExportShareSheetOpened(kind: kind)
+        isShowingShareSheet = true
     }
 
     @MainActor

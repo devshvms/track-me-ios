@@ -36,14 +36,12 @@ final class DebugSettingsTests: XCTestCase {
         let defaults = cleanDefaults(named: #function)
         defaults.set(true, forKey: DebugSettings.modeEnabledKey)
         defaults.set(false, forKey: DebugSettings.autoPauseKey)
-        defaults.set(false, forKey: DebugSettings.postProcessingKey)
         defaults.set("fr", forKey: "appLanguage")
 
         DebugSettings.disableAndReset(defaults)
 
         XCTAssertFalse(DebugSettings.isEnabled(defaults))
         XCTAssertTrue(defaults.bool(forKey: DebugSettings.autoPauseKey))
-        XCTAssertTrue(defaults.bool(forKey: DebugSettings.postProcessingKey))
         XCTAssertEqual(defaults.string(forKey: "appLanguage"), "fr")
     }
 
