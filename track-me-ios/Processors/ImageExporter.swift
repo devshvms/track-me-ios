@@ -12,7 +12,7 @@ class ImageExporter {
             return
         }
 
-        let coordinates = sortedPoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        let coordinates = sortedPoints.map(\.coordinate)
         var minLat = coordinates[0].latitude
         var maxLat = minLat
         var minLon = coordinates[0].longitude

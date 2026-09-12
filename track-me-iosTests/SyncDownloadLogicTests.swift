@@ -65,6 +65,8 @@ final class SyncDownloadLogicTests: XCTestCase {
                     "lng": 45.6,
                     "altitude": 78.9,
                     "speed": 1.2,
+                    "displayLat": 12.31,
+                    "displayLng": 45.61,
                     "timestamp": Timestamp(date: Date(timeIntervalSince1970: 101)),
                     "isPaused": false
                 ]
@@ -85,6 +87,8 @@ final class SyncDownloadLogicTests: XCTestCase {
         XCTAssertEqual(point.latitude, 12.3)
         XCTAssertEqual(point.accuracy, 0) // default
         XCTAssertEqual(point.timestamp, Date(timeIntervalSince1970: 101))
+        XCTAssertEqual(point.displayLatitude, 12.31)
+        XCTAssertEqual(point.displayLongitude, 45.61)
     }
 
     func testParseRideDocumentAndroidShaped() {

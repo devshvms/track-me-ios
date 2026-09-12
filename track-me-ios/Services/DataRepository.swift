@@ -78,7 +78,9 @@ final class DataRepository {
             for p in d.points {
                 let point = GPSPoint(latitude: p.latitude, longitude: p.longitude,
                                      altitude: p.altitude, accuracy: p.accuracy,
-                                     speed: p.speed, timestamp: p.timestamp, isPaused: p.isPaused)
+                                     speed: p.speed, timestamp: p.timestamp, isPaused: p.isPaused,
+                                     displayLatitude: p.displayLatitude,
+                                     displayLongitude: p.displayLongitude)
                 point.cumulativeDistanceMeters = p.cumulativeDistanceMeters
                 point.ride = ride
                 ctx.insert(point)
@@ -100,7 +102,19 @@ final class DataRepository {
             HomeDashboardRepository.shared.invalidate()
         }
     }
-    func savePointBackground(rideId: UUID, lat: Double, lng: Double, alt: Double, acc: Double, spd: Double, ts: Date, paused: Bool, checkpoint: RideAggregateSnapshot? = nil) {
+    func savePointBackground(
+        rideId: UUID,
+        lat: Double,
+        lng: Double,
+        alt: Double,
+        acc: Double,
+        spd: Double,
+        ts: Date,
+        paused: Bool,
+        displayLat: Double? = nil,
+        displayLng: Double? = nil,
+        checkpoint: RideAggregateSnapshot? = nil
+    ) {
         guard let container = container else { return }
 
         let previousWrite = pointWriteChain
@@ -113,7 +127,17 @@ final class DataRepository {
             let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
             do {
                 guard let ride = try context.fetch(descriptor).first else { return }
-                let point = GPSPoint(latitude: lat, longitude: lng, altitude: alt, accuracy: acc, speed: spd, timestamp: ts, isPaused: paused)
+                let point = GPSPoint(
+                    latitude: lat,
+                    longitude: lng,
+                    altitude: alt,
+                    accuracy: acc,
+                    speed: spd,
+                    timestamp: ts,
+                    isPaused: paused,
+                    displayLatitude: displayLat,
+                    displayLongitude: displayLng
+                )
                 point.ride = ride
                 context.insert(point)
                 // Point and totals commit together. Recovery never reconstructs V2 step distance

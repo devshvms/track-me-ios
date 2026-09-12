@@ -48,9 +48,14 @@ enum ExportTemplateAggregate {
             let trimmed = points(ride)
             guard let start = trimmed.first, let finish = trimmed.last else { return nil }
             let snapshot = ride.aggregateSnapshot
+            // Presentation coordinates, not the raw recording (TASK-325): an itinerary describes the
+            // journey as it is *drawn*, so the ends that decide whether two rides chain have to be
+            // the ends the rider sees joined. They differ by metres, far below the 25 km chain
+            // tolerance — the point is that the chain and the line cannot start telling different
+            // stories later.
             return SelectionLeg(
-                startLatitude: start.latitude, startLongitude: start.longitude,
-                finishLatitude: finish.latitude, finishLongitude: finish.longitude,
+                startLatitude: start.coordinate.latitude, startLongitude: start.coordinate.longitude,
+                finishLatitude: finish.coordinate.latitude, finishLongitude: finish.coordinate.longitude,
                 distanceMeters: snapshot.distanceMeters,
                 movingMillis: snapshot.movingDurationMillis
             )
@@ -133,7 +138,7 @@ enum ExportTemplateAggregate {
         var joins: [[TemplateCoordinate]] = []
         var palette: [UIColor] = []
         func coordinate(_ point: GPSPoint) -> TemplateCoordinate {
-            TemplateCoordinate(latitude: point.latitude, longitude: point.longitude)
+            TemplateCoordinate(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude)
         }
         for (index, ride) in ordered(rides).enumerated() {
             let drawn = points(ride, privacyTrim: privacyTrim)

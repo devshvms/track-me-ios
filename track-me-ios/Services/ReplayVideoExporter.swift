@@ -32,7 +32,7 @@ enum ReplayVideoExporter {
     /// trimmed points, never the live user-facing map.
     static func captureRouteSnapshot(points: [GPSPoint], size: CGSize) async -> (UIImage?, [(CGFloat, CGFloat)]?) {
         guard !points.isEmpty else { return (nil, nil) }
-        let coordinates = points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        let coordinates = points.map(\.coordinate)
         var minLat = coordinates[0].latitude, maxLat = minLat
         var minLon = coordinates[0].longitude, maxLon = minLon
         for coordinate in coordinates {

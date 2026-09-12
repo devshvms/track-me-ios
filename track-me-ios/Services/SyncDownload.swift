@@ -60,6 +60,8 @@ struct DownloadedPoint: Equatable {
     let timestamp: Date
     let isPaused: Bool
     var cumulativeDistanceMeters: Double? = nil
+    var displayLatitude: Double? = nil
+    var displayLongitude: Double? = nil
 }
 
 extension FirestoreSyncManager {

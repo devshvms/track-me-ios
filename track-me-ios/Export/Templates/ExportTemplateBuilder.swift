@@ -24,7 +24,7 @@ enum ExportTemplateBuilder {
 
     static func values(_ points: [GPSPoint]) -> [TemplatePoint] {
         points.map {
-            TemplatePoint(latitude: $0.latitude, longitude: $0.longitude, altitude: $0.altitude,
+            TemplatePoint(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude, altitude: $0.altitude,
                           speed: $0.speed, timestamp: $0.timestamp, isPaused: $0.isPaused)
         }
     }
@@ -61,7 +61,9 @@ enum ExportTemplateBuilder {
         let drawnRaw = ExportPreviewView.renderPoints(raw, privacyTrim: privacyTrim)
         let persona = ride.ridePersona
         let runs = RideGaps.recordedRuns(drawnRaw, persona: persona)
-        func coordinate(_ point: GPSPoint) -> TemplateCoordinate { TemplateCoordinate(latitude: point.latitude, longitude: point.longitude) }
+        func coordinate(_ point: GPSPoint) -> TemplateCoordinate {
+            TemplateCoordinate(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude)
+        }
         var joins: [[TemplateCoordinate]] = []
         if runs.count > 1 {
             for index in 0..<(runs.count - 1) {

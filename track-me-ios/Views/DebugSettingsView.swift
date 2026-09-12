@@ -4,7 +4,6 @@ struct DebugSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("debugModeEnabled") private var debugModeEnabled = false
     @AppStorage("intelligentAutoPause") private var isAutoPauseEnabled = true
-    @AppStorage("enableGPSPostProcessing") private var isPostProcessingEnabled = true
 
     var body: some View {
         ScrollView {
@@ -18,7 +17,6 @@ struct DebugSettingsView: View {
                                 guard !enabled else { return }
                                 DebugSettings.disableAndReset()
                                 isAutoPauseEnabled = true
-                                isPostProcessingEnabled = true
                                 debugModeEnabled = false
                                 dismiss()
                             }
@@ -53,27 +51,6 @@ struct DebugSettingsView: View {
                             .labelsHidden()
                             .tint(BrandColor.primary)
                             .accessibilityLabel(LocalizationHelper.localized("Intelligent auto-pause"))
-                    }
-
-                    Divider()
-
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(LocalizationHelper.localized("Disable GPS Post-Processing"))
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-                            Text(LocalizationHelper.localized("Stored diagnostic preference only. iOS currently filters fixes live and has no post-ride pipeline connected to this flag."))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { !isPostProcessingEnabled },
-                            set: { isPostProcessingEnabled = !$0 }
-                        ))
-                        .labelsHidden()
-                        .tint(BrandColor.primary)
-                        .accessibilityLabel(LocalizationHelper.localized("Disable GPS post-processing"))
                     }
                 }
                 .padding()

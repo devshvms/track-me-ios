@@ -90,7 +90,9 @@ nonisolated func parseFirestorePoints(_ value: Any?) -> [DownloadedPoint] {
             speed: decodeFirestoreDouble(p["speed"]) ?? 0,
             timestamp: ts,
             isPaused: (p["isPaused"] as? Bool) ?? false,
-            cumulativeDistanceMeters: decodeFirestoreDouble(p["cumulativeDistanceMeters"])
+            cumulativeDistanceMeters: decodeFirestoreDouble(p["cumulativeDistanceMeters"]),
+            displayLatitude: decodeFirestoreDouble(p["displayLat"]),
+            displayLongitude: decodeFirestoreDouble(p["displayLng"])
         )
     }
 }
@@ -250,7 +252,7 @@ class FirestoreSyncManager {
         }
     }
 
-    private static func pointPayload(_ point: GPSPoint) -> [String: Any] {
+    static func pointPayload(_ point: GPSPoint) -> [String: Any] {
         var payload: [String: Any] = [
             "lat": point.latitude,
             "lng": point.longitude,
@@ -262,6 +264,12 @@ class FirestoreSyncManager {
         ]
         if let distance = point.cumulativeDistanceMeters {
             payload["cumulativeDistanceMeters"] = distance
+        }
+        if let displayLatitude = point.displayLatitude {
+            payload["displayLat"] = displayLatitude
+        }
+        if let displayLongitude = point.displayLongitude {
+            payload["displayLng"] = displayLongitude
         }
         return payload
     }
