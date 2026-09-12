@@ -22,10 +22,23 @@ enum ExportTemplateBuilder {
         (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
     }
 
+    /// The one place a stored point becomes a drawn one.
+    ///
+    /// `GPSPoint.coordinate` is the V2 display geometry where it is valid and the raw recording
+    /// otherwise (TASK-325), and every export surface has to make that choice the same way. It used
+    /// to be made in four separate expressions; a revert in any one of them would have moved a
+    /// single template back onto the raw route while its neighbours kept drawing the corrected one.
+    /// Funnelling them here also gives §11 gate 1 something production to hold on to — see
+    /// `V2RouteShapeGateTests`, which asserts on this function rather than repeating it.
+    static func drawnCoordinate(_ point: GPSPoint) -> TemplateCoordinate {
+        TemplateCoordinate(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude)
+    }
+
     static func values(_ points: [GPSPoint]) -> [TemplatePoint] {
         points.map {
-            TemplatePoint(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude, altitude: $0.altitude,
-                          speed: $0.speed, timestamp: $0.timestamp, isPaused: $0.isPaused)
+            let drawn = drawnCoordinate($0)
+            return TemplatePoint(latitude: drawn.latitude, longitude: drawn.longitude, altitude: $0.altitude,
+                                 speed: $0.speed, timestamp: $0.timestamp, isPaused: $0.isPaused)
         }
     }
 
@@ -61,9 +74,7 @@ enum ExportTemplateBuilder {
         let drawnRaw = ExportPreviewView.renderPoints(raw, privacyTrim: privacyTrim)
         let persona = ride.ridePersona
         let runs = RideGaps.recordedRuns(drawnRaw, persona: persona)
-        func coordinate(_ point: GPSPoint) -> TemplateCoordinate {
-            TemplateCoordinate(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude)
-        }
+        let coordinate = drawnCoordinate
         var joins: [[TemplateCoordinate]] = []
         if runs.count > 1 {
             for index in 0..<(runs.count - 1) {

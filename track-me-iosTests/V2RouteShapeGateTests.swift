@@ -45,9 +45,13 @@ final class V2RouteShapeGateTests: XCTestCase {
         }
     }
 
+    /// Through `ExportTemplateBuilder.drawnCoordinate` — the production function every export
+    /// surface maps with — rather than repeating the mapping here. A test that did its own
+    /// `$0.coordinate` lookup would stay green through exactly the regression this gate exists to
+    /// catch, which is what the first version of this file did.
     private func aspect(_ stored: [GPSPoint], in box: CGRect) -> Double {
         let runs = RideGaps.recordedRuns(stored, persona: .cycling)
-        let line = runs.flatMap { $0 }.map { TemplateCoordinate(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude) }
+        let line = runs.flatMap { $0 }.map(ExportTemplateBuilder.drawnCoordinate)
         let projected = RouteProjection.fit(line, in: box)!.project(line)
         let width = projected.map(\.x).max()! - projected.map(\.x).min()!
         let height = projected.map(\.y).max()! - projected.map(\.y).min()!
@@ -67,7 +71,7 @@ final class V2RouteShapeGateTests: XCTestCase {
             let box = traceRouteBoxDesign(canvas)
             XCTAssertEqual(aspect(stored, in: box), 2, accuracy: 0.02, "aspect on \(canvas)")
             let line = RideGaps.recordedRuns(stored, persona: .cycling).flatMap { $0 }
-                .map { TemplateCoordinate(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude) }
+                .map(ExportTemplateBuilder.drawnCoordinate)
             let projected = RouteProjection.fit(line, in: box)!.project(line)
             XCTAssertTrue(projected.allSatisfy { box.insetBy(dx: -0.5, dy: -0.5).contains($0) }, "the route left its box on \(canvas)")
         }
@@ -97,12 +101,10 @@ final class V2RouteShapeGateTests: XCTestCase {
         // Raw: leg 2 starts 300 km from where leg 1 finished — no chain. Display: it starts at Hampi.
         let first = leg(rawStart: bengaluru, rawFinish: hampi, displayStart: bengaluru, displayFinish: hampi)
         let second = leg(rawStart: far, rawFinish: badami, displayStart: hampi, displayFinish: badami)
-        let legs = [first, second].map { stored -> SelectionLeg in
-            SelectionLeg(
-                startLatitude: stored.first!.coordinate.latitude, startLongitude: stored.first!.coordinate.longitude,
-                finishLatitude: stored.last!.coordinate.latitude, finishLongitude: stored.last!.coordinate.longitude
-            )
-        }
+        // Built by `ExportTemplateAggregate.leg`, the production function, for the same reason as
+        // above: hand-rolling the leg here would assert the test's own choice of coordinate.
+        let legs = [first, second].compactMap { ExportTemplateAggregate.leg($0, distanceMeters: 0, movingMillis: 0) }
+        XCTAssertEqual(legs.count, 2)
         XCTAssertEqual(AggregateSelection.shape(legs), .tour, "the chain followed the raw ends")
     }
 }

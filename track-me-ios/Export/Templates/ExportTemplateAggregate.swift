@@ -45,21 +45,30 @@ enum ExportTemplateAggregate {
     /// still gets the right templates offered, they just carry no place names.
     static func legs(_ rides: [Ride]) -> [SelectionLeg] {
         ordered(rides).compactMap { ride in
-            let trimmed = points(ride)
-            guard let start = trimmed.first, let finish = trimmed.last else { return nil }
             let snapshot = ride.aggregateSnapshot
-            // Presentation coordinates, not the raw recording (TASK-325): an itinerary describes the
-            // journey as it is *drawn*, so the ends that decide whether two rides chain have to be
-            // the ends the rider sees joined. They differ by metres, far below the 25 km chain
-            // tolerance — the point is that the chain and the line cannot start telling different
-            // stories later.
-            return SelectionLeg(
-                startLatitude: start.coordinate.latitude, startLongitude: start.coordinate.longitude,
-                finishLatitude: finish.coordinate.latitude, finishLongitude: finish.coordinate.longitude,
-                distanceMeters: snapshot.distanceMeters,
-                movingMillis: snapshot.movingDurationMillis
-            )
+            return leg(points(ride), distanceMeters: snapshot.distanceMeters, movingMillis: snapshot.movingDurationMillis)
         }
+    }
+
+    /// One ride's drawn ends, as a leg.
+    ///
+    /// The ends come from `ExportTemplateBuilder.drawnCoordinate`, which is the presentation
+    /// coordinate rather than the raw recording (TASK-325): an itinerary describes the journey as it
+    /// is *drawn*, so the ends that decide whether two rides chain have to be the ends the rider
+    /// sees joined. They differ by metres, far below the 25 km chain tolerance — the point is that
+    /// the chain and the line cannot start telling different stories later.
+    ///
+    /// Separate from `legs(_:)` so the gate can reach it without a persistent store behind it.
+    static func leg(_ drawn: [GPSPoint], distanceMeters: Double, movingMillis: Int64) -> SelectionLeg? {
+        guard let start = drawn.first, let finish = drawn.last else { return nil }
+        let from = ExportTemplateBuilder.drawnCoordinate(start)
+        let to = ExportTemplateBuilder.drawnCoordinate(finish)
+        return SelectionLeg(
+            startLatitude: from.latitude, startLongitude: from.longitude,
+            finishLatitude: to.latitude, finishLongitude: to.longitude,
+            distanceMeters: distanceMeters,
+            movingMillis: movingMillis
+        )
     }
 
     /// The same legs with their ends resolved to places.
@@ -137,9 +146,7 @@ enum ExportTemplateAggregate {
         var runs: [[TemplateCoordinate]] = []
         var joins: [[TemplateCoordinate]] = []
         var palette: [UIColor] = []
-        func coordinate(_ point: GPSPoint) -> TemplateCoordinate {
-            TemplateCoordinate(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude)
-        }
+        let coordinate = ExportTemplateBuilder.drawnCoordinate
         for (index, ride) in ordered(rides).enumerated() {
             let drawn = points(ride, privacyTrim: privacyTrim)
             guard drawn.count >= 2 else { continue }
