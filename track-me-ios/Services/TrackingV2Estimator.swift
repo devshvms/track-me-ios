@@ -64,6 +64,8 @@ nonisolated struct TrackingV2Snapshot: Sendable {
     var personaMismatchCount = 0
     var movingEntryCount = 0
     var stationaryEntryCount = 0
+    /// One-shot bounded departure evidence; the session excludes already credited time.
+    var confirmedResumeDurationMillis: Int64 = 0
     var stepDistanceMeters = 0.0
     var coordinateDistanceMeters = 0.0
     var rawStepDistanceMeters = 0.0
@@ -94,7 +96,6 @@ nonisolated final class TrackingV2Estimator {
         let reliableGpsSpeed: Bool
         let gpsSaysMoving: Bool
         let motionFresh: Bool
-        let motionSaysMoving: Bool
         let stepsRecent: Bool
         let turnDetected: Bool
     }
@@ -132,6 +133,15 @@ nonisolated final class TrackingV2Estimator {
     private var lastRouteTimeMillis: Int64?
     private var pendingRouteDistanceMeters = 0.0
     private var stationaryCandidateSinceMillis: Int64?
+    private var lastQuietMotionMillis: Int64?
+    private var stationaryConfirmed = false
+    private var stopAnchor: TrackingV2Point?
+    private var stopAccuracyMeters: Float = 0
+    private var resumeCandidate: TrackingV2Sample?
+    private var resumeRadialDistance = 0.0
+    private var confirmedResumeDurationMillis: Int64 = 0
+    private var gpsMovementSinceMillis: Int64?
+    private var gpsMovementSamples = 0
     private var strideLengthMeters: Float = TrackingV2Estimator.defaultWalkStrideMeters
     private var calibrationStepCount: Int64?
     private var calibrationGPSDistanceMeters: Double?
@@ -176,6 +186,12 @@ nonisolated final class TrackingV2Estimator {
         lastRouteTimeMillis = nil
         pendingRouteDistanceMeters = 0
         stationaryCandidateSinceMillis = nil
+        lastQuietMotionMillis = nil
+        stationaryConfirmed = false
+        clearStopAnchor()
+        confirmedResumeDurationMillis = 0
+        gpsMovementSinceMillis = nil
+        gpsMovementSamples = 0
         strideLengthMeters = defaultStride(for: persona)
         calibrationStepCount = nil
         calibrationGPSDistanceMeters = nil
@@ -222,6 +238,11 @@ nonisolated final class TrackingV2Estimator {
         lastRouteTimeMillis = nil
         pendingRouteDistanceMeters = 0
         stationaryCandidateSinceMillis = nil
+        lastQuietMotionMillis = nil
+        stationaryConfirmed = false
+        clearStopAnchor()
+        gpsMovementSinceMillis = nil
+        gpsMovementSamples = 0
         calibrationStepCount = nil
         calibrationGPSDistanceMeters = nil
         calibrationAccuracyMeters = nil
@@ -229,6 +250,7 @@ nonisolated final class TrackingV2Estimator {
 
     @discardableResult
     func add(_ incoming: TrackingV2Sample) -> TrackingV2Snapshot {
+        confirmedResumeDurationMillis = 0
         if manualPauseActive {
             ignoredManualPauseSampleCount += 1
             lastSnapshot.manualPauseActive = true
@@ -266,7 +288,7 @@ nonisolated final class TrackingV2Estimator {
             return publish(
                 sample,
                 state: degraded ? .gpsDegraded : .unknown,
-                speed: sample.gpsSpeedMetersPerSecond ?? 0
+                speed: 0
             )
         }
 
@@ -295,7 +317,7 @@ nonisolated final class TrackingV2Estimator {
             calibrationStepCount = sample.cumulativeStepCount
             calibrationGPSDistanceMeters = coordinateDistanceMeters
             calibrationAccuracyMeters = sample.horizontalAccuracyMeters
-            return publish(sample, state: .gpsDegraded, speed: sample.gpsSpeedMetersPerSecond ?? 0)
+            return publish(sample, state: .gpsDegraded, speed: 0)
         }
 
         // Keep impossible raw jumps out of regression and turn detection; retain the credible anchor.
@@ -309,7 +331,7 @@ nonisolated final class TrackingV2Estimator {
         let evidence = movementEvidence(for: sample)
         let admittedSteps = stepDelta(from: previous, to: sample)
         let state = classify(sample, evidence: evidence, stepDelta: admittedSteps)
-        let speed = fusedSpeed(sample, evidence: evidence, stepDelta: admittedSteps)
+        let speed: Float = state == .moving ? fusedSpeed(sample, evidence: evidence, stepDelta: admittedSteps) : 0
 
         if state == .moving {
             let smoothedPoint = smoothCurrentPoint(sample, turnDetected: evidence.turnDetected)
@@ -331,7 +353,10 @@ nonisolated final class TrackingV2Estimator {
                     hybridBridgeStepCount = 0
                 }
                 calibrateStride(sample)
-                appendRoutePoint(smoothedPoint, sample: sample, turnDetected: evidence.turnDetected)
+                // Steps prove travel, but cannot locate it within an uncertain GPS cloud.
+                if coordinateReady || !hasPoorAccuracy(sample) {
+                    appendRoutePoint(smoothedPoint, sample: sample, turnDetected: evidence.turnDetected)
+                }
             } else if admittedCoordinateMeters > 0 {
                 hybridCommittedDistanceMeters += admittedCoordinateMeters
                 appendRoutePoint(smoothedPoint, sample: sample, turnDetected: evidence.turnDetected)
@@ -375,13 +400,12 @@ nonisolated final class TrackingV2Estimator {
         guard let first = window.first else {
             return Evidence(coordinateSpeedMetersPerSecond: 0, coherentDisplacement: false,
                             reliableGpsSpeed: false, gpsSaysMoving: false, motionFresh: false,
-                            motionSaysMoving: false, stepsRecent: false, turnDetected: false)
+                            stepsRecent: false, turnDetected: false)
         }
         let elapsedSeconds = max(0.001, Double(sample.elapsedRealtimeMillis - first.elapsedRealtimeMillis) / 1_000)
         let coordinateDistance = Self.haversineMeters(first.point, sample.point)
-        let windowPath = zip(window, window.dropFirst()).reduce(0.0) { partial, pair in
-            partial + Self.haversineMeters(pair.0.point, pair.1.point)
-        }
+        let windowLegs = zip(window, window.dropFirst()).map { Self.haversineMeters($0.point, $1.point) }
+        let windowPath = windowLegs.reduce(0, +)
         let pathStraightness = windowPath <= 0.001 ? 0 : Float(coordinateDistance / windowPath).clamped(to: 0...1)
         let combinedAccuracy = hypot(
             max(1, sample.horizontalAccuracyMeters),
@@ -394,11 +418,12 @@ nonisolated final class TrackingV2Estimator {
             && sample.elapsedRealtimeMillis - first.elapsedRealtimeMillis >= Self.minimumCoordinateEvidenceMillis
         let coherent = mature && coordinateDistance >= Double(significantDistance)
             && pathStraightness >= Self.minimumPathStraightness
+            && (windowLegs.max() ?? 0) <= windowPath * 0.8
 
         let reliableGpsSpeed: Bool
         if let speed = sample.gpsSpeedMetersPerSecond, speed.isFinite, speed >= 0 {
             if let accuracy = sample.gpsSpeedAccuracyMetersPerSecond {
-                reliableGpsSpeed = accuracy <= max(0.8, speed * 0.6)
+                reliableGpsSpeed = accuracy.isFinite && accuracy >= 0 && accuracy <= max(0.8, speed * 0.6)
             } else {
                 reliableGpsSpeed = sample.horizontalAccuracyMeters <= 15
             }
@@ -406,11 +431,10 @@ nonisolated final class TrackingV2Estimator {
             reliableGpsSpeed = false
         }
         let gpsSaysMoving = reliableGpsSpeed
-            && (sample.gpsSpeedMetersPerSecond ?? 0) >= movementSpeedThreshold(for: sample.persona)
+            && (sample.gpsSpeedMetersPerSecond ?? 0) - (sample.gpsSpeedAccuracyMetersPerSecond ?? 0.5)
+                >= movementSpeedThreshold(for: sample.persona)
         let freshnessLimit: Int64 = sample.powerMode == .normal ? 1_500 : 3_000
         let motionFresh = sample.motionSampleAgeMillis.map { (0...freshnessLimit).contains($0) } ?? false
-        let motionSaysMoving = motionFresh
-            && (sample.motionEnergyMetersPerSecondSquared ?? 0) >= Self.motionMovingEnergy
         let stepsRecent = sample.stepAgeMillis.map { (0...Self.stepRecencyMillis).contains($0) } ?? false
         return Evidence(
             coordinateSpeedMetersPerSecond: coordinateSpeed,
@@ -418,7 +442,6 @@ nonisolated final class TrackingV2Estimator {
             reliableGpsSpeed: reliableGpsSpeed,
             gpsSaysMoving: gpsSaysMoving,
             motionFresh: motionFresh,
-            motionSaysMoving: motionSaysMoving,
             stepsRecent: stepsRecent,
             turnDetected: detectsTurn()
         )
@@ -429,33 +452,96 @@ nonisolated final class TrackingV2Estimator {
         evidence: Evidence,
         stepDelta: Int64
     ) -> TrackingV2MovementState {
-        let pedestrianEvidence = stepDelta > 0 || evidence.stepsRecent
+        let pedestrianEvidence = (isPedestrian(sample.persona) || sample.persona == .auto)
+            && (stepDelta > 0 || evidence.stepsRecent)
         let coherentMovement = evidence.coherentDisplacement
             && evidence.coordinateSpeedMetersPerSecond >= movementSpeedThreshold(for: sample.persona)
-        let gpsMovementProved = evidence.gpsSaysMoving
-            && (!isPedestrian(sample.persona) || pedestrianEvidence || evidence.motionSaysMoving || coherentMovement)
-        let movementProved = pedestrianEvidence || gpsMovementProved || coherentMovement
-            || (evidence.motionSaysMoving && evidence.coordinateSpeedMetersPerSecond > 0.1)
+        if evidence.gpsSaysMoving {
+            if gpsMovementSinceMillis == nil { gpsMovementSinceMillis = sample.elapsedRealtimeMillis }
+            gpsMovementSamples += 1
+        } else {
+            gpsMovementSinceMillis = nil
+            gpsMovementSamples = 0
+        }
+        let gpsMovementProved = gpsMovementSamples >= Self.minimumCoordinateEvidenceSamples
+            && gpsMovementSinceMillis.map {
+                sample.elapsedRealtimeMillis - $0 >= Self.minimumCoordinateEvidenceMillis
+            } == true
+        // Handling plus a raw GPS chord is not travel. A confirmed stop also needs an outward
+        // departure from its fixed uncertainty region, not just a locally straight drift window.
+        let gpsDeparture = stationaryConfirmed
+            ? confirmedGpsDeparture(sample, coherentMovement: coherentMovement)
+            : gpsMovementProved || coherentMovement
+        let movementProved = pedestrianEvidence || gpsDeparture
 
         if movementProved {
             stationaryCandidateSinceMillis = nil
+            lastQuietMotionMillis = nil
+            stationaryConfirmed = false
+            clearStopAnchor()
             return .moving
         }
 
-        let lowFreshMotion = evidence.motionFresh
-            && (sample.motionEnergyMetersPerSecondSquared ?? .greatestFiniteMagnitude) <= Self.stationaryEnergy
-        let stationaryCandidate = lowFreshMotion && !pedestrianEvidence
-            && !evidence.gpsSaysMoving && !evidence.coherentDisplacement
+        let dwell = stationaryDwellMillis(for: sample.persona, powerMode: sample.powerMode)
+        let quietMotion = evidence.motionFresh
+            && (sample.motionEnergyMetersPerSecondSquared ?? .greatestFiniteMagnitude) < Self.motionMovingEnergy
+        if quietMotion { lastQuietMotionMillis = sample.elapsedRealtimeMillis }
+        let recentQuietMotion = lastQuietMotionMillis.map { sample.elapsedRealtimeMillis - $0 <= dwell } == true
+        // Missing motion cannot establish a new stop, but does not erase an already confirmed one
+        // while GPS callbacks remain continuous. Gaps/manual pause reset these anchors explicitly.
+        let stationaryCandidate = stationaryConfirmed || (evidence.motionFresh && recentQuietMotion)
         if stationaryCandidate {
             let since = stationaryCandidateSinceMillis ?? sample.elapsedRealtimeMillis
             stationaryCandidateSinceMillis = since
-            return sample.elapsedRealtimeMillis - since >= stationaryDwellMillis(for: sample.persona, powerMode: sample.powerMode)
-                ? .stationary
-                : .possiblyMoving
+            if stationaryConfirmed || sample.elapsedRealtimeMillis - since >= dwell {
+                if !stationaryConfirmed {
+                    stopAnchor = smoothCurrentPoint(sample, turnDetected: false)
+                    stopAccuracyMeters = sample.horizontalAccuracyMeters
+                }
+                stationaryConfirmed = true
+                return .stationary
+            }
+            return .possiblyMoving
         }
 
         stationaryCandidateSinceMillis = nil
+        if evidence.gpsSaysMoving { return .possiblyMoving }
         return isDegraded(sample) ? .gpsDegraded : .unknown
+    }
+
+    private func confirmedGpsDeparture(_ sample: TrackingV2Sample, coherentMovement: Bool) -> Bool {
+        guard let anchor = stopAnchor else { return false }
+        let radial = Self.haversineMeters(anchor, sample.point)
+        if !coherentMovement || radial + 1 < resumeRadialDistance {
+            resumeCandidate = nil
+            resumeRadialDistance = radial
+            return false
+        }
+        if resumeCandidate.map({ sample.elapsedRealtimeMillis - $0.elapsedRealtimeMillis > 60_000 }) ?? true {
+            resumeCandidate = zip(window, window.dropFirst()).first { a, b in
+                Self.haversineMeters(a.point, b.point) >= max(0.5,
+                    Double(movementSpeedThreshold(for: sample.persona)) *
+                    Double(b.elapsedRealtimeMillis - a.elapsedRealtimeMillis) / 1_000)
+            }?.0 ?? sample
+        }
+        guard let candidate = resumeCandidate else { return false }
+        resumeRadialDistance = radial
+        let radius = max(20.0, hypot(Double(stopAccuracyMeters), Double(sample.horizontalAccuracyMeters)))
+        guard radial > radius,
+              sample.elapsedRealtimeMillis - candidate.elapsedRealtimeMillis >= 4_000 else { return false }
+        // Backfill only the bounded, proved departure, never the preceding seated interval.
+        confirmedResumeDurationMillis = min(60_000, max(0,
+            sample.elapsedRealtimeMillis - candidate.elapsedRealtimeMillis))
+        lastCoordinatePoint = candidate.point
+        lastCoordinateTimeMillis = candidate.elapsedRealtimeMillis
+        return true
+    }
+
+    private func clearStopAnchor() {
+        stopAnchor = nil
+        stopAccuracyMeters = 0
+        resumeCandidate = nil
+        resumeRadialDistance = 0
     }
 
     private func fusedSpeed(
@@ -776,6 +862,7 @@ nonisolated final class TrackingV2Estimator {
             personaMismatchCount: personaMismatchCount,
             movingEntryCount: movingEntryCount,
             stationaryEntryCount: stationaryEntryCount,
+            confirmedResumeDurationMillis: confirmedResumeDurationMillis,
             stepDistanceMeters: calibratedStepDistance,
             coordinateDistanceMeters: coordinateDistanceMeters,
             rawStepDistanceMeters: rawStepDistance,
@@ -927,7 +1014,6 @@ nonisolated final class TrackingV2Estimator {
     private static let minimumCoordinateEvidenceMillis: Int64 = 4_000
     private static let stepRecencyMillis: Int64 = 3_000
     private static let motionMovingEnergy: Float = 0.18
-    private static let stationaryEnergy: Float = 0.10
     private static let turnDegrees: Float = 25
     private static let minimumTurnLegStraightness = 0.70
     private static let defaultWalkStrideMeters: Float = 0.72
