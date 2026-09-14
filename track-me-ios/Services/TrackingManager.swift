@@ -915,7 +915,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             stepCadenceHz: v2Pedometer.cadence,
             persona: selectedPersona,
             powerMode: ProcessInfo.processInfo.isLowPowerModeEnabled ? .batterySaver : .normal
-        ))
+        ), autoPauseEnabled: AutoPausePreference.isEnabled())
         guard snapshot.rejectedOutlierCount == before.rejectedOutlierCount else {
             // A current but implausible coordinate proves delivery, not route position.
             return (true, false)
@@ -924,7 +924,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         totalDistance = v2Session.distanceMeters
         durationInMillis = Double(v2Session.movingDurationMillis)
         maxSpeedMps = v2Session.maxSpeedMps
-        isAutoPaused = AutoPausePreference.isEnabled() && snapshot.movementState == .stationary
+        isAutoPaused = v2Session.isAutoPaused
         updateStillness(isStill: snapshot.movementState == .stationary, fixTime: location.timestamp)
         let displayPoint = snapshot.routeSegments.last?.last
         let displayCoordinate = displayPoint.map {
