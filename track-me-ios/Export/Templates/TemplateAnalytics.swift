@@ -130,13 +130,26 @@ nonisolated enum TemplateAnalytics {
         var index = 1
         var distanceIntoSplit = 0.0
         var millisIntoSplit: Int64 = 0
+        // Distance and time from legs too short to clear the noise floor on their own, waiting for
+        // the next leg to join. Nothing is dropped; it is only deferred — see Android's
+        // `RideSplits.kt`, where the same defect was found: a leg below the floor used to be
+        // discarded outright, so a walk sampled at 1 Hz (about 1.3 m per leg) never reached a
+        // kilometre and a 4.6 km walk showed a single remainder.
+        var carryMeters = 0.0
+        var carryMillis: Int64 = 0
         for i in 1..<points.count {
             let previous = points[i - 1]
             let current = points[i]
             if current.isPaused { continue }
-            var legMeters = distance(previous, current)
-            if legMeters < minLegMeters { continue }
-            var legMillis = Swift.max(0, Int64((current.timestamp.timeIntervalSince(previous.timestamp) * 1_000).rounded()))
+            var legMeters = distance(previous, current) + carryMeters
+            var legMillis = Swift.max(0, Int64((current.timestamp.timeIntervalSince(previous.timestamp) * 1_000).rounded())) + carryMillis
+            if legMeters < minLegMeters {
+                carryMeters = legMeters
+                carryMillis = legMillis
+                continue
+            }
+            carryMeters = 0
+            carryMillis = 0
             while distanceIntoSplit + legMeters >= unit {
                 let remaining = unit - distanceIntoSplit
                 let share = legMeters > 0 ? remaining / legMeters : 0
@@ -151,6 +164,9 @@ nonisolated enum TemplateAnalytics {
             distanceIntoSplit += legMeters
             millisIntoSplit += legMillis
         }
+        // Whatever was still being carried belongs to the tail, not to nobody.
+        distanceIntoSplit += carryMeters
+        millisIntoSplit += carryMillis
         if distanceIntoSplit >= minLegMeters {
             result.append(RideSplit(index: index, distanceMeters: distanceIntoSplit, movingMillis: millisIntoSplit, isPartial: true))
         }

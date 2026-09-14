@@ -238,20 +238,29 @@ struct GamificationCollectionScreen: View {
             .accessibilitySortPriority(Double(GamificationEngine.levels.count - node.levelIndex))
     }
 
-    /// The rider. Deliberately the largest and most detailed thing on the trail: in the radial
-    /// version every node wore its own level's colour, so an already-passed level could out-shout
-    /// the current one and the eye landed on the wrong dot.
+    /// Where the rider is on the trail — drawn as a **location puck**, the way a map draws you.
+    ///
+    /// It used to be a disc carrying the current level's number, and that was the whole of shvm's
+    /// 2026-09-13 report: at level 2 a disc reading "2" slid away from waypoint 2 toward waypoint 3,
+    /// so the checkpoint itself looked like it was moving, and on reaching level 3 it snapped back
+    /// and started again. The geometry was always right — waypoints are fixed and only this
+    /// interpolates — but a numbered disc among numbered discs cannot say "this one is you, those
+    /// are the stations".
+    ///
+    /// A halo around a solid dot can: nothing else on the trail is shaped like it, and everyone has
+    /// seen it mean "here" on a map. The level number is not lost — it is on the waypoint the rider
+    /// has passed, and in this marker's accessibility label. Android's `RiderMarker` is the twin.
     private func riderMarker(scale: CGFloat) -> some View {
-        let size = min(max(38 * scale, 30), 48)
+        let size = min(max(34 * scale, 26), 42)
         let position = GamificationTrail.markerPosition(snapshot)
-        return Circle()
-            .fill(accent)
-            .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 3))
-            .overlay(
-                Text("\(levelIndex + 1)")
-                    .font(.system(size: size * 0.36, weight: .bold))
-                    .foregroundStyle(GamificationPalette.onAccent(dark: isDark))
-            )
+        return ZStack {
+            // The soft field, the crisp ring, the white collar, the core: a location puck reads as
+            // one because of the layering, not because of any single circle.
+            Circle().fill(accent.opacity(0.20))
+            Circle().strokeBorder(accent.opacity(0.55), lineWidth: size * 0.05).frame(width: size * 0.72, height: size * 0.72)
+            Circle().fill(Color(.systemBackground)).frame(width: size * 0.50, height: size * 0.50)
+            Circle().fill(accent).frame(width: size * 0.36, height: size * 0.36)
+        }
             .frame(width: size, height: size)
             .padding(max(0, (44 - size) / 2))
             .contentShape(Circle())
