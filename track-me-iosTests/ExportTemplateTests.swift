@@ -159,6 +159,40 @@ final class ExportTemplateTests: XCTestCase {
         }
     }
 
+    /**
+     * The defect shvm found on a device, and the twin of Android's
+     * `aWalkSampledEverySecondIsCutIntoWholeKilometres`: a 4.6 km walk showed one partial split
+     * instead of four kilometres and a remainder, because every 1.3 m leg fell through the 3.5 m
+     * noise floor and the floor threw the distance away rather than deferring it.
+     */
+    func testAWalkSampledEverySecondIsCutIntoWholeKilometres() {
+        // 4.6 km at 1.3 m per 1 Hz sample: not one leg clears the floor on its own.
+        let count = 3_538
+        let points: [TemplatePoint] = (0...count).map {
+            TemplatePoint(latitude: 12.97, longitude: 77.59, altitude: 900,
+                          speed: 1.3, timestamp: Date(timeIntervalSince1970: Double($0)), isPaused: false)
+        }
+        let splits = TemplateAnalytics.splits(points, imperial: false, distance: { _, _ in 1.3 })
+
+        XCTAssertEqual(splits.count, 5, "four full kilometres and a remainder")
+        XCTAssertEqual(splits.filter { !$0.isPartial }.count, 4)
+        XCTAssertTrue(splits.last!.isPartial)
+        // The table has to add up to the ride; that it did not is how the defect was visible.
+        XCTAssertEqual(splits.reduce(0) { $0 + $1.distanceMeters }, Double(count) * 1.3, accuracy: 0.5)
+    }
+
+    /// The review finding, and Android's `driftWhileStandingStillIsNotCarriedIntoDistance`: carried
+    /// distance has to earn its place by the speed it was covered at, or fifteen minutes of a
+    /// stationary phone wandering becomes a kilometre nobody walked.
+    func testDriftWhileStandingStillIsNotCarriedIntoDistance() {
+        // 1 m every 10 seconds: 0.1 m/s, a third of the app's own moving floor.
+        let points: [TemplatePoint] = (0...900).map {
+            TemplatePoint(latitude: 12.97, longitude: 77.59, altitude: 900,
+                          speed: 0.1, timestamp: Date(timeIntervalSince1970: Double($0) * 10), isPaused: false)
+        }
+        XCTAssertTrue(TemplateAnalytics.splits(points, imperial: false, distance: { _, _ in 1.0 }).isEmpty)
+    }
+
     func testSplitsAndTheFastestSegmentMatchAndroid() {
         let points = threeKilometres()
         let splits = TemplateAnalytics.splits(points, imperial: false, distance: hundredMetreLegs)

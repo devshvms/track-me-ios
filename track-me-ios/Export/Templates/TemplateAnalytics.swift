@@ -31,7 +31,7 @@ nonisolated enum TemplateAnalytics {
 
     /// A ride that held one pace is drawn at the middle of the gradient, not at either end.
     static let flatPaceIntensity: Float = 0.55
-    private static let minMovingMps = 0.3
+    static let minMovingMps = 0.3
     private static let minSpeedRangeMps = 0.4
     private static let smoothingWindow = 5
 
@@ -122,6 +122,13 @@ nonisolated enum TemplateAnalytics {
         _ points: [TemplatePoint],
         imperial: Bool,
         minLegMeters: Double = 3.5,
+        // What rescues the floor's *other* job. Carrying every short leg forward would let a rider
+        // standing still while the GPS wanders accumulate metres three at a time, and this table
+        // has no plausibility check of its own to catch that. Carried distance is therefore
+        // redeemed only if it was covered at a moving pace — a walker clears 3.5 m in under three
+        // seconds, a stationary rider takes half a minute, and speed is the difference the distance
+        // floor was always groping for. Same value and same rule as Android's `rideSplits`.
+        minMovingMps: Double = TemplateAnalytics.minMovingMps,
         distance: (TemplatePoint, TemplatePoint) -> Double = TemplateAnalytics.haversineMeters
     ) -> [RideSplit] {
         guard points.count >= 2 else { return [] }
@@ -130,13 +137,34 @@ nonisolated enum TemplateAnalytics {
         var index = 1
         var distanceIntoSplit = 0.0
         var millisIntoSplit: Int64 = 0
+        // Distance and time from legs too short to clear the noise floor on their own, waiting for
+        // the next leg to join. Nothing is dropped; it is only deferred — see Android's
+        // `RideSplits.kt`, where the same defect was found: a leg below the floor used to be
+        // discarded outright, so a walk sampled at 1 Hz (about 1.3 m per leg) never reached a
+        // kilometre and a 4.6 km walk showed a single remainder.
+        var carryMeters = 0.0
+        var carryMillis: Int64 = 0
         for i in 1..<points.count {
             let previous = points[i - 1]
             let current = points[i]
             if current.isPaused { continue }
-            var legMeters = distance(previous, current)
-            if legMeters < minLegMeters { continue }
-            var legMillis = Swift.max(0, Int64((current.timestamp.timeIntervalSince(previous.timestamp) * 1_000).rounded()))
+            var legMeters = distance(previous, current) + carryMeters
+            var legMillis = Swift.max(0, Int64((current.timestamp.timeIntervalSince(previous.timestamp) * 1_000).rounded())) + carryMillis
+            if legMeters < minLegMeters {
+                carryMeters = legMeters
+                carryMillis = legMillis
+                continue
+            }
+            // Only legs that needed carrying are speed-tested: a leg that cleared the floor on its
+            // own was already counted before this rule existed, and dropping it now would be a
+            // second, unasked-for change of behaviour.
+            if carryMeters > 0, legMillis > 0, legMeters / (Double(legMillis) / 1_000) < minMovingMps {
+                carryMeters = 0
+                carryMillis = 0
+                continue
+            }
+            carryMeters = 0
+            carryMillis = 0
             while distanceIntoSplit + legMeters >= unit {
                 let remaining = unit - distanceIntoSplit
                 let share = legMeters > 0 ? remaining / legMeters : 0
@@ -151,6 +179,9 @@ nonisolated enum TemplateAnalytics {
             distanceIntoSplit += legMeters
             millisIntoSplit += legMillis
         }
+        // Whatever was still being carried belongs to the tail, not to nobody.
+        distanceIntoSplit += carryMeters
+        millisIntoSplit += carryMillis
         if distanceIntoSplit >= minLegMeters {
             result.append(RideSplit(index: index, distanceMeters: distanceIntoSplit, movingMillis: millisIntoSplit, isPartial: true))
         }

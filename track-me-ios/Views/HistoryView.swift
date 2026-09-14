@@ -71,6 +71,8 @@ struct HistoryView: View {
     @State private var selection: [UUID] = []
     @State private var selectedRides: [Ride] = []
     @State private var selectionMessage: String?
+    @State private var showDeleteSelectionConfirm = false
+    @State private var isDeletingSelection = false
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var unitSettings = UnitSettings.shared
 
@@ -261,6 +263,20 @@ struct HistoryView: View {
         // popping is not the same thing as starting over.
         .onChange(of: popToRootRequest) { _, _ in navigationPath.removeAll() }
         .trackScreen("HistoryView")
+        .alert(
+            LocalizationHelper.localized("Delete Ride"),
+            isPresented: $showDeleteSelectionConfirm
+        ) {
+            Button(LocalizationHelper.localized("Cancel"), role: .cancel) {}
+            Button(LocalizationHelper.localized("Delete"), role: .destructive) { deleteSelectedRides() }
+        } message: {
+            // One ride is the ordinary case for delete — the button enables at one — so the plural
+            // string cannot be the only one. "Delete 1 rides?" is the same defect as the "1 states"
+            // this release already fixed once.
+            Text(selection.count == 1
+                 ? LocalizationHelper.localized("Are you sure you want to delete this ride? This action cannot be undone.")
+                 : LocalizationHelper.formatted("Delete %d rides? This cannot be undone.", selection.count))
+        }
         .sheet(isPresented: Binding(get: { !selectedRides.isEmpty }, set: { if !$0 { selectedRides = [] } })) {
             AggregateExportView(rides: selectedRides) {
                 selectedRides = []
@@ -364,29 +380,147 @@ struct HistoryView: View {
             if let selectionMessage {
                 Text(selectionMessage).font(.footnote).foregroundColor(.secondary)
             }
-            Button {
-                loadSelectedRides()
-            } label: {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    // "0 rides" on a disabled button says nothing about what to do next; below two,
-                    // the label is the instruction.
-                    Text(selection.count >= 2
-                         ? LocalizationHelper.formatted("%d rides", selection.count)
-                         : LocalizationHelper.localized("Select at least two rides to aggregate."))
+            HStack(spacing: 10) {
+                Button {
+                    loadSelectedRides()
+                } label: {
+                    HStack {
+                        Image(systemName: "square.and.arrow.up")
+                        // "0 rides" on a disabled button says nothing about what to do next; below
+                        // two, the label is the instruction.
+                        Text(selection.count >= 2
+                             ? LocalizationHelper.formatted("%d rides", selection.count)
+                             : LocalizationHelper.localized("Select at least two rides to aggregate."))
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(selection.count >= 2 ? BrandColor.primaryFill : Color.secondary)
+                    .cornerRadius(12)
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(selection.count >= 2 ? BrandColor.primaryFill : Color.secondary)
-                .cornerRadius(12)
+                .disabled(selection.count < 2 || isDeletingSelection)
+
+                // Deleting needs only one ride selected, where sharing needs two — an aggregate of
+                // one is not an aggregate, but deleting one is an ordinary thing to want.
+                Button {
+                    showDeleteSelectionConfirm = true
+                } label: {
+                    Group {
+                        if isDeletingSelection {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: "trash").font(.headline)
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 56)
+                    .padding(.vertical)
+                    .background(selection.isEmpty ? Color.secondary : Color.red)
+                    .cornerRadius(12)
+                }
+                .disabled(selection.isEmpty || isDeletingSelection)
+                .accessibilityLabel(LocalizationHelper.localized("Delete Ride"))
             }
-            .disabled(selection.count < 2)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(.bar)
+    }
+
+    /// Deletes every selected ride, cloud first.
+    ///
+    /// Per ride, and in that order, because the order is the whole guarantee: a ride removed from
+    /// this phone but left in the cloud comes back on the next sync, so local deletion is only ever
+    /// earned by a cloud deletion that already succeeded. `RideDetailView.deleteRide()` makes the
+    /// same bargain for one ride and this is deliberately the same sequence — including the offline
+    /// case, where the cloud delete is *queued* rather than failed and the ride stays until it can
+    /// be honoured.
+    ///
+    /// One ride failing does not abandon the rest, and it does not get quietly rounded up into
+    /// success either: the outcomes are counted separately and the toast says exactly what happened.
+    @MainActor
+    private func deleteSelectedRides() {
+        guard !isDeletingSelection, !selection.isEmpty else { return }
+        isDeletingSelection = true
+        let ids = Set(selection)
+        let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { ids.contains($0.id) })
+        let rides = (try? modelContext.fetch(descriptor)) ?? []
+
+        Task { @MainActor in
+            defer { isDeletingSelection = false }
+            var deleted = 0
+            var queued = 0
+            var failed = 0
+
+            for ride in rides {
+                do {
+                    let outcome = try await FirestoreSyncManager.shared.deleteRideFromCloudIfNeeded(ride)
+                    if outcome == .queued {
+                        queued += 1
+                        continue
+                    }
+                } catch {
+                    failed += 1
+                    continue
+                }
+                modelContext.delete(ride)
+                deleted += 1
+            }
+
+            if deleted > 0 {
+                do {
+                    try modelContext.save()
+                    HomeDashboardRepository.shared.invalidate()
+                } catch {
+                    // The cloud deletions already happened; leaving the local rows behind would
+                    // have them reappear as ghosts, so this has to be said out loud rather than
+                    // rolled back into silence.
+                    modelContext.rollback()
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Couldn't delete this ride from this device. Please try again."),
+                        style: .error
+                    )
+                    return
+                }
+            }
+
+            loadSummaries()
+            // Selection survives a partial batch: leaving it intact is the only way the rider can
+            // see and retry what did not go. A clean run exits, as it always did.
+            if failed == 0 {
+                selection.removeAll()
+                selecting = false
+            } else {
+                selection = selection.filter { id in rides.contains { $0.id == id && !$0.isDeleted } }
+            }
+
+            // A batch can end three ways at once, and saying only the first of them is how a
+            // rider concludes that nothing was deleted when in fact most of it was. The clean case
+            // keeps its clean sentence; a mixed one lists every outcome that actually occurred.
+            if failed == 0 && queued == 0 && deleted > 0 {
+                ToastManager.shared.show(
+                    message: deleted == 1
+                        ? LocalizationHelper.localized("Ride deleted")
+                        : LocalizationHelper.formatted("%d rides deleted", deleted),
+                    style: .success
+                )
+            } else if failed == 0 && deleted == 0 && queued > 0 {
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized("This ride will be removed when you're back online."),
+                    style: .info
+                )
+            } else if failed > 0 || queued > 0 {
+                var parts: [String] = []
+                if deleted > 0 { parts.append(LocalizationHelper.formatted("%d deleted", deleted)) }
+                if queued > 0 { parts.append(LocalizationHelper.formatted("%d when back online", queued)) }
+                if failed > 0 { parts.append(LocalizationHelper.formatted("%d couldn't be deleted", failed)) }
+                ToastManager.shared.show(
+                    message: parts.joined(separator: " · "),
+                    style: failed > 0 ? .error : .info
+                )
+            }
+        }
     }
 
     /// Selection order is not the order ridden, and the aggregate templates need the latter — so the
