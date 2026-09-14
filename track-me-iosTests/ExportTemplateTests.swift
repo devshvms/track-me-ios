@@ -181,6 +181,18 @@ final class ExportTemplateTests: XCTestCase {
         XCTAssertEqual(splits.reduce(0) { $0 + $1.distanceMeters }, Double(count) * 1.3, accuracy: 0.5)
     }
 
+    /// The review finding, and Android's `driftWhileStandingStillIsNotCarriedIntoDistance`: carried
+    /// distance has to earn its place by the speed it was covered at, or fifteen minutes of a
+    /// stationary phone wandering becomes a kilometre nobody walked.
+    func testDriftWhileStandingStillIsNotCarriedIntoDistance() {
+        // 1 m every 10 seconds: 0.1 m/s, a third of the app's own moving floor.
+        let points: [TemplatePoint] = (0...900).map {
+            TemplatePoint(latitude: 12.97, longitude: 77.59, altitude: 900,
+                          speed: 0.1, timestamp: Date(timeIntervalSince1970: Double($0) * 10), isPaused: false)
+        }
+        XCTAssertTrue(TemplateAnalytics.splits(points, imperial: false, distance: { _, _ in 1.0 }).isEmpty)
+    }
+
     func testSplitsAndTheFastestSegmentMatchAndroid() {
         let points = threeKilometres()
         let splits = TemplateAnalytics.splits(points, imperial: false, distance: hundredMetreLegs)

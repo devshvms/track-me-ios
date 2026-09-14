@@ -31,7 +31,7 @@ nonisolated enum TemplateAnalytics {
 
     /// A ride that held one pace is drawn at the middle of the gradient, not at either end.
     static let flatPaceIntensity: Float = 0.55
-    private static let minMovingMps = 0.3
+    static let minMovingMps = 0.3
     private static let minSpeedRangeMps = 0.4
     private static let smoothingWindow = 5
 
@@ -122,6 +122,13 @@ nonisolated enum TemplateAnalytics {
         _ points: [TemplatePoint],
         imperial: Bool,
         minLegMeters: Double = 3.5,
+        // What rescues the floor's *other* job. Carrying every short leg forward would let a rider
+        // standing still while the GPS wanders accumulate metres three at a time, and this table
+        // has no plausibility check of its own to catch that. Carried distance is therefore
+        // redeemed only if it was covered at a moving pace — a walker clears 3.5 m in under three
+        // seconds, a stationary rider takes half a minute, and speed is the difference the distance
+        // floor was always groping for. Same value and same rule as Android's `rideSplits`.
+        minMovingMps: Double = TemplateAnalytics.minMovingMps,
         distance: (TemplatePoint, TemplatePoint) -> Double = TemplateAnalytics.haversineMeters
     ) -> [RideSplit] {
         guard points.count >= 2 else { return [] }
@@ -146,6 +153,14 @@ nonisolated enum TemplateAnalytics {
             if legMeters < minLegMeters {
                 carryMeters = legMeters
                 carryMillis = legMillis
+                continue
+            }
+            // Only legs that needed carrying are speed-tested: a leg that cleared the floor on its
+            // own was already counted before this rule existed, and dropping it now would be a
+            // second, unasked-for change of behaviour.
+            if carryMeters > 0, legMillis > 0, legMeters / (Double(legMillis) / 1_000) < minMovingMps {
+                carryMeters = 0
+                carryMillis = 0
                 continue
             }
             carryMeters = 0

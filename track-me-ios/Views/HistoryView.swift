@@ -270,7 +270,12 @@ struct HistoryView: View {
             Button(LocalizationHelper.localized("Cancel"), role: .cancel) {}
             Button(LocalizationHelper.localized("Delete"), role: .destructive) { deleteSelectedRides() }
         } message: {
-            Text(LocalizationHelper.formatted("Delete %d rides? This cannot be undone.", selection.count))
+            // One ride is the ordinary case for delete — the button enables at one — so the plural
+            // string cannot be the only one. "Delete 1 rides?" is the same defect as the "1 states"
+            // this release already fixed once.
+            Text(selection.count == 1
+                 ? LocalizationHelper.localized("Are you sure you want to delete this ride? This action cannot be undone.")
+                 : LocalizationHelper.formatted("Delete %d rides? This cannot be undone.", selection.count))
         }
         .sheet(isPresented: Binding(get: { !selectedRides.isEmpty }, set: { if !$0 { selectedRides = [] } })) {
             AggregateExportView(rides: selectedRides) {
@@ -480,24 +485,39 @@ struct HistoryView: View {
                 }
             }
 
-            selection.removeAll()
-            selecting = false
             loadSummaries()
+            // Selection survives a partial batch: leaving it intact is the only way the rider can
+            // see and retry what did not go. A clean run exits, as it always did.
+            if failed == 0 {
+                selection.removeAll()
+                selecting = false
+            } else {
+                selection = selection.filter { id in rides.contains { $0.id == id && !$0.isDeleted } }
+            }
 
-            if failed > 0 {
+            // A batch can end three ways at once, and saying only the first of them is how a
+            // rider concludes that nothing was deleted when in fact most of it was. The clean case
+            // keeps its clean sentence; a mixed one lists every outcome that actually occurred.
+            if failed == 0 && queued == 0 && deleted > 0 {
                 ToastManager.shared.show(
-                    message: LocalizationHelper.localized("Couldn't delete this ride from the cloud. Check your connection and try again."),
-                    style: .error
+                    message: deleted == 1
+                        ? LocalizationHelper.localized("Ride deleted")
+                        : LocalizationHelper.formatted("%d rides deleted", deleted),
+                    style: .success
                 )
-            } else if queued > 0 {
+            } else if failed == 0 && deleted == 0 && queued > 0 {
                 ToastManager.shared.show(
                     message: LocalizationHelper.localized("This ride will be removed when you're back online."),
                     style: .info
                 )
-            } else if deleted > 0 {
+            } else if failed > 0 || queued > 0 {
+                var parts: [String] = []
+                if deleted > 0 { parts.append(LocalizationHelper.formatted("%d deleted", deleted)) }
+                if queued > 0 { parts.append(LocalizationHelper.formatted("%d when back online", queued)) }
+                if failed > 0 { parts.append(LocalizationHelper.formatted("%d couldn't be deleted", failed)) }
                 ToastManager.shared.show(
-                    message: LocalizationHelper.formatted("%d rides deleted", deleted),
-                    style: .success
+                    message: parts.joined(separator: " · "),
+                    style: failed > 0 ? .error : .info
                 )
             }
         }
