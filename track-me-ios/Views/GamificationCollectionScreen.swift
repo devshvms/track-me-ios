@@ -109,7 +109,7 @@ struct GamificationCollectionScreen: View {
                 trailShape(fraction: drawn, scale: scale)
                     .stroke(accent, style: StrokeStyle(lineWidth: 5 * scale, lineCap: .round))
 
-                ForEach(GamificationTrail.nodes(snapshot).filter { $0.state != .current }, id: \.levelIndex) { node in
+                ForEach(GamificationTrail.nodes(snapshot), id: \.levelIndex) { node in
                     levelNode(node, scale: scale)
                 }
                 riderMarker(scale: scale)
@@ -201,7 +201,7 @@ struct GamificationCollectionScreen: View {
     }
 
     private func levelNode(_ node: GamificationTrail.Node, scale: CGFloat) -> some View {
-        let passed = node.state == .passed
+        let passed = node.state == .passed || node.state == .current
         let size = min(max(26 * scale, 20), 34)
         let nodeAccent = GamificationPalette.accent(node.levelIndex, dark: isDark)
         let level = GamificationEngine.levels[node.levelIndex]
