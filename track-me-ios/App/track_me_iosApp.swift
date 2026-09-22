@@ -35,7 +35,7 @@ private enum AppLaunchEnvironment {
     }
 }
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // This must be the first launch action. Cleanup and SDK initialization below can write
@@ -57,6 +57,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             TelemetryManager.shared.initializePostHog()
         }
         UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
         GroupStatusAlertCoordinator.shared.registerNotificationCategory(
             additionalCategories: [
                 WeeklyRecapScheduler.returnNotificationCategory,
@@ -77,6 +78,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // The age-range request is started from ContentView, where SwiftUI supplies the
         // presentation-bound requestAgeRange action required by DeclaredAgeRange.
         return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Messaging.messaging().apnsToken = deviceToken
+        BroadcastSubscription.sync()
+    }
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        BroadcastSubscription.sync()
     }
 
     /// SCOPE_1.8.7 §6.3 — a data-only operator broadcast.
