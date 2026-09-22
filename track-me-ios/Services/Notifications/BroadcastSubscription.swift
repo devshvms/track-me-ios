@@ -45,11 +45,22 @@ enum BroadcastSubscription {
             Task {
                 do {
                     if authorized {
+                        #if !targetEnvironment(simulator)
+                        // On physical devices, FCM topic subscription requires an APNs token to be
+                        // registered first. If called before APNs registration finishes at launch,
+                        // skip until didRegisterForRemoteNotifications or didReceiveRegistrationToken fires.
+                        guard Messaging.messaging().apnsToken != nil else { return }
+                        #endif
                         try await Messaging.messaging().subscribe(toTopic: topic)
                     } else {
                         try await Messaging.messaging().unsubscribe(fromTopic: topic)
                     }
                 } catch {
+                    let nsError = error as NSError
+                    if nsError.domain == "com.google.fcm" && nsError.code == 505 {
+                        // Expected race on launch before APNs token is received from Apple; do not report to Crashlytics.
+                        return
+                    }
                     // Not fatal and not worth telling the user: the next launch retries, and the
                     // foreground read of `broadcasts` means nothing is actually missed meanwhile.
                     CrashlyticsErrorLogger.shared.recordError(error)
