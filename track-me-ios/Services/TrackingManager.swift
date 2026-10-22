@@ -416,6 +416,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     let previous = self.state
                     if self.timeSinceLastGps > 10 {
                         self.state = .gpsLost
+                        if previous == .tracking {
+                            TelemetryManager.shared.trackLocationUpdatesPaused()
+                        }
                     } else {
                         self.state = .tracking
                     }
@@ -772,6 +775,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 lastGpsTimestamp = newestAdmitted.timestamp
                 timeSinceLastGps = max(0, now.timeIntervalSince(newestAdmitted.timestamp))
                 state = timeSinceLastGps > 10 ? .gpsLost : .tracking
+                if stateBeforeDelivery == .gpsLost && state == .tracking {
+                    TelemetryManager.shared.trackLocationUpdatesResumed()
+                }
             }
 
             // Presence and live-share need only the newest route-admitted fix from a delivered
@@ -794,7 +800,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         let recoveredFromGpsLost = state == .gpsLost
         lastGpsTimestamp = Date()
         timeSinceLastGps = 0
-        if state == .gpsLost { state = .tracking }
+        if recoveredFromGpsLost {
+            state = .tracking
+            TelemetryManager.shared.trackLocationUpdatesResumed()
+        }
 
         for location in locations {
             // 1. Outlier removal
@@ -965,7 +974,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             elevationGainMeters: RideMetrics.elevationGainMeters(fromLocations: points)
         )
         DataRepository.shared.finishRide(rideId: id, endedAt: endedAt, aggregate: aggregate)
-        TelemetryManager.shared.trackRideCompleted()
+        TelemetryManager.shared.trackRideCompleted(
+            durationSeconds: Int64(durationInMillis / 1000),
+            distanceKm: totalDistance / 1000.0
+        )
 
         let isJunk = totalDistance < 10.0 && durationInMillis < 2 * 60 * 1000
         if !isJunk {

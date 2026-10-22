@@ -1,4 +1,6 @@
+import Foundation
 import FirebaseCrashlytics
+import FirebaseFirestore
 
 /// Firebase-backed implementation of the app-wide error logger.
 final class CrashlyticsErrorLogger: ErrorLogger, @unchecked Sendable {
@@ -23,10 +25,34 @@ final class CrashlyticsErrorLogger: ErrorLogger, @unchecked Sendable {
     }
 
     func recordError(_ error: Error) {
+        guard Self.isReportable(error) else { return }
         Crashlytics.crashlytics().record(error: error)
     }
 
     func log(_ message: String) {
         Crashlytics.crashlytics().log(message)
+    }
+
+    /// TASK-333: parity with Android's `isReportable(Throwable)` — drop structured-concurrency
+    /// cancellation and expected transient/auth-boundary Firestore rejections.
+    static func isReportable(_ error: Error) -> Bool {
+        if error is CancellationError { return false }
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+            return false
+        }
+        if nsError.domain == FirestoreErrorDomain {
+            switch nsError.code {
+            case FirestoreErrorCode.permissionDenied.rawValue,
+                 FirestoreErrorCode.unauthenticated.rawValue,
+                 FirestoreErrorCode.unavailable.rawValue,
+                 FirestoreErrorCode.deadlineExceeded.rawValue,
+                 FirestoreErrorCode.cancelled.rawValue:
+                return false
+            default:
+                return true
+            }
+        }
+        return true
     }
 }

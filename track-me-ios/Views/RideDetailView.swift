@@ -262,7 +262,7 @@ struct RideDetailView: View {
                 gpxURL = GPXExporter.generateGPX(from: ride)
             }
         }
-        .trackScreen("RideDetailView")
+        .trackScreen("ride_detail")
         .alert(isPresented: $showDeleteConfirm) {
             Alert(
                 title: Text("Delete Ride"),

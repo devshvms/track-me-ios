@@ -221,6 +221,7 @@ struct CommunityView: View {
                     self.authListener = nil
                 }
             }
+            .trackScreen("community")
         }
     }
 

@@ -69,6 +69,15 @@ struct HomeDashboardDeck: View {
                             .padding(.vertical, 8)
                     }
 
+                    if let insight = summary.insight {
+                        InsightCard(insight: insight, unit: unitSettings.unit)
+                            .dashboardCardMotion(
+                                orderFromTop: 2,
+                                total: 5,
+                                isVisible: isVisible,
+                                reduceMotion: reduceMotion
+                            )
+                    }
 
                     let facts = summary.toGamificationFacts()
                     let snapshot = GamificationEngine.deriveSnapshot(facts: facts)

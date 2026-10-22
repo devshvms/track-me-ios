@@ -59,6 +59,7 @@ struct BulletinView: View {
         .navigationBarTitleDisplayMode(.inline)
         // Seen on open, not on scroll: a fact the user has had the chance to read is read.
         .task { store.markAllSeen() }
+        .trackScreen("bulletin")
     }
 
     /// Applies the locale- and unit-dependent formatting at read time.

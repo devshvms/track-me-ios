@@ -515,7 +515,7 @@ struct HomeView: View {
             }
         }
         .toolbar(presentationMode == .activeTrackingMap ? .hidden : .visible, for: .tabBar)
-        .trackScreen("HomeView")
+        .trackScreen("home")
         .task(id: groupRide.state.isActive && isMapInteractive) {
             guard groupRide.state.isActive && isMapInteractive else { return }
             while !Task.isCancelled {
@@ -769,6 +769,10 @@ struct HomeView: View {
         if !didTrackDashboardEntry {
             didTrackDashboardEntry = true
             TelemetryManager.shared.trackHomeDashboardViewed(historyBucket: summary.historyBucket)
+        }
+        if let insight = summary.insight, trackedInsightValue != insight.analyticsValue {
+            trackedInsightValue = insight.analyticsValue
+            TelemetryManager.shared.trackHomeInsightShown(insight)
         }
     }
 

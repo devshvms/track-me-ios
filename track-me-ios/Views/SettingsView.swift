@@ -467,7 +467,7 @@ struct SettingsView: View {
         }
         // TASK-226: double-tapping the tab returns to the settings list.
         .onChange(of: popToRootRequest) { _, _ in navigationPath.removeAll() }
-        .trackScreen("SettingsView")
+        .trackScreen("settings")
     }
 
     @ViewBuilder
