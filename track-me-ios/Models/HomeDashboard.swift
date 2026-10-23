@@ -162,7 +162,10 @@ nonisolated enum HomeDashboardSelector {
     static func select(
         rides: [HomeDashboardRideMetadata],
         now: Date = Date(),
-        fallbackTimeZone: TimeZone = .current
+        fallbackTimeZone: TimeZone = .current,
+        cloudLifetimeDurationMillis: Int64 = 0,
+        cloudLifetimeDistanceMeters: Double = 0.0,
+        cloudLifetimeActivityCount: Int = 0
     ) -> HomeDashboardSummary {
         let today = HomeCalendar.epochDay(for: now, timeZone: fallbackTimeZone)
         let currentWeekStart = HomeCalendar.mondayEpochDay(containing: today)
@@ -198,19 +201,22 @@ nonisolated enum HomeDashboardSelector {
         let earned = sorted.filter { RideSource.earnsProgress($0.sourceRaw) }
         return HomeDashboardSummary(
             currentWeek: currentWeek,
-            lifetimeActivityCount: sorted.count,
-            lifetimeDistanceMeters: sorted.reduce(0) { $0 + $1.distanceMeters },
-            lifetimeActiveDurationMillis: sorted.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
-            gamificationActivityCount: earned.count,
-            gamificationActiveDurationMillis: earned.reduce(Int64(0)) { $0 + $1.activeDurationMillis },
-            levelAchievements: GamificationLedger.derive(earned.map {
-                GamificationLedger.RideFact(
-                    atEpochMillis: Int64($0.startedAt.timeIntervalSince1970 * 1_000),
-                    personaRaw: $0.persona.rawValue,
-                    activeDurationMillis: $0.activeDurationMillis,
-                    distanceMeters: $0.distanceMeters
-                )
-            }),
+            lifetimeActivityCount: max(sorted.count, cloudLifetimeActivityCount),
+            lifetimeDistanceMeters: max(sorted.reduce(0) { $0 + $1.distanceMeters }, cloudLifetimeDistanceMeters),
+            lifetimeActiveDurationMillis: max(sorted.reduce(Int64(0)) { $0 + $1.activeDurationMillis }, cloudLifetimeDurationMillis),
+            gamificationActivityCount: max(earned.count, cloudLifetimeActivityCount),
+            gamificationActiveDurationMillis: max(earned.reduce(Int64(0)) { $0 + $1.activeDurationMillis }, cloudLifetimeDurationMillis),
+            levelAchievements: GamificationLedger.derive(
+                rides: earned.map {
+                    GamificationLedger.RideFact(
+                        atEpochMillis: Int64($0.startedAt.timeIntervalSince1970 * 1_000),
+                        personaRaw: $0.persona.rawValue,
+                        activeDurationMillis: $0.activeDurationMillis,
+                        distanceMeters: $0.distanceMeters
+                    )
+                },
+                cloudLifetimeDurationMillis: cloudLifetimeDurationMillis
+            ),
             displayStreakWeeks: displayStreak(activeWeeks: activeWeekStarts, currentWeek: currentWeekStart),
             latestActivity: sorted.first.map {
                 HomeRecentActivity(

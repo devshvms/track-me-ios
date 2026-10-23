@@ -502,6 +502,9 @@ class FirestoreSyncManager {
                     let existingIds = DataRepository.shared.existingCloudIds()
                     DataRepository.shared.importDownloadedRides(merged, existingIds: existingIds)
                     UserDefaults.standard.set(Date(), forKey: FirestoreSyncManager.lastSyncTimestampKey)
+                    if let uid = Auth.auth().currentUser?.uid {
+                        Task { await self.refreshCloudLifetimeTotals(uid: uid) }
+                    }
                     completion(true)
                 }
             }
@@ -780,5 +783,36 @@ class FirestoreSyncManager {
         )
 
         try await userRef.delete()
+        clearCloudLifetimeTotals()
+    }
+
+    // MARK: - Cloud Lifetime Aggregates (TASK-340 / SCOPE_1.8.9 §18.4)
+    func refreshCloudLifetimeTotals(uid: String) async {
+        let rides = db.collection("users").document(uid).collection("rides")
+        do {
+            let sumDurationField = AggregateField.sum("activeDurationMillis")
+            let sumDistanceField = AggregateField.sum("distance")
+            let aggregateQuery = rides.aggregate([
+                AggregateField.count(),
+                sumDurationField,
+                sumDistanceField
+            ])
+            let snapshot = try await aggregateQuery.getAggregation(source: .server)
+            let count = Int(truncating: snapshot.count)
+            let duration = (snapshot.get(sumDurationField) as? NSNumber)?.int64Value ?? 0
+            let distance = (snapshot.get(sumDistanceField) as? NSNumber)?.doubleValue ?? 0.0
+
+            UserDefaults.standard.set(count, forKey: "cloudLifetimeRidesCount")
+            UserDefaults.standard.set(duration, forKey: "cloudLifetimeActiveDurationMillis")
+            UserDefaults.standard.set(distance, forKey: "cloudLifetimeDistanceMeters")
+        } catch {
+            CrashlyticsErrorLogger.shared.log("Failed to refresh cloud lifetime totals: \(error.localizedDescription)")
+        }
+    }
+
+    func clearCloudLifetimeTotals() {
+        UserDefaults.standard.removeObject(forKey: "cloudLifetimeRidesCount")
+        UserDefaults.standard.removeObject(forKey: "cloudLifetimeActiveDurationMillis")
+        UserDefaults.standard.removeObject(forKey: "cloudLifetimeDistanceMeters")
     }
 }
