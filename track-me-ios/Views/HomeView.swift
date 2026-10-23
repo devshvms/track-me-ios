@@ -59,6 +59,7 @@ struct HomeView: View {
     @Environment(\.requestReview) private var requestReview
 
     @State private var rideStartLaunch = RideStartLaunchState()
+    @State private var showDiscardRideDialog = false
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
     @AppStorage(OnboardingGate.startHintSeenKey) private var legacyStartHintSeen = false
 
@@ -96,8 +97,7 @@ struct HomeView: View {
                     }
                 }
                 if presentationMode == .activeTrackingMap
-                    && (trackingManager.state == .gpsLost
-                        || (trackingManager.state == .tracking && trackingManager.timeSinceLastGps > 10.0)) {
+                    && trackingManager.isGpsLostWarningActive {
                     let seconds = Int(trackingManager.timeSinceLastGps)
                     let timeString = seconds > 60 ? "\(seconds / 60)m \(seconds % 60)s" : "\(seconds)s"
                     Text(LocalizationHelper.formatted("No GPS signal for %@", timeString))
@@ -160,7 +160,7 @@ struct HomeView: View {
                                 .stroke(BrandColor.success, lineWidth: 1)
                         )
                         .clipShape(Capsule())
-                        .padding(.top, (trackingManager.state == .gpsLost || trackingManager.timeSinceLastGps > 10.0) ? 0 : 50)
+                        .padding(.top, trackingManager.isGpsLostWarningActive ? 0 : 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
                         // VoiceOver reads "🛡️" as "shield" before the sentence; use a clean label.
                         .accessibilityLabel(shieldA11yLabel)
@@ -213,26 +213,7 @@ struct HomeView: View {
                         // showed for the whole ride, including north-up, which is exactly when a
                         // compass says nothing. Same reasoning as the Android removal.
 
-                        if groupRide.state.isActive {
-                            Button(action: { showGroupSheet = true }) {
-                                ZStack(alignment: .topTrailing) {
-                                    Image(systemName: "person.2.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.white)
-                                        .frame(width: 48, height: 48)
-                                        .background(BrandColor.primaryFill.gradient)
-                                        .clipShape(Circle())
-                                        .shadow(color: BrandColor.primaryFill.opacity(0.5), radius: 6)
-                                    Text("\(groupRide.state.memberCount)")
-                                        .font(.caption2.bold())
-                                        .foregroundStyle(.white)
-                                        .frame(width: 18, height: 18)
-                                        .background(BrandColor.success, in: Circle())
-                                }
-                            }
-                            .accessibilityLabel(LocalizationHelper.localized("Group sharing active"))
-                            .accessibilityValue(groupTimeLeftAccessibilityValue)
-                        }
+                        groupMapFloatingButton
 
                     }
                     .padding(.trailing, 16)
@@ -266,137 +247,9 @@ struct HomeView: View {
 
             VStack(spacing: 10) {
                 if trackingManager.state == .idle {
-                    // §6.1.6 #28 — the one moment the fact is actionable: the rider has not set off
-                    // yet and is deciding. A fact and a number, no advice — whether that is enough
-                    // daylight is their call, and an app that adds "be careful" is saying something
-                    // it cannot know. Absent entirely when sunset is far away, already past, or
-                    // when there is no cached fix to compute it from.
-                    if let minutes = minutesUntilSunset {
-                        Text(LocalizationHelper.formatted("Sunset in %@ min", String(minutes)))
-                            .font(.caption.weight(.medium))
-                            .foregroundColor(.secondary)
-                    }
-                    // §6.1.2 #10b. Sits with the sunset line because both are the same kind of
-                    // thing: a fact only worth stating in the seconds before someone sets off,
-                    // stated once and never chased.
-                    if let proximity = startProximity {
-                        Text(LocalizationHelper.formatted(
-                            "This one takes you past %@.", proximity.levelName
-                        ))
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(.secondary)
-                    }
-                    RadialStartTrackingControl(
-                        launchState: $rideStartLaunch,
-                        preselectedPersona: selectedDashboardPersona,
-                        onOpenAllPersonas: { showDashboardPersonaPicker = true },
-                        onAbort: { method in
-                            TelemetryManager.shared.trackRideStartAborted(method: method)
-                        }
-                    ) { persona in
-                        legacyStartHintSeen = true
-                        let method = dashboardSelectionCameFromPicker || persona != selectedDashboardPersona
-                            ? "persona_picker"
-                            : "primary"
-                        selectedDashboardPersona = persona
-                        TelemetryManager.shared.trackActivityStartCTATapped(
-                            persona: persona,
-                            method: method
-                        )
-                        dashboardSelectionCameFromPicker = false
-                        trackingManager.startTracking(persona: persona)
-                    }
+                    idleControlsView
                 } else {
-                    if RideStartAbortPolicy.canOfferPostCommitUndo(
-                        durationInMillis: trackingManager.durationInMillis,
-                        distanceMeters: trackingManager.totalDistance
-                    ) {
-                        Button(role: .destructive) {
-                            guard trackingManager.discardNearEmptyRideStart() else { return }
-                            Haptics.notify(.warning)
-                            TelemetryManager.shared.trackRideStartAborted(method: .postCommitUndo)
-                        } label: {
-                            Label(LocalizationHelper.localized("Cancel"), systemImage: "xmark")
-                                .font(.subheadline.bold())
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(BrandColor.destructive)
-                    }
-
-                    ActiveRideHUD(
-                        trackingState: trackingManager.state,
-                        persona: trackingManager.selectedPersona,
-                        isAutoPaused: trackingManager.isAutoPaused,
-                        isLiveSharing: liveSharingManager.isActive,
-                        isLiveShareStarting: liveSharingManager.isStarting,
-                        isLiveShareAuthenticated: Auth.auth().currentUser != nil,
-                        isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
-                        duration: formatDuration(trackingManager.durationInMillis / 1000),
-                        elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
-                        speedLabel: movementMetric.label,
-                        speedValue: movementMetric.value,
-                        speedUnit: movementMetric.unit,
-                        speedAccessibilityValue: movementMetric.accessibilityValue,
-                        distanceValue: UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit),
-                        distanceUnit: UnitFormatter.distanceUnitLabel(unitSettings.unit),
-                        distanceAccessibilityValue: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit),
-                        onPauseToggle: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                if trackingManager.state == .paused || trackingManager.state == .storageLow {
-                                    trackingManager.resumeTracking()
-                                } else {
-                                    trackingManager.pauseTracking()
-                                }
-                            }
-                        },
-                        onStop: {
-                            trackingManager.stopTracking()
-                        },
-                        onStartShare: {
-                            guard Auth.auth().currentUser != nil else {
-                                ToastManager.shared.show(
-                                    message: LocalizationHelper.localized("Sign in to share your live location."),
-                                    style: .warning
-                                )
-                                return
-                            }
-                            guard !groupRide.state.isActive else {
-                                ToastManager.shared.show(
-                                    message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
-                                    style: .warning
-                                )
-                                return
-                            }
-                            liveSharingManager.startSession(durationMinutes: nil)
-                        },
-                        onStopShare: {
-                            liveSharingManager.stopSession()
-                            ToastManager.shared.show(
-                                message: LocalizationHelper.localized("Live sharing stopped"),
-                                style: .info
-                            )
-                        },
-                        onShareLink: {
-                            guard let link = liveSharingManager.shareLink,
-                                  let url = URL(string: link) else { return }
-                            liveShareSharePayload = LiveShareSharePayload(url: url)
-                        },
-                        onCopyLink: {
-                            guard let link = liveSharingManager.shareLink else { return }
-                            UIPasteboard.general.string = link
-                            ToastManager.shared.show(
-                                message: LocalizationHelper.localized("Link copied to clipboard"),
-                                style: .success
-                            )
-                        },
-                        onShareAuthRequired: {
-                            ToastManager.shared.show(
-                                message: LocalizationHelper.localized("Sign in to share your live location."),
-                                style: .warning
-                            )
-                        }
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    activeHUDView
                 }
             }
             .padding(.horizontal, 12)
@@ -487,6 +340,21 @@ struct HomeView: View {
             Button("Not now", role: .cancel) { }
         } message: {
             Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
+        }
+        .alert(
+            LocalizationHelper.localized("Discard this ride?"),
+            isPresented: $showDiscardRideDialog
+        ) {
+            Button(LocalizationHelper.localized("Discard"), role: .destructive) {
+                TelemetryManager.shared.trackRideStartAborted(method: .shortIndoorTest)
+                trackingManager.stopTracking(discard: true)
+            }
+            Button(LocalizationHelper.localized("Save anyway")) {
+                trackingManager.stopTracking(discard: false)
+            }
+            Button(LocalizationHelper.localized("Cancel"), role: .cancel) { }
+        } message: {
+            Text(LocalizationHelper.localized("This ride did not record meaningful distance. You can discard it or save it anyway."))
         }
         // TASK-226: double-tapping the tab returns to the deck. Home's push is already
         // programmatic, so clearing the selection is the whole pop.
@@ -879,6 +747,176 @@ struct HomeView: View {
         let region = MKCoordinateRegion(center: coordinate, span: mapRegion?.span ?? defaultFollowSpan)
         mapRegion = region
         position = .region(region)
+    }
+
+    @ViewBuilder
+    private var groupMapFloatingButton: some View {
+        if groupRide.state.isActive {
+            Button(action: { showGroupSheet = true }) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "person.2.fill")
+                        .font(.title3)
+                        .foregroundColor(.white)
+                        .frame(width: 48, height: 48)
+                        .background(BrandColor.primaryFill.gradient)
+                        .clipShape(Circle())
+                        .shadow(color: BrandColor.primaryFill.opacity(0.5), radius: 6)
+                    Text("\(groupRide.state.memberCount)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.white)
+                        .frame(width: 18, height: 18)
+                        .background(BrandColor.success, in: Circle())
+                }
+            }
+            .accessibilityLabel(LocalizationHelper.localized("Group sharing active"))
+            .accessibilityValue(groupTimeLeftAccessibilityValue)
+        }
+    }
+
+    private var shouldShowStationaryHint: Bool {
+        trackingManager.state == .tracking
+            && trackingManager.totalDistance < 5.0
+            && trackingManager.elapsedDurationInMillis >= 12_000
+    }
+
+    private func handleStopRide() {
+        if RideStartAbortPolicy.isShortIndoorTest(
+            durationInMillis: trackingManager.durationInMillis,
+            distanceMeters: trackingManager.totalDistance
+        ) {
+            showDiscardRideDialog = true
+        } else {
+            trackingManager.stopTracking()
+        }
+    }
+
+    @ViewBuilder
+    private var idleControlsView: some View {
+        if let minutes = minutesUntilSunset {
+            Text(LocalizationHelper.formatted("Sunset in %@ min", String(minutes)))
+                .font(.caption.weight(.medium))
+                .foregroundColor(.secondary)
+        }
+        if let proximity = startProximity {
+            Text(LocalizationHelper.formatted(
+                "This one takes you past %@.", proximity.levelName
+            ))
+            .font(.caption.weight(.medium))
+            .foregroundColor(.secondary)
+        }
+        RadialStartTrackingControl(
+            launchState: $rideStartLaunch,
+            preselectedPersona: selectedDashboardPersona,
+            onOpenAllPersonas: { showDashboardPersonaPicker = true },
+            onAbort: { method in
+                TelemetryManager.shared.trackRideStartAborted(method: method)
+            }
+        ) { persona in
+            legacyStartHintSeen = true
+            let method = dashboardSelectionCameFromPicker || persona != selectedDashboardPersona
+                ? "persona_picker"
+                : "primary"
+            selectedDashboardPersona = persona
+            TelemetryManager.shared.trackActivityStartCTATapped(
+                persona: persona,
+                method: method
+            )
+            dashboardSelectionCameFromPicker = false
+            trackingManager.startTracking(persona: persona)
+        }
+    }
+
+    @ViewBuilder
+    private var activeHUDView: some View {
+        if RideStartAbortPolicy.canOfferPostCommitUndo(
+            durationInMillis: trackingManager.durationInMillis,
+            distanceMeters: trackingManager.totalDistance
+        ) {
+            Button(role: .destructive) {
+                guard trackingManager.discardNearEmptyRideStart() else { return }
+                Haptics.notify(.warning)
+                TelemetryManager.shared.trackRideStartAborted(method: .postCommitUndo)
+            } label: {
+                Label(LocalizationHelper.localized("Cancel"), systemImage: "xmark")
+                    .font(.subheadline.bold())
+            }
+            .buttonStyle(.bordered)
+            .tint(BrandColor.destructive)
+        }
+
+        ActiveRideHUD(
+            trackingState: trackingManager.state,
+            persona: trackingManager.selectedPersona,
+            isAutoPaused: trackingManager.isAutoPaused,
+            isLiveSharing: liveSharingManager.isActive,
+            isLiveShareStarting: liveSharingManager.isStarting,
+            isLiveShareAuthenticated: Auth.auth().currentUser != nil,
+            isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
+            duration: formatDuration(trackingManager.durationInMillis / 1000),
+            elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
+            speedLabel: movementMetric.label,
+            speedValue: movementMetric.value,
+            speedUnit: movementMetric.unit,
+            speedAccessibilityValue: movementMetric.accessibilityValue,
+            distanceValue: UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+            distanceUnit: UnitFormatter.distanceUnitLabel(unitSettings.unit),
+            distanceAccessibilityValue: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+            showsStationaryHint: shouldShowStationaryHint,
+            onPauseToggle: {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    if trackingManager.state == .paused || trackingManager.state == .storageLow {
+                        trackingManager.resumeTracking()
+                    } else {
+                        trackingManager.pauseTracking()
+                    }
+                }
+            },
+            onStop: handleStopRide,
+            onStartShare: {
+                guard Auth.auth().currentUser != nil else {
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Sign in to share your live location."),
+                        style: .warning
+                    )
+                    return
+                }
+                guard !groupRide.state.isActive else {
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
+                        style: .warning
+                    )
+                    return
+                }
+                liveSharingManager.startSession(durationMinutes: nil)
+            },
+            onStopShare: {
+                liveSharingManager.stopSession()
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized("Live sharing stopped"),
+                    style: .info
+                )
+            },
+            onShareLink: {
+                guard let link = liveSharingManager.shareLink,
+                      let url = URL(string: link) else { return }
+                liveShareSharePayload = LiveShareSharePayload(url: url)
+            },
+            onCopyLink: {
+                guard let link = liveSharingManager.shareLink else { return }
+                UIPasteboard.general.string = link
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized("Link copied to clipboard"),
+                    style: .success
+                )
+            },
+            onShareAuthRequired: {
+                ToastManager.shared.show(
+                    message: LocalizationHelper.localized("Sign in to share your live location."),
+                    style: .warning
+                )
+            }
+        )
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private func focusGroupMapOverview() {
@@ -1279,6 +1317,7 @@ struct ActiveRideHUD: View {
     let distanceValue: String
     let distanceUnit: String
     let distanceAccessibilityValue: String
+    var showsStationaryHint: Bool = false
     let onPauseToggle: () -> Void
     let onStop: () -> Void
     let onStartShare: () -> Void
@@ -1316,6 +1355,15 @@ struct ActiveRideHUD: View {
                 )
 
                 Divider()
+
+                if showsStationaryHint {
+                    Text(LocalizationHelper.localized("Waiting for movement — start moving outdoors to record your route."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 8)
+                }
 
                 if !isLiveShareAuthenticated {
                     Text(LocalizationHelper.localized("Sign in to share your live location."))

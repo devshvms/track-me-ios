@@ -86,6 +86,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var lastAcceptedV2LocationTimestamp: Date?
     private var lastV2RawLocation: CLLocation?
     private var lastV2DisplayCoordinate: CLLocationCoordinate2D?
+    private var lastGpsPauseTelemetryDate: Date = .distantPast
+
+    static let gpsLossTimeout: TimeInterval = 10.0
+    static let stationaryGpsLossTimeout: TimeInterval = 45.0
+    static let gpsPauseTelemetryDebounce: TimeInterval = 30.0
 
     // State exposed to SwiftUI
     var state: TrackingState = .idle
@@ -106,6 +111,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var isAutoPaused: Bool = false
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
+    var isGpsLostWarningActive: Bool {
+        if state == .gpsLost { return true }
+        guard state == .tracking else { return false }
+        let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
+        let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+        return timeSinceLastGps > timeout
+    }
     var showLocationDeniedRecovery = false
     
     private static let askedAlwaysKey = "hasRequestedAlwaysUpgrade"
@@ -414,10 +426,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 if let lastTs = self.lastGpsTimestamp {
                     self.timeSinceLastGps = Date().timeIntervalSince(lastTs)
                     let previous = self.state
-                    if self.timeSinceLastGps > 10 {
+                    let isStationary = self.isAutoPaused || self.motionSensor.isDeviceStationary()
+                    let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+                    if self.timeSinceLastGps > timeout {
                         self.state = .gpsLost
                         if previous == .tracking {
-                            TelemetryManager.shared.trackLocationUpdatesPaused()
+                            let now = Date()
+                            if now.timeIntervalSince(self.lastGpsPauseTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
+                                self.lastGpsPauseTelemetryDate = now
+                                TelemetryManager.shared.trackLocationUpdatesPaused()
+                            }
                         }
                     } else {
                         self.state = .tracking
@@ -510,7 +528,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         ToastManager.shared.show(message: LocalizationHelper.localized("Resumed your interrupted ride"), style: .info)
     }
 
-    func stopTracking() {
+    func stopTracking(discard: Bool = false) {
         v2Pedometer.stop()
         locationManager.stopUpdatingLocation()
         motionSensor.stopListening()
@@ -536,10 +554,21 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         )
 
         if let id = currentRideId {
-            finalizeSegment(id: id, endedAt: Date())
+            if discard {
+                DataRepository.shared.deleteRide(rideId: id)
+            } else {
+                finalizeSegment(id: id, endedAt: Date())
+            }
         }
         currentRideId = nil
         elapsedDurationInMillis = 0
+        if discard {
+            points.removeAll(keepingCapacity: false)
+            totalDistance = 0
+            currentSpeed = 0
+            durationInMillis = 0
+            maxSpeedMps = 0
+        }
         skipsNextDistanceSegmentAfterManualPause = false
         v2LocationEligibleAfter = .distantPast
         lastAcceptedV2LocationTimestamp = nil
@@ -773,8 +802,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
             if let newestAdmitted {
                 lastGpsTimestamp = newestAdmitted.timestamp
-                timeSinceLastGps = max(0, now.timeIntervalSince(newestAdmitted.timestamp))
-                state = timeSinceLastGps > 10 ? .gpsLost : .tracking
+                let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
+                let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+                state = timeSinceLastGps > timeout ? .gpsLost : .tracking
                 if stateBeforeDelivery == .gpsLost && state == .tracking {
                     TelemetryManager.shared.trackLocationUpdatesResumed()
                 }

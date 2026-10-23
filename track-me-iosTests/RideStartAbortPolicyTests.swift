@@ -75,6 +75,22 @@ final class RideStartAbortPolicyTests: XCTestCase {
     func testTelemetryValuesMatchCrossPlatformContract() {
         XCTAssertEqual(RideStartAbortMethod.preCommit.rawValue, "pre_commit")
         XCTAssertEqual(RideStartAbortMethod.postCommitUndo.rawValue, "post_commit_undo")
+        XCTAssertEqual(RideStartAbortMethod.shortIndoorTest.rawValue, "short_indoor_test")
+    }
+
+    func testShortIndoorTestThresholds() {
+        XCTAssertTrue(RideStartAbortPolicy.isShortIndoorTest(
+            durationInMillis: 89_999,
+            distanceMeters: 49.9
+        ))
+        XCTAssertFalse(RideStartAbortPolicy.isShortIndoorTest(
+            durationInMillis: RideStartAbortPolicy.shortTestDurationMillis,
+            distanceMeters: 10
+        ))
+        XCTAssertFalse(RideStartAbortPolicy.isShortIndoorTest(
+            durationInMillis: 10_000,
+            distanceMeters: RideStartAbortPolicy.shortTestDistanceMeters
+        ))
     }
 
     func testPlainTapHonorsOnboardingPersonaPreselection() {

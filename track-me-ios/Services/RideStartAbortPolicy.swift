@@ -5,6 +5,7 @@ import Foundation
 enum RideStartAbortMethod: String {
     case preCommit = "pre_commit"
     case postCommitUndo = "post_commit_undo"
+    case shortIndoorTest = "short_indoor_test"
 }
 
 /// Identity-safe state for the pre-commit launch window or persona-choice bloom.
@@ -44,6 +45,8 @@ enum RideStartAbortPolicy {
     static let personaChoiceWindow: Duration = .milliseconds(2_500)
     static let postCommitWindowMillis: TimeInterval = 10_000
     static let postCommitDistanceMeters = 10.0
+    static let shortTestDistanceMeters = 50.0
+    static let shortTestDurationMillis: TimeInterval = 90_000
 
     static func canOfferPostCommitUndo(
         durationInMillis: TimeInterval,
@@ -51,5 +54,13 @@ enum RideStartAbortPolicy {
     ) -> Bool {
         durationInMillis < postCommitWindowMillis
             && distanceMeters < postCommitDistanceMeters
+    }
+
+    static func isShortIndoorTest(
+        durationInMillis: TimeInterval,
+        distanceMeters: Double
+    ) -> Bool {
+        durationInMillis < shortTestDurationMillis
+            && distanceMeters < shortTestDistanceMeters
     }
 }
