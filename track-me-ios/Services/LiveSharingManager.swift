@@ -305,6 +305,7 @@ class LiveSharingManager {
             "batteryLevel": batteryLevel >= 0 ? batteryLevel : 100, // Handle simulator returning -1
             "speed": max(loc.speed * 3.6, 0), // km/h
             "heading": loc.course >= 0 ? loc.course : 0,
+            "powerSaveMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
             "timestamp": ISO8601DateFormatter().string(from: loc.timestamp)
         ]
 
