@@ -1621,6 +1621,7 @@ struct LiveShareActionDrawer: View {
     let onAuthRequired: () -> Void
 
     @State private var isOpen = false
+    @State private var startedByUser = false
 
     var body: some View {
         Button {
@@ -1702,10 +1703,21 @@ struct LiveShareActionDrawer: View {
         .frame(width: 54, height: 54)
         .zIndex(20)
         .onChange(of: isStarting) { _, starting in
-            if starting { isOpen = false }
+            if starting {
+                isOpen = false
+                startedByUser = true
+            }
         }
-        .onChange(of: isActive) { _, _ in
-            isOpen = false
+        .onChange(of: isActive) { _, active in
+            if active, startedByUser {
+                // One tap saved: link is ready, so open the drawer and copy it immediately.
+                startedByUser = false
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) { isOpen = true }
+                onCopy()
+            } else {
+                isOpen = false
+                if !active { startedByUser = false }
+            }
         }
     }
 
