@@ -49,6 +49,7 @@ struct HomeView: View {
     @State private var dashboardSelectionCameFromPicker = false
     @State private var showDashboardPersonaPicker = false
     @State private var selectedRecentRideId: UUID?
+    @State private var exportRide: Ride?
     @State private var showGamificationCollection = false
     @State private var didTrackDashboardEntry = false
     @State private var trackedInsightValue: String?
@@ -319,17 +320,42 @@ struct HomeView: View {
             // idempotent no-op. Mirrors Android's onDismissRequest → consume.
             revealCoordinator.acknowledgeDisplayed()
         }) { reveal in
-            PostRideRevealView(reveal: reveal) {
-                revealCoordinator.consume(rideId: reveal.rideId)
-                // B4: dismissing a good-ride reveal is a peak moment — ask an eligible user to
-                // rate. Self-gated; Apple throttles on top. Never after error/discard.
-                Task {
-                    let count = await RideStatsStore.shared.current().totalRides
-                    if ReviewPrompter.shouldRequestAndRecord(goodRideCount: count) {
-                        requestReview()
+            PostRideRevealView(
+                reveal: reveal,
+                onDismiss: {
+                    revealCoordinator.consume(rideId: reveal.rideId)
+                    // B4: dismissing a good-ride reveal is a peak moment — ask an eligible user to
+                    // rate. Self-gated; Apple throttles on top. Never after error/discard.
+                    Task {
+                        let count = await RideStatsStore.shared.current().totalRides
+                        if ReviewPrompter.shouldRequestAndRecord(goodRideCount: count) {
+                            requestReview()
+                        }
+                    }
+                },
+                onShareCard: {
+                    let id = reveal.rideId
+                    revealCoordinator.consume(rideId: id)
+                    if let uuid = UUID(uuidString: id), let r = ride(with: uuid) {
+                        exportRide = r
+                    }
+                },
+                onViewDetails: {
+                    let id = reveal.rideId
+                    revealCoordinator.consume(rideId: id)
+                    if let uuid = UUID(uuidString: id) {
+                        selectedRecentRideId = uuid
                     }
                 }
-            }
+            )
+        }
+        .sheet(item: $exportRide) { r in
+            ExportPreviewView(
+                ride: r,
+                snapshotImage: nil,
+                demoMode: false,
+                onDemoSave: nil
+            )
         }
         .alert("Location access needed", isPresented: $trackingManager.showLocationDeniedRecovery) {
             Button("Open Settings") {

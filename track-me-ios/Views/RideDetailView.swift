@@ -125,6 +125,24 @@ struct RideDetailView: View {
                     .padding(.horizontal)
                     .padding(.top, 16)
 
+                if !(ride.points?.isEmpty ?? true) {
+                    Button(action: { showImagePreview = true }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up.fill")
+                                .font(.subheadline)
+                            Text(LocalizationHelper.localized("Share Card & Video"))
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(BrandColor.primary)
+                        .foregroundColor(.black)
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 12)
+                }
+
                 // Map Section
                 mapView
                     .frame(height: 320)
