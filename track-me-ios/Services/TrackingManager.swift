@@ -427,6 +427,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     self.timeSinceLastGps = Date().timeIntervalSince(lastTs)
                     let previous = self.state
                     let isStationary = self.isAutoPaused || self.motionSensor.isDeviceStationary()
+                    self.updateStillness(isStill: isStationary, fixTime: Date())
                     let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
                     if self.timeSinceLastGps > timeout {
                         self.state = .gpsLost
@@ -621,7 +622,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         guard ForgottenRideNotice.shouldAsk(
             stillnessSeconds: stillnessSeconds,
             alreadyAsked: forgottenRideAsked,
-            isTracking: state == .tracking
+            isTracking: (state == .tracking || state == .gpsLost) && currentRideId != nil
         ) else { return }
 
         forgottenRideAsked = true
