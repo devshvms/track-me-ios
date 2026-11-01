@@ -43,6 +43,7 @@ struct RideStartLaunchState: Equatable {
 enum RideStartAbortPolicy {
     static let preCommitDelay: Duration = .milliseconds(420)
     static let personaChoiceWindow: Duration = .milliseconds(2_500)
+    static let postCommitMinGraceMillis: TimeInterval = 1_500
     static let postCommitWindowMillis: TimeInterval = 10_000
     static let postCommitDistanceMeters = 10.0
     static let shortTestDistanceMeters = 50.0
@@ -52,7 +53,8 @@ enum RideStartAbortPolicy {
         durationInMillis: TimeInterval,
         distanceMeters: Double
     ) -> Bool {
-        durationInMillis < postCommitWindowMillis
+        durationInMillis >= postCommitMinGraceMillis
+            && durationInMillis < postCommitWindowMillis
             && distanceMeters < postCommitDistanceMeters
     }
 
