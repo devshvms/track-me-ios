@@ -1352,6 +1352,8 @@ struct ActiveRideHUD: View {
     let onCopyLink: () -> Void
     let onShareAuthRequired: () -> Void
 
+    @State private var isTouchLocked: Bool = false
+
     private var isPaused: Bool {
         trackingState == .paused || trackingState == .storageLow
     }
@@ -1363,7 +1365,14 @@ struct ActiveRideHUD: View {
                 persona: persona,
                 isAutoPaused: isAutoPaused,
                 isLiveSharing: isLiveSharing,
-                isOffline: isOffline
+                isOffline: isOffline,
+                isTouchLocked: isTouchLocked,
+                onToggleTouchLock: {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isTouchLocked = true
+                    }
+                }
             )
 
             VStack(spacing: 8) {
@@ -1399,23 +1408,49 @@ struct ActiveRideHUD: View {
                         .frame(maxWidth: .infinity)
                 }
 
-                HStack(spacing: 12) {
-                    UnifiedPauseStopSlider(
-                        isPaused: isPaused,
-                        onPauseToggle: onPauseToggle,
-                        onStop: onStop
-                    )
+                ZStack {
+                    HStack(spacing: 12) {
+                        UnifiedPauseStopSlider(
+                            isPaused: isPaused,
+                            onPauseToggle: {
+                                if !isTouchLocked { onPauseToggle() }
+                            },
+                            onStop: {
+                                if !isTouchLocked { onStop() }
+                            }
+                        )
 
-                    LiveShareActionDrawer(
-                        isActive: isLiveSharing,
-                        isStarting: isLiveShareStarting,
-                        isAuthenticated: isLiveShareAuthenticated,
-                        onStart: onStartShare,
-                        onStop: onStopShare,
-                        onShare: onShareLink,
-                        onCopy: onCopyLink,
-                        onAuthRequired: onShareAuthRequired
-                    )
+                        LiveShareActionDrawer(
+                            isActive: isLiveSharing,
+                            isStarting: isLiveShareStarting,
+                            isAuthenticated: isLiveShareAuthenticated,
+                            onStart: {
+                                if !isTouchLocked { onStartShare() }
+                            },
+                            onStop: {
+                                if !isTouchLocked { onStopShare() }
+                            },
+                            onShare: {
+                                if !isTouchLocked { onShareLink() }
+                            },
+                            onCopy: {
+                                if !isTouchLocked { onCopyLink() }
+                            },
+                            onAuthRequired: {
+                                if !isTouchLocked { onShareAuthRequired() }
+                            }
+                        )
+                    }
+                    .opacity(isTouchLocked ? 0.35 : 1.0)
+                    .disabled(isTouchLocked)
+
+                    if isTouchLocked {
+                        TouchLockGuardView(onUnlock: {
+                            withAnimation(.spring(response: 0.3)) {
+                                isTouchLocked = false
+                            }
+                        })
+                    }
                 }
                 .frame(height: 54)
             }
@@ -1436,9 +1471,31 @@ private struct RideStatusChips: View {
     let isAutoPaused: Bool
     let isLiveSharing: Bool
     let isOffline: Bool
+    var isTouchLocked: Bool = false
+    var onToggleTouchLock: (() -> Void)? = nil
 
     var body: some View {
         CenteredFlowLayout(spacing: 8) {
+            // Touch Lock Chip (TASK-350 / LOCK-01)
+            if isTouchLocked {
+                RideStatusChip(
+                    title: LocalizationHelper.localized("Locked"),
+                    systemImage: "lock.fill",
+                    background: BrandColor.warning,
+                    foreground: BrandColor.onWarning
+                )
+            } else if let onToggleTouchLock {
+                Button(action: onToggleTouchLock) {
+                    RideStatusChip(
+                        title: LocalizationHelper.localized("Lock"),
+                        systemImage: "lock.open.fill",
+                        background: Color(uiColor: .secondarySystemBackground),
+                        foreground: .primary
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
             RideStatusChip(
                 title: LocalizationHelper.localized(persona.displayName),
                 systemImage: persona.systemImage,
@@ -1476,6 +1533,87 @@ private struct RideStatusChips: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 2)
         .accessibilityElement(children: .contain)
+    }
+}
+
+/**
+ * TASK-350 (LOCK-01): TouchLockGuardView.
+ * Translucent touch guard over HUD controls during active recording.
+ * Requires a continuous 1.2-second hold with visual fill progress to unlock.
+ */
+private struct TouchLockGuardView: View {
+    let onUnlock: () -> Void
+    @State private var progress: CGFloat = 0.0
+    @State private var isPressing: Bool = false
+    @State private var timer: Timer? = nil
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 27, style: .continuous)
+                .fill(Color(uiColor: .systemBackground).opacity(0.94))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 27, style: .continuous)
+                        .stroke(BrandColor.cyanBright.opacity(0.7), lineWidth: 1.5)
+                )
+
+            // Fill progress
+            GeometryReader { geo in
+                RoundedRectangle(cornerRadius: 27, style: .continuous)
+                    .fill(BrandColor.cyanBright.opacity(0.3))
+                    .frame(width: max(0, geo.size.width * progress))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
+
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(BrandColor.cyanBright)
+                Text(isPressing ? LocalizationHelper.localized("Unlocking...") : LocalizationHelper.localized("Hold 1.2s to unlock"))
+                    .font(.subheadline.bold())
+                    .foregroundStyle(Color.primary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: 54)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressing {
+                        isPressing = true
+                        startUnlockTimer()
+                    }
+                }
+                .onEnded { _ in
+                    cancelUnlockTimer()
+                }
+        )
+    }
+
+    private func startUnlockTimer() {
+        let startTime = Date()
+        let duration: TimeInterval = 1.2
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { t in
+            let elapsed = Date().timeIntervalSince(startTime)
+            progress = min(CGFloat(elapsed / duration), 1.0)
+            if elapsed >= duration {
+                t.invalidate()
+                timer = nil
+                isPressing = false
+                progress = 0
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                onUnlock()
+            }
+        }
+    }
+
+    private func cancelUnlockTimer() {
+        timer?.invalidate()
+        timer = nil
+        isPressing = false
+        withAnimation(.easeOut(duration: 0.2)) {
+            progress = 0
+        }
     }
 }
 
