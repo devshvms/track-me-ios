@@ -109,6 +109,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var forgottenRideAsked = false
     var selectedPersona: RidePersona = .auto
     var isAutoPaused: Bool = false
+    var isThrottled: Bool { isGpsThrottled }
+    private var isGpsThrottled: Bool = false
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
     var isGpsLostWarningActive: Bool {
@@ -311,6 +313,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // Reset live state for a fresh ride.
         storageWarningShown = false
         lastStorageCheck = Date.distantPast
+        setStationaryThrottled(false)
         state = .tracking
         points.removeAll(keepingCapacity: false)
         currentSpeed = 0.0
@@ -538,6 +541,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // after the ride ended makes the app look like it is still recording, which is the opposite
         // of what this notification exists to prevent.
         ForgottenRideNotifier.cancel()
+        setStationaryThrottled(false)
         stillnessStartedAt = nil
         forgottenRideAsked = false
         state = .idle
@@ -610,6 +614,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             // with by an app that already had its answer.
             stillnessStartedAt = nil
             ForgottenRideNotifier.cancel()
+            // TASK-351 (BATT-01): Restore high-accuracy polling instantly on motion
+            if isGpsThrottled {
+                setStationaryThrottled(false)
+            }
             return
         }
 
@@ -618,6 +626,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         let stillnessSeconds = fixTime.timeIntervalSince(startedAt)
         guard stillnessSeconds >= 0 else { return }
+
+        // TASK-351 (BATT-01): Throttle GPS polling rate when confirmed stationary > 3m
+        if AdaptiveGpsThrottlePolicy.shouldThrottle(isStationary: true, stillnessDuration: stillnessSeconds) {
+            if !isGpsThrottled {
+                setStationaryThrottled(true)
+            }
+        }
 
         guard ForgottenRideNotice.shouldAsk(
             stillnessSeconds: stillnessSeconds,
@@ -631,6 +646,24 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             elapsedSeconds: elapsedSeconds,
             stillSince: startedAt
         ) }
+    }
+
+    /**
+     * TASK-351 (BATT-01): Updates CLLocationManager accuracy and distance filter.
+     * When stationary for > 3 minutes, stepping down accuracy and increasing distance filter
+     * slashes background location wakeups while preserving GPS lock.
+     */
+    func setStationaryThrottled(_ throttled: Bool) {
+        guard isGpsThrottled != throttled else { return }
+        isGpsThrottled = throttled
+        if throttled {
+            locationManager.desiredAccuracy = AdaptiveGpsThrottlePolicy.throttledAccuracy
+            locationManager.distanceFilter = AdaptiveGpsThrottlePolicy.throttledDistanceFilter
+        } else {
+            let config = LocationSessionConfig.recordingRide
+            locationManager.desiredAccuracy = config.desiredAccuracy
+            locationManager.distanceFilter = config.distanceFilter
+        }
     }
 
     /// Cancels a just-started ride without finalization, cloud sync, or post-ride surfaces.
