@@ -249,25 +249,63 @@ class TelemetryManager {
     // Handled automatically by PostHog
     
     // MARK: - 2. Time Spent (App and Screens)
+    static func normalizeScreenName(_ raw: String) -> String {
+        switch raw {
+        case "HomeView", "home":
+            return "home"
+        case "HistoryView", "history":
+            return "history"
+        case "SettingsView", "settings":
+            return "settings"
+        case "RideDetailView", "ride_detail/{rideId}", "ride_detail":
+            return "ride_detail"
+        case "MultiRideCompareView", "ride_compare/{rideIds}", "ride_compare":
+            return "ride_compare"
+        case "AccountManagementView", "account_management":
+            return "account_management"
+        case "CommunityView", "community":
+            return "community"
+        case "GamificationCollectionScreen", "gamification_progress":
+            return "gamification_progress"
+        case "HelpFeedbackView", "help_feedback":
+            return "help_feedback"
+        case "BulletinView", "bulletin":
+            return "bulletin"
+        default:
+            return raw.components(separatedBy: "/").first ?? raw
+        }
+    }
+
     func trackScreenViewed(screenName: String, durationSeconds: Int) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("screen_viewed", properties: [
-            "screen_name": screenName,
+            "screen_name": Self.normalizeScreenName(screenName),
             "duration_seconds": durationSeconds
         ])
     }
     
     // MARK: - 3. Rides Tracking
-    // Scope 1.7.3 §0.8: telemetry must not carry a ride identifier or values
-    // that fingerprint one. Keep lifecycle events deliberately aggregate-free.
+    // Scope 1.7.3 §0.8 & TASK-331: telemetry must not carry a ride identifier or values
+    // that fingerprint one, while keeping coarse duration_seconds (Int64) and distance_km (Double)
+    // in parity with Android's AnalyticsManager.trackRideCompleted (decision_log 2026-07-20).
     func trackRideStarted() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("ride_started")
     }
 
-    func trackRideCompleted() {
+    static func rideCompletedProperties(durationSeconds: Int64, distanceKm: Double) -> [String: Any] {
+        [
+            "duration_seconds": durationSeconds,
+            "distance_km": distanceKm
+        ]
+    }
+
+    func trackRideCompleted(durationSeconds: Int64, distanceKm: Double) {
         guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("ride_completed")
+        PostHogSDK.shared.capture(
+            "ride_completed",
+            properties: Self.rideCompletedProperties(durationSeconds: durationSeconds, distanceKm: distanceKm)
+        )
     }
 
     func trackRideStartAborted(method: RideStartAbortMethod) {

@@ -164,15 +164,15 @@ final class GroupPresenceNoticeTests: XCTestCase {
 /// SCOPE_1.8.7 §6.1.1 scenario 4.
 final class ForgottenRideNoticeTests: XCTestCase {
 
-    func testItAsksAfterFortyFiveStillMinutes() {
+    func testItAsksAfterSevenStillMinutes() {
         XCTAssertTrue(ForgottenRideNotice.shouldAsk(
-            stillnessSeconds: 45 * 60, alreadyAsked: false, isTracking: true
+            stillnessSeconds: 7 * 60, alreadyAsked: false, isTracking: true
         ))
     }
 
     func testItStaysQuietBeforeTheThreshold() {
         XCTAssertFalse(ForgottenRideNotice.shouldAsk(
-            stillnessSeconds: 45 * 60 - 1, alreadyAsked: false, isTracking: true
+            stillnessSeconds: 7 * 60 - 1, alreadyAsked: false, isTracking: true
         ))
     }
 
@@ -192,7 +192,7 @@ final class ForgottenRideNoticeTests: XCTestCase {
 
     /// Both platforms must agree on the threshold, or one nags an hour before the other.
     func testTheThresholdMatchesTheAndroidConstant() {
-        XCTAssertEqual(ForgottenRideNotice.stillnessBeforeNoticeSeconds, 45 * 60)
+        XCTAssertEqual(ForgottenRideNotice.stillnessBeforeNoticeSeconds, 7 * 60)
     }
 }
 

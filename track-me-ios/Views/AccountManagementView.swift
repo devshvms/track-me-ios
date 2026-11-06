@@ -305,7 +305,7 @@ struct AccountManagementView: View {
                 }
             }
         }
-        .trackScreen("AccountManagementView")
+        .trackScreen("account_management")
     }
 
     private func refreshLevel() {

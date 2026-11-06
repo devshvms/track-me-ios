@@ -262,7 +262,7 @@ struct HistoryView: View {
         // stack identity, so the search text, the filters and the scroll position all survive —
         // popping is not the same thing as starting over.
         .onChange(of: popToRootRequest) { _, _ in navigationPath.removeAll() }
-        .trackScreen("HistoryView")
+        .trackScreen("history")
         .alert(
             LocalizationHelper.localized("Delete Ride"),
             isPresented: $showDeleteSelectionConfirm

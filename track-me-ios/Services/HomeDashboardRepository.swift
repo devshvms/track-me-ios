@@ -200,10 +200,16 @@ actor HomeDashboardWorker {
             )
         }
         let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        let cloudDuration = Int64(UserDefaults.standard.integer(forKey: "cloudLifetimeActiveDurationMillis"))
+        let cloudDistance = UserDefaults.standard.double(forKey: "cloudLifetimeDistanceMeters")
+        let cloudCount = UserDefaults.standard.integer(forKey: "cloudLifetimeRidesCount")
         let summary = HomeDashboardSelector.select(
             rides: metadata,
             now: now,
-            fallbackTimeZone: timeZone
+            fallbackTimeZone: timeZone,
+            cloudLifetimeDurationMillis: cloudDuration,
+            cloudLifetimeDistanceMeters: cloudDistance,
+            cloudLifetimeActivityCount: cloudCount
         )
         let payload = try JSONEncoder().encode(summary)
         let epochDay = HomeCalendar.epochDay(for: now, timeZone: timeZone)

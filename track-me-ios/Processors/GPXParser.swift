@@ -39,6 +39,8 @@ class GPXParser: NSObject, XMLParserDelegate {
         
         points.sort { $0.timestamp < $1.timestamp }
         
+        var totalDistance = 0.0
+        var maxSpeed = 0.0
         for i in 1..<points.count {
             let prev = points[i-1]
             let curr = points[i]
@@ -46,23 +48,43 @@ class GPXParser: NSObject, XMLParserDelegate {
             let prevLoc = CLLocation(latitude: prev.latitude, longitude: prev.longitude)
             let currLoc = CLLocation(latitude: curr.latitude, longitude: curr.longitude)
             let distance = currLoc.distance(from: prevLoc)
+            totalDistance += distance
             let timeDiff = curr.timestamp.timeIntervalSince(prev.timestamp)
             
             if timeDiff > 0 {
-                points[i].speed = distance / timeDiff
+                let speed = distance / timeDiff
+                points[i].speed = speed
+                if speed > maxSpeed && speed < 150.0 {
+                    maxSpeed = speed
+                }
             }
         }
         
+        let startTime = points.first!.timestamp
+        let endTime = points.last!.timestamp
+        let movingDurationMillis = Int64(max(endTime.timeIntervalSince(startTime) * 1000, 0))
+        let avgSpeed = movingDurationMillis > 0 ? (totalDistance / (Double(movingDurationMillis) / 1000.0)) : 0.0
+        let elev = RideMetrics.elevationGainMeters(from: points)
+
+        let aggregate = RideAggregateSnapshot(
+            distanceMeters: totalDistance,
+            movingDurationMillis: movingDurationMillis,
+            maxSpeedMps: maxSpeed,
+            avgSpeedMps: avgSpeed,
+            pointCount: points.count,
+            elevationGainMeters: elev
+        )
+
         let ride = Ride(
-            startTime: points.first!.timestamp,
+            startTime: startTime,
             sourceInfo: "Imported GPX",
             isBroadcasted: false,
             isSynced: false,
             title: rideName ?? "Imported Ride"
         )
-        ride.endTime = points.last!.timestamp
+        ride.endTime = endTime
         ride.points = points
-        ride.applyAggregate(RideMetrics.reconstructed(from: points))
+        ride.applyAggregate(aggregate)
         
         return ride
     }
@@ -96,7 +118,8 @@ class GPXParser: NSObject, XMLParserDelegate {
         } else if elementName == "time" {
             currentTime = dateFormatter.date(from: text) ?? dateFormatterNoFractional.date(from: text)
         } else if elementName == "trkpt" {
-            if let lat = currentLat, let lon = currentLon, let time = currentTime {
+            if let lat = currentLat, let lon = currentLon {
+                let time = currentTime ?? Date(timeIntervalSince1970: TimeInterval(points.count))
                 let point = GPSPoint(
                     latitude: lat,
                     longitude: lon,

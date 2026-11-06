@@ -61,4 +61,37 @@ final class TelemetryConsentStateTests: XCTestCase {
         XCTAssertFalse(TelemetryEnvironment.allowsDelivery)
         XCTAssertNotNil(TelemetryEnvironment.suppressionReason)
     }
+
+    // MARK: - TASK-331, cross-platform screen_name and ride_completed parity
+
+    func testNormalizeScreenNameMatchesAndroidRouteNames() {
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("HomeView"), "home")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("home"), "home")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("HistoryView"), "history")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("SettingsView"), "settings")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("RideDetailView"), "ride_detail")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("ride_detail/{rideId}"), "ride_detail")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("AccountManagementView"), "account_management")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("CommunityView"), "community")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("GamificationCollectionScreen"), "gamification_progress")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("HelpFeedbackView"), "help_feedback")
+        XCTAssertEqual(TelemetryManager.normalizeScreenName("BulletinView"), "bulletin")
+    }
+
+    func testRideCompletedPropertiesIncludeDurationAndDistanceWithoutRideId() {
+        let props = TelemetryManager.rideCompletedProperties(durationSeconds: 1845, distanceKm: 12.34)
+        XCTAssertEqual(props["duration_seconds"] as? Int64, 1845)
+        XCTAssertEqual(props["distance_km"] as? Double, 12.34)
+        XCTAssertNil(props["ride_id"], "ride_id must remain omitted per Scope 1.7.3 §0.8")
+    }
+
+    func testCrashlyticsErrorLoggerFiltersExpectedFirestoreAndCancellationErrors() {
+        XCTAssertFalse(CrashlyticsErrorLogger.isReportable(CancellationError()))
+        let permDenied = NSError(domain: "FIRFirestoreErrorDomain", code: 7)
+        let unavailable = NSError(domain: "FIRFirestoreErrorDomain", code: 14)
+        let internalFault = NSError(domain: "FIRFirestoreErrorDomain", code: 13)
+        XCTAssertFalse(CrashlyticsErrorLogger.isReportable(permDenied))
+        XCTAssertFalse(CrashlyticsErrorLogger.isReportable(unavailable))
+        XCTAssertTrue(CrashlyticsErrorLogger.isReportable(internalFault))
+    }
 }

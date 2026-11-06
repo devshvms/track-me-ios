@@ -86,6 +86,7 @@ struct GamificationCollectionScreen: View {
                 withAnimation(.easeOut(duration: 0.9)) { drawn = target }
             }
         }
+        .trackScreen("gamification_progress")
     }
 
     // MARK: - Trail

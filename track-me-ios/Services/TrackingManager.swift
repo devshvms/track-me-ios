@@ -86,6 +86,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var lastAcceptedV2LocationTimestamp: Date?
     private var lastV2RawLocation: CLLocation?
     private var lastV2DisplayCoordinate: CLLocationCoordinate2D?
+    private var lastGpsPauseTelemetryDate: Date = .distantPast
+
+    static let gpsLossTimeout: TimeInterval = 10.0
+    static let stationaryGpsLossTimeout: TimeInterval = 45.0
+    static let gpsPauseTelemetryDebounce: TimeInterval = 30.0
 
     // State exposed to SwiftUI
     var state: TrackingState = .idle
@@ -104,8 +109,17 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var forgottenRideAsked = false
     var selectedPersona: RidePersona = .auto
     var isAutoPaused: Bool = false
+    var isThrottled: Bool { isGpsThrottled }
+    private var isGpsThrottled: Bool = false
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
+    var isGpsLostWarningActive: Bool {
+        if state == .gpsLost { return true }
+        guard state == .tracking else { return false }
+        let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
+        let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+        return timeSinceLastGps > timeout
+    }
     var showLocationDeniedRecovery = false
     
     private static let askedAlwaysKey = "hasRequestedAlwaysUpgrade"
@@ -299,6 +313,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // Reset live state for a fresh ride.
         storageWarningShown = false
         lastStorageCheck = Date.distantPast
+        setStationaryThrottled(false)
         state = .tracking
         points.removeAll(keepingCapacity: false)
         currentSpeed = 0.0
@@ -414,8 +429,18 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 if let lastTs = self.lastGpsTimestamp {
                     self.timeSinceLastGps = Date().timeIntervalSince(lastTs)
                     let previous = self.state
-                    if self.timeSinceLastGps > 10 {
+                    let isStationary = self.isAutoPaused || self.motionSensor.isDeviceStationary()
+                    self.updateStillness(isStill: isStationary, fixTime: Date())
+                    let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+                    if self.timeSinceLastGps > timeout {
                         self.state = .gpsLost
+                        if previous == .tracking {
+                            let now = Date()
+                            if now.timeIntervalSince(self.lastGpsPauseTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
+                                self.lastGpsPauseTelemetryDate = now
+                                TelemetryManager.shared.trackLocationUpdatesPaused()
+                            }
+                        }
                     } else {
                         self.state = .tracking
                     }
@@ -507,7 +532,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         ToastManager.shared.show(message: LocalizationHelper.localized("Resumed your interrupted ride"), style: .info)
     }
 
-    func stopTracking() {
+    func stopTracking(discard: Bool = false) {
         v2Pedometer.stop()
         locationManager.stopUpdatingLocation()
         motionSensor.stopListening()
@@ -516,6 +541,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // after the ride ended makes the app look like it is still recording, which is the opposite
         // of what this notification exists to prevent.
         ForgottenRideNotifier.cancel()
+        setStationaryThrottled(false)
         stillnessStartedAt = nil
         forgottenRideAsked = false
         state = .idle
@@ -533,10 +559,21 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         )
 
         if let id = currentRideId {
-            finalizeSegment(id: id, endedAt: Date())
+            if discard {
+                DataRepository.shared.deleteRide(rideId: id)
+            } else {
+                finalizeSegment(id: id, endedAt: Date())
+            }
         }
         currentRideId = nil
         elapsedDurationInMillis = 0
+        if discard {
+            points.removeAll(keepingCapacity: false)
+            totalDistance = 0
+            currentSpeed = 0
+            durationInMillis = 0
+            maxSpeedMps = 0
+        }
         skipsNextDistanceSegmentAfterManualPause = false
         v2LocationEligibleAfter = .distantPast
         lastAcceptedV2LocationTimestamp = nil
@@ -577,6 +614,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             // with by an app that already had its answer.
             stillnessStartedAt = nil
             ForgottenRideNotifier.cancel()
+            // TASK-351 (BATT-01): Restore high-accuracy polling instantly on motion
+            if isGpsThrottled {
+                setStationaryThrottled(false)
+            }
             return
         }
 
@@ -586,10 +627,17 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         let stillnessSeconds = fixTime.timeIntervalSince(startedAt)
         guard stillnessSeconds >= 0 else { return }
 
+        // TASK-351 (BATT-01): Throttle GPS polling rate when confirmed stationary > 3m
+        if AdaptiveGpsThrottlePolicy.shouldThrottle(isStationary: true, stillnessDuration: stillnessSeconds) {
+            if !isGpsThrottled {
+                setStationaryThrottled(true)
+            }
+        }
+
         guard ForgottenRideNotice.shouldAsk(
             stillnessSeconds: stillnessSeconds,
             alreadyAsked: forgottenRideAsked,
-            isTracking: state == .tracking
+            isTracking: (state == .tracking || state == .gpsLost) && currentRideId != nil
         ) else { return }
 
         forgottenRideAsked = true
@@ -598,6 +646,24 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             elapsedSeconds: elapsedSeconds,
             stillSince: startedAt
         ) }
+    }
+
+    /**
+     * TASK-351 (BATT-01): Updates CLLocationManager accuracy and distance filter.
+     * When stationary for > 3 minutes, stepping down accuracy and increasing distance filter
+     * slashes background location wakeups while preserving GPS lock.
+     */
+    func setStationaryThrottled(_ throttled: Bool) {
+        guard isGpsThrottled != throttled else { return }
+        isGpsThrottled = throttled
+        if throttled {
+            locationManager.desiredAccuracy = AdaptiveGpsThrottlePolicy.throttledAccuracy
+            locationManager.distanceFilter = AdaptiveGpsThrottlePolicy.throttledDistanceFilter
+        } else {
+            let config = LocationSessionConfig.recordingRide
+            locationManager.desiredAccuracy = config.desiredAccuracy
+            locationManager.distanceFilter = config.distanceFilter
+        }
     }
 
     /// Cancels a just-started ride without finalization, cloud sync, or post-ride surfaces.
@@ -770,8 +836,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
             if let newestAdmitted {
                 lastGpsTimestamp = newestAdmitted.timestamp
-                timeSinceLastGps = max(0, now.timeIntervalSince(newestAdmitted.timestamp))
-                state = timeSinceLastGps > 10 ? .gpsLost : .tracking
+                let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
+                let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+                state = timeSinceLastGps > timeout ? .gpsLost : .tracking
+                if stateBeforeDelivery == .gpsLost && state == .tracking {
+                    TelemetryManager.shared.trackLocationUpdatesResumed()
+                }
             }
 
             // Presence and live-share need only the newest route-admitted fix from a delivered
@@ -794,7 +864,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         let recoveredFromGpsLost = state == .gpsLost
         lastGpsTimestamp = Date()
         timeSinceLastGps = 0
-        if state == .gpsLost { state = .tracking }
+        if recoveredFromGpsLost {
+            state = .tracking
+            TelemetryManager.shared.trackLocationUpdatesResumed()
+        }
 
         for location in locations {
             // 1. Outlier removal
@@ -965,7 +1038,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             elevationGainMeters: RideMetrics.elevationGainMeters(fromLocations: points)
         )
         DataRepository.shared.finishRide(rideId: id, endedAt: endedAt, aggregate: aggregate)
-        TelemetryManager.shared.trackRideCompleted()
+        TelemetryManager.shared.trackRideCompleted(
+            durationSeconds: Int64(durationInMillis / 1000),
+            distanceKm: totalDistance / 1000.0
+        )
 
         let isJunk = totalDistance < 10.0 && durationInMillis < 2 * 60 * 1000
         if !isJunk {

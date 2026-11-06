@@ -58,6 +58,18 @@ final class RideStartAbortPolicyTests: XCTestCase {
     }
 
     func testPostCommitUndoRequiresBothStrictThresholds() {
+        XCTAssertFalse(
+            RideStartAbortPolicy.canOfferPostCommitUndo(durationInMillis: 0, distanceMeters: 0),
+            "Must not show undo during 1.5s grace period to prevent accidental double-tap aborts"
+        )
+        XCTAssertFalse(
+            RideStartAbortPolicy.canOfferPostCommitUndo(durationInMillis: 1_499, distanceMeters: 0),
+            "Must not show undo at 1499ms"
+        )
+        XCTAssertTrue(
+            RideStartAbortPolicy.canOfferPostCommitUndo(durationInMillis: 1_500, distanceMeters: 0),
+            "Shows undo starting at 1500ms"
+        )
         XCTAssertTrue(RideStartAbortPolicy.canOfferPostCommitUndo(
             durationInMillis: 9_999,
             distanceMeters: 9.99
@@ -67,7 +79,7 @@ final class RideStartAbortPolicyTests: XCTestCase {
             distanceMeters: 0
         ))
         XCTAssertFalse(RideStartAbortPolicy.canOfferPostCommitUndo(
-            durationInMillis: 0,
+            durationInMillis: 5_000,
             distanceMeters: RideStartAbortPolicy.postCommitDistanceMeters
         ))
     }
@@ -75,6 +87,22 @@ final class RideStartAbortPolicyTests: XCTestCase {
     func testTelemetryValuesMatchCrossPlatformContract() {
         XCTAssertEqual(RideStartAbortMethod.preCommit.rawValue, "pre_commit")
         XCTAssertEqual(RideStartAbortMethod.postCommitUndo.rawValue, "post_commit_undo")
+        XCTAssertEqual(RideStartAbortMethod.shortIndoorTest.rawValue, "short_indoor_test")
+    }
+
+    func testShortIndoorTestThresholds() {
+        XCTAssertTrue(RideStartAbortPolicy.isShortIndoorTest(
+            durationInMillis: 89_999,
+            distanceMeters: 49.9
+        ))
+        XCTAssertFalse(RideStartAbortPolicy.isShortIndoorTest(
+            durationInMillis: RideStartAbortPolicy.shortTestDurationMillis,
+            distanceMeters: 10
+        ))
+        XCTAssertFalse(RideStartAbortPolicy.isShortIndoorTest(
+            durationInMillis: 10_000,
+            distanceMeters: RideStartAbortPolicy.shortTestDistanceMeters
+        ))
     }
 
     func testPlainTapHonorsOnboardingPersonaPreselection() {

@@ -1,0 +1,11 @@
+TrackMe 1.9.0
+
+- A shorter start: three screens instead of six, and the main button on the last one now turns on location.
+- Live share: once your link is ready, the share panel opens and the link is already copied.
+- People watching your live link now see when your phone is in Low Power Mode, so a slow update is not mistaken for you stopping.
+- Finishing a ride shows its route straight away, with a button to share it.
+- Share Card is now a labelled button at the top of every ride.
+- Recorded a few metres indoors by accident? Stopping offers to discard it instead of saving an empty ride.
+- Fewer false pauses at traffic lights and slow walking.
+- Imported GPX files now show their real distance and time instead of 0.0 km.
+- Reinstalling and signing in keeps your level, even with a long history.

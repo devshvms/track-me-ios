@@ -98,6 +98,7 @@ struct HelpFeedbackView: View {
             notificationAuthorization = notificationStatus(settings.authorizationStatus)
         }
         .onAppear { TelemetryManager.shared.trackHelpOpened() }
+        .trackScreen("help_feedback")
     }
 
     private func contactSupport() {

@@ -25,13 +25,13 @@ enum ForgottenRideNotice {
 
     /// How long without movement before asking.
     ///
-    /// Forty-five minutes. Long enough to sit out a downpour, eat lunch, or wait for a group to
-    /// regroup without being nagged; short enough that a ride forgotten at the end of a commute is
-    /// caught before it has doubled its own duration.
+    /// Seven minutes (RET-01). Long enough to sit out a long traffic light, elevator wait, or brief
+    /// chat without being nagged; short enough that a ride forgotten at the end of a commute is
+    /// caught before iOS suspends or kills the background app.
     ///
     /// Deliberately far longer than any auto-pause stillness threshold, which are seconds — those
     /// decide whether the *clock* runs, this decides whether to speak.
-    static let stillnessBeforeNoticeSeconds: TimeInterval = 45 * 60
+    static let stillnessBeforeNoticeSeconds: TimeInterval = 7 * 60
 
     /// Whether to ask "are you still riding?".
     ///
@@ -39,8 +39,8 @@ enum ForgottenRideNotice {
     ///   - alreadyAsked: whether this ride has already been asked about. Once per ride, ever —
     ///     someone who has decided to keep recording while stationary has answered, and asking
     ///     again is the app arguing with them.
-    ///   - isTracking: false while paused-by-user or stopped. A ride the user paused deliberately
-    ///     is not a forgotten ride, it is a ride someone is managing.
+    ///   - isTracking: false while paused-by-user or stopped. True while actively recording
+    ///     (including when auto-paused or GPS-lost indoors).
     static func shouldAsk(
         stillnessSeconds: TimeInterval,
         alreadyAsked: Bool,

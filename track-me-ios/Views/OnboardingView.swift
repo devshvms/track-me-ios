@@ -6,11 +6,8 @@ import UserNotifications
 
 private enum OnboardingPage: Int, CaseIterable {
     case welcome
-    case ride
-    case history
-    case together
-    case permissions
-    case ready
+    case tour
+    case setup
 
     static var initialForProcess: OnboardingPage {
         #if DEBUG
@@ -37,6 +34,7 @@ struct OnboardingView: View {
     @State private var startedAt = Date()
     @State private var analyticsWasChanged = false
     @State private var selectedDemoPersona: RidePersona = .cycling
+    @State private var finishAfterLocationAuth = false
     @State private var dwellTracker = OnboardingDwellAccumulator(
         pageCount: OnboardingPage.allCases.count
     )
@@ -92,6 +90,14 @@ struct OnboardingView: View {
                 dwellTracker.pause(at: ProcessInfo.processInfo.systemUptime)
             }
         }
+        .onChange(of: permissions.locationStatus) { _, status in
+            if finishAfterLocationAuth && status != .notDetermined {
+                finishAfterLocationAuth = false
+                if permissions.locationGranted {
+                    finish()
+                }
+            }
+        }
     }
 
     private var chrome: some View {
@@ -121,10 +127,10 @@ struct OnboardingView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(LocalizationHelper.formatted("Step %d of %d", page.rawValue + 1, OnboardingPage.allCases.count))
 
-            if page.rawValue >= OnboardingPage.ride.rawValue && page.rawValue <= OnboardingPage.together.rawValue {
+            if page == .tour {
                 Button(LocalizationHelper.localized("Skip")) {
                     usedSkip = true
-                    move(to: .permissions)
+                    move(to: .setup)
                 }
                 .font(BrandTypography.subheadline.weight(.semibold))
                 .frame(minWidth: 44, minHeight: 44)
@@ -153,45 +159,23 @@ struct OnboardingView: View {
                     body: "TrackMe records where you go and shares it only when you choose to. Here's the 40-second tour."
                 )
             }
-        case .ride:
+        case .tour:
             VStack(alignment: .leading, spacing: 20) {
                 PageCopy(
                     title: "Press and hold to start",
-                    body: "Hold the Start button, then drag to pick how you're moving - Auto, Walk, Run, Cycling, Bike or Car. Let go, and TrackMe begins recording your route, distance and pace."
+                    body: "Hold the Start button, then drag to pick how you're moving - Auto, Walk, Run, Cycling, Bike or Car. Let go, and TrackMe begins recording your route, distance and pace.",
+                    note: "Groups are end-to-end encrypted and expire on their own."
                 )
                 RideOnboardingDemo(
                     selectedPersona: $selectedDemoPersona,
-                    onCompleted: { move(to: .history) }
+                    onCompleted: { move(to: .setup) }
                 )
             }
-        case .history:
-            VStack(alignment: .leading, spacing: 20) {
-                PageCopy(
-                    title: "Every ride is kept",
-                    body: "Finished rides land in History with your route, distance, time and pace. Open one to inspect or replay it, or pick two rides to compare side by side."
-                )
-                HistoryOnboardingDemo(
-                    selectedPersona: $selectedDemoPersona,
-                    onCompleted: { move(to: .together) }
-                )
+        case .setup:
+            VStack(alignment: .leading, spacing: 18) {
+                permissionsPage
+                readyPage
             }
-        case .together:
-            VStack(alignment: .leading, spacing: 24) {
-                OnboardingClip(kind: .together, isActive: page == .together) {
-                    TogetherOnboardingArt()
-                }
-                .aspectRatio(2, contentMode: .fit)
-                .frame(maxWidth: .infinity)
-                PageCopy(
-                    title: "Ride together, on one map",
-                    body: "In Community, create a group and share the code or link. Everyone who joins moves on the same map, live. Sharing with just one person? Send a live link so they can follow in a browser without the app.",
-                    note: "Groups are end-to-end encrypted and expire on their own."
-                )
-            }
-        case .permissions:
-            permissionsPage
-        case .ready:
-            readyPage
         }
     }
 
@@ -278,10 +262,15 @@ struct OnboardingView: View {
         VStack(spacing: 4) {
             Button {
                 switch page {
-                case .ready:
-                    finish()
+                case .setup:
+                    if permissions.locationStatus == .notDetermined {
+                        finishAfterLocationAuth = true
+                        permissions.requestLocationPermission()
+                    } else {
+                        finish()
+                    }
                 default:
-                    move(to: OnboardingPage(rawValue: page.rawValue + 1) ?? .ready)
+                    move(to: OnboardingPage(rawValue: page.rawValue + 1) ?? .setup)
                 }
             } label: {
                 Text(LocalizationHelper.localized(primaryActionTitle))
@@ -297,7 +286,13 @@ struct OnboardingView: View {
             if page == .welcome {
                 Button(LocalizationHelper.localized("Skip to setup")) {
                     usedSkip = true
-                    move(to: .permissions)
+                    move(to: .setup)
+                }
+                .font(BrandTypography.footnote.weight(.semibold))
+                .frame(minHeight: 44)
+            } else if page == .setup && !permissions.locationGranted {
+                Button(LocalizationHelper.localized("Continue")) {
+                    finish()
                 }
                 .font(BrandTypography.footnote.weight(.semibold))
                 .frame(minHeight: 44)
@@ -308,9 +303,8 @@ struct OnboardingView: View {
     private var primaryActionTitle: String {
         switch page {
         case .welcome: "Take the tour"
-        case .permissions: "Continue"
-        case .ready: "Start my first ride"
-        default: "Next"
+        case .tour: "Next"
+        case .setup: "Start my first ride"
         }
     }
 
@@ -330,11 +324,11 @@ struct OnboardingView: View {
             usedSkip: usedSkip,
             seconds: max(0, Int(Date().timeIntervalSince(startedAt))),
             welcomeDwellSeconds: pageDwell[OnboardingPage.welcome.rawValue],
-            rideDwellSeconds: pageDwell[OnboardingPage.ride.rawValue],
-            historyDwellSeconds: pageDwell[OnboardingPage.history.rawValue],
-            togetherDwellSeconds: pageDwell[OnboardingPage.together.rawValue],
-            permissionsDwellSeconds: pageDwell[OnboardingPage.permissions.rawValue],
-            readyDwellSeconds: pageDwell[OnboardingPage.ready.rawValue],
+            rideDwellSeconds: pageDwell[OnboardingPage.tour.rawValue],
+            historyDwellSeconds: -1,
+            togetherDwellSeconds: -1,
+            permissionsDwellSeconds: pageDwell[OnboardingPage.setup.rawValue],
+            readyDwellSeconds: pageDwell[OnboardingPage.setup.rawValue],
             analyticsOptIn: analyticsOptIn,
             locationGranted: permissions.locationGranted,
             notificationsGranted: permissions.notificationsGranted,
@@ -455,6 +449,10 @@ private final class OnboardingPermissionModel: NSObject, ObservableObject, CLLoc
         case .authorizedWhenInUse: "Allowed while using"
         default: nil
         }
+    }
+
+    func requestLocationPermission() {
+        locationManager.requestWhenInUseAuthorization()
     }
 
     func refreshLocation() {

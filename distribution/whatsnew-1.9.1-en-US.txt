@@ -1,0 +1,7 @@
+TrackMe 1.9.1
+
+- Pocket Mode Touch Lock: 1-tap lock shields active HUD controls against accidental touches in pockets or bike mounts. Press and hold for 1.2s to unlock.
+- Adaptive GPS Polling: Up to 25% battery savings while stationary or waiting in traffic stops.
+- 7-Minute Arrival Notice: Smart stillness watchdog recovers forgotten trips if you stop moving and forget to tap Stop.
+- Start Grace Period: Prevents accidental double-tap discard right after starting a ride.
+- Multi-Purpose GPS Tracking: Optimized for Motorcycling, Driving, Cycling, Walking, and Running.

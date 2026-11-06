@@ -44,7 +44,7 @@ enum GamificationLedger {
     /// Level 1 is the joining date rather than a threshold crossing: its threshold is zero, so every
     /// rider satisfies it before they have done anything, and "reached at 0 minutes" says nothing.
     /// The first recorded ride is the honest answer to when the journey started.
-    static func derive(_ rides: [RideFact]) -> [LevelAchievement] {
+    static func derive(_ rides: [RideFact], cloudLifetimeDurationMillis: Int64 = 0) -> [LevelAchievement] {
         let ordered = rides.sorted { $0.atEpochMillis < $1.atEpochMillis }
         var result: [LevelAchievement] = []
 
@@ -87,6 +87,12 @@ enum GamificationLedger {
                         achievedAtEpochMillis: first.atEpochMillis,
                         personaSplit: snapshot()
                     ))
+                } else if cloudLifetimeDurationMillis > 0 {
+                    result.append(LevelAchievement(
+                        levelId: level.id,
+                        achievedAtEpochMillis: Int64(Date().timeIntervalSince1970 * 1000),
+                        personaSplit: []
+                    ))
                 } else {
                     result.append(LevelAchievement(
                         levelId: level.id, achievedAtEpochMillis: nil, personaSplit: []
@@ -102,13 +108,20 @@ enum GamificationLedger {
                 index += 1
             }
 
-            let reached = millis / 60_000 >= level.thresholdMinutes && !ordered.isEmpty
+            let reachedByLocal = millis / 60_000 >= level.thresholdMinutes && !ordered.isEmpty
+            let reachedByCloud = cloudLifetimeDurationMillis / 60_000 >= level.thresholdMinutes
+            let reached = reachedByLocal || reachedByCloud
+            let achievedAt: Int64? = reached ? (ordered.indices.contains(index - 1) ? ordered[index - 1].atEpochMillis : (ordered.last?.atEpochMillis ?? Int64(Date().timeIntervalSince1970 * 1000))) : nil
             result.append(LevelAchievement(
                 levelId: level.id,
-                achievedAtEpochMillis: reached ? ordered[index - 1].atEpochMillis : nil,
+                achievedAtEpochMillis: achievedAt,
                 personaSplit: reached ? snapshot() : []
             ))
         }
         return result
+    }
+
+    static func derive(rides: [RideFact], cloudLifetimeDurationMillis: Int64 = 0) -> [LevelAchievement] {
+        derive(rides, cloudLifetimeDurationMillis: cloudLifetimeDurationMillis)
     }
 }

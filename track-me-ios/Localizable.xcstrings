@@ -29347,6 +29347,206 @@
           }
         }
       }
+    },
+    "Waiting for movement — start moving outdoors to record your route.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando movimiento: empieza a moverte al aire libre para grabar tu ruta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente de mouvement — déplacez-vous à l'extérieur pour enregistrer votre parcours."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf Bewegung — bewege dich im Freien, um deine Route aufzuzeichnen."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गतिविधि की प्रतीक्षा है — अपना मार्ग रिकॉर्ड करने के लिए बाहर चलना शुरू करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動を待っています — 屋外で移動を始めるとルートが記録されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待移动 — 在户外开始移动即可记录您的路线。"
+          }
+        }
+      }
+    },
+    "Discard this ride?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Descartar este viaje?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer ce trajet ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Fahrt verwerfen?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस यात्रा को हटाएं?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この記録を破棄しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "丢弃此次行程？"
+          }
+        }
+      }
+    },
+    "This ride did not record meaningful distance. You can discard it or save it anyway.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este viaje no registró una distancia significativa. Puedes descartarlo o guardarlo de todos modos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce trajet n'a pas enregistré de distance significative. Vous pouvez le supprimer ou l'enregistrer quand même."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Fahrt hat keine aussagekräftige Distanz aufgezeichnet. Sie können sie verwerfen oder trotzdem speichern."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस यात्रा में कोई महत्वपूर्ण दूरी रिकॉर्ड नहीं हुई। आप इसे हटा सकते हैं या फिर भी सहेज सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この記録には十分な距離がありません。破棄するか、そのまま保存できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此次行程没有记录到有效距离。您可以丢弃它，或仍然保存。"
+          }
+        }
+      }
+    },
+    "Discard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwerfen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हटाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "破棄"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "丢弃"
+          }
+        }
+      }
+    },
+    "Save anyway": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar de todos modos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer quand même"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trotzdem speichern"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फिर भी सहेजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのまま保存"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仍然保存"
+          }
+        }
+      }
     }
   },
   "version": "1.1"
