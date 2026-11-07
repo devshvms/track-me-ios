@@ -77,6 +77,7 @@ final class WeeklyRecapCoordinator {
             if lastTelemetryWeek != recap.weekStartEpochDay {
                 lastTelemetryWeek = recap.weekStartEpochDay
                 TelemetryManager.shared.trackWeeklyRecapShown(weekKey: recap.weekKey, rideCount: recap.rideCount, distanceKm: recap.distanceMeters / 1000.0)
+                TelemetryManager.shared.trackRecapOpened(source: "in_app", weekKey: recap.weekKey, rideCount: recap.rideCount, distanceKm: recap.distanceMeters / 1000.0)
             }
         }
     }

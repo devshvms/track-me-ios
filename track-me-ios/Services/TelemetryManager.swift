@@ -521,6 +521,37 @@ class TelemetryManager {
         ])
     }
 
+    /// TASK-358: Proactive local notification delivered for completed week recap.
+    func trackRecapSent(weekKey: String, rideCount: Int, distanceKm: Double) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("recap_sent", properties: [
+            "week_key": weekKey,
+            "ride_count": rideCount,
+            "distance_km": distanceKm
+        ])
+    }
+
+    /// TASK-358: Weekly recap opened by the rider (source: "notification" or "in_app").
+    func trackRecapOpened(source: String, weekKey: String, rideCount: Int, distanceKm: Double) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("recap_opened", properties: [
+            "source": source,
+            "week_key": weekKey,
+            "ride_count": rideCount,
+            "distance_km": distanceKm
+        ])
+    }
+
+    /// TASK-358: Weekly recap card shared to external destination.
+    func trackRecapShared(weekKey: String, rideCount: Int, distanceKm: Double) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("recap_shared", properties: [
+            "week_key": weekKey,
+            "ride_count": rideCount,
+            "distance_km": distanceKm
+        ])
+    }
+
     /// B3 — active-week streak advanced. `froze` reserved for the freeze/tolerance path.
     func trackWeeklyStreakUpdated(streakWeeks: Int, froze: Bool) {
         guard shouldTrack() else { return }
