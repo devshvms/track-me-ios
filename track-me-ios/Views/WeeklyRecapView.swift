@@ -36,15 +36,35 @@ struct WeeklyRecapView: View {
 
             Spacer(minLength: 0)
 
-            Button(action: onDismiss) {
-                Text(LocalizationHelper.localized("Nice week!"))
+            ShareLink(
+                item: shareText,
+                subject: Text(LocalizationHelper.localized("Your week in review")),
+                message: Text(shareText)
+            ) {
+                Label(LocalizationHelper.localized("Share Recap Card"), systemImage: "square.and.arrow.up")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
             .buttonStyle(.borderedProminent)
             .padding(.horizontal, 24)
-            .padding(.bottom, 24)
+            .simultaneousGesture(TapGesture().onEnded {
+                TelemetryManager.shared.trackRecapShared(
+                    weekKey: recap.weekKey,
+                    rideCount: recap.rideCount,
+                    distanceKm: recap.distanceMeters / 1000.0
+                )
+            })
+
+            Button(action: onDismiss) {
+                Text(LocalizationHelper.localized("Nice week!"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity)
         .presentationDetents([.medium])
@@ -58,6 +78,16 @@ struct WeeklyRecapView: View {
             return LocalizationHelper.localized("You stayed active this week")
         }
         return nil
+    }
+
+    private var shareText: String {
+        let dist = UnitFormatter.distance(meters: recap.distanceMeters, unit: unitSettings.unit, decimals: 1)
+        var text = "🚴 TrackMe Weekly Recap (\(recap.weekKey))\n• \(LocalizationHelper.localized("Distance")): \(dist)\n• \(LocalizationHelper.localized("Rides")): \(recap.rideCount)"
+        if let streak = streakLine {
+            text += "\n• \(streak)"
+        }
+        text += "\nhttps://trackme.shvms.in"
+        return text
     }
 
     private func statRow(_ label: String, _ value: String) -> some View {
