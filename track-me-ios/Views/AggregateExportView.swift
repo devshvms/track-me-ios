@@ -44,7 +44,9 @@ struct AggregateExportView: View {
                         if activityType == .saveToCameraRoll {
                             TelemetryManager.shared.trackExportSavedToGallery(kind: kind, success: completed)
                         } else if completed {
+                            let channel = TelemetryManager.resolveShareChannel(activityType?.rawValue)
                             TelemetryManager.shared.trackExportShared(kind: kind)
+                            TelemetryManager.shared.trackRouteCardShared(template: kind, channel: channel)
                         }
                     }
                 )

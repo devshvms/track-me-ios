@@ -452,6 +452,34 @@ class TelemetryManager {
         PostHogSDK.shared.capture("export_shared", properties: ["kind": kind])
     }
 
+    /// TASK-359: Route card shared to an external destination (attributed social acquisition).
+    func trackRouteCardShared(template: String, channel: String? = nil, mode: String? = nil) {
+        guard shouldTrack() else { return }
+        var props: [String: Any] = [
+            "template": template,
+            "utm_source": "route_card"
+        ]
+        if let channel = channel { props["channel"] = channel }
+        if let mode = mode { props["mode"] = mode }
+        PostHogSDK.shared.capture("route_card_shared", properties: props)
+    }
+
+    /// Coarse channel resolution without recipient PII.
+    static func resolveShareChannel(_ activityType: String?) -> String {
+        guard let activityType = activityType?.lowercased(), !activityType.isEmpty else { return "unknown" }
+        if activityType.contains("whatsapp") { return "whatsapp" }
+        if activityType.contains("instagram") { return "instagram" }
+        if activityType.contains("telegram") { return "telegram" }
+        if activityType.contains("twitter") || activityType.contains("tweet") || activityType.contains(".x.") || activityType.hasSuffix(".x") { return "x" }
+        if activityType.contains("strava") { return "strava" }
+        if activityType.contains("facebook") { return "facebook" }
+        if activityType.contains("message") || activityType.contains("sms") { return "sms" }
+        if activityType.contains("mail") { return "email" }
+        if activityType.contains("airdrop") { return "airdrop" }
+        if activityType.contains("copy") { return "copy" }
+        return "other"
+    }
+
     // MARK: - 5. User Authentication
     func identifyUser(userId: String) {
         guard shouldTrack() else { return }
