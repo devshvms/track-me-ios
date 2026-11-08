@@ -308,6 +308,20 @@ class TelemetryManager {
         )
     }
 
+    /// TASK-356: orphan recovery ran and changed something. Coarse properties only.
+    func trackRideRecovered(recoveredCount: Int, discardedCount: Int, totalMeters: Double) {
+        guard shouldTrack() else { return }
+        guard RecoveryTelemetry.shouldReport(recoveredCount: recoveredCount, discardedCount: discardedCount) else { return }
+        PostHogSDK.shared.capture(
+            RecoveryTelemetry.event,
+            properties: RecoveryTelemetry.properties(
+                recoveredCount: recoveredCount,
+                discardedCount: discardedCount,
+                totalMeters: totalMeters
+            )
+        )
+    }
+
     func trackRideStartAborted(method: RideStartAbortMethod) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("ride_start_aborted", properties: [

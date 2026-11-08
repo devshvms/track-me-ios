@@ -106,6 +106,12 @@ enum RideRecoveryManager {
             await MainActor.run {
                 HomeDashboardRepository.shared.invalidate()
             }
+            // TASK-356: make rescued rides visible to PostHog (coarse counts only).
+            TelemetryManager.shared.trackRideRecovered(
+                recoveredCount: summary.recoveredCount,
+                discardedCount: summary.discardedCount,
+                totalMeters: summary.recovered.reduce(0) { $0 + $1.distanceMeters }
+            )
         }
         if let message = toastMessage(for: summary) {
             ToastManager.shared.show(message: message, style: .info)
