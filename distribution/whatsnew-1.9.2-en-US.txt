@@ -1,0 +1,6 @@
+TrackMe 1.9.2
+
+- Weekly Recap & 1080x1080 Share Card: Celebrate your weekly distance, ride count, and active streak every Sunday with a high-resolution social card ready for WhatsApp, Instagram, and Strava.
+- Branded Route Cards v2: Share privacy-first trip cards with universal shortlinks (trackme.shvms.in/r) so friends can view or get TrackMe with zero friction.
+- Seamless Ride Recovery: Never lose an active trip to unexpected battery drops or device restarts.
+- GPS & Battery Polish: 60-second debounced location pause/resume handling and adaptive stationary polling for maximum battery endurance.
