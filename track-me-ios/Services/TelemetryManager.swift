@@ -469,7 +469,7 @@ class TelemetryManager {
         guard let activityType = activityType?.lowercased(), !activityType.isEmpty else { return "unknown" }
         if activityType.contains("whatsapp") { return "whatsapp" }
         if activityType.contains("instagram") { return "instagram" }
-        if activityType.contains("telegram") { return "telegram" }
+        if activityType.contains("telegram") || activityType.contains("telegraph") { return "telegram" }
         if activityType.contains("twitter") || activityType.contains("tweet") || activityType.contains(".x.") || activityType.hasSuffix(".x") { return "x" }
         if activityType.contains("strava") { return "strava" }
         if activityType.contains("facebook") { return "facebook" }
