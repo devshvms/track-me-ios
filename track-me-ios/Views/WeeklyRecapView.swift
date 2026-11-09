@@ -112,7 +112,7 @@ struct WeeklyRecapView: View {
     }
 
     /// TASK-358: Renders a 1080x1080 branded social recap card matching Android's WeeklyRecapCardRenderer.
-    static func renderRecapCard(recap: WeeklyRecap, unit: DistanceUnit, streakLine: String?) -> UIImage {
+    static func renderRecapCard(recap: WeeklyRecap, unit: UnitSystem, streakLine: String?) -> UIImage {
         let size = CGSize(width: 1080, height: 1080)
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = 1.0
