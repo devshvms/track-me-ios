@@ -30,7 +30,7 @@ struct ExportPreviewView: View {
     /// SCOPE_1.8.9 §9 — Templates is the default tab; Custom is this view exactly as it was.
     @State private var mode: ExportMode = .templates
 
-    enum ExportMode: Hashable { case templates, custom }
+    enum ExportMode: String, Hashable { case templates, custom }
 
     enum ExportRatio: String, CaseIterable, Identifiable {
         case square = "1:1", portrait = "4:5", story = "9:16"

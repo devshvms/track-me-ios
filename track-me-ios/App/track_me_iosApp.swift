@@ -128,7 +128,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 break
             case WeeklyRecapScheduler.stopReturnActionIdentifier:
                 if let settings = URL(string: UIApplication.openNotificationSettingsURLString) {
-                    UIApplication.shared.open(settings)
+                    UIApplication.shared.open(settings, options: [:], completionHandler: nil)
                 }
             case GroupStatusAlertCoordinator.muteActionIdentifier:
                 GroupRideManager.shared.setAlertsMuted(true)
