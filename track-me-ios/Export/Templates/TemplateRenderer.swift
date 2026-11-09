@@ -362,14 +362,14 @@ private final class TemplateDrawScope {
 
     /// The corner link on every artifact — Android's `drawArtifactLink`, metric for metric.
     func link(_ link: String?) {
-        guard let link, ReplayDeepLink.isTrackMeLink(link) else { return }
+        let linkText = (link.flatMap { ReplayDeepLink.isTrackMeLink($0) ? $0 : nil }) ?? "https://trackme.shvms.in/r"
         let shorter = Swift.min(width, height)
         let shadow = NSShadow()
         shadow.shadowColor = UIColor(white: 0, alpha: 200 / 255)
         shadow.shadowBlurRadius = shorter * 0.004
         shadow.shadowOffset = .zero
         let linkFont = UIFont.systemFont(ofSize: shorter * 0.014)
-        let string = attributed(link, font: linkFont, color: UIColor(white: 235 / 255, alpha: 200 / 255), shadow: shadow)
+        let string = attributed(linkText, font: linkFont, color: UIColor(white: 235 / 255, alpha: 200 / 255), shadow: shadow)
         let size = string.size()
         UIGraphicsPushContext(context)
         string.draw(at: CGPoint(x: width - shorter * 0.022 - size.width, y: height - shorter * 0.022 - linkFont.ascender))

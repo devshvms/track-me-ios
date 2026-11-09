@@ -118,6 +118,7 @@ enum WeeklyRecapScheduler {
 
         ledger.recordProactiveSent(at: nowMillis)
         ledger.recordRecapNotified(weekStartEpochDay: recap.weekStartEpochDay)
+        TelemetryManager.shared.trackRecapSent(weekKey: recap.weekKey, rideCount: recap.rideCount, distanceKm: recap.distanceMeters / 1000.0)
         return true
     }
 

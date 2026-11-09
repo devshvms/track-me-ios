@@ -135,6 +135,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             case GroupStatusAlertCoordinator.viewActionIdentifier, UNNotificationDefaultActionIdentifier:
                 if response.notification.request.identifier.hasPrefix(GroupStatusAlertCoordinator.notificationPrefix) {
                     GroupRideManager.shared.requestCommunityNavigation()
+                } else if response.notification.request.identifier == WeeklyRecapScheduler.identifier {
+                    WeeklyRecapCoordinator.shared.markOpenedFromNotification()
+                    await WeeklyRecapCoordinator.shared.check()
                 }
             default:
                 break

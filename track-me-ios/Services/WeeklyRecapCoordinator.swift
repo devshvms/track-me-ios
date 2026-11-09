@@ -48,6 +48,7 @@ final class WeeklyRecapCoordinator {
     var pending: WeeklyRecap?
     private var lastPresentedWeek: Int?
     private var lastTelemetryWeek: Int?
+    private var openedFromNotification = false
 
     /// TASK-119: set when the calm gate — not the user — pulled a recap off screen. Prompt 30
     /// (`30-ios-weekly-recap-acknowledge-on-any-dismiss.md`) requires acknowledging on ANY user
@@ -55,6 +56,17 @@ final class WeeklyRecapCoordinator {
     private var parkedByGate = false
 
     private init() {}
+
+    /// TASK-358: Marks that the user tapped the proactive weekly recap notification.
+    func markOpenedFromNotification() {
+        openedFromNotification = true
+    }
+
+    /// Consumes and resets the notification-open attribution flag.
+    func consumeOpenSource() -> String {
+        defer { openedFromNotification = false }
+        return openedFromNotification ? "notification" : "in_app"
+    }
 
     /// TASK-119: the live "is now a calm moment" snapshot, built from the app-scoped sources of
     /// truth. Mirrors Android `TrackMeApp.currentCalmMoment()`.
@@ -76,7 +88,9 @@ final class WeeklyRecapCoordinator {
             lastPresentedWeek = recap.weekStartEpochDay
             if lastTelemetryWeek != recap.weekStartEpochDay {
                 lastTelemetryWeek = recap.weekStartEpochDay
+                let source = consumeOpenSource()
                 TelemetryManager.shared.trackWeeklyRecapShown(weekKey: recap.weekKey, rideCount: recap.rideCount, distanceKm: recap.distanceMeters / 1000.0)
+                TelemetryManager.shared.trackRecapOpened(source: source, weekKey: recap.weekKey, rideCount: recap.rideCount, distanceKm: recap.distanceMeters / 1000.0)
             }
         }
     }

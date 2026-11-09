@@ -308,6 +308,20 @@ class TelemetryManager {
         )
     }
 
+    /// TASK-356: orphan recovery ran and changed something. Coarse properties only.
+    func trackRideRecovered(recoveredCount: Int, discardedCount: Int, totalMeters: Double) {
+        guard shouldTrack() else { return }
+        guard RecoveryTelemetry.shouldReport(recoveredCount: recoveredCount, discardedCount: discardedCount) else { return }
+        PostHogSDK.shared.capture(
+            RecoveryTelemetry.event,
+            properties: RecoveryTelemetry.properties(
+                recoveredCount: recoveredCount,
+                discardedCount: discardedCount,
+                totalMeters: totalMeters
+            )
+        )
+    }
+
     func trackRideStartAborted(method: RideStartAbortMethod) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("ride_start_aborted", properties: [
@@ -438,6 +452,34 @@ class TelemetryManager {
         PostHogSDK.shared.capture("export_shared", properties: ["kind": kind])
     }
 
+    /// TASK-359: Route card shared to an external destination (attributed social acquisition).
+    func trackRouteCardShared(template: String, channel: String? = nil, mode: String? = nil) {
+        guard shouldTrack() else { return }
+        var props: [String: Any] = [
+            "template": template,
+            "utm_source": "route_card"
+        ]
+        if let channel = channel { props["channel"] = channel }
+        if let mode = mode { props["mode"] = mode }
+        PostHogSDK.shared.capture("route_card_shared", properties: props)
+    }
+
+    /// Coarse channel resolution without recipient PII.
+    static func resolveShareChannel(_ activityType: String?) -> String {
+        guard let activityType = activityType?.lowercased(), !activityType.isEmpty else { return "unknown" }
+        if activityType.contains("whatsapp") { return "whatsapp" }
+        if activityType.contains("instagram") { return "instagram" }
+        if activityType.contains("telegram") { return "telegram" }
+        if activityType.contains("twitter") || activityType.contains("tweet") || activityType.contains(".x.") || activityType.hasSuffix(".x") { return "x" }
+        if activityType.contains("strava") { return "strava" }
+        if activityType.contains("facebook") { return "facebook" }
+        if activityType.contains("message") || activityType.contains("sms") { return "sms" }
+        if activityType.contains("mail") { return "email" }
+        if activityType.contains("airdrop") { return "airdrop" }
+        if activityType.contains("copy") { return "copy" }
+        return "other"
+    }
+
     // MARK: - 5. User Authentication
     func identifyUser(userId: String) {
         guard shouldTrack() else { return }
@@ -515,6 +557,37 @@ class TelemetryManager {
     func trackWeeklyRecapShown(weekKey: String, rideCount: Int, distanceKm: Double) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("weekly_recap_shown", properties: [
+            "week_key": weekKey,
+            "ride_count": rideCount,
+            "distance_km": distanceKm
+        ])
+    }
+
+    /// TASK-358: Proactive local notification delivered for completed week recap.
+    func trackRecapSent(weekKey: String, rideCount: Int, distanceKm: Double) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("recap_sent", properties: [
+            "week_key": weekKey,
+            "ride_count": rideCount,
+            "distance_km": distanceKm
+        ])
+    }
+
+    /// TASK-358: Weekly recap opened by the rider (source: "notification" or "in_app").
+    func trackRecapOpened(source: String, weekKey: String, rideCount: Int, distanceKm: Double) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("recap_opened", properties: [
+            "source": source,
+            "week_key": weekKey,
+            "ride_count": rideCount,
+            "distance_km": distanceKm
+        ])
+    }
+
+    /// TASK-358: Weekly recap card shared to external destination.
+    func trackRecapShared(weekKey: String, rideCount: Int, distanceKm: Double) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("recap_shared", properties: [
             "week_key": weekKey,
             "ride_count": rideCount,
             "distance_km": distanceKm
