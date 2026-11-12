@@ -41,6 +41,8 @@ struct HomeView: View {
     @State private var liveSharingManager = LiveSharingManager.shared
     @State private var showHomeSharing = false
     @Bindable private var groupRide = GroupRideManager.shared
+    @Bindable private var trustedWatchers = TrustedWatchersManager.shared
+    @Environment(\.openURL) private var openURL
     @State private var liveShareSharePayload: LiveShareSharePayload?
     @State private var showGroupSheet = false
     @State private var selectedGroupMember: GroupWire.MemberPosition?
@@ -61,6 +63,9 @@ struct HomeView: View {
 
     @State private var rideStartLaunch = RideStartLaunchState()
     @State private var showDiscardRideDialog = false
+    @State private var showFullRideHudForPrimaryShare = false
+    @State private var pendingDirectShareDuration: Int?
+    @State private var activeWatcherInvitePrompt: ParsedWatcherInviteLink?
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
     @AppStorage(OnboardingGate.startHintSeenKey) private var legacyStartHintSeen = false
 
@@ -264,35 +269,72 @@ struct HomeView: View {
             ActivityView(activityItems: [payload.url])
         }
         .sheet(isPresented: $showHomeSharing) {
-            NavigationStack {
-                VStack(alignment: .leading, spacing: 20) {
-                    Label(LocalizationHelper.localized("Live sharing"), systemImage: "location.circle")
-                        .font(.title2)
-                    Text(LocalizationHelper.localized("Prepare a link valid for 30 minutes. Your location appears while recording. Anyone with the link can view it. Opening this page shares nothing."))
-                    if groupRide.state.isActive {
-                        Text(LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."))
-                    } else if liveSharingManager.isActive {
-                        if let link = liveSharingManager.shareLink, let url = URL(string: link) {
-                            ShareLink(item: url)
-                        }
-                        Button(LocalizationHelper.localized("Stop sharing"), role: .destructive) {
-                            liveSharingManager.stopSession()
-                        }
-                    } else {
-                        Button(LocalizationHelper.localized("Start sharing")) {
-                            liveSharingManager.startSession(durationMinutes: 30, stopOnRideEnd: true)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(liveSharingManager.isStarting)
+            LiveShareSetupSheet(
+                liveSharingManager: liveSharingManager,
+                trustedWatchers: trustedWatchers.watchers,
+                isAuthenticated: Auth.auth().currentUser != nil,
+                groupActive: groupRide.state.isActive,
+                onDismiss: { showHomeSharing = false },
+                onStartDirectShare: { durationMinutes in
+                    TelemetryManager.shared.trackDirectLiveShareTappedHome()
+                    launchDirectLiveShare(durationMinutes: durationMinutes)
+                },
+                onStopShare: {
+                    liveSharingManager.stopSession()
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Live sharing stopped"),
+                        style: .info
+                    )
+                },
+                onShareLink: {
+                    if let link = liveSharingManager.shareLink, let url = URL(string: link) {
+                        liveShareSharePayload = LiveShareSharePayload(url: url)
                     }
-                    Spacer()
-                }.padding()
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(LocalizationHelper.localized("Done")) { showHomeSharing = false }
+                },
+                onCopyLink: {
+                    if let link = liveSharingManager.shareLink {
+                        UIPasteboard.general.string = link
+                        ToastManager.shared.show(
+                            message: LocalizationHelper.localized("Link copied to clipboard"),
+                            style: .success
+                        )
+                    }
+                },
+                onInviteWatcher: {
+                    if let link = trustedWatchers.buildCurrentUserInviteLink(),
+                       let url = URL(string: link) {
+                        UIPasteboard.general.string = link
+                        liveShareSharePayload = LiveShareSharePayload(url: url)
+                    } else {
+                        ToastManager.shared.show(
+                            message: LocalizationHelper.localized("Sign in to share your live location."),
+                            style: .warning
+                        )
+                    }
+                },
+                onToggleWatcherAutoNotify: { uid, enabled in
+                    Task {
+                        let ok = await trustedWatchers.setAutoNotify(watcherUid: uid, enabled: enabled)
+                        if !ok {
+                            ToastManager.shared.show(
+                                message: LocalizationHelper.localized("Could not update watcher notification setting."),
+                                style: .error
+                            )
+                        }
+                    }
+                },
+                onRemoveWatcher: { uid in
+                    Task {
+                        let ok = await trustedWatchers.removeWatcher(watcherUid: uid)
+                        if !ok {
+                            ToastManager.shared.show(
+                                message: LocalizationHelper.localized("Could not remove trusted watcher."),
+                                style: .error
+                            )
+                        }
                     }
                 }
-            }.presentationDetents([.medium, .large])
+            )
         }
         .sheet(isPresented: $showGroupSheet) {
             CommunityView()
@@ -368,6 +410,45 @@ struct HomeView: View {
             Text("Location access is turned off for TrackMe. Turn it on in Settings to record a ride — your route always stays on your device first.")
         }
         .alert(
+            LocalizationHelper.localized("Become a Trusted Watcher?"),
+            isPresented: Binding(
+                get: { activeWatcherInvitePrompt != nil },
+                set: { presented in if !presented { activeWatcherInvitePrompt = nil } }
+            )
+        ) {
+            Button(LocalizationHelper.localized("Accept")) {
+                guard let invite = activeWatcherInvitePrompt else { return }
+                activeWatcherInvitePrompt = nil
+                Task {
+                    let result = await trustedWatchers.acceptWatcherInvite(
+                        inviterUid: invite.inviterUid,
+                        inviterName: invite.inviterName
+                    )
+                    switch result {
+                    case .success:
+                        ToastManager.shared.show(
+                            message: LocalizationHelper.localized("Added as a Trusted Watcher!"),
+                            style: .success
+                        )
+                    case .failure(let error):
+                        ToastManager.shared.show(
+                            message: error.localizedDescription,
+                            style: .error
+                        )
+                    }
+                }
+            }
+            Button(LocalizationHelper.localized("Cancel"), role: .cancel) {
+                activeWatcherInvitePrompt = nil
+            }
+        } message: {
+            let name = activeWatcherInvitePrompt?.inviterName ?? LocalizationHelper.localized("this rider")
+            Text(LocalizationHelper.formatted(
+                "%@ invited you to receive live location push alerts when they share a ride.",
+                name
+            ))
+        }
+        .alert(
             LocalizationHelper.localized("Discard this ride?"),
             isPresented: $showDiscardRideDialog
         ) {
@@ -376,6 +457,9 @@ struct HomeView: View {
                 trackingManager.stopTracking(discard: true)
             }
             Button(LocalizationHelper.localized("Save anyway")) {
+                if liveSharingManager.isLiveSharePrimary {
+                    TelemetryManager.shared.trackDirectLiveShareStoppedRide()
+                }
                 trackingManager.stopTracking(discard: false)
             }
             Button(LocalizationHelper.localized("Cancel"), role: .cancel) { }
@@ -432,11 +516,44 @@ struct HomeView: View {
                 cameraFollowMode = true
                 hasFollowCameraPosition = false
                 updateFollowCamera()
+                if let durationMinutes = pendingDirectShareDuration {
+                    pendingDirectShareDuration = nil
+                    startDirectLiveShareSession(durationMinutes: durationMinutes)
+                }
             } else if oldState != .idle && newState == .idle {
                 explicitGroupMap = false
+                showFullRideHudForPrimaryShare = false
+                pendingDirectShareDuration = nil
                 selectedDashboardPersona = DashboardPersonaPreference.selected()
                 dashboardSelectionCameFromPicker = false
                 dashboard.invalidate()
+            }
+        }
+        .onChange(of: trackingManager.showLocationDeniedRecovery) { _, denied in
+            if denied {
+                pendingDirectShareDuration = nil
+            }
+        }
+        .onChange(of: trustedWatchers.pendingWatcherInvite, initial: true) { _, invite in
+            guard invite != nil else { return }
+            if let consumed = trustedWatchers.consumePendingWatcherInvite() {
+                if Auth.auth().currentUser == nil {
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Sign in to accept this Trusted Watcher invite."),
+                        style: .warning
+                    )
+                } else {
+                    activeWatcherInvitePrompt = consumed
+                }
+            }
+        }
+        .onChange(of: trustedWatchers.pendingOpenSessionId, initial: true) { _, sessionId in
+            guard sessionId != nil else { return }
+            if let pending = trustedWatchers.consumePendingOpenSession() {
+                let rawUrl = pending.shareUrl ?? "\(APIConfig.baseURL)/live/\(pending.sessionId)"
+                if let url = URL(string: rawUrl) {
+                    openURL(url)
+                }
             }
         }
         .onChange(of: groupRide.mapFocusRequest) { _, _ in
@@ -457,6 +574,7 @@ struct HomeView: View {
             if phase == .active {
                 dashboard.refreshOnForeground()
                 trackDashboardEntryIfNeeded()
+                Task { _ = await trustedWatchers.refreshInbox() }
             } else {
                 didTrackDashboardEntry = false
                 trackedInsightValue = nil
@@ -552,8 +670,75 @@ struct HomeView: View {
             onOpenGroupMap: openExplicitGroupMap,
             onOpenGamification: { showGamificationCollection = true },
             scrollToTopRequest: scrollToTopRequest,
-            onOpenLiveSharing: { showHomeSharing = true },
-            liveSharingActive: liveSharingManager.isActive
+            onOpenLiveSharing: {
+                if liveSharingManager.isActive {
+                    showHomeSharing = true
+                } else if groupRide.state.isActive {
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
+                        style: .warning
+                    )
+                } else if Auth.auth().currentUser == nil {
+                    showHomeSharing = true
+                } else {
+                    TelemetryManager.shared.trackDirectLiveShareTappedHome()
+                    launchDirectLiveShare(durationMinutes: 30)
+                }
+            },
+            liveSharingActive: liveSharingManager.isActive,
+            watcherInboxInvite: trustedWatchers.inboxInvite,
+            onWatchLiveInvite: { invite in
+                TelemetryManager.shared.trackWatcherPushOpened()
+                if let url = URL(string: invite.shareUrl) {
+                    openURL(url)
+                }
+            },
+            trustedWatcherCount: trustedWatchers.watchers.count,
+            onManageWatchers: { showHomeSharing = true }
+        )
+    }
+
+    private func autoNotifyWatchersSelection() -> (uids: [String], names: [String]) {
+        let enabled = trustedWatchers.watchers.filter(\.autoNotify)
+        return (enabled.map(\.uid), enabled.map(\.displayName))
+    }
+
+    private func launchDirectLiveShare(durationMinutes: Int) {
+        guard Auth.auth().currentUser != nil else {
+            ToastManager.shared.show(
+                message: LocalizationHelper.localized("Sign in to share your live location."),
+                style: .warning
+            )
+            return
+        }
+        guard !groupRide.state.isActive else {
+            ToastManager.shared.show(
+                message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
+                style: .warning
+            )
+            return
+        }
+        showFullRideHudForPrimaryShare = false
+        if trackingManager.state == .idle {
+            pendingDirectShareDuration = durationMinutes
+            trackingManager.startTracking(persona: selectedDashboardPersona)
+            if trackingManager.state != .idle {
+                pendingDirectShareDuration = nil
+                startDirectLiveShareSession(durationMinutes: durationMinutes)
+            }
+        } else {
+            startDirectLiveShareSession(durationMinutes: durationMinutes)
+        }
+    }
+
+    private func startDirectLiveShareSession(durationMinutes: Int) {
+        let selection = autoNotifyWatchersSelection()
+        liveSharingManager.startSession(
+            durationMinutes: durationMinutes,
+            stopOnRideEnd: true,
+            watcherUids: selection.uids,
+            isLiveSharePrimary: true,
+            sharedWatcherNames: selection.names
         )
     }
 
@@ -812,6 +997,9 @@ struct HomeView: View {
         ) {
             showDiscardRideDialog = true
         } else {
+            if liveSharingManager.isLiveSharePrimary {
+                TelemetryManager.shared.trackDirectLiveShareStoppedRide()
+            }
             trackingManager.stopTracking()
         }
     }
@@ -870,79 +1058,131 @@ struct HomeView: View {
             .tint(BrandColor.destructive)
         }
 
-        ActiveRideHUD(
-            trackingState: trackingManager.state,
-            persona: trackingManager.selectedPersona,
-            isAutoPaused: trackingManager.isAutoPaused,
-            isLiveSharing: liveSharingManager.isActive,
-            isLiveShareStarting: liveSharingManager.isStarting,
-            isLiveShareAuthenticated: Auth.auth().currentUser != nil,
-            isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
-            duration: formatDuration(trackingManager.durationInMillis / 1000),
-            elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
-            speedLabel: movementMetric.label,
-            speedValue: movementMetric.value,
-            speedUnit: movementMetric.unit,
-            speedAccessibilityValue: movementMetric.accessibilityValue,
-            distanceValue: UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit),
-            distanceUnit: UnitFormatter.distanceUnitLabel(unitSettings.unit),
-            distanceAccessibilityValue: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit),
-            showsStationaryHint: shouldShowStationaryHint,
-            onPauseToggle: {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    if trackingManager.state == .paused || trackingManager.state == .storageLow {
-                        trackingManager.resumeTracking()
-                    } else {
-                        trackingManager.pauseTracking()
+        let showBroadcastHud = liveSharingManager.isLiveSharePrimary
+            && (liveSharingManager.isActive || liveSharingManager.isStarting)
+            && !showFullRideHudForPrimaryShare
+
+        if showBroadcastHud {
+            LiveShareBroadcastHudView(
+                trackingState: trackingManager.state,
+                distanceText: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+                elapsedDurationText: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
+                timeSinceLastGps: trackingManager.timeSinceLastGps,
+                isGpsLostWarningActive: trackingManager.isGpsLostWarningActive,
+                isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
+                liveSharingManager: liveSharingManager,
+                onExpandRideTelemetry: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        showFullRideHudForPrimaryShare = true
                     }
+                },
+                onCopyShare: {
+                    guard let link = liveSharingManager.shareLink else { return }
+                    UIPasteboard.general.string = link
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Link copied to clipboard"),
+                        style: .success
+                    )
+                },
+                onSendShare: {
+                    guard let link = liveSharingManager.shareLink,
+                          let url = URL(string: link) else { return }
+                    liveShareSharePayload = LiveShareSharePayload(url: url)
+                },
+                onStopShareAndRide: handleStopRide,
+                onKeepRecordingRide: {
+                    TelemetryManager.shared.trackDirectLiveShareKeptRide()
+                    showFullRideHudForPrimaryShare = false
+                    liveSharingManager.stopSession()
+                    liveSharingManager.demotePrimaryToRideOnly()
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Live sharing stopped"),
+                        style: .info
+                    )
                 }
-            },
-            onStop: handleStopRide,
-            onStartShare: {
-                guard Auth.auth().currentUser != nil else {
+            )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        } else {
+            ActiveRideHUD(
+                trackingState: trackingManager.state,
+                persona: trackingManager.selectedPersona,
+                isAutoPaused: trackingManager.isAutoPaused,
+                isLiveSharing: liveSharingManager.isActive,
+                isLiveShareStarting: liveSharingManager.isStarting,
+                isLiveShareAuthenticated: Auth.auth().currentUser != nil,
+                isOffline: !networkMonitor.isConnected && !groupRide.state.isActive,
+                duration: formatDuration(trackingManager.durationInMillis / 1000),
+                elapsedDuration: formatDuration(trackingManager.elapsedDurationInMillis / 1000),
+                speedLabel: movementMetric.label,
+                speedValue: movementMetric.value,
+                speedUnit: movementMetric.unit,
+                speedAccessibilityValue: movementMetric.accessibilityValue,
+                distanceValue: UnitFormatter.distanceValue(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+                distanceUnit: UnitFormatter.distanceUnitLabel(unitSettings.unit),
+                distanceAccessibilityValue: UnitFormatter.distance(meters: trackingManager.totalDistance, unit: unitSettings.unit),
+                showsStationaryHint: shouldShowStationaryHint,
+                activeLiveViewers: liveSharingManager.activeViewers,
+                onPauseToggle: {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                        if trackingManager.state == .paused || trackingManager.state == .storageLow {
+                            trackingManager.resumeTracking()
+                        } else {
+                            trackingManager.pauseTracking()
+                        }
+                    }
+                },
+                onStop: handleStopRide,
+                onStartShare: {
+                    guard Auth.auth().currentUser != nil else {
+                        ToastManager.shared.show(
+                            message: LocalizationHelper.localized("Sign in to share your live location."),
+                            style: .warning
+                        )
+                        return
+                    }
+                    guard !groupRide.state.isActive else {
+                        ToastManager.shared.show(
+                            message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
+                            style: .warning
+                        )
+                        return
+                    }
+                    let selection = autoNotifyWatchersSelection()
+                    liveSharingManager.startSession(
+                        durationMinutes: nil,
+                        watcherUids: selection.uids,
+                        sharedWatcherNames: selection.names
+                    )
+                },
+                onStopShare: {
+                    liveSharingManager.stopSession()
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Live sharing stopped"),
+                        style: .info
+                    )
+                },
+                onShareLink: {
+                    guard let link = liveSharingManager.shareLink,
+                          let url = URL(string: link) else { return }
+                    liveShareSharePayload = LiveShareSharePayload(url: url)
+                },
+                onCopyLink: {
+                    guard let link = liveSharingManager.shareLink else { return }
+                    UIPasteboard.general.string = link
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Link copied to clipboard"),
+                        style: .success
+                    )
+                },
+                onShareAuthRequired: {
                     ToastManager.shared.show(
                         message: LocalizationHelper.localized("Sign in to share your live location."),
                         style: .warning
                     )
-                    return
                 }
-                guard !groupRide.state.isActive else {
-                    ToastManager.shared.show(
-                        message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
-                        style: .warning
-                    )
-                    return
-                }
-                liveSharingManager.startSession(durationMinutes: nil)
-            },
-            onStopShare: {
-                liveSharingManager.stopSession()
-                ToastManager.shared.show(
-                    message: LocalizationHelper.localized("Live sharing stopped"),
-                    style: .info
-                )
-            },
-            onShareLink: {
-                guard let link = liveSharingManager.shareLink,
-                      let url = URL(string: link) else { return }
-                liveShareSharePayload = LiveShareSharePayload(url: url)
-            },
-            onCopyLink: {
-                guard let link = liveSharingManager.shareLink else { return }
-                UIPasteboard.general.string = link
-                ToastManager.shared.show(
-                    message: LocalizationHelper.localized("Link copied to clipboard"),
-                    style: .success
-                )
-            },
-            onShareAuthRequired: {
-                ToastManager.shared.show(
-                    message: LocalizationHelper.localized("Sign in to share your live location."),
-                    style: .warning
-                )
-            }
-        )
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+            )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     private func focusGroupMapOverview() {
@@ -1344,6 +1584,7 @@ struct ActiveRideHUD: View {
     let distanceUnit: String
     let distanceAccessibilityValue: String
     var showsStationaryHint: Bool = false
+    var activeLiveViewers: Int = 0
     let onPauseToggle: () -> Void
     let onStop: () -> Void
     let onStartShare: () -> Void
@@ -1424,6 +1665,7 @@ struct ActiveRideHUD: View {
                             isActive: isLiveSharing,
                             isStarting: isLiveShareStarting,
                             isAuthenticated: isLiveShareAuthenticated,
+                            activeViewers: activeLiveViewers,
                             onStart: {
                                 if !isTouchLocked { onStartShare() }
                             },
@@ -1826,6 +2068,7 @@ struct LiveShareActionDrawer: View {
     let isActive: Bool
     let isStarting: Bool
     let isAuthenticated: Bool
+    var activeViewers: Int = 0
     let onStart: () -> Void
     let onStop: () -> Void
     let onShare: () -> Void
@@ -1843,8 +2086,13 @@ struct LiveShareActionDrawer: View {
             }
             guard !isStarting else { return }
             Haptics.selection()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
-                isOpen.toggle()
+            if isActive {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
+                    isOpen.toggle()
+                }
+            } else {
+                isOpen = false
+                onStart()
             }
         } label: {
             ZStack(alignment: .topTrailing) {
@@ -1861,49 +2109,50 @@ struct LiveShareActionDrawer: View {
                 .background(baseBackground, in: Circle())
 
                 if isActive, !isOpen {
-                    Circle()
-                        .fill(BrandColor.destructive)
-                        .frame(width: 11, height: 11)
-                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                    if activeViewers > 0 {
+                        Text(activeViewers > 99 ? "99+" : "\(activeViewers)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5)
+                            .frame(minWidth: 18, minHeight: 18)
+                            .background(BrandColor.primaryFill, in: Capsule())
+                            .overlay(Capsule().stroke(.white, lineWidth: 1.5))
+                            .offset(x: 2, y: -2)
+                    } else {
+                        Circle()
+                            .fill(BrandColor.destructive)
+                            .frame(width: 11, height: 11)
+                            .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                    }
                 }
             }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(baseAccessibilityLabel)
         .overlay(alignment: .bottom) {
-            if isOpen, isAuthenticated {
+            if isOpen, isAuthenticated, isActive {
                 VStack(spacing: 8) {
-                    if isActive {
-                        drawerButton(
-                            systemImage: "square.and.arrow.up",
-                            label: "Share live link",
-                            background: BrandColor.primaryFill,
-                            foreground: .white,
-                            action: onShare
-                        )
-                        drawerButton(
-                            systemImage: "doc.on.doc",
-                            label: "Copy live link",
-                            background: BrandColor.primaryFill,
-                            foreground: .white,
-                            action: onCopy
-                        )
-                        drawerButton(
-                            systemImage: "stop.fill",
-                            label: "Stop live sharing",
-                            background: Color(.systemRed).opacity(0.18),
-                            foreground: BrandColor.destructiveText,
-                            action: onStop
-                        )
-                    } else {
-                        drawerButton(
-                            systemImage: "play.fill",
-                            label: "Start live sharing",
-                            background: BrandColor.primaryFill,
-                            foreground: .white,
-                            action: onStart
-                        )
-                    }
+                    drawerButton(
+                        systemImage: "square.and.arrow.up",
+                        label: "Share live link",
+                        background: BrandColor.primaryFill,
+                        foreground: .white,
+                        action: onShare
+                    )
+                    drawerButton(
+                        systemImage: "doc.on.doc",
+                        label: "Copy live link",
+                        background: BrandColor.primaryFill,
+                        foreground: .white,
+                        action: onCopy
+                    )
+                    drawerButton(
+                        systemImage: "stop.fill",
+                        label: "Stop live sharing",
+                        background: Color(.systemRed).opacity(0.18),
+                        foreground: BrandColor.destructiveText,
+                        action: onStop
+                    )
                 }
                 .padding(5)
                 .background(.ultraThinMaterial, in: Capsule())

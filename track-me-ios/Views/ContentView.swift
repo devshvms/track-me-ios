@@ -18,6 +18,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     private var trackingManager = TrackingManager.shared
     @Bindable private var groupRide = GroupRideManager.shared
+    @Bindable private var trustedWatchers = TrustedWatchersManager.shared
     // SCOPE_1.8.7 §6.3: the in-app half of an operator broadcast. Held here rather than inside a
     // tab because a broadcast is about the app, not about riding — it has to reach someone who
     // opens straight into History or Settings too.
@@ -135,7 +136,14 @@ struct ContentView: View {
                 BroadcastSubscription.sync()
                 Task { await WeeklyRecapScheduler.refresh() }
                 Task { _ = await updateManager.checkForUpdate() }
+                Task { _ = await trustedWatchers.refreshInbox() }
             }
+        }
+        .onChange(of: trustedWatchers.pendingWatcherInvite) { _, invite in
+            if invite != nil { selectedTab = .home }
+        }
+        .onChange(of: trustedWatchers.pendingOpenSessionId) { _, sessionId in
+            if sessionId != nil { selectedTab = .home }
         }
         .onChange(of: groupRide.pendingJoinCode) { _, code in
             if code != nil { selectedTab = .community }

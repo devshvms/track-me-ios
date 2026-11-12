@@ -731,6 +731,37 @@ class TelemetryManager {
         PostHogSDK.shared.capture("onboarding_completed", properties: outcome.telemetryProperties)
     }
 
+    // MARK: - 12. v1.9.3 Intent-First Live Share & Trusted Watchers
+    func trackDirectLiveShareTappedHome() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("direct_live_share_tapped_home")
+    }
+
+    func trackDirectLiveShareStoppedRide() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("direct_live_share_stopped_ride")
+    }
+
+    func trackDirectLiveShareKeptRide() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("direct_live_share_kept_ride")
+    }
+
+    func trackTrustedWatcherAdded() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("trusted_watcher_added")
+    }
+
+    func trackTrustedWatcherRemoved() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("trusted_watcher_removed")
+    }
+
+    func trackWatcherPushOpened() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("watcher_push_opened")
+    }
+
     private func capture(_ event: GroupTelemetryEvent) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture(event.name, properties: event.properties)

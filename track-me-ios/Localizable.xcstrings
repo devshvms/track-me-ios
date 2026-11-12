@@ -4,6 +4,12 @@
     "": {},
     "%1$@ activities have not reached your backup since %2$@.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Aktivitäten haben Ihre Sicherung seit %2$@ nicht erreicht."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -14,12 +20,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ activités n'ont pas atteint votre sauvegarde depuis %2$@."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ Aktivitäten haben Ihre Sicherung seit %2$@ nicht erreicht."
           }
         },
         "hi": {
@@ -44,6 +44,12 @@
     },
     "%1$@ activities, %2$@.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Aktivitäten, %2$@."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -54,12 +60,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ activités, %2$@."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ Aktivitäten, %2$@."
           }
         },
         "hi": {
@@ -84,6 +84,12 @@
     },
     "%1$@ min recorded. No movement since %2$@.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Min aufgezeichnet. Keine Bewegung seit %2$@."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -94,12 +100,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ min enregistrées. Aucun mouvement depuis %2$@."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ Min aufgezeichnet. Keine Bewegung seit %2$@."
           }
         },
         "hi": {
@@ -297,6 +297,12 @@
     },
     "%@ activities have not reached your cloud backup.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Aktivitäten haben Ihre Cloud-Sicherung nicht erreicht."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -307,12 +313,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ activités n'ont pas atteint votre sauvegarde cloud."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Aktivitäten haben Ihre Cloud-Sicherung nicht erreicht."
           }
         },
         "hi": {
@@ -337,6 +337,12 @@
     },
     "%@ activities recorded": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Aktivitäten aufgezeichnet"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -347,12 +353,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ activités enregistrées"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Aktivitäten aufgezeichnet"
           }
         },
         "hi": {
@@ -588,6 +588,100 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@，用时 %@。很高兴看到你出行。"
+          }
+        }
+      }
+    },
+    "%@ invited you to receive live location push alerts when they share a ride.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ lädt dich ein, Live-Standort-Mitteilungen zu erhalten, wenn eine Fahrt geteilt wird."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ invited you to receive live location push alerts when they share a ride."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ te invitó a recibir alertas en vivo cuando comparta su recorrido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ vous invite à recevoir des alertes en direct lors de ses trajets partagés."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने आपको राइड साझा करने पर लाइव लोकेशन सूचनाएँ पाने के लिए आमंत्रित किया है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ さんがライブ共有を開始したときに通知を受け取るよう招待しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 邀请你在其开启位置共享时接收实时推送提醒。"
+          }
+        }
+      }
+    },
+    "%@ is sharing their live location": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ teilt den Live-Standort"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is sharing their live location"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está compartiendo su ubicación en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ partage sa position en direct"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ अपनी लाइव लोकेशन साझा कर रहे हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ さんが現在地をライブ共有中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 正在共享实时位置"
           }
         }
       }
@@ -838,6 +932,12 @@
     },
     "%@ min recorded, with no movement for a while.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Min aufgezeichnet, seit einer Weile ohne Bewegung."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -848,12 +948,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ min enregistrées, sans mouvement depuis un moment."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Min aufgezeichnet, seit einer Weile ohne Bewegung."
           }
         },
         "hi": {
@@ -961,6 +1055,12 @@
     "%@ of inactivity hidden": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Inaktivität ausgeblendet"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -971,12 +1071,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ d'inactivité masquée"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Inaktivität ausgeblendet"
           }
         },
         "hi": {
@@ -1124,6 +1218,12 @@
     },
     "%@ rides were saved": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Fahrten wurden gespeichert"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -1134,12 +1234,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ sorties ont été enregistrées"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Fahrten wurden gespeichert"
           }
         },
         "hi": {
@@ -1287,6 +1381,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@将状态设为%@"
+          }
+        }
+      }
+    },
+    "%@ watching": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ schauen zu"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ watching"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ viendo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ regardent"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ देख रहे हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@人が視聴中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 人正在观看"
           }
         }
       }
@@ -2187,6 +2328,53 @@
         }
       }
     },
+    "1 hr": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Std."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 hr"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 h"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 h"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 घंटा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1時間"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 小时"
+          }
+        }
+      }
+    },
     "10s": {},
     "12.4 km": {
       "extractionState": "manual",
@@ -2273,6 +2461,147 @@
           "stringUnit": {
             "state": "translated",
             "value": "首次"
+          }
+        }
+      }
+    },
+    "2 hr": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 Std."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 hr"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 h"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 h"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 घंटे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2時間"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 小时"
+          }
+        }
+      }
+    },
+    "24 hr": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 Std."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 hr"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 h"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 h"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 घंटे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24時間"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 小时"
+          }
+        }
+      }
+    },
+    "30 min": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 Min."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 min"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 min"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 min"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 मिनट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30分"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 分钟"
           }
         }
       }
@@ -2409,6 +2738,12 @@
     },
     "A milestone worth noting.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Meilenstein, der Erwähnung verdient."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -2419,12 +2754,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Une étape qui mérite d'être notée."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ein Meilenstein, der Erwähnung verdient."
           }
         },
         "hi": {
@@ -2496,6 +2825,12 @@
     },
     "A newer version is available.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine neuere Version ist verfügbar."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -2506,12 +2841,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Une version plus récente est disponible."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eine neuere Version ist verfügbar."
           }
         },
         "hi": {
@@ -2570,6 +2899,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "预定开始只会发送提醒。共享绝不会自动开始。"
+          }
+        }
+      }
+    },
+    "Accept": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accept"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceptar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accepter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्वीकार करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接受"
           }
         }
       }
@@ -2744,6 +3120,12 @@
     },
     "Activity reminder": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivitätserinnerung"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -2754,12 +3136,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rappel d'activité"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktivitätserinnerung"
           }
         },
         "hi": {
@@ -2906,6 +3282,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "添加到日历"
+          }
+        }
+      }
+    },
+    "Added as a Trusted Watcher!": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als vertrauenswürdiger Kontakt hinzugefügt!"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added as a Trusted Watcher!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Añadido como observador de confianza!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouté aux contacts de confiance !"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विश्वसनीय दर्शक के रूप में जोड़ा गया!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信頼できるウォッチャーに追加されました！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已添加为信任的查看者！"
           }
         }
       }
@@ -3613,6 +4036,12 @@
     "Anyone with the link sees your location while you are recording. The link expires when the session does, and only you can start or stop it.": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle mit dem Link sehen deinen Standort, während du aufzeichnest. Der Link läuft mit der Sitzung ab, und nur du kannst sie starten oder beenden."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -3623,12 +4052,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toute personne disposant du lien voit votre position pendant l'enregistrement. Le lien expire avec la session, et vous seul pouvez la démarrer ou l'arrêter."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle mit dem Link sehen deinen Standort, während du aufzeichnest. Der Link läuft mit der Sitzung ab, und nur du kannst sie starten oder beenden."
           }
         },
         "hi": {
@@ -4089,6 +4512,100 @@
         }
       }
     },
+    "Auto-notify": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-Benachrichtigung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-notify"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notificación automática"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification auto"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्वतः सूचना"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動通知"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动通知"
+          }
+        }
+      }
+    },
+    "Auto-notify %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ automatisch benachrichtigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-notify %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notificar automáticamente a %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifier automatiquement %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को स्वतः सूचित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に自動通知"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动通知 %@"
+          }
+        }
+      }
+    },
     "Average Pace": {
       "localizations": {
         "de": {
@@ -4420,6 +4937,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "依据符合条件的活动历史"
+          }
+        }
+      }
+    },
+    "Become a Trusted Watcher?": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertrauenswürdiger Kontakt werden?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Become a Trusted Watcher?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Ser observador de confianza?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devenir contact de confiance ?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्या आप विश्वसनीय दर्शक बनना चाहते हैं?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信頼できるウォッチャーになりますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成为信任的查看者？"
           }
         }
       }
@@ -4945,6 +5509,12 @@
     },
     "Clear": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -4955,12 +5525,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Effacer"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Löschen"
           }
         },
         "hi": {
@@ -5207,6 +5771,12 @@
     },
     "Cloud backup is not working": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Cloud-Sicherung funktioniert nicht"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -5217,12 +5787,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "La sauvegarde cloud ne fonctionne pas"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Cloud-Sicherung funktioniert nicht"
           }
         },
         "hi": {
@@ -5541,6 +6105,53 @@
         }
       }
     },
+    "Copy link": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link kopieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy link"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar enlace"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier le lien"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक कॉपी करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクをコピー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制链接"
+          }
+        }
+      }
+    },
     "Copy live link": {
       "extractionState": "stale",
       "localizations": {
@@ -5584,6 +6195,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "复制实时链接"
+          }
+        }
+      }
+    },
+    "Could not accept watcher invite.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einladung konnte nicht angenommen werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not accept watcher invite."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo aceptar la invitación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'accepter l'invitation."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दर्शक आमंत्रण स्वीकार नहीं किया जा सका।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォッチャー招待を承認できませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法接受查看者邀请。"
           }
         }
       }
@@ -5665,6 +6323,100 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法提交存档请求。请检查网络连接。"
+          }
+        }
+      }
+    },
+    "Could not remove trusted watcher.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertrauenswürdiger Kontakt konnte nicht entfernt werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not remove trusted watcher."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo eliminar al observador de confianza."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de retirer le contact de confiance."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विश्वसनीय दर्शक को हटाया नहीं जा सका।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信頼できるウォッチャーを削除できませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法移除信任的查看者。"
+          }
+        }
+      }
+    },
+    "Could not update watcher notification setting.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benachrichtigungseinstellung konnte nicht aktualisiert werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not update watcher notification setting."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo actualizar la notificación del observador."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de mettre à jour la notification du contact."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दर्शक सूचना सेटिंग अपडेट नहीं हो सकी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォッチャーの通知設定を更新できませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法更新查看者通知设置。"
           }
         }
       }
@@ -5847,6 +6599,12 @@
     "Create a group": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppe erstellen"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -5857,12 +6615,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Créer un groupe"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gruppe erstellen"
           }
         },
         "hi": {
@@ -6418,6 +7170,12 @@
     },
     "Day": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -6428,12 +7186,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Jour"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag"
           }
         },
         "hi": {
@@ -7385,6 +8137,86 @@
         }
       }
     },
+    "Discard": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwerfen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हटाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "破棄"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "丢弃"
+          }
+        }
+      }
+    },
+    "Discard this ride?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Fahrt verwerfen?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Descartar este viaje?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer ce trajet ?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस यात्रा को हटाएं?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この記録を破棄しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "丢弃此次行程？"
+          }
+        }
+      }
+    },
     "Distance": {
       "extractionState": "stale",
       "localizations": {
@@ -8265,6 +9097,12 @@
     "Everyone in the group sees everyone else while the group is live. Nobody sees where you have been, and nothing is saved.": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle in der Gruppe sehen einander, solange die Gruppe aktiv ist. Niemand sieht, wo du warst, und nichts wird gespeichert."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -8275,12 +9113,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tous les membres se voient tant que le groupe est actif. Personne ne voit où vous êtes allé, et rien n'est conservé."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle in der Gruppe sehen einander, solange die Gruppe aktiv ist. Niemand sieht, wo du warst, und nichts wird gespeichert."
           }
         },
         "hi": {
@@ -8846,6 +9678,12 @@
     },
     "Finish ride": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivität beenden"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -8856,12 +9694,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Terminer la sortie"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktivität beenden"
           }
         },
         "hi": {
@@ -9361,6 +10193,12 @@
     "Frequency": {},
     "From the active minutes you have recorded.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus den aktiven Minuten, die Sie aufgezeichnet haben."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -9371,12 +10209,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "D'après les minutes actives que vous avez enregistrées."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aus den aktiven Minuten, die Sie aufgezeichnet haben."
           }
         },
         "hi": {
@@ -10559,6 +11391,12 @@
     "Hide": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausblenden"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -10569,12 +11407,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Masquer"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ausblenden"
           }
         },
         "hi": {
@@ -10897,6 +11729,12 @@
     "How group rides work": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So funktionieren Gruppenfahrten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -10907,12 +11745,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Comment fonctionnent les sorties en groupe"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "So funktionieren Gruppenfahrten"
           }
         },
         "hi": {
@@ -10938,6 +11770,12 @@
     "How live sharing works": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So funktioniert Live-Teilen"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -10948,12 +11786,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Comment fonctionne le partage en direct"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "So funktioniert Live-Teilen"
           }
         },
         "hi": {
@@ -11484,8 +12316,108 @@
         }
       }
     },
+    "Invalid watcher invite.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungültige Einladung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid watcher invite."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitación no válida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitation invalide."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अमान्य दर्शक आमंत्रण।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無効なウォッチャー招待です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无效的查看者邀请。"
+          }
+        }
+      }
+    },
+    "Invite Watcher": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakt einladen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invite Watcher"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitar observador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inviter un contact"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दर्शक आमंत्रित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォッチャーを招待"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邀请查看者"
+          }
+        }
+      }
+    },
     "Invite at least one other person before starting the group.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lade mindestens eine weitere Person ein, bevor du die Gruppe startest."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -11496,12 +12428,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Invitez au moins une autre personne avant de démarrer le groupe."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lade mindestens eine weitere Person ein, bevor du die Gruppe startest."
           }
         },
         "hi": {
@@ -11694,6 +12620,12 @@
     "Join with a code": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Code beitreten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -11704,12 +12636,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rejoindre avec un code"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mit Code beitreten"
           }
         },
         "hi": {
@@ -11900,8 +12826,21 @@
         }
       }
     },
-    "Keep recording": {
+    "Keep Recording Ride": {
+      "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter aufzeichnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep Recording Ride"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -11914,10 +12853,44 @@
             "value": "Continuer l'enregistrement"
           }
         },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइड रिकॉर्डिंग जारी रखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録を続ける"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续记录行程"
+          }
+        }
+      }
+    },
+    "Keep recording": {
+      "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Weiter aufzeichnen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir grabando"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer l'enregistrement"
           }
         },
         "hi": {
@@ -12018,6 +12991,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "公里"
+          }
+        }
+      }
+    },
+    "LIVE SHARING": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LIVE-FREIGABE"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LIVE SHARING"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EN VIVO"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PARTAGE EN DIRECT"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव साझाकरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ共有中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时共享中"
           }
         }
       }
@@ -12280,6 +13300,12 @@
     },
     "Last week": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Woche"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -12290,12 +13316,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "La semaine dernière"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letzte Woche"
           }
         },
         "hi": {
@@ -12448,6 +13468,12 @@
     },
     "Learn more": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr erfahren"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -12458,12 +13484,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "En savoir plus"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mehr erfahren"
           }
         },
         "hi": {
@@ -13690,6 +14710,12 @@
     "Manage": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwalten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -13700,12 +14726,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gérer"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verwalten"
           }
         },
         "hi": {
@@ -13731,6 +14751,12 @@
     "Manage live sharing": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Teilen verwalten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -13741,12 +14767,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gérer le partage en direct"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Live-Teilen verwalten"
           }
         },
         "hi": {
@@ -14919,6 +15939,53 @@
         }
       }
     },
+    "No GPS %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein GPS %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No GPS %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin GPS %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas de GPS %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS नहीं %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPSなし %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无 GPS %@"
+          }
+        }
+      }
+    },
     "No GPS Data": {
       "localizations": {
         "de": {
@@ -15504,6 +16571,100 @@
         }
       }
     },
+    "No trusted watchers yet. Invite friends or family via link.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine vertrauenswürdigen Kontakte. Lade Freunde oder Familie per Link ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No trusted watchers yet. Invite friends or family via link."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay observadores de confianza. Invita a amigos o familiares mediante enlace."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun contact de confiance pour le moment. Invitez vos proches via un lien."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई विश्वसनीय दर्शक नहीं है। लिंक के माध्यम से मित्रों या परिवार को आमंत्रित करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信頼できるウォッチャーはまだいません。リンクで家族や友人を招待しましょう。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无信任的查看者。通过链接邀请亲友吧。"
+          }
+        }
+      }
+    },
+    "No viewers yet — link active": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Zuschauer — Link aktiv"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No viewers yet — link active"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún sin espectadores — enlace activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun spectateur — lien actif"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई दर्शक नहीं — लिंक सक्रिय है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "視聴者はいません — リンク有効"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无观看者 — 链接已生效"
+          }
+        }
+      }
+    },
     "None": {
       "extractionState": "stale",
       "localizations": {
@@ -15810,6 +16971,12 @@
     },
     "Nothing to report. Anything TrackMe needs to tell you shows up here.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts zu berichten. Was TrackMe Ihnen sagen muss, erscheint hier."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -15820,12 +16987,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rien à signaler. Ce que TrackMe doit vous dire apparaîtra ici."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nichts zu berichten. Was TrackMe Ihnen sagen muss, erscheint hier."
           }
         },
         "hi": {
@@ -15942,6 +17103,53 @@
         }
       }
     },
+    "Notified %@ trusted watchers": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ vertrauenswürdige Kontakte benachrichtigt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notified %@ trusted watchers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se notificó a %@ observadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ contacts de confiance notifiés"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ विश्वसनीय दर्शकों को सूचित किया गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@人のウォッチャーに通知済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已通知 %@ 位信任查看者"
+          }
+        }
+      }
+    },
     "Now": {
       "extractionState": "manual",
       "localizations": {
@@ -16031,6 +17239,12 @@
     },
     "Off": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -16041,12 +17255,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Désactivé"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aus"
           }
         },
         "hi": {
@@ -16637,6 +17845,12 @@
     },
     "Open groups": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppen öffnen"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -16647,12 +17861,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ouvrir les groupes"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gruppen öffnen"
           }
         },
         "hi": {
@@ -17358,6 +18566,12 @@
     },
     "Prepare a link valid for 30 minutes. Your location appears while recording. Anyone with the link can view it. Opening this page shares nothing.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstelle einen Link für 30 Minuten. Dein Standort erscheint während der Aufzeichnung. Jeder mit dem Link kann ihn sehen. Das Öffnen dieser Seite teilt nichts."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -17368,12 +18582,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Préparez un lien valable 30 minutes. Votre position apparaît pendant l’enregistrement. Toute personne ayant le lien peut la voir. Ouvrir cette page ne partage rien."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erstelle einen Link für 30 Minuten. Dein Standort erscheint während der Aufzeichnung. Jeder mit dem Link kann ihn sehen. Das Öffnen dieser Seite teilt nichts."
           }
         },
         "hi": {
@@ -18072,6 +19280,12 @@
     },
     "Record a few activities and we can suggest a time.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeichne ein paar Aktivitäten auf, dann können wir eine Zeit vorschlagen."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -18082,12 +19296,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enregistrez quelques activités et nous pourrons vous suggérer une heure."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zeichne ein paar Aktivitäten auf, dann können wir eine Zeit vorschlagen."
           }
         },
         "hi": {
@@ -18152,6 +19360,12 @@
     },
     "Recording stopped at %1$@ because the app was closed. %2$@ was kept.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufzeichnung endete um %1$@, weil die App geschlossen wurde. %2$@ wurden behalten."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -18162,12 +19376,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'enregistrement s'est arrêté à %1$@ car l'app s'est fermée. %2$@ ont été conservés."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Aufzeichnung endete um %1$@, weil die App geschlossen wurde. %2$@ wurden behalten."
           }
         },
         "hi": {
@@ -18233,6 +19441,12 @@
     },
     "Remind me weekly": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wöchentlich erinnern"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -18243,12 +19457,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Me rappeler chaque semaine"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wöchentlich erinnern"
           }
         },
         "hi": {
@@ -18273,6 +19481,12 @@
     },
     "Reminders on the days and at the time you choose. Off unless you turn them on.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungen an den gewählten Tagen und zur gewählten Uhrzeit. Aus, bis du sie einschaltest."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -18283,12 +19497,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Des rappels aux jours et à l’heure de votre choix. Désactivés tant que vous ne les activez pas."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erinnerungen an den gewählten Tagen und zur gewählten Uhrzeit. Aus, bis du sie einschaltest."
           }
         },
         "hi": {
@@ -18394,6 +19602,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "移除该成员？"
+          }
+        }
+      }
+    },
+    "Remove watcher": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakt entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove watcher"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar observador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer le contact"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दर्शक हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォッチャーを削除"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除查看者"
           }
         }
       }
@@ -19127,6 +20382,12 @@
     "Ride together": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gemeinsam fahren"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -19137,12 +20398,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rouler ensemble"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gemeinsam fahren"
           }
         },
         "hi": {
@@ -19751,6 +21006,46 @@
         }
       }
     },
+    "Save anyway": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trotzdem speichern"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar de todos modos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer quand même"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फिर भी सहेजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのまま保存"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仍然保存"
+          }
+        }
+      }
+    },
     "Scheduled start": {
       "localizations": {
         "de": {
@@ -20247,6 +21542,12 @@
     "Set up": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -20257,12 +21558,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Configurer"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einrichten"
           }
         },
         "hi": {
@@ -20288,6 +21583,12 @@
     "Set up live sharing": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Teilen einrichten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -20298,12 +21599,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Configurer le partage en direct"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Live-Teilen einrichten"
           }
         },
         "hi": {
@@ -20488,6 +21783,53 @@
         }
       }
     },
+    "Share Live Location": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Standort teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Live Location"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir ubicación en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partager en direct"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव लोकेशन साझा करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在地をライブ共有"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享实时位置"
+          }
+        }
+      }
+    },
     "Share analytics data": {
       "extractionState": "stale",
       "localizations": {
@@ -20576,6 +21918,53 @@
         }
       }
     },
+    "Share duration": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabedauer"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share duration"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duración para compartir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durée de partage"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करने की अवधि"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有時間"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享时长"
+          }
+        }
+      }
+    },
     "Share group invite": {
       "localizations": {
         "de": {
@@ -20653,6 +22042,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "分享图片"
+          }
+        }
+      }
+    },
+    "Share link": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share link"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir enlace"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partager le lien"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक साझा करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを共有"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享链接"
           }
         }
       }
@@ -20836,6 +22272,12 @@
     "Show all": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle anzeigen"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -20846,12 +22288,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tout afficher"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle anzeigen"
           }
         },
         "hi": {
@@ -21317,6 +22753,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "下载存档前请先登录。"
+          }
+        }
+      }
+    },
+    "Sign in to accept this Trusted Watcher invite.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melde dich an, um diese Einladung anzunehmen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to accept this Trusted Watcher invite."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia sesión para aceptar esta invitación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectez-vous pour accepter cette invitation."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस विश्वसनीय दर्शक आमंत्रण को स्वीकार करने के लिए साइन इन करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このウォッチャー招待を承認するにはサインインしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请登录以接受此信任查看者邀请。"
           }
         }
       }
@@ -22557,6 +24040,12 @@
     },
     "Start sharing": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabe starten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -22567,12 +24056,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Démarrer le partage"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Freigabe starten"
           }
         },
         "hi": {
@@ -23042,6 +24525,12 @@
     },
     "Still recording": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nimmt weiter auf"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -23052,12 +24541,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enregistrement en cours"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nimmt weiter auf"
           }
         },
         "hi": {
@@ -23076,6 +24559,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "仍在记录"
+          }
+        }
+      }
+    },
+    "Stop & Save": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stoppen & sichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop & Save"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detener y guardar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter et enregistrer"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रोकें और सहेजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止して保存"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止并保存"
           }
         }
       }
@@ -23217,6 +24747,12 @@
     },
     "Stop sharing": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigabe beenden"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -23227,12 +24763,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Arrêter le partage"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Freigabe beenden"
           }
         },
         "hi": {
@@ -23342,6 +24872,53 @@
         }
       }
     },
+    "Storage almost full": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicher fast voll"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage almost full"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Almacenamiento casi lleno"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stockage presque plein"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्टोरेज लगभग भर गया है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ストレージ残量低下"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储空间即将已满"
+          }
+        }
+      }
+    },
     "Storage low": {
       "extractionState": "stale",
       "localizations": {
@@ -23432,6 +25009,12 @@
     },
     "Suggested from your history: %1$@, %2$@": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus deinem Verlauf vorgeschlagen: %1$@, %2$@"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -23442,12 +25025,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suggéré d'après votre historique : %1$@, %2$@"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aus deinem Verlauf vorgeschlagen: %1$@, %2$@"
           }
         },
         "hi": {
@@ -23472,6 +25049,12 @@
     },
     "Sunset in %@ min": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonnenuntergang in %@ Min"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -23482,12 +25065,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Coucher du soleil dans %@ min"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sonnenuntergang in %@ Min"
           }
         },
         "hi": {
@@ -23767,6 +25344,53 @@
         }
       }
     },
+    "Tap to view full ride telemetry": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen für vollständige Fahrtdaten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to view full ride telemetry"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca para ver la telemetría completa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez pour voir toutes les stats"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पूरी राइड टेलीमेट्री देखने के लिए टैप करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タップして走行データの詳細を表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻点查看完整骑行数据"
+          }
+        }
+      }
+    },
     "Templates": {
       "extractionState": "manual",
       "localizations": {
@@ -23891,6 +25515,12 @@
     },
     "The app closed while they were recording. They were finished and kept.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App wurde während der Aufzeichnung geschlossen. Sie wurden beendet und behalten."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -23901,12 +25531,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'app s'est fermée pendant l'enregistrement. Elles ont été terminées et conservées."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die App wurde während der Aufzeichnung geschlossen. Sie wurden beendet und behalten."
           }
         },
         "hi": {
@@ -23931,6 +25555,12 @@
     },
     "The app closed while you were recording, so the ride was finished and kept.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App wurde während der Aufzeichnung geschlossen, die Fahrt wurde beendet und behalten."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -23941,12 +25571,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'app s'est fermée pendant l'enregistrement ; la sortie a été terminée et conservée."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die App wurde während der Aufzeichnung geschlossen, die Fahrt wurde beendet und behalten."
           }
         },
         "hi": {
@@ -24182,6 +25806,12 @@
     },
     "The group request could not be completed. Please try again.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Gruppenanfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -24192,12 +25822,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "La demande du groupe n’a pas pu être effectuée. Veuillez réessayer."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Gruppenanfrage konnte nicht abgeschlossen werden. Bitte versuche es erneut."
           }
         },
         "hi": {
@@ -24887,6 +26511,12 @@
     },
     "This one takes you past %@.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese bringt dich über %@ hinaus."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -24897,12 +26527,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Celle-ci vous fait dépasser %@."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diese bringt dich über %@ hinaus."
           }
         },
         "hi": {
@@ -24921,6 +26545,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "这一次将带你越过 %@。"
+          }
+        }
+      }
+    },
+    "This ride did not record meaningful distance. You can discard it or save it anyway.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Fahrt hat keine aussagekräftige Distanz aufgezeichnet. Sie können sie verwerfen oder trotzdem speichern."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este viaje no registró una distancia significativa. Puedes descartarlo o guardarlo de todos modos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce trajet n'a pas enregistré de distance significative. Vous pouvez le supprimer ou l'enregistrer quand même."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस यात्रा में कोई महत्वपूर्ण दूरी रिकॉर्ड नहीं हुई। आप इसे हटा सकते हैं या फिर भी सहेज सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この記録には十分な距離がありません。破棄するか、そのまま保存できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此次行程没有记录到有效距离。您可以丢弃它，或仍然保存。"
           }
         }
       }
@@ -24961,6 +26625,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "该行程已在您的历史记录中"
+          }
+        }
+      }
+    },
+    "This rider already has 5 trusted watchers.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Person hat bereits 5 vertrauenswürdige Kontakte."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This rider already has 5 trusted watchers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta persona ya tiene 5 observadores de confianza."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette personne a déjà 5 contacts de confiance."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस राइडर के पास पहले से ही 5 विश्वसनीय दर्शक हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このライダーはすでに5人のウォッチャーを登録しています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该骑手已有 5 位信任的查看者。"
           }
         }
       }
@@ -25219,6 +26930,12 @@
     },
     "Time of day": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uhrzeit"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -25229,12 +26946,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Heure"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uhrzeit"
           }
         },
         "hi": {
@@ -26081,6 +27792,100 @@
         }
       }
     },
+    "Trusted Watchers": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertrauenswürdige Kontakte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trusted Watchers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Observadores de confianza"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contacts de confiance"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विश्वसनीय दर्शक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信頼できるウォッチャー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信任的查看者"
+          }
+        }
+      }
+    },
+    "Trusted watchers automatically receive a live push notification when you start sharing. Zero contacts permission required.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertrauenswürdige Kontakte erhalten automatisch eine Push-Mitteilung beim Starten. Kein Kontaktzugriff nötig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trusted watchers automatically receive a live push notification when you start sharing. Zero contacts permission required."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los observadores de confianza reciben automáticamente una notificación al empezar a compartir. Sin permiso de contactos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos contacts de confiance reçoivent une notification dès que vous partagez. Aucun accès aux contacts requis."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साझा करना शुरू करते ही विश्वसनीय दर्शकों को तुरंत पुश सूचना मिलती है। संपर्क अनुमति की आवश्यकता नहीं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有を開始すると、信頼できるウォッチャーにリアルタイムでプッシュ通知が届きます。連絡先の権限は不要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始共享时，信任的查看者会自动收到实时推送通知。无需通讯录权限。"
+          }
+        }
+      }
+    },
     "Turn on to save raw, uncompressed data. Skipping processing increases storage and keeps glitches.": {
       "localizations": {
         "de": {
@@ -26724,6 +28529,53 @@
         }
       }
     },
+    "Up to 5 trusted watchers": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis zu 5 vertrauenswürdige Kontakte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to 5 trusted watchers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasta 5 observadores de confianza"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jusqu'à 5 contacts de confiance"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अधिकतम 5 विश्वसनीय दर्शक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大5人まで登録可能"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 5 位信任的查看者"
+          }
+        }
+      }
+    },
     "Update Available": {
       "extractionState": "manual",
       "localizations": {
@@ -26907,6 +28759,12 @@
     },
     "Use this": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übernehmen"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -26917,12 +28775,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Utiliser"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Übernehmen"
           }
         },
         "hi": {
@@ -27174,6 +29026,46 @@
         }
       }
     },
+    "Waiting for movement — start moving outdoors to record your route.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf Bewegung — bewege dich im Freien, um deine Route aufzuzeichnen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando movimiento: empieza a moverte al aire libre para grabar tu ruta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente de mouvement — déplacez-vous à l'extérieur pour enregistrer votre parcours."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "गतिविधि की प्रतीक्षा है — अपना मार्ग रिकॉर्ड करने के लिए बाहर चलना शुरू करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動を待っています — 屋外で移動を始めるとルートが記録されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待移动 — 在户外开始移动即可记录您的路线。"
+          }
+        }
+      }
+    },
     "Walk": {
       "extractionState": "stale",
       "localizations": {
@@ -27264,6 +29156,100 @@
           "stringUnit": {
             "state": "translated",
             "value": "步行—出现问题"
+          }
+        }
+      }
+    },
+    "Watch Live": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live ansehen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watch Live"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver en vivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voir en direct"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लाइव देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブで見る"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时观看"
+          }
+        }
+      }
+    },
+    "Watchers (%@)": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakte (%@)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watchers (%@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Observadores (%@)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contacts (%@)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दर्शक (%@)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォッチャー (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看者 (%@)"
           }
         }
       }
@@ -27398,6 +29384,12 @@
     },
     "What's new": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuigkeiten"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -27408,12 +29400,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nouveautés"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neuigkeiten"
           }
         },
         "hi": {
@@ -27439,6 +29425,12 @@
     "What's new, unread": {
       "extractionState": "manual",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuigkeiten, ungelesen"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -27449,12 +29441,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nouveautés, non lu"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neuigkeiten, ungelesen"
           }
         },
         "hi": {
@@ -27877,6 +29863,12 @@
     },
     "You are still sharing with a group": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du teilst weiterhin mit einer Gruppe"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -27887,12 +29879,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vous partagez toujours avec un groupe"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du teilst weiterhin mit einer Gruppe"
           }
         },
         "hi": {
@@ -27917,6 +29903,12 @@
     },
     "You asked to be reminded at this time.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast um eine Erinnerung zu dieser Zeit gebeten."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -27927,12 +29919,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vous avez demandé un rappel à cette heure."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du hast um eine Erinnerung zu dieser Zeit gebeten."
           }
         },
         "hi": {
@@ -27998,6 +29984,12 @@
     },
     "You reached %@": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie haben %@ erreicht"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -28008,12 +30000,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vous avez atteint %@"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sie haben %@ erreicht"
           }
         },
         "hi": {
@@ -28333,6 +30319,12 @@
     },
     "Your %@ reminder": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine %@-Erinnerung"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -28343,12 +30335,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Votre rappel %@"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine %@-Erinnerung"
           }
         },
         "hi": {
@@ -28453,6 +30439,12 @@
     },
     "Your last recorded activity was %@ days ago. Everything you recorded is still on your phone.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre letzte aufgezeichnete Aktivität war vor %@ Tagen. Alles Aufgezeichnete ist weiterhin auf Ihrem Telefon."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -28463,12 +30455,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Votre dernière activité enregistrée date de %@ jours. Tout ce que vous avez enregistré est toujours sur votre téléphone."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ihre letzte aufgezeichnete Aktivität war vor %@ Tagen. Alles Aufgezeichnete ist weiterhin auf Ihrem Telefon."
           }
         },
         "hi": {
@@ -28533,6 +30519,12 @@
     },
     "Your ride ended, but you are still visible in %@.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Aktivität ist beendet, aber du bist in %@ weiterhin sichtbar."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -28543,12 +30535,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Votre sortie est terminée, mais vous restez visible dans %@."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Aktivität ist beendet, aber du bist in %@ weiterhin sichtbar."
           }
         },
         "hi": {
@@ -28573,6 +30559,12 @@
     },
     "Your ride ended, but you are still visible in a live group.": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Aktivität ist beendet, aber du bist in einer aktiven Gruppe weiterhin sichtbar."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -28583,12 +30575,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Votre sortie est terminée, mais vous restez visible dans un groupe actif."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Aktivität ist beendet, aber du bist in einer aktiven Gruppe weiterhin sichtbar."
           }
         },
         "hi": {
@@ -28660,6 +30646,12 @@
     },
     "Your ride was saved": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Fahrt wurde gespeichert"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -28670,12 +30662,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Votre sortie a été enregistrée"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ihre Fahrt wurde gespeichert"
           }
         },
         "hi": {
@@ -28700,6 +30686,12 @@
     },
     "Your rides are still here": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Fahrten sind noch da"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -28710,12 +30702,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vos sorties sont toujours là"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ihre Fahrten sind noch da"
           }
         },
         "hi": {
@@ -29219,6 +31205,53 @@
         }
       }
     },
+    "this rider": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "diese Person"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this rider"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "esta persona"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ce cycliste"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह राइडर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このライダー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该骑手"
+          }
+        }
+      }
+    },
     "— Support details —": {
       "extractionState": "stale",
       "localizations": {
@@ -29344,206 +31377,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "🛡️ 离线记录保护 • 已准备好本地记录"
-          }
-        }
-      }
-    },
-    "Waiting for movement — start moving outdoors to record your route.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esperando movimiento: empieza a moverte al aire libre para grabar tu ruta."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En attente de mouvement — déplacez-vous à l'extérieur pour enregistrer votre parcours."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Warte auf Bewegung — bewege dich im Freien, um deine Route aufzuzeichnen."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "गतिविधि की प्रतीक्षा है — अपना मार्ग रिकॉर्ड करने के लिए बाहर चलना शुरू करें।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "移動を待っています — 屋外で移動を始めるとルートが記録されます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在等待移动 — 在户外开始移动即可记录您的路线。"
-          }
-        }
-      }
-    },
-    "Discard this ride?": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "¿Descartar este viaje?"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer ce trajet ?"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diese Fahrt verwerfen?"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस यात्रा को हटाएं?"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この記録を破棄しますか？"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "丢弃此次行程？"
-          }
-        }
-      }
-    },
-    "This ride did not record meaningful distance. You can discard it or save it anyway.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este viaje no registró una distancia significativa. Puedes descartarlo o guardarlo de todos modos."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ce trajet n'a pas enregistré de distance significative. Vous pouvez le supprimer ou l'enregistrer quand même."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diese Fahrt hat keine aussagekräftige Distanz aufgezeichnet. Sie können sie verwerfen oder trotzdem speichern."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस यात्रा में कोई महत्वपूर्ण दूरी रिकॉर्ड नहीं हुई। आप इसे हटा सकते हैं या फिर भी सहेज सकते हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この記録には十分な距離がありません。破棄するか、そのまま保存できます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "此次行程没有记录到有效距离。您可以丢弃它，或仍然保存。"
-          }
-        }
-      }
-    },
-    "Discard": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Descartar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verwerfen"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हटाएं"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "破棄"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "丢弃"
-          }
-        }
-      }
-    },
-    "Save anyway": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Guardar de todos modos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enregistrer quand même"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trotzdem speichern"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "फिर भी सहेजें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "そのまま保存"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仍然保存"
           }
         }
       }
