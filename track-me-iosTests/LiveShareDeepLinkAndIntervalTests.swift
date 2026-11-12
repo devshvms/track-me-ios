@@ -197,4 +197,22 @@ final class LiveShareDeepLinkAndIntervalTests: XCTestCase {
         XCTAssertEqual(snapshot?.stopReason, "Rider ended live sharing")
         XCTAssertEqual(snapshot?.path, [LiveViewerPoint(lat: 37.3323, lng: -122.0312)])
     }
+
+    func testComputesFreshnessAgeAndFlagsDelayedUpdates() {
+        let now = Date(timeIntervalSince1970: 1_700_000_100)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let freshIso = formatter.string(from: now.addingTimeInterval(-12))
+        let staleIso = formatter.string(from: now.addingTimeInterval(-50))
+        let futureIso = formatter.string(from: now.addingTimeInterval(15))
+
+        XCTAssertEqual(LiveSessionViewerRepository.ageSeconds(timestampIso: freshIso, now: now), 12)
+        XCTAssertEqual(LiveSessionViewerRepository.ageSeconds(timestampIso: futureIso, now: now), 0)
+        XCTAssertNil(LiveSessionViewerRepository.ageSeconds(timestampIso: "invalid-iso", now: now))
+
+        XCTAssertFalse(LiveSessionViewerRepository.isDelayedUpdate(powerSaveMode: false, timestampIso: freshIso, now: now))
+        XCTAssertTrue(LiveSessionViewerRepository.isDelayedUpdate(powerSaveMode: false, timestampIso: staleIso, now: now))
+        XCTAssertTrue(LiveSessionViewerRepository.isDelayedUpdate(powerSaveMode: true, timestampIso: freshIso, now: now))
+    }
 }
