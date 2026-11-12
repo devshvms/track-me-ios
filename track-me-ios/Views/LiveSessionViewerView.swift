@@ -9,6 +9,7 @@ struct LiveSessionViewerView: View {
     let onDismiss: () -> Void
 
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var unitSettings = UnitSettings.shared
 
     @State private var repository = LiveSessionViewerRepository()
@@ -19,9 +20,16 @@ struct LiveSessionViewerView: View {
     @State private var isLoading = true
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var isFollowingRider = true
+    @State private var hasCenteredInitially = false
+    @State private var nowDate = Date()
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     private let startGreen = Color(red: 16.0 / 255.0, green: 185.0 / 255.0, blue: 129.0 / 255.0)
+
+    private struct ViewerPollKey: Equatable {
+        let sessionId: String
+        let isSceneActive: Bool
+    }
 
     var body: some View {
         NavigationStack {
@@ -43,13 +51,22 @@ struct LiveSessionViewerView: View {
                 }
             }
         }
-        .task(id: sessionId) {
+        .task(id: ViewerPollKey(sessionId: sessionId, isSceneActive: scenePhase == .active)) {
+            guard scenePhase == .active else { return }
+            if isExpiredOrMissing || snapshot?.isActive == false { return }
             await pollSessionLoop()
         }
     }
 
     private var headerTitle: some View {
-        HStack(spacing: 8) {
+        let lastLoc = snapshot?.lastLocation
+        let isDelayed = snapshot?.isActive == true && LiveSessionViewerRepository.isDelayedUpdate(
+            powerSaveMode: lastLoc?.powerSaveMode == true,
+            timestampIso: lastLoc?.timestampIso,
+            now: nowDate
+        )
+
+        return HStack(spacing: 6) {
             let titleText: String = {
                 if let username = snapshot?.username {
                     return LocalizationHelper.formatted("Watching %@", username)
@@ -77,6 +94,15 @@ struct LiveSessionViewerView: View {
                     in: Capsule()
                 )
                 .foregroundStyle(active ? liveCyan : .secondary)
+            }
+
+            if isDelayed {
+                Text(LocalizationHelper.localized("Delayed"))
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.orange.opacity(0.18), in: Capsule())
+                    .foregroundStyle(.orange)
             }
         }
     }
@@ -120,20 +146,44 @@ struct LiveSessionViewerView: View {
                 }
             )
             .overlay(alignment: .bottomTrailing) {
-                if !isFollowingRider, let target = currentCoordinate {
-                    Button {
-                        isFollowingRider = true
-                        focusCamera(on: target)
-                    } label: {
-                        Image(systemName: "location.fill")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(liveCyan)
-                            .padding(12)
-                            .background(.regularMaterial, in: Circle())
-                            .shadow(radius: 3)
+                if currentCoordinate != nil || coordinates.count >= 2 {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        if !isFollowingRider, let target = currentCoordinate {
+                            Button {
+                                isFollowingRider = true
+                                focusCamera(on: target)
+                            } label: {
+                                Label(
+                                    LocalizationHelper.localized("Recenter"),
+                                    systemImage: "location.fill"
+                                )
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(liveCyan)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(.regularMaterial, in: Capsule())
+                                .shadow(radius: 3)
+                            }
+                        }
+                        if coordinates.count >= 2 {
+                            Button {
+                                isFollowingRider = false
+                                fitRouteCamera(coordinates: coordinates)
+                            } label: {
+                                Label(
+                                    LocalizationHelper.localized("Fit route"),
+                                    systemImage: "arrow.up.left.and.arrow.down.right"
+                                )
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(.regularMaterial, in: Capsule())
+                                .shadow(radius: 3)
+                            }
+                        }
                     }
                     .padding(14)
-                    .accessibilityLabel(LocalizationHelper.localized("Center on my location"))
                 }
             }
 
@@ -172,55 +222,115 @@ struct LiveSessionViewerView: View {
                         .padding(12)
                     Spacer()
                 }
+            } else if snapshot?.isActive == true && currentCoordinate == nil {
+                VStack {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(LocalizationHelper.localized("Session live — waiting for first GPS signal…"))
+                            .font(.caption.weight(.medium))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(12)
+                    Spacer()
+                }
+            } else if errorMessage != nil {
+                VStack {
+                    Text(LocalizationHelper.localized("Connection slow — retrying…"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.orange.opacity(0.92), in: Capsule())
+                        .padding(12)
+                    Spacer()
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var bottomTelemetryBar: some View {
+        let lastLoc = snapshot?.lastLocation
         let speedText: String = {
-            if let mps = snapshot?.lastLocation?.speedMetersPerSecond {
+            if let mps = lastLoc?.speedMetersPerSecond {
                 return UnitFormatter.speed(mps: mps, unit: unitSettings.unit)
             }
             return "—"
         }()
+        let destinationText = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasDestination = destinationText.map { !$0.isEmpty } ?? false
+        let ageSeconds = LiveSessionViewerRepository.ageSeconds(timestampIso: lastLoc?.timestampIso, now: nowDate)
 
-        return HStack(spacing: 12) {
-            HStack(spacing: 14) {
-                HStack(spacing: 4) {
-                    Image(systemName: "speedometer")
-                        .font(.subheadline)
-                        .foregroundStyle(liveCyan)
-                    Text(speedText)
-                        .font(.subheadline.weight(.bold))
-                }
+        return VStack(spacing: 8) {
+            if hasDestination || ageSeconds != nil {
+                HStack(spacing: 8) {
+                    if let destinationText, !destinationText.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "flag.fill")
+                                .font(.caption2)
+                                .foregroundStyle(liveCyan)
+                            Text(destinationText)
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
+                    }
 
-                if let battery = snapshot?.lastLocation?.batteryLevel {
-                    HStack(spacing: 3) {
-                        Image(systemName: snapshot?.lastLocation?.powerSaveMode == true ? "battery.25" : "battery.100")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text("\(battery)%")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+
+                    if let ageSeconds {
+                        let ageLabel = ageSeconds < 60 ? "\(ageSeconds)s" : "\(ageSeconds / 60)m"
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text(LocalizationHelper.formatted("Updated %@", ageLabel))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
 
-            Spacer(minLength: 8)
+            HStack(spacing: 12) {
+                HStack(spacing: 14) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "speedometer")
+                            .font(.subheadline)
+                            .foregroundStyle(liveCyan)
+                        Text(speedText)
+                            .font(.subheadline.weight(.bold))
+                    }
 
-            Button {
-                if let url = URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
-                    openURL(url)
+                    if let battery = lastLoc?.batteryLevel {
+                        HStack(spacing: 3) {
+                            Image(systemName: lastLoc?.powerSaveMode == true ? "battery.25" : "battery.100")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text("\(battery)%")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
-            } label: {
-                Label(
-                    LocalizationHelper.localized("Open in browser"),
-                    systemImage: "safari"
-                )
-                .font(.subheadline.weight(.semibold))
+
+                Spacer(minLength: 8)
+
+                Button {
+                    if let url = URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
+                        openURL(url)
+                    }
+                } label: {
+                    Label(
+                        LocalizationHelper.localized("Open in browser"),
+                        systemImage: "safari"
+                    )
+                    .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -238,9 +348,41 @@ struct LiveSessionViewerView: View {
         }
     }
 
+    private func fitRouteCamera(coordinates: [CLLocationCoordinate2D]) {
+        guard !coordinates.isEmpty else { return }
+        var minLat = coordinates[0].latitude
+        var maxLat = coordinates[0].latitude
+        var minLng = coordinates[0].longitude
+        var maxLng = coordinates[0].longitude
+
+        for coord in coordinates {
+            minLat = min(minLat, coord.latitude)
+            maxLat = max(maxLat, coord.latitude)
+            minLng = min(minLng, coord.longitude)
+            maxLng = max(maxLng, coord.longitude)
+        }
+
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2.0,
+            longitude: (minLng + maxLng) / 2.0
+        )
+        let latDelta = max(0.004, (maxLat - minLat) * 1.35)
+        let lngDelta = max(0.004, (maxLng - minLng) * 1.35)
+
+        withAnimation(.easeInOut(duration: 0.45)) {
+            cameraPosition = .region(
+                MKCoordinateRegion(
+                    center: center,
+                    span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lngDelta)
+                )
+            )
+        }
+    }
+
     private func pollSessionLoop() async {
         var tick = 0
         while !Task.isCancelled {
+            nowDate = Date()
             let result = await repository.fetchSnapshot(sessionId: sessionId)
             switch result {
             case .success(let fetched):
@@ -248,8 +390,10 @@ struct LiveSessionViewerView: View {
                 isExpiredOrMissing = false
                 errorMessage = nil
                 isLoading = false
-                if isFollowingRider, let coordinate = fetched.lastLocation?.coordinate {
+                if let coordinate = fetched.lastLocation?.coordinate,
+                   isFollowingRider || !hasCenteredInitially {
                     focusCamera(on: coordinate)
+                    hasCenteredInitially = true
                 }
                 if fetched.isActive && tick % 3 == 0 {
                     _ = await repository.sendViewerPing(sessionId: sessionId, viewerId: viewerId)

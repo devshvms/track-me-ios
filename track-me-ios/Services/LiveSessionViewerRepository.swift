@@ -186,6 +186,37 @@ final class LiveSessionViewerRepository {
         )
     }
 
+    static let delayedUpdateThresholdSeconds = 45
+
+    static func ageSeconds(timestampIso: String?, now: Date = Date()) -> Int? {
+        guard let clean = timestampIso?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+              let parsedDate = parseISO8601Date(clean) else {
+            return nil
+        }
+        return max(0, Int(now.timeIntervalSince(parsedDate)))
+    }
+
+    static func isDelayedUpdate(powerSaveMode: Bool, timestampIso: String?, now: Date = Date()) -> Bool {
+        if powerSaveMode {
+            return true
+        }
+        guard let age = ageSeconds(timestampIso: timestampIso, now: now) else {
+            return false
+        }
+        return age >= delayedUpdateThresholdSeconds
+    }
+
+    private static func parseISO8601Date(_ string: String) -> Date? {
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = withFractional.date(from: string) {
+            return date
+        }
+        let standard = ISO8601DateFormatter()
+        standard.formatOptions = [.withInternetDateTime]
+        return standard.date(from: string)
+    }
+
     private static func decodeCoordinate(_ value: Any?) -> Double? {
         guard let num = (value as? NSNumber)?.doubleValue, num.isFinite else {
             return nil
