@@ -145,6 +145,17 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var storageWarningShown = false
     private var lastStorageCheck = Date.distantPast
     private var skipsNextDistanceSegmentAfterManualPause = false
+    private let liveShareIntervalTracker = LiveShareIntervalTracker()
+
+    @MainActor
+    func noteLiveShareStarted(at date: Date = Date()) {
+        liveShareIntervalTracker.markLiveShareStarted(at: date, activeRideId: currentRideId)
+    }
+
+    @MainActor
+    func noteLiveShareEnded(at date: Date = Date()) {
+        liveShareIntervalTracker.markLiveShareEnded(at: date)
+    }
 
     override init() {
         super.init()
@@ -317,6 +328,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             : nil
         currentRideId = newRide.id
         UserDefaults.standard.set(newRide.id.uuidString, forKey: Self.activeRideKey)
+        liveShareIntervalTracker.beginRide(rideId: newRide.id)
+        if LiveSharingManager.shared.isActive {
+            liveShareIntervalTracker.markLiveShareStarted(
+                at: LiveSharingManager.shared.sessionStartTime ?? rideStartTime,
+                activeRideId: newRide.id
+            )
+        }
         GroupRideManager.shared.refreshLocationSource()
 
         // Reset live state for a fresh ride.
@@ -490,6 +508,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         // Rebuild live state and continue the SAME ride so new points append to it.
         currentRideId = rideId
+        liveShareIntervalTracker.bindExistingOrRestoreRide(rideId: rideId)
+        if !LiveSharingManager.shared.isActive {
+            liveShareIntervalTracker.markLiveShareEnded(at: last.timestamp)
+        }
         points = sorted.map {
             let coordinate = $0.coordinate
             return CLLocation(
@@ -567,11 +589,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pausedElapsed: durationInMillis / 1000
         )
 
+        let endedAt = Date()
         if let id = currentRideId {
             if discard {
+                liveShareIntervalTracker.clear()
                 DataRepository.shared.deleteRide(rideId: id)
             } else {
-                finalizeSegment(id: id, endedAt: Date())
+                if LiveSharingManager.shared.isActive {
+                    liveShareIntervalTracker.markLiveShareEnded(at: endedAt)
+                }
+                finalizeSegment(id: id, endedAt: endedAt)
             }
         }
         currentRideId = nil
@@ -704,6 +731,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         )
 
         // Deliberately skips finishRide/ride_completed/reveal generation for an explicit start abort.
+        liveShareIntervalTracker.clear()
         DataRepository.shared.deleteRide(rideId: id)
         currentRideId = nil
         GroupRideManager.shared.refreshLocationSource()
@@ -1054,7 +1082,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pointCount: points.count,
             elevationGainMeters: RideMetrics.elevationGainMeters(fromLocations: points)
         )
-        DataRepository.shared.finishRide(rideId: id, endedAt: endedAt, aggregate: aggregate)
+        let intervals = liveShareIntervalTracker.finalizeIntervals(for: id, endedAt: endedAt)
+        DataRepository.shared.finishRide(
+            rideId: id,
+            endedAt: endedAt,
+            aggregate: aggregate,
+            liveShareIntervals: intervals
+        )
         TelemetryManager.shared.trackRideCompleted(
             durationSeconds: Int64(durationInMillis / 1000),
             distanceKm: totalDistance / 1000.0

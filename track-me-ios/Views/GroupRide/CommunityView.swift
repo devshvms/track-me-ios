@@ -241,7 +241,8 @@ struct CommunityView: View {
             \Ride.id, \Ride.startTime, \Ride.endTime, \Ride.isSynced, \Ride.pendingDelete,
             \Ride.title, \Ride.persona, \Ride.isSample, \Ride.distanceMeters,
             \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
-            \Ride.wasGroupRide, \Ride.groupRiderCount
+            \Ride.wasGroupRide, \Ride.groupRiderCount,
+            \Ride.isBroadcasted, \Ride.liveShareMode
         ]
         groupRides = (try? modelContext.fetch(descriptor)
             .filter { ride in ride.endTime.map { $0 > ride.startTime } ?? false }

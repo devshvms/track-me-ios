@@ -23,6 +23,9 @@ struct DownloadedRide: Equatable {
     var revealKind: String? = nil
     var revealPreviousBest: Double? = nil
     var revealMilestoneCount: Int? = nil
+    var isBroadcasted: Bool = false
+    var liveShareMode: String? = nil
+    var liveShareIntervalsJson: String? = nil
 
     var persistedAggregate: RideAggregateSnapshot? {
         guard let distanceMeters,
@@ -138,7 +141,10 @@ extension FirestoreSyncManager {
             trackingAlgorithmVersion: decodeInt64(data["trackingAlgorithmVersion"]).map(Int.init),
             revealKind: data["revealKind"] as? String,
             revealPreviousBest: decodeDouble(data["revealPreviousBest"]),
-            revealMilestoneCount: decodeInt64(data["revealMilestoneCount"]).map(Int.init)
+            revealMilestoneCount: decodeInt64(data["revealMilestoneCount"]).map(Int.init),
+            isBroadcasted: (data["isBroadcasted"] as? Bool) ?? ((data["liveShareMode"] as? String) != nil),
+            liveShareMode: data["liveShareMode"] as? String,
+            liveShareIntervalsJson: data["liveShareIntervalsJson"] as? String
         )
     }
 }

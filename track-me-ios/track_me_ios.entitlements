@@ -6,6 +6,11 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:trackme.shvms.in</string>
+		<string>applinks:www.trackme.shvms.in</string>
+	</array>
 	<key>com.apple.developer.declared-age-range</key>
 	<true/>
 	<!-- SCOPE_1.8.7 §6.3: APNs, for operator broadcasts. `development` so a debug build talks to

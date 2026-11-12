@@ -175,10 +175,12 @@ struct RideDetailView: View {
                             .padding(.top, 12)
                         }
 
+                        let liveIntervals = liveShareIntervals
                         CombinedMetricLineChart(
                             points: sortedPoints,
                             scrubIndex: scrubIndex ?? (sortedPoints.count - 1),
-                            onScrub: { scrubIndex = $0 }
+                            onScrub: { scrubIndex = $0 },
+                            liveShareIntervals: liveIntervals
                         )
                             .padding(.horizontal)
                             .padding(.top, 16)
@@ -186,13 +188,28 @@ struct RideDetailView: View {
                         // Scrubber Details
                         let index = min(sortedPoints.count - 1, max(0, scrubIndex ?? (sortedPoints.count - 1)))
                         let elapsed = sortedPoints[index].timestamp.timeIntervalSince(ride.startTime)
-                        Text(LocalizationHelper.formatted(
-                            "Time: %@  |  Dist: %@",
-                            formatDuration(elapsed),
-                            UnitFormatter.distance(meters: cumulativeDistances[index], unit: unitSettings.unit)
-                        ))
-                            .font(.system(.subheadline, design: .default, weight: .bold))
-                            .foregroundColor(.secondary)
+                        let inLiveWindow = LiveShareIntervals.containsDate(
+                            liveIntervals,
+                            date: sortedPoints[index].timestamp
+                        )
+                        HStack(spacing: 8) {
+                            Text(LocalizationHelper.formatted(
+                                "Time: %@  |  Dist: %@",
+                                formatDuration(elapsed),
+                                UnitFormatter.distance(meters: cumulativeDistances[index], unit: unitSettings.unit)
+                            ))
+                                .font(.system(.subheadline, design: .default, weight: .bold))
+                                .foregroundColor(.secondary)
+
+                            if inLiveWindow {
+                                Label(LocalizationHelper.localized("Live Share"), systemImage: "antenna.radiowaves.left.and.right")
+                                    .font(.caption2.weight(.semibold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(liveCyan.opacity(0.18), in: Capsule())
+                                    .foregroundStyle(liveCyan)
+                            }
+                        }
 
                         if ride.ridePersona != .auto {
                             Text("\(ride.ridePersona.emoji) \(ride.ridePersona.displayName)")
@@ -462,6 +479,14 @@ struct RideDetailView: View {
         )
     }
     
+    private var liveShareIntervals: [LiveShareInterval] {
+        LiveShareIntervals.parse(ride.liveShareIntervalsJson)
+    }
+
+    private var liveCyan: Color {
+        Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
+    }
+
     @ViewBuilder
     var rideSummaryCard: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -474,8 +499,10 @@ struct RideDetailView: View {
             // layer down: a rider who set the app to French still read "28 Aug 2026 at 7:32 AM".
             let dateStr = LocalizationHelper.mediumDateTime(ride.startTime, includeTime: true)
             let usesPace = ride.ridePersona == .walk || ride.ridePersona == .run
+            let showLiveBadge = ride.liveShareMode != nil || ride.isBroadcasted
+            let showGroupBadge = ride.wasGroupRide
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Ride Stats")
                     .font(.title2).bold()
                     .foregroundColor(.white)
@@ -488,6 +515,37 @@ struct RideDetailView: View {
                     .font(.subheadline)
                     .foregroundColor(.gray)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if showLiveBadge || showGroupBadge {
+                    HStack(spacing: 8) {
+                        if showLiveBadge {
+                            let label = ride.liveShareMode == LiveShareIntervals.modePartial
+                                ? LocalizationHelper.localized("Partial Live")
+                                : LocalizationHelper.localized("Live Shared")
+                            Label(label, systemImage: "antenna.radiowaves.left.and.right")
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(liveCyan.opacity(0.20), in: Capsule())
+                                .foregroundStyle(liveCyan)
+                        }
+                        if showGroupBadge {
+                            let label: String = {
+                                if let count = ride.groupRiderCount, count > 1 {
+                                    return LocalizationHelper.formatted("Group Ride · %d", count)
+                                }
+                                return LocalizationHelper.localized("Group Ride")
+                            }()
+                            Label(label, systemImage: "person.2.fill")
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(Color.indigo.opacity(0.24), in: Capsule())
+                                .foregroundStyle(Color(red: 165.0 / 255.0, green: 180.0 / 255.0, blue: 252.0 / 255.0))
+                        }
+                    }
+                    .padding(.top, 2)
+                }
             }
 
             // TASK-230/235: the pause-excluded figure keeps the label "Duration" — §5.1 only

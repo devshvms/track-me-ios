@@ -171,6 +171,9 @@ class FirestoreSyncManager {
             "revealKind": ride.revealKind ?? NSNull(),
             "revealPreviousBest": ride.revealPreviousBest ?? NSNull(),
             "revealMilestoneCount": ride.revealMilestoneCount ?? NSNull(),
+            "isBroadcasted": ride.isBroadcasted,
+            "liveShareMode": ride.liveShareMode ?? NSNull(),
+            "liveShareIntervalsJson": ride.liveShareIntervalsJson ?? NSNull(),
             RideChunkingContract.chunkCountField: chunkCount,
             "contentHash": Self.contentHash(points)
         ]
