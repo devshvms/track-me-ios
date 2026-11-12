@@ -125,8 +125,22 @@ final class ModelContainerUpgradeTests: XCTestCase {
             rides.contains { $0.id == survivingRideId },
             "the specific ride written before the upgrade must still be there"
         )
-        XCTAssertEqual(rides.first(where: { $0.id == survivingRideId })?.distanceMeters, 12_345)
+        let migratedRide = rides.first(where: { $0.id == survivingRideId })
+        XCTAssertEqual(migratedRide?.distanceMeters, 12_345)
+        XCTAssertNil(migratedRide?.liveShareMode)
+        XCTAssertNil(migratedRide?.liveShareIntervalsJson)
         XCTAssertEqual(try upgraded.mainContext.fetch(FetchDescriptor<GPSPoint>()).count, 2)
+
+        migratedRide?.isBroadcasted = true
+        migratedRide?.liveShareMode = LiveShareIntervals.modeFull
+        migratedRide?.liveShareIntervalsJson = "[[1700000000000,1700003600000]]"
+        try upgraded.mainContext.save()
+
+        let reopened = try container(for: ModelContainerFactory.schema)
+        let persisted = try reopened.mainContext.fetch(FetchDescriptor<Ride>())
+            .first(where: { $0.id == survivingRideId })
+        XCTAssertEqual(persisted?.liveShareMode, LiveShareIntervals.modeFull)
+        XCTAssertEqual(persisted?.liveShareIntervalsJson, "[[1700000000000,1700003600000]]")
     }
 
     func testTheUpgradeIsIdempotentAcrossRelaunches() throws {

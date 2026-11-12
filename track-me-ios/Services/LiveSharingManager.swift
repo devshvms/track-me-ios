@@ -231,6 +231,7 @@ class LiveSharingManager {
                         self.remainingSeconds = max(0, Int(parsed.expiresAt.timeIntervalSinceNow))
                         self.isStarting = false
                         self.isActive = true
+                        TrackingManager.shared.noteLiveShareStarted(at: self.sessionStartTime ?? Date())
 
                         TelemetryManager.shared.trackLiveShareStarted(
                             shareId: parsed.sessionId,
@@ -272,6 +273,9 @@ class LiveSharingManager {
         }
 
         DispatchQueue.main.async {
+            if self.isActive || self.sessionStartTime != nil {
+                TrackingManager.shared.noteLiveShareEnded(at: Date())
+            }
             if let id = self.sessionId, let startTime = self.sessionStartTime {
                 let duration = Int(Date().timeIntervalSince(startTime))
                 TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
@@ -303,6 +307,7 @@ class LiveSharingManager {
         applyAuth(&request, token: token)
         _ = try? await URLSession.shared.data(for: request)
         await MainActor.run {
+            TrackingManager.shared.noteLiveShareEnded(at: Date())
             let duration = self.sessionStartTime.map { Int(Date().timeIntervalSince($0)) } ?? 0
             TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
             self.isActive = false

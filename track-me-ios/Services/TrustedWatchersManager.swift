@@ -265,9 +265,15 @@ final class TrustedWatchersManager {
     }
 
     func openLiveSessionFromNotification(sessionId: String, shareUrl: String?) {
+        openLiveSession(sessionId: sessionId, shareUrl: shareUrl, trackPush: true)
+    }
+
+    func openLiveSession(sessionId: String, shareUrl: String? = nil, trackPush: Bool = false) {
         let cleanId = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanId.isEmpty else { return }
-        TelemetryManager.shared.trackWatcherPushOpened()
+        if trackPush {
+            TelemetryManager.shared.trackWatcherPushOpened()
+        }
         pendingOpenSessionId = cleanId
         pendingOpenShareURL = shareUrl
     }

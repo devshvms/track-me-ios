@@ -4,6 +4,10 @@ import StoreKit
 import FirebaseAuth
 import SwiftData
 
+private struct LiveViewerSessionItem: Identifiable {
+    let id: String
+}
+
 struct HomeView: View {
     var onNavigateHistory: () -> Void = {}
     var onNavigateCommunity: () -> Void = {}
@@ -66,6 +70,7 @@ struct HomeView: View {
     @State private var showFullRideHudForPrimaryShare = false
     @State private var pendingDirectShareDuration: Int?
     @State private var activeWatcherInvitePrompt: ParsedWatcherInviteLink?
+    @State private var activeViewerSession: LiveViewerSessionItem?
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
     @AppStorage(OnboardingGate.startHintSeenKey) private var legacyStartHintSeen = false
 
@@ -399,6 +404,11 @@ struct HomeView: View {
                 onDemoSave: nil
             )
         }
+        .sheet(item: $activeViewerSession) { session in
+            LiveSessionViewerView(sessionId: session.id) {
+                activeViewerSession = nil
+            }
+        }
         .alert("Location access needed", isPresented: $trackingManager.showLocationDeniedRecovery) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -550,10 +560,11 @@ struct HomeView: View {
         .onChange(of: trustedWatchers.pendingOpenSessionId, initial: true) { _, sessionId in
             guard sessionId != nil else { return }
             if let pending = trustedWatchers.consumePendingOpenSession() {
-                let rawUrl = pending.shareUrl ?? "\(APIConfig.baseURL)/live/\(pending.sessionId)"
-                if let url = URL(string: rawUrl) {
-                    openURL(url)
-                }
+                let resolvedId = pending.shareUrl
+                    .flatMap(URL.init(string:))
+                    .flatMap(LiveShareLink.parseSessionURL)
+                    ?? pending.sessionId
+                activeViewerSession = LiveViewerSessionItem(id: resolvedId)
             }
         }
         .onChange(of: groupRide.mapFocusRequest) { _, _ in
@@ -689,9 +700,9 @@ struct HomeView: View {
             watcherInboxInvite: trustedWatchers.inboxInvite,
             onWatchLiveInvite: { invite in
                 TelemetryManager.shared.trackWatcherPushOpened()
-                if let url = URL(string: invite.shareUrl) {
-                    openURL(url)
-                }
+                let resolvedId = URL(string: invite.shareUrl).flatMap(LiveShareLink.parseSessionURL)
+                    ?? invite.sessionId
+                activeViewerSession = LiveViewerSessionItem(id: resolvedId)
             },
             trustedWatcherCount: trustedWatchers.watchers.count,
             onManageWatchers: { showHomeSharing = true }

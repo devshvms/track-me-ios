@@ -73,6 +73,9 @@ final class DataRepository {
             ride.revealKind = d.revealKind
             ride.revealPreviousBest = d.revealPreviousBest
             ride.revealMilestoneCount = d.revealMilestoneCount
+            ride.isBroadcasted = d.isBroadcasted || (d.liveShareMode != nil)
+            ride.liveShareMode = d.liveShareMode
+            ride.liveShareIntervalsJson = d.liveShareIntervalsJson
             ctx.insert(ride)
             var importedPoints: [GPSPoint] = []
             for p in d.points {
@@ -171,7 +174,12 @@ final class DataRepository {
         return false
     }
 
-    func finishRide(rideId: UUID, endedAt: Date, aggregate: RideAggregateSnapshot) {
+    func finishRide(
+        rideId: UUID,
+        endedAt: Date,
+        aggregate: RideAggregateSnapshot,
+        liveShareIntervals: [LiveShareInterval] = []
+    ) {
         guard let container = container else { return }
 
         let pendingWrites = pointWriteChain
@@ -183,8 +191,25 @@ final class DataRepository {
             let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
             do {
                 guard let ride = try context.fetch(descriptor).first else { return }
-                ride.endTime = max(endedAt, ride.startTime)
+                let resolvedEnd = max(endedAt, ride.startTime)
+                ride.endTime = resolvedEnd
                 ride.applyAggregate(aggregate)
+                let startMs = Int64((ride.startTime.timeIntervalSince1970 * 1_000.0).rounded())
+                let endMs = Int64((resolvedEnd.timeIntervalSince1970 * 1_000.0).rounded())
+                let clippedIntervals = LiveShareIntervals.normalize(
+                    liveShareIntervals,
+                    minStartMillis: startMs,
+                    maxEndMillis: endMs
+                )
+                if !clippedIntervals.isEmpty {
+                    ride.isBroadcasted = true
+                    ride.liveShareIntervalsJson = LiveShareIntervals.serialize(clippedIntervals)
+                    ride.liveShareMode = LiveShareIntervals.resolveMode(
+                        rideStartMillis: startMs,
+                        rideEndMillis: endMs,
+                        intervals: clippedIntervals
+                    )
+                }
                 ride.refreshDashboardMetadata()
 
                 // TASK-232: the largest roster seen while this ride was recording is what a rider

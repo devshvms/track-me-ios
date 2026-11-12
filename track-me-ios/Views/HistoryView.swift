@@ -20,6 +20,8 @@ struct HistoryRideSummary: Identifiable, Hashable {
     /// TASK-232: recorded during a group session, and how many rode. A count, never names.
     let wasGroupRide: Bool
     let groupRiderCount: Int?
+    let isBroadcasted: Bool
+    let liveShareMode: String?
     /// TASK-246: the card's route shape, on the row. Still no fetch of `points`.
     let routePolyline: String?
 
@@ -38,6 +40,8 @@ struct HistoryRideSummary: Identifiable, Hashable {
         pointCount = max(0, ride.pointCount ?? 0)
         wasGroupRide = ride.wasGroupRide
         groupRiderCount = ride.groupRiderCount.flatMap { $0 > 0 ? $0 : nil }
+        isBroadcasted = ride.isBroadcasted
+        liveShareMode = ride.liveShareMode
         routePolyline = ride.routePolyline
     }
 }
@@ -366,7 +370,9 @@ struct HistoryView: View {
             \Ride.id, \Ride.startTime, \Ride.endTime, \Ride.isSynced, \Ride.pendingDelete,
             \Ride.title, \Ride.persona, \Ride.isSample, \Ride.distanceMeters,
             \Ride.movingDurationMillis, \Ride.avgSpeedMps, \Ride.pointCount,
-            \Ride.wasGroupRide, \Ride.groupRiderCount, \Ride.routePolyline
+            \Ride.wasGroupRide, \Ride.groupRiderCount,
+            \Ride.isBroadcasted, \Ride.liveShareMode,
+            \Ride.routePolyline
         ]
         summaries = (try? modelContext.fetch(descriptor)
             .filter { ride in ride.endTime.map { $0 > ride.startTime } ?? false }
@@ -648,6 +654,14 @@ struct CompactRideSummaryRow: View {
     /// rider count here. Nil on every other call site, which is every call site but one.
     var trailingLabel: String? = nil
 
+    private var showLiveBadge: Bool {
+        summary.liveShareMode != nil || summary.isBroadcasted
+    }
+
+    private var showGroupBadge: Bool {
+        summary.wasGroupRide && trailingLabel == nil
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             // TASK-246: the ride's own route again, as in 1.8.4. The shape comes off the row, so
@@ -671,6 +685,35 @@ struct CompactRideSummaryRow: View {
                 }
                 Text(LocalizationHelper.mediumDateTime(summary.startTime, includeTime: true))
                     .font(.caption2).foregroundStyle(.secondary)
+                if showLiveBadge || showGroupBadge {
+                    HStack(spacing: 6) {
+                        if showLiveBadge {
+                            let label = summary.liveShareMode == LiveShareIntervals.modePartial
+                                ? LocalizationHelper.localized("Partial Live")
+                                : LocalizationHelper.localized("Live")
+                            Label(label, systemImage: "antenna.radiowaves.left.and.right")
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(liveCyan.opacity(0.16), in: Capsule())
+                                .foregroundStyle(liveCyan)
+                        }
+                        if showGroupBadge {
+                            let label: String = {
+                                if let count = summary.groupRiderCount, count > 1 {
+                                    return LocalizationHelper.formatted("Group · %d", count)
+                                }
+                                return LocalizationHelper.localized("Group")
+                            }()
+                            Label(label, systemImage: "person.2.fill")
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(Color.indigo.opacity(0.16), in: Capsule())
+                                .foregroundStyle(.indigo)
+                        }
+                    }
+                }
                 HStack(spacing: 8) {
                     Text(HistoryMetricFormat.km(summary.distanceMeters / 1000)).font(.caption2.weight(.bold)).foregroundStyle(BrandColor.primary)
                     Text(summary.movingDurationMillis.map { HistoryMetricFormat.duration(TimeInterval($0) / 1000) } ?? LocalizationHelper.localized("Unknown"))
@@ -683,6 +726,10 @@ struct CompactRideSummaryRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var liveCyan: Color {
+        Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     }
 }
 

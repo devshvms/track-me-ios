@@ -153,6 +153,21 @@ enum RideRecoveryManager {
             if ride.trackingAlgorithmVersion != 2 || !ride.hasCompleteAggregate {
                 ride.applyAggregate(RideMetrics.reconstructed(from: points))
             }
+            let recoveredIntervals = LiveShareIntervalTracker().finalizeIntervals(
+                for: ride.id,
+                endedAt: lastPoint.timestamp
+            )
+            if !recoveredIntervals.isEmpty {
+                let startMs = Int64((ride.startTime.timeIntervalSince1970 * 1_000.0).rounded())
+                let endMs = Int64((lastPoint.timestamp.timeIntervalSince1970 * 1_000.0).rounded())
+                ride.isBroadcasted = true
+                ride.liveShareIntervalsJson = LiveShareIntervals.serialize(recoveredIntervals)
+                ride.liveShareMode = LiveShareIntervals.resolveMode(
+                    rideStartMillis: startMs,
+                    rideEndMillis: endMs,
+                    intervals: recoveredIntervals
+                )
+            }
             ride.refreshDashboardMetadata()
             if RideTitleGenerator.isGeneratedTitle(ride.title) {
                 ride.title = RideTitleGenerator.make(

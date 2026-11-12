@@ -195,10 +195,12 @@ struct track_me_iosApp: App {
                         .onOpenURL { url in
                             if GIDSignIn.sharedInstance.handle(url) { return }
                             if Auth.auth().canHandle(url) { return }
-                            if let invite = TrustedWatchersManager.parseWatcherInviteLink(url) {
-                                TrustedWatchersManager.shared.setPendingWatcherInvite(invite)
-                                return
-                            }
+                            if handleLiveShareDeepLink(url) { return }
+                            _ = GroupRideManager.shared.handleIncomingURL(url)
+                        }
+                        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
+                            guard let url = userActivity.webpageURL else { return }
+                            if handleLiveShareDeepLink(url) { return }
                             _ = GroupRideManager.shared.handleIncomingURL(url)
                         }
                         .onAppear {
@@ -238,5 +240,18 @@ struct track_me_iosApp: App {
             .environment(\.locale, Locale(identifier: appLanguage))
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    private func handleLiveShareDeepLink(_ url: URL) -> Bool {
+        switch LiveShareLink.parse(url: url) {
+        case .watcherInvite(let invite):
+            TrustedWatchersManager.shared.setPendingWatcherInvite(invite)
+            return true
+        case .session(let sessionId):
+            TrustedWatchersManager.shared.openLiveSession(sessionId: sessionId, trackPush: false)
+            return true
+        case nil:
+            return false
+        }
     }
 }

@@ -81,6 +81,10 @@ final class Ride {
     /// after the user turned the place reference on. Not synced: a re-derivable, on-device cache.
     var placeLabelStart: String? = nil
     var placeLabelEnd: String? = nil
+    /// TASK-368 / SCOPE_1.9.3 §1.6: "FULL" vs "PARTIAL" when the ride included Live Share, and
+    /// serialized JSON intervals `"[[startMs,endMs],...]"`. Optional with nil defaults for additive migration.
+    var liveShareMode: String? = nil
+    var liveShareIntervalsJson: String? = nil
     
     @Relationship(deleteRule: .cascade, inverse: \GPSPoint.ride)
     var points: [GPSPoint]?

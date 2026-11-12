@@ -19,6 +19,7 @@ struct CombinedMetricLineChart: View {
     let points: [GPSPoint]
     let scrubIndex: Int?
     var onScrub: ((Int) -> Void)? = nil
+    var liveShareIntervals: [LiveShareInterval] = []
 
     @ObservedObject private var unitSettings = UnitSettings.shared
 
@@ -70,11 +71,47 @@ struct CombinedMetricLineChart: View {
         }
     }
 
+    private var liveCyan: Color {
+        Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
+    }
+
+    private func clippedLiveShareWindows(for points: [NormalizedMetricPoint]) -> [(start: Date, end: Date)] {
+        guard let first = points.first?.timestamp,
+              let last = points.last?.timestamp,
+              first < last,
+              !liveShareIntervals.isEmpty else {
+            return []
+        }
+        return liveShareIntervals.compactMap { interval in
+            let clippedStart = max(first, interval.startDate)
+            let clippedEnd = min(last, interval.endDate)
+            guard clippedStart < clippedEnd else { return nil }
+            return (start: clippedStart, end: clippedEnd)
+        }
+    }
+
     var body: some View {
         let normalizedPoints = normalizedPoints
         let gaps = ChartAccessibility.signalGaps(for: chartSamples)
+        let liveWindows = clippedLiveShareWindows(for: normalizedPoints)
 
         Chart {
+            ForEach(Array(liveWindows.enumerated()), id: \.offset) { _, window in
+                RectangleMark(
+                    xStart: .value("Live share start", window.start),
+                    xEnd: .value("Live share end", window.end)
+                )
+                .foregroundStyle(liveCyan.opacity(0.16))
+
+                RuleMark(x: .value("Live share start", window.start))
+                    .foregroundStyle(liveCyan.opacity(0.65))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+
+                RuleMark(x: .value("Live share end", window.end))
+                    .foregroundStyle(liveCyan.opacity(0.65))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+            }
+
             // Keep gap bands behind the metric lines and derive them from the same samples used by
             // the VoiceOver summary.
             ForEach(Array(gaps.enumerated()), id: \.offset) { _, gap in
