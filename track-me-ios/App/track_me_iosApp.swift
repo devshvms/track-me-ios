@@ -54,6 +54,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             _ = Auth.auth().addStateDidChangeListener { _, user in
                 CrashlyticsErrorLogger.shared.setUserId(user?.uid)
             }
+            TrustedWatchersManager.shared.bindToAuth()
             TelemetryManager.shared.initializePostHog()
         }
         UNUserNotificationCenter.current().delegate = self
@@ -90,6 +91,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         BroadcastSubscription.sync()
+        TrustedWatchersManager.shared.syncFcmToken(fcmToken)
     }
 
     /// SCOPE_1.8.7 §6.3 — a data-only operator broadcast.
@@ -103,6 +105,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
         Task { @MainActor in
+            if let type = userInfo["type"] as? String, type == "live_share_started" {
+                _ = await TrustedWatchersManager.shared.refreshInbox()
+                completionHandler(.newData)
+                return
+            }
             let stored = OperatorBroadcastReceiver.handle(userInfo)
             // Reporting .newData for a duplicate or a refused payload teaches iOS to throttle
             // background deliveries — including the ones the user does need.
@@ -116,6 +123,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         Task { @MainActor in
+            let userInfo = response.notification.request.content.userInfo
+            if let type = userInfo["type"] as? String,
+               type == "live_share_started",
+               let sessionId = userInfo["sessionId"] as? String {
+                TrustedWatchersManager.shared.openLiveSessionFromNotification(
+                    sessionId: sessionId,
+                    shareUrl: userInfo["shareUrl"] as? String
+                )
+                completionHandler()
+                return
+            }
+
             switch response.actionIdentifier {
             // §6.1.1 #4. "Finish ride" goes through the ordinary stop path — a shortcut that
             // skipped the save would turn a helpful question into the worst bug in the release.
@@ -176,6 +195,10 @@ struct track_me_iosApp: App {
                         .onOpenURL { url in
                             if GIDSignIn.sharedInstance.handle(url) { return }
                             if Auth.auth().canHandle(url) { return }
+                            if let invite = TrustedWatchersManager.parseWatcherInviteLink(url) {
+                                TrustedWatchersManager.shared.setPendingWatcherInvite(invite)
+                                return
+                            }
                             _ = GroupRideManager.shared.handleIncomingURL(url)
                         }
                         .onAppear {

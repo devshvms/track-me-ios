@@ -18,6 +18,10 @@ struct HomeDashboardDeck: View {
     let scrollToTopRequest: Int
     var onOpenLiveSharing: () -> Void = {}
     var liveSharingActive = false
+    var watcherInboxInvite: WatcherInboxInvite? = nil
+    var onWatchLiveInvite: (WatcherInboxInvite) -> Void = { _ in }
+    var trustedWatcherCount: Int = 0
+    var onManageWatchers: (() -> Void)? = nil
 
     @ObservedObject private var unitSettings = UnitSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -28,6 +32,19 @@ struct HomeDashboardDeck: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 14) {
+                if let watcherInboxInvite {
+                    WatcherInboxBannerCard(
+                        invite: watcherInboxInvite,
+                        onWatch: { onWatchLiveInvite(watcherInboxInvite) }
+                    )
+                    .dashboardCardMotion(
+                        orderFromTop: 0,
+                        total: 5,
+                        isVisible: isVisible,
+                        reduceMotion: reduceMotion
+                    )
+                }
+
                 if let summary, !isReconciling || summary.lifetimeActivityCount > 0 {
                     contextualCard
                         .dashboardCardMotion(
@@ -208,17 +225,32 @@ struct HomeDashboardDeck: View {
                     }
                     Text(LocalizationHelper.localized("Live sharing")).font(.headline)
                     Spacer(minLength: 0)
-                    // A bare verb: the tile is already titled "Live sharing", and repeating the
-                    // object wrapped the button onto two lines. es/fr/de had already dropped it
-                    // ("Configurar", "Configurer", "Einrichten") — English was the outlier.
-                    Button(LocalizationHelper.localized(liveSharingActive ? "Manage" : "Set up"),
-                        action: onOpenLiveSharing)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Button(
+                            LocalizationHelper.localized(liveSharingActive ? "Manage" : "Share Live Location"),
+                            action: onOpenLiveSharing
+                        )
                         .buttonStyle(.borderedProminent)
                         .lineLimit(1)
-                        // VoiceOver reads a control's name without the heading above it, so the
-                        // accessible name keeps the full phrase the visible label drops.
+                        .minimumScaleFactor(0.8)
                         .accessibilityLabel(LocalizationHelper.localized(
-                            liveSharingActive ? "Manage live sharing" : "Set up live sharing"))
+                            liveSharingActive ? "Manage live sharing" : "Share Live Location"
+                        ))
+
+                        if let onManageWatchers {
+                            Button(action: onManageWatchers) {
+                                Text(
+                                    trustedWatcherCount > 0
+                                        ? LocalizationHelper.formatted("Watchers (%@)", String(trustedWatcherCount))
+                                        : LocalizationHelper.localized("Trusted Watchers")
+                                )
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
             }
@@ -732,4 +764,29 @@ private func dashboardDuration(_ millis: Int64) -> String {
         return LocalizationHelper.formatted("%@h %@m", String(hours), String(minutes))
     }
     return LocalizationHelper.formatted("%@m", String(minutes))
+}
+
+private struct WatcherInboxBannerCard: View {
+    let invite: WatcherInboxInvite
+    let onWatch: () -> Void
+
+    var body: some View {
+        DashboardCard {
+            HStack(spacing: 12) {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(BrandColor.cyanBright)
+                    .accessibilityHidden(true)
+
+                Text(LocalizationHelper.formatted("%@ is sharing their live location", invite.riderName))
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button(LocalizationHelper.localized("Watch Live"), action: onWatch)
+                    .buttonStyle(.borderedProminent)
+                    .lineLimit(1)
+            }
+        }
+    }
 }

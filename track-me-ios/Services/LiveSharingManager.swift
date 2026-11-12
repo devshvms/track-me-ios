@@ -10,9 +10,15 @@ class LiveSharingManager {
 
     private let errorLogger: ErrorLogger
 
+    static let maxAutoWatchers = 5
+
     var isActive: Bool = false
     var isStarting: Bool = false
     var isRideLinked: Bool = false
+    var isLiveSharePrimary: Bool = false
+    var activeViewers: Int = 0
+    var notifiedWatchersCount: Int = 0
+    var sharedWatcherNames: [String] = []
     var sessionId: String?
     var shareLink: String?
     var expiresAt: Date?
@@ -42,6 +48,68 @@ class LiveSharingManager {
         return request
     }
 
+    static func buildStartRequestBody(
+        durationMinutes: Int?,
+        username: String?,
+        watcherUids: [String] = []
+    ) -> [String: Any] {
+        var body: [String: Any] = [:]
+        if let dur = durationMinutes {
+            body["durationMinutes"] = dur
+        }
+        if let cleanUsername = username?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !cleanUsername.isEmpty {
+            body["username"] = cleanUsername
+        }
+        var seen = Set<String>()
+        var cleanedWatchers: [String] = []
+        for raw in watcherUids {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else { continue }
+            cleanedWatchers.append(trimmed)
+            if cleanedWatchers.count >= maxAutoWatchers { break }
+        }
+        if !cleanedWatchers.isEmpty {
+            body["watcherUids"] = cleanedWatchers
+        }
+        return body
+    }
+
+    static func parseStartResponse(
+        data: Data,
+        defaultDurationMinutes: Int?
+    ) -> (sessionId: String, shareLink: String, expiresAt: Date, notifiedWatchersCount: Int)? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let sessionId = json["sessionId"] as? String,
+              let shareLink = json["shareLink"] as? String else {
+            return nil
+        }
+
+        let isoWithFractional = ISO8601DateFormatter()
+        isoWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let isoBasic = ISO8601DateFormatter()
+        isoBasic.formatOptions = [.withInternetDateTime]
+
+        var newExpiresAt: Date? = nil
+        if let expiresStr = json["expiresAt"] as? String {
+            newExpiresAt = isoWithFractional.date(from: expiresStr) ?? isoBasic.date(from: expiresStr)
+        }
+        if newExpiresAt == nil {
+            newExpiresAt = Date().addingTimeInterval(TimeInterval((defaultDurationMinutes ?? 1440) * 60))
+        }
+        let notifiedCount = max(0, (json["notifiedWatchersCount"] as? NSNumber)?.intValue ?? 0)
+        return (sessionId, shareLink, newExpiresAt!, notifiedCount)
+    }
+
+    static func parseActiveViewers(data: Data, fallback: Int = 0) -> Int {
+        guard !data.isEmpty,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let num = json["activeViewers"] as? NSNumber else {
+            return fallback
+        }
+        return max(0, num.intValue)
+    }
+
     init(errorLogger: ErrorLogger = CrashlyticsErrorLogger.shared) {
         self.errorLogger = errorLogger
     }
@@ -64,7 +132,17 @@ class LiveSharingManager {
         return val == 0 ? 10 : TimeInterval(val)
     }
 
-    func startSession(durationMinutes: Int?, stopOnRideEnd: Bool = false) {
+    func demotePrimaryToRideOnly() {
+        isLiveSharePrimary = false
+    }
+
+    func startSession(
+        durationMinutes: Int?,
+        stopOnRideEnd: Bool = false,
+        watcherUids: [String] = [],
+        isLiveSharePrimary: Bool = false,
+        sharedWatcherNames: [String] = []
+    ) {
         guard !isActive, !isStarting else { return }
         guard Auth.auth().currentUser != nil else {
             ToastManager.shared.show(
@@ -77,18 +155,14 @@ class LiveSharingManager {
 
         isStarting = true
         self.isRideLinked = (durationMinutes == nil) || stopOnRideEnd
+        self.isLiveSharePrimary = isLiveSharePrimary
 
         var request = Self.makeLiveShareRequest(url: url)
-
-        var body: [String: Any] = [:]
-        if let dur = durationMinutes {
-            body["durationMinutes"] = dur
-        }
-
-        if let username = Auth.auth().currentUser?.displayName {
-            body["username"] = username
-        }
-
+        let body = Self.buildStartRequestBody(
+            durationMinutes: durationMinutes,
+            username: Auth.auth().currentUser?.displayName,
+            watcherUids: watcherUids
+        )
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         withAuthToken(forceRefresh: true) { [weak self] token in
@@ -96,6 +170,7 @@ class LiveSharingManager {
             guard let token else {
                 DispatchQueue.main.async {
                     self.isStarting = false
+                    self.isLiveSharePrimary = false
                     ToastManager.shared.show(
                         message: LocalizationHelper.localized("Your sign-in expired. Please sign in again to share your location."),
                         style: .error
@@ -116,6 +191,7 @@ class LiveSharingManager {
                     self.errorLogger.recordError(error)
                     DispatchQueue.main.async {
                         self.isStarting = false
+                        self.isLiveSharePrimary = false
                         self.handleTransportError(error)
                     }
                     return
@@ -124,75 +200,58 @@ class LiveSharingManager {
                 guard let data = data, let statusCode = code else {
                     DispatchQueue.main.async {
                         self.isStarting = false
+                        self.isLiveSharePrimary = false
                         ToastManager.shared.show(message: LocalizationHelper.localized("Invalid response from server"), style: .error)
                     }
                     return
                 }
 
                 if statusCode != 200 {
-                    if statusCode == 401 || statusCode == 403 {
-                        DispatchQueue.main.async {
-                            self.isStarting = false
+                    DispatchQueue.main.async {
+                        self.isStarting = false
+                        self.isLiveSharePrimary = false
+                        if statusCode == 401 || statusCode == 403 {
                             ToastManager.shared.show(message: LiveShareError.message(statusCode: statusCode, error: nil), style: .error)
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            self.isStarting = false
+                        } else {
                             self.handleHTTPError(statusCode)
                         }
                     }
                     return
                 }
 
-                do {
-                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let sessionId = json["sessionId"] as? String,
-                       let shareLink = json["shareLink"] as? String {
+                if let parsed = Self.parseStartResponse(data: data, defaultDurationMinutes: durationMinutes) {
+                    DispatchQueue.main.async {
+                        self.sessionId = parsed.sessionId
+                        self.shareLink = parsed.shareLink
+                        self.expiresAt = parsed.expiresAt
+                        self.sessionStartTime = Date()
+                        self.activeViewers = 0
+                        self.notifiedWatchersCount = parsed.notifiedWatchersCount
+                        self.sharedWatcherNames = sharedWatcherNames
+                        self.remainingSeconds = max(0, Int(parsed.expiresAt.timeIntervalSinceNow))
+                        self.isStarting = false
+                        self.isActive = true
 
-                        let expiresAtStr = json["expiresAt"] as? String
+                        TelemetryManager.shared.trackLiveShareStarted(
+                            shareId: parsed.sessionId,
+                            recipientCount: parsed.notifiedWatchersCount
+                        )
 
-                        let formatter = ISO8601DateFormatter()
-                        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                        ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing started"), style: .success)
 
-                        var newExpiresAt: Date? = nil
-                        if let expiresStr = expiresAtStr {
-                            newExpiresAt = formatter.date(from: expiresStr)
+                        if let loc = self.latestLocation {
+                            self.pushLocation(loc)
+                        } else if let loc = TrackingManager.shared.points.last {
+                            self.pushLocation(loc)
                         }
-                        if newExpiresAt == nil {
-                            newExpiresAt = Date().addingTimeInterval(TimeInterval((durationMinutes ?? 1440) * 60))
-                        }
 
-                        DispatchQueue.main.async {
-                            self.sessionId = sessionId
-                            self.shareLink = shareLink
-                            self.expiresAt = newExpiresAt
-                            self.sessionStartTime = Date()
-                            self.isStarting = false
-                            self.isActive = true
-
-                            TelemetryManager.shared.trackLiveShareStarted(shareId: sessionId, recipientCount: 0)
-
-                            ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing started"), style: .success)
-
-                            if let loc = self.latestLocation {
-                                self.pushLocation(loc)
-                            } else if let loc = TrackingManager.shared.points.last {
-                                self.pushLocation(loc)
-                            }
-
-                            self.startTimers()
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            self.isStarting = false
-                            ToastManager.shared.show(message: LocalizationHelper.localized("Failed to parse sharing session"), style: .error)
-                        }
+                        self.startTimers()
                     }
-                } catch {
+                } else {
                     self.errorLogger.log("Failed to parse live-share start-session response")
-                    self.errorLogger.recordError(error)
                     DispatchQueue.main.async {
                         self.isStarting = false
+                        self.isLiveSharePrimary = false
                         ToastManager.shared.show(message: LocalizationHelper.localized("Failed to parse sharing session"), style: .error)
                     }
                 }
@@ -219,6 +278,11 @@ class LiveSharingManager {
             }
             self.isActive = false
             self.isStarting = false
+            self.isLiveSharePrimary = false
+            self.activeViewers = 0
+            self.notifiedWatchersCount = 0
+            self.sharedWatcherNames = []
+            self.remainingSeconds = 0
             self.sessionId = nil
             self.shareLink = nil
             self.expiresAt = nil
@@ -241,8 +305,19 @@ class LiveSharingManager {
         await MainActor.run {
             let duration = self.sessionStartTime.map { Int(Date().timeIntervalSince($0)) } ?? 0
             TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
-            self.isActive = false; self.isStarting = false; self.sessionId = nil; self.shareLink = nil; self.expiresAt = nil; self.sessionStartTime = nil
-            self.isRetryingAuth = false; self.stopTimers()
+            self.isActive = false
+            self.isStarting = false
+            self.isLiveSharePrimary = false
+            self.activeViewers = 0
+            self.notifiedWatchersCount = 0
+            self.sharedWatcherNames = []
+            self.remainingSeconds = 0
+            self.sessionId = nil
+            self.shareLink = nil
+            self.expiresAt = nil
+            self.sessionStartTime = nil
+            self.isRetryingAuth = false
+            self.stopTimers()
         }
     }
 
@@ -330,6 +405,9 @@ class LiveSharingManager {
                     switch code {
                     case .some(200...299):
                         self.isRetryingAuth = false
+                        if self.isActive, let data {
+                            self.activeViewers = Self.parseActiveViewers(data: data, fallback: self.activeViewers)
+                        }
                     case .some(404):
                         ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing expired"), style: .error)
                         self.stopSession(reason: "Session expired on server.")
