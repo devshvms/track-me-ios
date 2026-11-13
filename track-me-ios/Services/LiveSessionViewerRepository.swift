@@ -475,6 +475,48 @@ final class LiveSessionViewerRepository {
         return currentAngle + delta
     }
 
+    /**
+     * TASK-368 / SCOPE_1.9.3 / CIE-032: Deadband thresholds to throttle camera pans and heading rotations,
+     * reducing battery and GPU draw while stationary or experiencing GPS/compass jitter.
+     */
+    static let cameraDeadbandMeters: Double = 3.0
+    static let bearingDeadbandDegrees: Double = 3.0
+
+    static func computeDistanceMeters(
+        from: CLLocationCoordinate2D,
+        to: CLLocationCoordinate2D
+    ) -> Double {
+        if from.latitude == to.latitude && from.longitude == to.longitude {
+            return 0.0
+        }
+        let loc1 = CLLocation(latitude: from.latitude, longitude: from.longitude)
+        let loc2 = CLLocation(latitude: to.latitude, longitude: to.longitude)
+        return loc1.distance(from: loc2)
+    }
+
+    static func shouldAnimateCamera(
+        from: CLLocationCoordinate2D?,
+        to: CLLocationCoordinate2D,
+        thresholdMeters: Double = cameraDeadbandMeters
+    ) -> Bool {
+        guard let from = from else { return true }
+        let dist = computeDistanceMeters(from: from, to: to)
+        return dist >= thresholdMeters
+    }
+
+    static func shouldUpdateBearing(
+        currentBearing: Double?,
+        targetBearing: Double?,
+        isStationary: Bool,
+        thresholdDegrees: Double = bearingDeadbandDegrees
+    ) -> Bool {
+        if isStationary { return false }
+        guard let target = targetBearing, target.isFinite else { return false }
+        guard let current = currentBearing, current.isFinite else { return true }
+        let delta = abs(computeShortestArcDelta(from: current, to: target))
+        return delta >= thresholdDegrees
+    }
+
     /// Speed threshold below which rider is treated as stationary (CIE-029).
     static let stationarySpeedThresholdKmh: Double = 3.0
 
