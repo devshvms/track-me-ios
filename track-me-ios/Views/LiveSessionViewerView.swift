@@ -21,6 +21,7 @@ struct LiveSessionViewerView: View {
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var isFollowingRider = true
     @State private var hasCenteredInitially = false
+    @State private var lastFocusedCoordinate: CLLocationCoordinate2D? = nil
     @State private var hasRenderedLocationInitially = false
     @State private var nowDate = Date()
     @State private var refreshTrigger: Int = 0
@@ -707,11 +708,32 @@ struct LiveSessionViewerView: View {
                 }
                 if let coordinate = fetched.lastLocation?.coordinate,
                    isFollowingRider || !hasCenteredInitially {
-                    focusCamera(on: coordinate)
-                    hasCenteredInitially = true
+                    let shouldAnimate = !hasCenteredInitially || LiveSessionViewerRepository.shouldAnimateCamera(
+                        from: lastFocusedCoordinate,
+                        to: coordinate
+                    )
+                    if shouldAnimate {
+                        lastFocusedCoordinate = coordinate
+                        focusCamera(on: coordinate)
+                        hasCenteredInitially = true
+                    }
                 }
+                let speedStatus = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+                    speedKmh: lastLoc?.speedKmh,
+                    stoppedSinceDate: stoppedSinceDate,
+                    now: nowDate,
+                    useMiles: useMiles
+                )
                 if let heading = fetched.lastLocation?.headingDeg {
-                    continuousHeading = LiveSessionViewerRepository.computeContinuousAngle(current: continuousHeading, target: heading)
+                    if continuousHeading == nil {
+                        continuousHeading = heading
+                    } else if LiveSessionViewerRepository.shouldUpdateBearing(
+                        currentBearing: continuousHeading,
+                        targetBearing: heading,
+                        isStationary: speedStatus.isStationary
+                    ) {
+                        continuousHeading = LiveSessionViewerRepository.computeContinuousAngle(current: continuousHeading, target: heading)
+                    }
                 }
                 if fetched.isActive && tick % 3 == 0 {
                     _ = await repository.sendViewerPing(sessionId: sessionId, viewerId: viewerId)

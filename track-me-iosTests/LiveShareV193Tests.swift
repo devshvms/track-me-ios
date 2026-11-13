@@ -823,4 +823,49 @@ final class LiveShareV193Tests: XCTestCase {
         let urlEmptySession = LiveSessionViewerRepository.buildShareUrl(baseURL: "https://trackme.shvms.in", sessionId: "   ", riderName: "Alex")
         XCTAssertNil(urlEmptySession)
     }
+
+    func testComputeDistanceMeters() {
+        let coord1 = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        let zero = LiveSessionViewerRepository.computeDistanceMeters(from: coord1, to: coord1)
+        XCTAssertEqual(zero, 0.0, accuracy: 0.001)
+
+        let coord2 = CLLocationCoordinate2D(latitude: 37.7849, longitude: -122.4194)
+        let dist = LiveSessionViewerRepository.computeDistanceMeters(from: coord1, to: coord2)
+        XCTAssertGreaterThan(dist, 1000.0)
+    }
+
+    func testShouldAnimateCameraDeadband() {
+        let coord1 = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+
+        // Initial target with nil last focus must animate
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnimateCamera(from: nil, to: coord1))
+
+        // Tiny jitter (< 3m displacement, e.g. ~1m) should NOT animate
+        let tinyJitter = CLLocationCoordinate2D(latitude: 37.7749 + 0.00001, longitude: -122.4194)
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnimateCamera(from: coord1, to: tinyJitter))
+
+        // Larger displacement (> 3m displacement, e.g. ~5.5m) SHOULD animate
+        let moved = CLLocationCoordinate2D(latitude: 37.7749 + 0.00005, longitude: -122.4194)
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnimateCamera(from: coord1, to: moved))
+    }
+
+    func testShouldUpdateBearingDeadband() {
+        // When stationary, bearing updates should NEVER trigger
+        XCTAssertFalse(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 45.0, targetBearing: 90.0, isStationary: true))
+
+        // Invalid target bearing
+        XCTAssertFalse(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 45.0, targetBearing: nil, isStationary: false))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 45.0, targetBearing: .nan, isStationary: false))
+
+        // First bearing when current is nil
+        XCTAssertTrue(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: nil, targetBearing: 90.0, isStationary: false))
+
+        // Small jitter (< 3 degrees) while in motion should be suppressed
+        XCTAssertFalse(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 45.0, targetBearing: 47.0, isStationary: false))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 1.0, targetBearing: 359.0, isStationary: false)) // 2 degree arc
+
+        // Substantial change (>= 3 degrees) while in motion should update
+        XCTAssertTrue(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 45.0, targetBearing: 48.0, isStationary: false))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 355.0, targetBearing: 2.0, isStationary: false)) // 7 degree arc
+    }
 }
