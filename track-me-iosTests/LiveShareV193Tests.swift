@@ -801,4 +801,26 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertFalse(changedKm.isEmpty, "Missing changedKm for \(lang)")
         }
     }
+
+    func testBuildShareUrlWithRiderAttribution() {
+        // Without rider name
+        let urlWithoutName = LiveSessionViewerRepository.buildShareUrl(baseURL: "https://trackme.shvms.in", sessionId: "ride-123", riderName: nil)
+        XCTAssertEqual(urlWithoutName?.absoluteString, "https://trackme.shvms.in/live/ride-123")
+
+        // Trailing slash on base URL stripped
+        let urlTrailingSlash = LiveSessionViewerRepository.buildShareUrl(baseURL: "https://trackme.shvms.in///", sessionId: "ride-123", riderName: "")
+        XCTAssertEqual(urlTrailingSlash?.absoluteString, "https://trackme.shvms.in/live/ride-123")
+
+        // Blank whitespace name omitted
+        let urlBlankName = LiveSessionViewerRepository.buildShareUrl(baseURL: "https://trackme.shvms.in", sessionId: "ride-123", riderName: "   ")
+        XCTAssertEqual(urlBlankName?.absoluteString, "https://trackme.shvms.in/live/ride-123")
+
+        // With rider name encoded
+        let urlWithName = LiveSessionViewerRepository.buildShareUrl(baseURL: "https://trackme.shvms.in", sessionId: "ride-123", riderName: "Alex Rivera")
+        XCTAssertEqual(urlWithName?.absoluteString, "https://trackme.shvms.in/live/ride-123?name=Alex%20Rivera")
+
+        // Empty session returns nil
+        let urlEmptySession = LiveSessionViewerRepository.buildShareUrl(baseURL: "https://trackme.shvms.in", sessionId: "   ", riderName: "Alex")
+        XCTAssertNil(urlEmptySession)
+    }
 }

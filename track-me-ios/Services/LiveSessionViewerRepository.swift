@@ -162,6 +162,25 @@ final class LiveSessionViewerRepository {
         }
     }
 
+    /**
+     * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
+     * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
+     */
+    static func buildShareUrl(baseURL: String, sessionId: String, riderName: String? = nil) -> URL? {
+        let cleanBase = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let cleanSession = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanSession.isEmpty else { return nil }
+
+        let encodedSession = cleanSession.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cleanSession
+        var urlString = "\(cleanBase)/live/\(encodedSession)"
+        if let riderName = riderName?.trimmingCharacters(in: .whitespacesAndNewlines), !riderName.isEmpty {
+            if let encodedName = riderName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                urlString += "?name=\(encodedName)"
+            }
+        }
+        return URL(string: urlString)
+    }
+
     static func parseSnapshot(sessionId: String, data: Data) -> LiveSessionSnapshot? {
         guard !data.isEmpty,
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
