@@ -95,6 +95,7 @@ struct LiveSessionViewerView: View {
                     in: Capsule()
                 )
                 .foregroundStyle(active ? liveCyan : .secondary)
+                .accessibilityElement(children: .combine)
             }
 
             if isDelayed {
@@ -104,6 +105,7 @@ struct LiveSessionViewerView: View {
                     .padding(.vertical, 3)
                     .background(Color.orange.opacity(0.18), in: Capsule())
                     .foregroundStyle(.orange)
+                    .accessibilityLabel(LocalizationHelper.localized("Location updates delayed"))
             }
         }
     }
@@ -169,6 +171,8 @@ struct LiveSessionViewerView: View {
                                 .background(.regularMaterial, in: Capsule())
                                 .shadow(radius: 3)
                             }
+                            .accessibilityLabel(LocalizationHelper.localized("Recenter"))
+                            .accessibilityHint(LocalizationHelper.localized("Re-center map on rider's current location"))
                         }
                         if coordinates.count >= 2 {
                             Button {
@@ -186,6 +190,8 @@ struct LiveSessionViewerView: View {
                                 .background(.regularMaterial, in: Capsule())
                                 .shadow(radius: 3)
                             }
+                            .accessibilityLabel(LocalizationHelper.localized("Fit route"))
+                            .accessibilityHint(LocalizationHelper.localized("Fits the entire route trail on the map"))
                         }
                     }
                     .padding(14)
@@ -281,6 +287,8 @@ struct LiveSessionViewerView: View {
                                 .font(.caption)
                                 .lineLimit(1)
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.formatted("Destination: %@", destinationText))
                     }
 
                     Spacer(minLength: 8)
@@ -295,6 +303,7 @@ struct LiveSessionViewerView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                        .accessibilityElement(children: .combine)
                     }
                 }
             }
@@ -308,6 +317,12 @@ struct LiveSessionViewerView: View {
                         Text(speedText)
                             .font(.subheadline.weight(.bold))
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(
+                        lastLoc?.speedMetersPerSecond != nil
+                            ? LocalizationHelper.formatted("Rider speed: %@", speedText)
+                            : LocalizationHelper.localized("Rider speed unavailable")
+                    )
 
                     if let battery = lastLoc?.batteryLevel {
                         HStack(spacing: 3) {
@@ -318,6 +333,8 @@ struct LiveSessionViewerView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery)))
                     }
                 }
 
@@ -335,6 +352,8 @@ struct LiveSessionViewerView: View {
                     .font(.subheadline.weight(.semibold))
                 }
                 .buttonStyle(.bordered)
+                .accessibilityLabel(LocalizationHelper.localized("Open in browser"))
+                .accessibilityHint(LocalizationHelper.localized("Opens this live tracking session in Safari"))
             }
         }
         .padding(.horizontal, 16)
