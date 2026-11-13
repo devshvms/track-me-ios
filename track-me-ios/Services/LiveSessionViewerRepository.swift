@@ -501,6 +501,87 @@ final class LiveSessionViewerRepository {
     }
 
     /**
+     * CIE-040: Computes geodesic distance in meters between viewport center and rider coordinate.
+     */
+    static func computeOffCenterDistanceMeters(
+        center: CLLocationCoordinate2D,
+        rider: CLLocationCoordinate2D
+    ) -> Double {
+        computeDistanceMeters(from: center, to: rider)
+    }
+
+    /**
+     * CIE-040: Formats off-center distance badge string when distance exceeds threshold (default 250m).
+     * Returns nil when rider is close to center (< 250m) so button remains clean.
+     */
+    static func formatOffCenterDistance(
+        distanceMeters: Double?,
+        useMiles: Bool = false,
+        thresholdMeters: Double = 250.0
+    ) -> String? {
+        guard let dist = distanceMeters, dist.isFinite, dist >= thresholdMeters else {
+            return nil
+        }
+        if useMiles {
+            let miles = dist / 1609.344
+            return String(format: "%.1f mi", locale: Locale(identifier: "en_US_POSIX"), miles)
+        } else {
+            let km = dist / 1000.0
+            return String(format: "%.1f km", locale: Locale(identifier: "en_US_POSIX"), km)
+        }
+    }
+
+    /**
+     * CIE-040: Formats recenter button label with optional distance badge ("Recenter · 1.4 km").
+     */
+    static func formatRecenterButtonLabel(
+        distanceMeters: Double?,
+        useMiles: Bool = false,
+        thresholdMeters: Double = 250.0,
+        baseLabel: String? = nil
+    ) -> String {
+        let base = baseLabel ?? LocalizationHelper.localized("Recenter")
+        if let distStr = formatOffCenterDistance(distanceMeters: distanceMeters, useMiles: useMiles, thresholdMeters: thresholdMeters) {
+            return "\(base) · \(distStr)"
+        }
+        return base
+    }
+
+    /**
+     * CIE-040: Formats recenter button accessibility label ("Recenter on rider, 1.4 km away").
+     */
+    static func formatRecenterAccessibilityLabel(
+        distanceMeters: Double?,
+        useMiles: Bool = false,
+        thresholdMeters: Double = 250.0,
+        baseLabel: String? = nil
+    ) -> String {
+        let base = baseLabel ?? LocalizationHelper.localized("Recenter on rider")
+        if let distStr = formatOffCenterDistance(distanceMeters: distanceMeters, useMiles: useMiles, thresholdMeters: thresholdMeters) {
+            return "\(base), \(distStr) away"
+        }
+        return base
+    }
+
+    /**
+     * CIE-040: Evaluates whether follow mode should automatically resume after inactivity timeout (default 20s).
+     * Suppresses auto-resume when trip has ended or when user is currently in follow mode.
+     */
+    static func shouldResumeFollowMode(
+        isFollowing: Bool,
+        isEnded: Bool,
+        lastInteractionDate: Date?,
+        now: Date = Date(),
+        timeoutSeconds: TimeInterval = 20.0
+    ) -> Bool {
+        guard !isFollowing, !isEnded, let lastInteraction = lastInteractionDate else {
+            return false
+        }
+        let elapsed = now.timeIntervalSince(lastInteraction)
+        return elapsed >= timeoutSeconds
+    }
+
+    /**
      * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
      * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
      */
