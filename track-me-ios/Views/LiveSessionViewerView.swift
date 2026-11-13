@@ -183,7 +183,9 @@ struct LiveSessionViewerView: View {
     }
 
     private var mapSection: some View {
-        let coordinates = snapshot?.path.map(\.coordinate) ?? []
+        let rawCoordinates = snapshot?.path.map(\.coordinate) ?? []
+        // CIE-038: RDP decimation prunes collinear jitter and caps GPU memory on long rides
+        let coordinates = LiveSessionViewerRepository.decimateCoordinates(coordinates: rawCoordinates, epsilonMeters: 3.5, minPointsThreshold: 200)
         let currentCoordinate = snapshot?.lastLocation?.coordinate
 
         return ZStack {
@@ -193,7 +195,7 @@ struct LiveSessionViewerView: View {
                         .stroke(liveCyan, lineWidth: 5)
                 }
 
-                if let start = coordinates.first {
+                if let start = rawCoordinates.first {
                     Annotation(LocalizationHelper.localized("Start"), coordinate: start) {
                         ZStack {
                             Circle()

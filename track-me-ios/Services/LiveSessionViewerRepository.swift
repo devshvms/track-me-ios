@@ -290,6 +290,111 @@ final class LiveSessionViewerRepository {
     }
 
     /**
+     * CIE-038: Evaluates whether a polyline should be decimated based on point count.
+     * Short trips (<= minPointsThreshold, default 200) skip decimation to conserve cycles.
+     */
+    static func shouldDecimatePolyline(pointCount: Int, minPointsThreshold: Int = 200) -> Bool {
+        pointCount > minPointsThreshold
+    }
+
+    /**
+     * CIE-038: Calculates perpendicular distance in meters from point P to line segment AB.
+     * Uses equirectangular local flat projection relative to point A for maximum performance.
+     */
+    static func computePerpendicularDistanceMeters(
+        point: CLLocationCoordinate2D,
+        segA: CLLocationCoordinate2D,
+        segB: CLLocationCoordinate2D
+    ) -> Double {
+        let latRad = segA.latitude * .pi / 180.0
+        let cosLat = cos(latRad)
+        let mPerDegLat = 111320.0
+        let mPerDegLng = 111320.0 * cosLat
+
+        let dxAB = (segB.longitude - segA.longitude) * mPerDegLng
+        let dyAB = (segB.latitude - segA.latitude) * mPerDegLat
+
+        let dxAP = (point.longitude - segA.longitude) * mPerDegLng
+        let dyAP = (point.latitude - segA.latitude) * mPerDegLat
+
+        let segmentLenSq = dxAB * dxAB + dyAB * dyAB
+        if segmentLenSq == 0 {
+            return sqrt(dxAP * dxAP + dyAP * dyAP)
+        }
+
+        let crossProduct = abs(dxAB * dyAP - dyAB * dxAP)
+        return crossProduct / sqrt(segmentLenSq)
+    }
+
+    /**
+     * CIE-038: Ramer-Douglas-Peucker (RDP) polyline decimation for live viewer breadcrumb trails.
+     * Prunes collinear micro-jitter points below epsilonMeters (default 3.5m) while strictly
+     * preserving start/finish endpoints and sharp corners/turns.
+     */
+    static func decimateCoordinates(
+        coordinates: [CLLocationCoordinate2D],
+        epsilonMeters: Double = 3.5,
+        minPointsThreshold: Int = 200
+    ) -> [CLLocationCoordinate2D] {
+        guard coordinates.count > 2 else { return coordinates }
+        if minPointsThreshold > 0, coordinates.count <= minPointsThreshold {
+            return coordinates
+        }
+
+        var keepIndices = Set<Int>()
+        keepIndices.insert(0)
+        keepIndices.insert(coordinates.count - 1)
+
+        func rdp(startIndex: Int, endIndex: Int) {
+            var maxDist: Double = 0
+            var maxIndex = startIndex
+            let first = coordinates[startIndex]
+            let last = coordinates[endIndex]
+
+            for i in (startIndex + 1)..<endIndex {
+                let dist = computePerpendicularDistanceMeters(point: coordinates[i], segA: first, segB: last)
+                if dist > maxDist {
+                    maxDist = dist
+                    maxIndex = i
+                }
+            }
+
+            if maxDist > epsilonMeters {
+                keepIndices.insert(maxIndex)
+                rdp(startIndex: startIndex, endIndex: maxIndex)
+                rdp(startIndex: maxIndex, endIndex: endIndex)
+            }
+        }
+
+        rdp(startIndex: 0, endIndex: coordinates.count - 1)
+
+        return (0..<coordinates.count).compactMap { keepIndices.contains($0) ? coordinates[$0] : nil }
+    }
+
+    /**
+     * CIE-038: Convenience helper for decimateCoordinates over LiveViewerPoint array.
+     */
+    static func decimatePoints(
+        points: [LiveViewerPoint],
+        epsilonMeters: Double = 3.5,
+        minPointsThreshold: Int = 200
+    ) -> [LiveViewerPoint] {
+        guard points.count > 2 else { return points }
+        if minPointsThreshold > 0, points.count <= minPointsThreshold {
+            return points
+        }
+        let coords = points.map(\.coordinate)
+        let decimatedCoords = decimateCoordinates(coordinates: coords, epsilonMeters: epsilonMeters, minPointsThreshold: minPointsThreshold)
+        let decimatedSet = Set(decimatedCoords.map { "\($0.latitude),\($0.longitude)" })
+        return points.enumerated().compactMap { index, pt in
+            if index == 0 || index == points.count - 1 || decimatedSet.contains("\(pt.lat),\(pt.lng)") {
+                return pt
+            }
+            return nil
+        }
+    }
+
+    /**
      * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
      * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
      */

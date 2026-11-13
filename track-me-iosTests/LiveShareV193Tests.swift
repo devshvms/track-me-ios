@@ -1077,5 +1077,82 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertNil(LiveSessionViewerRepository.formatPowerSaveCadenceNotice(powerSaveMode: false, batteryLevel: nil))
         XCTAssertNil(LiveSessionViewerRepository.formatPowerSaveCadenceNotice(powerSaveMode: false, batteryLevel: -1))
     }
+
+    func testBreadcrumbPolylineDecimationParity() {
+        // 1. shouldDecimatePolyline
+        XCTAssertFalse(LiveSessionViewerRepository.shouldDecimatePolyline(pointCount: 0, minPointsThreshold: 200))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldDecimatePolyline(pointCount: 50, minPointsThreshold: 200))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldDecimatePolyline(pointCount: 200, minPointsThreshold: 200))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldDecimatePolyline(pointCount: 201, minPointsThreshold: 200))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldDecimatePolyline(pointCount: 500, minPointsThreshold: 200))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldDecimatePolyline(pointCount: 60, minPointsThreshold: 50))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldDecimatePolyline(pointCount: 40, minPointsThreshold: 50))
+
+        // 2. computePerpendicularDistanceMeters
+        let a = CLLocationCoordinate2D(latitude: 28.6139, longitude: 77.2000)
+        let b = CLLocationCoordinate2D(latitude: 28.6139, longitude: 77.2100)
+        let midpoint = CLLocationCoordinate2D(latitude: 28.6139, longitude: 77.2050)
+        let zeroDist = LiveSessionViewerRepository.computePerpendicularDistanceMeters(point: midpoint, segA: a, segB: b)
+        XCTAssertEqual(zeroDist, 0.0, accuracy: 0.01)
+
+        // Point offset North by ~0.001 deg lat (approx 111.3 meters)
+        let offsetPoint = CLLocationCoordinate2D(latitude: 28.6149, longitude: 77.2050)
+        let perpDist = LiveSessionViewerRepository.computePerpendicularDistanceMeters(point: offsetPoint, segA: a, segB: b)
+        XCTAssertEqual(perpDist, 111.3, accuracy: 1.0)
+
+        // Coincident points
+        let coincidentDist = LiveSessionViewerRepository.computePerpendicularDistanceMeters(point: offsetPoint, segA: a, segB: a)
+        XCTAssertGreaterThan(coincidentDist, 100.0)
+
+        // 3. decimateCoordinates
+        // Small arrays bypass
+        let twoCoords = [a, b]
+        XCTAssertEqual(LiveSessionViewerRepository.decimateCoordinates(coordinates: twoCoords, minPointsThreshold: 0).count, 2)
+
+        // Threshold bypass
+        let fourCoords = [
+            CLLocationCoordinate2D(latitude: 28.610, longitude: 77.200),
+            CLLocationCoordinate2D(latitude: 28.611, longitude: 77.200),
+            CLLocationCoordinate2D(latitude: 28.612, longitude: 77.200),
+            CLLocationCoordinate2D(latitude: 28.613, longitude: 77.200)
+        ]
+        XCTAssertEqual(LiveSessionViewerRepository.decimateCoordinates(coordinates: fourCoords, minPointsThreshold: 10).count, 4)
+
+        // Collinear reduction
+        let collinearCoords = [
+            CLLocationCoordinate2D(latitude: 28.6100, longitude: 77.2000),
+            CLLocationCoordinate2D(latitude: 28.6110, longitude: 77.2000),
+            CLLocationCoordinate2D(latitude: 28.6120, longitude: 77.2000),
+            CLLocationCoordinate2D(latitude: 28.6130, longitude: 77.2000),
+            CLLocationCoordinate2D(latitude: 28.6140, longitude: 77.2000),
+            CLLocationCoordinate2D(latitude: 28.6150, longitude: 77.2000)
+        ]
+        let decimatedCollinear = LiveSessionViewerRepository.decimateCoordinates(coordinates: collinearCoords, epsilonMeters: 3.5, minPointsThreshold: 0)
+        XCTAssertEqual(decimatedCollinear.count, 2)
+        XCTAssertEqual(decimatedCollinear.first?.latitude, collinearCoords.first?.latitude)
+        XCTAssertEqual(decimatedCollinear.last?.latitude, collinearCoords.last?.latitude)
+
+        // Right-angle corner retention
+        let cornerCoords = [
+            CLLocationCoordinate2D(latitude: 28.6100, longitude: 77.2000), // Start
+            CLLocationCoordinate2D(latitude: 28.6110, longitude: 77.2000), // Leg 1 collinear
+            CLLocationCoordinate2D(latitude: 28.6120, longitude: 77.2000), // Corner turn
+            CLLocationCoordinate2D(latitude: 28.6120, longitude: 77.2010), // Leg 2 collinear
+            CLLocationCoordinate2D(latitude: 28.6120, longitude: 77.2020)  // Finish
+        ]
+        let decimatedCorner = LiveSessionViewerRepository.decimateCoordinates(coordinates: cornerCoords, epsilonMeters: 3.5, minPointsThreshold: 0)
+        XCTAssertEqual(decimatedCorner.count, 3)
+        XCTAssertEqual(decimatedCorner[0].latitude, cornerCoords[0].latitude)
+        XCTAssertEqual(decimatedCorner[1].latitude, cornerCoords[2].latitude) // Corner retained
+        XCTAssertEqual(decimatedCorner[2].longitude, cornerCoords[4].longitude) // Finish retained
+
+        // 4. decimatePoints
+        let points = cornerCoords.map { LiveViewerPoint(lat: $0.latitude, lng: $0.longitude) }
+        let decimatedPoints = LiveSessionViewerRepository.decimatePoints(points: points, epsilonMeters: 3.5, minPointsThreshold: 0)
+        XCTAssertEqual(decimatedPoints.count, 3)
+        XCTAssertEqual(decimatedPoints[0].lat, points[0].lat)
+        XCTAssertEqual(decimatedPoints[1].lat, points[2].lat)
+        XCTAssertEqual(decimatedPoints[2].lng, points[4].lng)
+    }
 }
 
