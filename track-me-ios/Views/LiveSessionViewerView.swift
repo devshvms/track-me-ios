@@ -495,16 +495,17 @@ struct LiveSessionViewerView: View {
             useMiles: useMiles
         )
         let speedText = speedStatus.displayText
+        let isEnded = snapshot?.isActive == false
         let destinationText = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasDestination = destinationText.map { !$0.isEmpty } ?? false
-        let ageSeconds = LiveSessionViewerRepository.ageSeconds(timestampIso: lastLoc?.timestampIso, now: nowDate)
+        let ageSeconds = isEnded ? nil : LiveSessionViewerRepository.ageSeconds(timestampIso: lastLoc?.timestampIso, now: nowDate)
         let deadlineStatus = snapshot?.isActive == true ? snapshot?.deadlineStatus(now: nowDate) : nil
-        let hasHeaderMeta = hasDestination || ageSeconds != nil || deadlineStatus != nil
+        let hasHeaderMeta = hasDestination || ageSeconds != nil || deadlineStatus != nil || isEnded
 
         return VStack(spacing: 8) {
             if hasHeaderMeta {
                 VStack(alignment: .leading, spacing: 4) {
-                    if hasDestination || ageSeconds != nil {
+                    if hasDestination || ageSeconds != nil || isEnded {
                         HStack(spacing: 8) {
                             if let destinationText, !destinationText.isEmpty {
                                 HStack(spacing: 4) {
@@ -521,7 +522,19 @@ struct LiveSessionViewerView: View {
 
                             Spacer(minLength: 8)
 
-                            if let ageSeconds {
+                            if isEnded {
+                                let stopReasonText = snapshot?.stopReason ?? snapshot?.endReason ?? LocalizationHelper.localized("The rider has ended this live trip.")
+                                HStack(spacing: 4) {
+                                    Image(systemName: "flag.checkered")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text(stopReasonText)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                .accessibilityElement(children: .combine)
+                            } else if let ageSeconds {
                                 let ageLabel = ageSeconds < 60 ? "\(ageSeconds)s" : "\(ageSeconds / 60)m"
                                 HStack(spacing: 4) {
                                     Image(systemName: "clock")
@@ -560,45 +573,68 @@ struct LiveSessionViewerView: View {
                 }
             }
 
+            let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
+            let elapsedSec = LiveSessionViewerRepository.computeElapsedSeconds(startedAt: snapshot?.startedAt, endedAt: snapshot?.endedAt, now: nowDate) ?? 0
+            let avgSpeed = LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: totalDistance, durationSeconds: Double(elapsedSec), useMiles: useMiles)
+            let avgSpeedStr = LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: avgSpeed, useMiles: useMiles)
+
             HStack(spacing: 12) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        Button(action: toggleUnitSystem) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "speedometer")
-                                    .font(.subheadline)
-                                    .foregroundStyle(liveCyan)
-                                Text(speedText)
-                                    .font(.subheadline.weight(.bold))
-                                    .foregroundStyle(.primary)
+                        if isEnded {
+                            if let avgSpeedStr {
+                                Button(action: toggleUnitSystem) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                                            .font(.subheadline)
+                                            .foregroundStyle(liveCyan)
+                                        Text("\(LocalizationHelper.localized("Average Speed")): \(avgSpeedStr)")
+                                            .font(.subheadline.weight(.bold))
+                                            .foregroundStyle(.primary)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel("\(LocalizationHelper.localized("Average Speed")): \(avgSpeedStr). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
                             }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(speedStatus.a11yText). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
-
-                        if let rawBattery = lastLoc?.batteryLevel,
-                           let battery = LiveSessionViewerRepository.clampBatteryLevel(rawBattery) {
-                            let isLowBattery = battery <= 15
-                            let batteryColor: Color = isLowBattery ? .red : .secondary
-                            let batteryIconName: String = isLowBattery
-                                ? "battery.25"
-                                : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
-                            let a11yLabel = isLowBattery
-                                ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
-                                : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
-
-                            HStack(spacing: 3) {
-                                Image(systemName: batteryIconName)
-                                    .font(.subheadline)
-                                    .foregroundStyle(batteryColor)
-                                Text("\(battery)%")
-                                    .font(.subheadline)
-                                    .fontWeight(isLowBattery ? .semibold : .regular)
-                                    .foregroundStyle(batteryColor)
+                        } else {
+                            Button(action: toggleUnitSystem) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "speedometer")
+                                        .font(.subheadline)
+                                        .foregroundStyle(liveCyan)
+                                    Text(speedText)
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundStyle(.primary)
+                                }
                             }
+                            .buttonStyle(.plain)
                             .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(a11yLabel)
+                            .accessibilityLabel("\(speedStatus.a11yText). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
+
+                            if let rawBattery = lastLoc?.batteryLevel,
+                               let battery = LiveSessionViewerRepository.clampBatteryLevel(rawBattery) {
+                                let isLowBattery = battery <= 15
+                                let batteryColor: Color = isLowBattery ? .red : .secondary
+                                let batteryIconName: String = isLowBattery
+                                    ? "battery.25"
+                                    : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
+                                let a11yLabel = isLowBattery
+                                    ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
+                                    : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
+
+                                HStack(spacing: 3) {
+                                    Image(systemName: batteryIconName)
+                                        .font(.subheadline)
+                                        .foregroundStyle(batteryColor)
+                                    Text("\(battery)%")
+                                        .font(.subheadline)
+                                        .fontWeight(isLowBattery ? .semibold : .regular)
+                                        .foregroundStyle(batteryColor)
+                                }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(a11yLabel)
+                            }
                         }
 
                         if let duration = snapshot?.formatDuration(now: nowDate) {
@@ -836,12 +872,16 @@ struct LiveSessionViewerView: View {
                 if !fetched.isActive {
                     if !hasAnnouncedEnded {
                         hasAnnouncedEnded = true
-                        let endMessage = fetched.stopReason
-                            ?? fetched.endReason
-                            ?? LocalizationHelper.localized("The rider has ended this live trip.")
+                        let elapsedSec = LiveSessionViewerRepository.computeElapsedSeconds(startedAt: fetched.startedAt, endedAt: fetched.endedAt, now: nowDate) ?? 0
+                        let summary = LiveSessionViewerRepository.formatConcludedSummary(
+                            stopReason: fetched.stopReason ?? fetched.endReason,
+                            totalDistanceMeters: fetched.totalDistanceMeters,
+                            durationSeconds: Double(elapsedSec),
+                            useMiles: useMiles
+                        )
                         UIAccessibility.post(
                             notification: .announcement,
-                            argument: endMessage
+                            argument: summary.a11yText
                         )
                     }
                     return
