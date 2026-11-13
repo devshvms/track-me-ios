@@ -27,10 +27,12 @@ enum LiveShareLink {
         extraType: String? = nil,
         extraShareUrl: String? = nil
     ) -> LiveShareDeepLink? {
-        if let urlString, !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           let url = URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)),
-           let parsed = parse(url: url) {
-            return parsed
+        if let urlString, !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let url = URL(string: trimmed) ?? URL(string: trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""),
+               let parsed = parse(url: url) {
+                return parsed
+            }
         }
 
         if extraType == "live_share_started" {
@@ -38,10 +40,12 @@ enum LiveShareLink {
                isValidSessionId(fromExtra) {
                 return .session(fromExtra)
             }
-            if let extraShareUrl,
-               let url = URL(string: extraShareUrl.trimmingCharacters(in: .whitespacesAndNewlines)),
-               let parsed = parseSessionURL(url) {
-                return .session(parsed)
+            if let extraShareUrl {
+                let trimmedShare = extraShareUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let url = URL(string: trimmedShare) ?? URL(string: trimmedShare.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""),
+                   let parsed = parseSessionURL(url) {
+                    return .session(parsed)
+                }
             }
         }
 
@@ -64,17 +68,24 @@ enum LiveShareLink {
             return candidate
         }
 
-        if scheme == "trackme", host == "live" {
-            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-               let querySession = components.queryItems?.first(where: { $0.name == "sessionId" })?.value?
-                .trimmingCharacters(in: .whitespacesAndNewlines),
-               isValidSessionId(querySession) {
-                return querySession
-            }
-            if let firstSegment = segments.first?.trimmingCharacters(in: .whitespacesAndNewlines),
-               firstSegment.lowercased() != "watcher",
-               isValidSessionId(firstSegment) {
-                return firstSegment
+        if scheme == "trackme" {
+            if host == "live" {
+                if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                   let querySession = components.queryItems?.first(where: { $0.name == "sessionId" })?.value?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   isValidSessionId(querySession) {
+                    return querySession
+                }
+                if let firstSegment = segments.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   firstSegment.lowercased() != "watcher",
+                   isValidSessionId(firstSegment) {
+                    return firstSegment
+                }
+            } else if host.isEmpty, segments.count >= 2, segments[0].lowercased() == "live" {
+                let candidate = segments[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                if candidate.lowercased() != "watcher", isValidSessionId(candidate) {
+                    return candidate
+                }
             }
         }
 
