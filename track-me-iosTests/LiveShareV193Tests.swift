@@ -740,4 +740,65 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertTrue(formattedA11y.contains("12m"), "Formatted a11y should contain 12m in \(lang): \(formattedA11y)")
         }
     }
+
+    func testMetricAndImperialUnitFormattingParity() {
+        let now = Date(timeIntervalSince1970: 1_700_000_200)
+
+        // 35 km/h in metric -> "35 km/h"
+        let metricSpeed = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 35.0,
+            stoppedSinceDate: nil,
+            now: now,
+            useMiles: false
+        )
+        XCTAssertFalse(metricSpeed.isStationary)
+        XCTAssertEqual(metricSpeed.displayText, "35 km/h")
+        XCTAssertEqual(metricSpeed.a11yText, "Rider speed: 35 km/h")
+
+        // 35 km/h in imperial -> 35 * 0.621371 = 21.748 -> 22 mph
+        let imperialSpeed = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 35.0,
+            stoppedSinceDate: nil,
+            now: now,
+            useMiles: true
+        )
+        XCTAssertFalse(imperialSpeed.isStationary)
+        XCTAssertEqual(imperialSpeed.displayText, "22 mph")
+        XCTAssertEqual(imperialSpeed.a11yText, "Rider speed: 22 mph")
+
+        // 0 km/h in imperial -> "0 mph"
+        let zeroImperial = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 0.0,
+            stoppedSinceDate: nil,
+            now: now,
+            useMiles: true
+        )
+        XCTAssertTrue(zeroImperial.isStationary)
+        XCTAssertEqual(zeroImperial.displayText, "0 mph")
+        XCTAssertEqual(zeroImperial.a11yText, "Rider speed: 0 mph")
+
+        // Distance formatting
+        let distanceMetric = UnitFormatter.distance(meters: 5000, unit: .metric, decimals: 1)
+        XCTAssertEqual(distanceMetric, "5.0 km")
+
+        let distanceImperial = UnitFormatter.distance(meters: 5000, unit: .imperial, decimals: 1)
+        XCTAssertEqual(distanceImperial, "3.1 mi")
+    }
+
+    func testUnitToggleLocalizationParity() {
+        let languages = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        for lang in languages {
+            let imperialHint = LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.", localeCode: lang)
+            XCTAssertFalse(imperialHint.isEmpty, "Missing imperialHint for \(lang)")
+
+            let metricHint = LocalizationHelper.localized("Active units: metric. Tap to switch to imperial.", localeCode: lang)
+            XCTAssertFalse(metricHint.isEmpty, "Missing metricHint for \(lang)")
+
+            let changedMiles = LocalizationHelper.localized("Units changed to miles and mph", localeCode: lang)
+            XCTAssertFalse(changedMiles.isEmpty, "Missing changedMiles for \(lang)")
+
+            let changedKm = LocalizationHelper.localized("Units changed to kilometers and km/h", localeCode: lang)
+            XCTAssertFalse(changedKm.isEmpty, "Missing changedKm for \(lang)")
+        }
+    }
 }
