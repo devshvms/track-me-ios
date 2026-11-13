@@ -22,6 +22,12 @@ final class LiveShareDeepLinkAndIntervalTests: XCTestCase {
 
         let tripleSlash = URL(string: "trackme:///live/sess_3333")!
         XCTAssertEqual(LiveShareLink.parse(url: tripleSlash), .session("sess_3333"))
+
+        let queryWithRider = URL(string: "trackme://live/sess_7777?name=Alex%20Rivera")!
+        XCTAssertEqual(LiveShareLink.parse(url: queryWithRider), .session("sess_7777"))
+
+        let paramWithRider = URL(string: "trackme://live?sessionId=sess_8888&name=Alex%20Rivera")!
+        XCTAssertEqual(LiveShareLink.parse(url: paramWithRider), .session("sess_8888"))
     }
 
     func testParsesUrlStringWithUnencodedQuerySpaces() {
