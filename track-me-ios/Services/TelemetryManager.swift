@@ -785,6 +785,17 @@ class TelemetryManager {
         ])
     }
 
+    func trackLiveShareViewerLowBattery(sessionId: String, batteryLevel: Int) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("live_share_viewer_low_battery_shown", properties: [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "battery_level": batteryLevel,
+            "batteryLevel": batteryLevel,
+            "platform": "ios"
+        ])
+    }
+
     func trackTrustedWatcherAdded() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("trusted_watcher_added")

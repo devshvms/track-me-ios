@@ -353,4 +353,18 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertNil(LiveSessionViewerRepository.formatDuration(startedAtRaw: nil))
         XCTAssertNil(LiveSessionViewerRepository.formatDuration(startedAtRaw: "invalid"))
     }
+
+    func testLiveViewerLowBatteryBannerLocalizationParity() {
+        let languages = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        for lang in languages {
+            let localizedFormat = LocalizationHelper.localized("Rider battery low (%lld%%) · Signal may pause if phone powers off", localeCode: lang)
+            XCTAssertFalse(localizedFormat.isEmpty, "Missing low battery banner for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(localizedFormat.contains("Rider battery low"), "Untranslated banner for \(lang)")
+            }
+
+            let formatted = String(format: localizedFormat, 12)
+            XCTAssertTrue(formatted.contains("12"), "Formatted low battery banner output should contain '12' in \(lang): \(formatted)")
+        }
+    }
 }
