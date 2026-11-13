@@ -198,4 +198,44 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 1, randomProvider: halfJitter), 6.25)
         XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 4, randomProvider: halfJitter), 15.0)
     }
+
+    func testLiveViewerAccessibilityStringsResolveAcrossAllShippedLanguages() {
+        let shipped = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        let keys = [
+            "Location updates delayed",
+            "Re-center map on rider's current location",
+            "Fits the entire route trail on the map",
+            "Destination: %@",
+            "Rider speed: %@",
+            "Rider speed unavailable",
+            "Rider battery: %lld percent",
+            "Opens this live tracking session in Safari"
+        ]
+
+        for lang in shipped {
+            for key in keys {
+                let resolved = LocalizationHelper.localized(key, localeCode: lang)
+                XCTAssertFalse(resolved.isEmpty, "Key '\(key)' resolved empty for \(lang)")
+            }
+
+            // Verify placeholder formatting
+            let formattedBattery = String(
+                format: LocalizationHelper.localized("Rider battery: %lld percent", localeCode: lang),
+                88
+            )
+            XCTAssertTrue(formattedBattery.contains("88"), "Battery format failed in \(lang): \(formattedBattery)")
+
+            let formattedSpeed = String(
+                format: LocalizationHelper.localized("Rider speed: %@", localeCode: lang),
+                "24 km/h"
+            )
+            XCTAssertTrue(formattedSpeed.contains("24 km/h"), "Speed format failed in \(lang): \(formattedSpeed)")
+
+            let formattedDest = String(
+                format: LocalizationHelper.localized("Destination: %@", localeCode: lang),
+                "Central Station"
+            )
+            XCTAssertTrue(formattedDest.contains("Central Station"), "Destination format failed in \(lang): \(formattedDest)")
+        }
+    }
 }
