@@ -15,6 +15,8 @@ struct LiveShareSetupSheet: View {
     let onRemoveWatcher: (String) -> Void
 
     @State private var selectedDurationMinutes: Int = 30
+    @State private var watcherToRemove: TrustedWatcher? = nil
+    @State private var showRemoveConfirmation: Bool = false
 
     private let durationOptions: [(minutes: Int, key: String)] = [
         (30, "30 min"),
@@ -123,7 +125,8 @@ struct LiveShareSetupSheet: View {
                                         )
 
                                         Button(role: .destructive) {
-                                            onRemoveWatcher(watcher.uid)
+                                            watcherToRemove = watcher
+                                            showRemoveConfirmation = true
                                         } label: {
                                             Image(systemName: "trash")
                                                 .font(.subheadline)
@@ -232,6 +235,22 @@ struct LiveShareSetupSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .confirmationDialog(
+            LocalizationHelper.localized("Remove trusted watcher?"),
+            isPresented: $showRemoveConfirmation,
+            titleVisibility: .visible,
+            presenting: watcherToRemove
+        ) { watcher in
+            Button(LocalizationHelper.localized("Remove watcher"), role: .destructive) {
+                onRemoveWatcher(watcher.uid)
+                watcherToRemove = nil
+            }
+            Button(LocalizationHelper.localized("Cancel"), role: .cancel) {
+                watcherToRemove = nil
+            }
+        } message: { watcher in
+            Text(LocalizationHelper.formatted("Remove %@ from trusted watchers? They will no longer receive live ride alerts automatically.", watcher.displayName))
+        }
     }
 
     private func noticeCard(text: String, background: Color, foreground: Color) -> some View {

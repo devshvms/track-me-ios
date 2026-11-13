@@ -367,4 +367,24 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertTrue(formatted.contains("12"), "Formatted low battery banner output should contain '12' in \(lang): \(formatted)")
         }
     }
+
+    func testTrustedWatcherRemovalConfirmationLocalizationParity() {
+        let languages = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        for lang in languages {
+            let title = LocalizationHelper.localized("Remove trusted watcher?", localeCode: lang)
+            XCTAssertFalse(title.isEmpty, "Missing title for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(title.contains("Remove trusted watcher?"), "Untranslated title for \(lang)")
+            }
+
+            let messageFormat = LocalizationHelper.localized("Remove %@ from trusted watchers? They will no longer receive live ride alerts automatically.", localeCode: lang)
+            XCTAssertFalse(messageFormat.isEmpty, "Missing message format for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(messageFormat.contains("They will no longer receive"), "Untranslated message for \(lang)")
+            }
+
+            let formatted = String(format: messageFormat, "Alex")
+            XCTAssertTrue(formatted.contains("Alex"), "Formatted message should contain 'Alex' in \(lang): \(formatted)")
+        }
+    }
 }
