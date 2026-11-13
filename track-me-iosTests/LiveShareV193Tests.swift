@@ -995,5 +995,27 @@ final class LiveShareV193Tests: XCTestCase {
         )
         XCTAssertFalse(shouldMoveJitter)
     }
+
+    func testReducedMotionAndScreenReaderAccessibilityParity() throws {
+        // 1. Reduced motion evaluation
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnimateTransition(reduceMotion: false))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnimateTransition(reduceMotion: true))
+
+        // 2. 7-locale parity for new VoiceOver announcement string
+        let catalogURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("track-me-ios/Localizable.xcstrings")
+        let data = try Data(contentsOf: catalogURL)
+        let root = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try XCTUnwrap(root["strings"] as? [String: Any])
+
+        let targetKey = "Network reconnected · Updating location"
+        let entry = try XCTUnwrap(strings[targetKey] as? [String: Any], "Missing key: \(targetKey)")
+        let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], "Missing localizations for \(targetKey)")
+        for locale in ["de", "en", "es", "fr", "hi", "ja", "zh-Hans"] {
+            XCTAssertNotNil(localizations[locale], "Missing locale '\(locale)' for key: \(targetKey)")
+        }
+    }
 }
 

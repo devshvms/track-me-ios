@@ -33457,6 +33457,53 @@
         }
       }
     },
+    "Network reconnected · Updating location": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netzwerk wiederhergestellt · Standort wird aktualisiert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network reconnected · Updating location"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexión restablecida · Actualizando ubicación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réseau reconnecté · Mise à jour de la position"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नेटवर्क पुनः कनेक्ट हुआ · स्थान अपडेट हो रहा है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再接続しました · 位置情報を更新中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络已重新连接 · 正在更新位置"
+          }
+        }
+      }
+    },
     "Location updates delayed": {
       "extractionState": "manual",
       "localizations": {

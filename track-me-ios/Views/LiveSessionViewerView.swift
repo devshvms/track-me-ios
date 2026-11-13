@@ -20,6 +20,7 @@ struct LiveSessionViewerView: View {
 
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var unitSettings = UnitSettings.shared
 
     @State private var repository = LiveSessionViewerRepository()
@@ -40,6 +41,8 @@ struct LiveSessionViewerView: View {
     @State private var stoppedSinceDate: Date? = nil
     @State private var isImperialOverride: Bool? = nil
     @State private var wasDisconnected = false
+    @State private var hasAnnouncedStale = false
+    @State private var hasAnnouncedEnded = false
     private var networkMonitor = NetworkMonitor.shared
 
     private var useMiles: Bool {
@@ -108,10 +111,12 @@ struct LiveSessionViewerView: View {
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if !isConnected {
                 wasDisconnected = true
+                UIAccessibility.post(notification: .announcement, argument: LocalizationHelper.localized("Network offline · Retrying automatically"))
             } else if wasDisconnected {
                 wasDisconnected = false
                 errorMessage = nil
                 refreshTrigger += 1
+                UIAccessibility.post(notification: .announcement, argument: LocalizationHelper.localized("Network reconnected · Updating location"))
             }
         }
     }
@@ -682,13 +687,16 @@ struct LiveSessionViewerView: View {
     }
 
     private func focusCamera(on coordinate: CLLocationCoordinate2D) {
-        withAnimation(.easeInOut(duration: 0.45)) {
-            cameraPosition = .region(
-                MKCoordinateRegion(
-                    center: coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
-                )
-            )
+        let region = MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
+        )
+        if reduceMotion {
+            cameraPosition = .region(region)
+        } else {
+            withAnimation(.easeInOut(duration: 0.45)) {
+                cameraPosition = .region(region)
+            }
         }
     }
 
@@ -713,13 +721,16 @@ struct LiveSessionViewerView: View {
         let latDelta = max(0.004, (maxLat - minLat) * 1.35)
         let lngDelta = max(0.004, (maxLng - minLng) * 1.35)
 
-        withAnimation(.easeInOut(duration: 0.45)) {
-            cameraPosition = .region(
-                MKCoordinateRegion(
-                    center: center,
-                    span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lngDelta)
-                )
-            )
+        let region = MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lngDelta)
+        )
+        if reduceMotion {
+            cameraPosition = .region(region)
+        } else {
+            withAnimation(.easeInOut(duration: 0.45)) {
+                cameraPosition = .region(region)
+            }
         }
     }
 
@@ -797,13 +808,40 @@ struct LiveSessionViewerView: View {
                 if fetched.isActive && tick % 3 == 0 {
                     _ = await repository.sendViewerPing(sessionId: sessionId, viewerId: viewerId)
                 }
+                let isStale = fetched.isStaleSignal(now: nowDate)
+                if isStale && !hasAnnouncedStale {
+                    hasAnnouncedStale = true
+                    UIAccessibility.post(
+                        notification: .announcement,
+                        argument: LocalizationHelper.localized("Signal paused · Waiting for rider GPS")
+                    )
+                } else if !isStale && hasAnnouncedStale {
+                    hasAnnouncedStale = false
+                }
                 if !fetched.isActive {
+                    if !hasAnnouncedEnded {
+                        hasAnnouncedEnded = true
+                        let endMessage = fetched.stopReason
+                            ?? fetched.endReason
+                            ?? LocalizationHelper.localized("The rider has ended this live trip.")
+                        UIAccessibility.post(
+                            notification: .announcement,
+                            argument: endMessage
+                        )
+                    }
                     return
                 }
                 nextSleepSeconds = 5.0
             case .notFoundOrExpired:
                 isExpiredOrMissing = true
                 isLoading = false
+                if !hasAnnouncedEnded {
+                    hasAnnouncedEnded = true
+                    UIAccessibility.post(
+                        notification: .announcement,
+                        argument: LocalizationHelper.localized("This live sharing session has ended or expired.")
+                    )
+                }
                 return
             case .error(let msg):
                 consecutiveErrors += 1
@@ -821,6 +859,7 @@ struct LiveSessionViewerView: View {
 private struct HeadingConeMarker: View {
     let headingDegrees: Double
     let accentColor: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -852,7 +891,7 @@ private struct HeadingConeMarker: View {
                 .rotationEffect(.degrees(headingDegrees))
         }
         .frame(width: 72, height: 72)
-        .animation(.easeInOut(duration: 0.35), value: headingDegrees)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: headingDegrees)
     }
 }
 
