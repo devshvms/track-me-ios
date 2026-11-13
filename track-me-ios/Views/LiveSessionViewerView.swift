@@ -212,7 +212,9 @@ struct LiveSessionViewerView: View {
                     Text(
                         snapshot?.stopReason
                             ?? snapshot?.endReason
-                            ?? LocalizationHelper.localized("This live sharing session has ended or expired.")
+                            ?? (snapshot?.isActive == false
+                                ? LocalizationHelper.localized("The rider has ended this live trip.")
+                                : LocalizationHelper.localized("This live sharing session has ended or expired."))
                     )
                     .font(.subheadline.weight(.medium))
                     .multilineTextAlignment(.center)
