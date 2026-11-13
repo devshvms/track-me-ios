@@ -1154,5 +1154,86 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertEqual(decimatedPoints[1].lat, points[2].lat)
         XCTAssertEqual(decimatedPoints[2].lng, points[4].lng)
     }
+
+    func testConcludedTripSummaryAndAverageSpeedParity() {
+        // 1. computeElapsedSeconds
+        let start = "2026-11-13T10:00:00Z"
+        let end = "2026-11-13T10:45:30Z"
+        XCTAssertEqual(LiveSessionViewerRepository.computeElapsedSeconds(startedAt: start, endedAt: end), 2730)
+        XCTAssertEqual(LiveSessionViewerRepository.computeElapsedSeconds(startedAt: start, endedAt: start), 0)
+        XCTAssertNil(LiveSessionViewerRepository.computeElapsedSeconds(startedAt: nil, endedAt: end))
+        XCTAssertNil(LiveSessionViewerRepository.computeElapsedSeconds(startedAt: "2026-11-13T11:00:00Z", endedAt: "2026-11-13T10:00:00Z"))
+        XCTAssertNil(LiveSessionViewerRepository.computeElapsedSeconds(startedAt: "invalid-date", endedAt: end))
+
+        // 2. computeAverageSpeed
+        // Metric: 10 km in 30 minutes = 20.0 km/h
+        let metricSpeed = LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 10000.0, durationSeconds: 1800.0, useMiles: false)
+        XCTAssertEqual(metricSpeed, 20.0)
+
+        // Imperial: 10 km in 30 minutes = 20.0 * 0.621371 = 12.427 -> 12.4 mph
+        let imperialSpeed = LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 10000.0, durationSeconds: 1800.0, useMiles: true)
+        XCTAssertEqual(imperialSpeed, 12.4)
+
+        // Zero distance
+        XCTAssertEqual(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 0.0, durationSeconds: 60.0, useMiles: false), 0.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 0.0, durationSeconds: 60.0, useMiles: true), 0.0)
+
+        // Validation bounds
+        XCTAssertNil(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 1000.0, durationSeconds: 4.0, useMiles: false))
+        XCTAssertNil(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 1000.0, durationSeconds: 0.0, useMiles: false))
+        XCTAssertNil(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: -500.0, durationSeconds: 60.0, useMiles: false))
+        XCTAssertNil(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: .nan, durationSeconds: 60.0, useMiles: false))
+        XCTAssertNil(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 1000.0, durationSeconds: .infinity, useMiles: false))
+
+        // Supersonic glitch (> 200 km/h)
+        XCTAssertNil(LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: 50000.0, durationSeconds: 600.0, useMiles: false))
+
+        // 3. formatAverageSpeed
+        XCTAssertEqual(LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: 21.43, useMiles: false), "21.4 km/h")
+        XCTAssertEqual(LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: 13.28, useMiles: true), "13.3 mph")
+        XCTAssertEqual(LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: 0.0, useMiles: false), "0.0 km/h")
+        XCTAssertNil(LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: nil, useMiles: false))
+        XCTAssertNil(LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: -5.0, useMiles: false))
+        XCTAssertNil(LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: .nan, useMiles: false))
+
+        // 4. formatConcludedSummary
+        let summary = LiveSessionViewerRepository.formatConcludedSummary(
+            stopReason: "Arrived at destination safely.",
+            totalDistanceMeters: 14200.0,
+            durationSeconds: 2700.0,
+            useMiles: false
+        )
+        XCTAssertEqual(summary.statusText, "ENDED")
+        XCTAssertEqual(summary.avgSpeedStr, "18.9 km/h")
+        XCTAssertEqual(summary.durationStr, "45m")
+        XCTAssertEqual(summary.distanceStr, "14.2 km")
+        XCTAssertTrue(summary.detailsText.contains("Arrived at destination safely."))
+        XCTAssertTrue(summary.detailsText.contains("45m"))
+        XCTAssertTrue(summary.detailsText.contains("14.2 km"))
+        XCTAssertTrue(summary.detailsText.contains("18.9 km/h"))
+        XCTAssertTrue(summary.a11yText.contains("Trip ended."))
+        XCTAssertTrue(summary.a11yText.contains("18.9 km/h"))
+
+        // Fallback when stopReason is nil or blank
+        let fallbackSummary = LiveSessionViewerRepository.formatConcludedSummary(
+            stopReason: nil,
+            totalDistanceMeters: 5000.0,
+            durationSeconds: 1200.0,
+            useMiles: false
+        )
+        XCTAssertTrue(fallbackSummary.detailsText.contains("The rider has ended this live trip."))
+
+        // Imperial units
+        let imperialSummary = LiveSessionViewerRepository.formatConcludedSummary(
+            stopReason: "Ride completed",
+            totalDistanceMeters: 16093.44,
+            durationSeconds: 3600.0,
+            useMiles: true
+        )
+        XCTAssertEqual(imperialSummary.distanceStr, "10.0 mi")
+        XCTAssertEqual(imperialSummary.avgSpeedStr, "10.0 mph")
+        XCTAssertTrue(imperialSummary.detailsText.contains("10.0 mi"))
+        XCTAssertTrue(imperialSummary.detailsText.contains("10.0 mph"))
+    }
 }
 

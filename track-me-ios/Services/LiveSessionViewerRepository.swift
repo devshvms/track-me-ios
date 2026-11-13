@@ -394,6 +394,112 @@ final class LiveSessionViewerRepository {
         }
     }
 
+    struct ConcludedSummary: Equatable {
+        let statusText: String
+        let detailsText: String
+        let a11yText: String
+        let avgSpeedStr: String?
+        let durationStr: String
+        let distanceStr: String
+    }
+
+    /**
+     * CIE-039: Calculates total elapsed duration in seconds between two ISO timestamps or dates.
+     */
+    static func computeElapsedSeconds(startedAt: String?, endedAt: String? = nil, now: Date = Date()) -> Int? {
+        guard let start = parseTimestamp(startedAt) else { return nil }
+        let end = endedAt.flatMap { parseTimestamp($0) } ?? now
+        let diff = Int(end.timeIntervalSince(start))
+        return diff >= 0 ? diff : nil
+    }
+
+    /**
+     * CIE-039: Calculates average speed in km/h or mph for a completed or active trip.
+     * Rejects negative distances, non-finite inputs, short durations (< 5 seconds),
+     * and supersonic single-hop glitches (> 200 km/h).
+     */
+    static func computeAverageSpeed(
+        distanceMeters: Double,
+        durationSeconds: Double,
+        useMiles: Bool = false
+    ) -> Double? {
+        guard distanceMeters.isFinite, distanceMeters >= 0 else { return nil }
+        guard durationSeconds.isFinite, durationSeconds >= 5.0 else { return nil }
+        if distanceMeters == 0 { return 0.0 }
+
+        let speedKmh = (distanceMeters / 1000.0) / (durationSeconds / 3600.0)
+        guard speedKmh.isFinite, speedKmh <= 200.0 else { return nil }
+
+        let speed = useMiles ? speedKmh * 0.621371 : speedKmh
+        return (speed * 10.0).rounded() / 10.0
+    }
+
+    /**
+     * CIE-039: Formats numeric average speed into a localized/unit-aware string ("21.4 km/h" or "13.3 mph").
+     */
+    static func formatAverageSpeed(averageSpeed: Double?, useMiles: Bool = false) -> String? {
+        guard let speed = averageSpeed, speed.isFinite, speed >= 0 else { return nil }
+        let unit = useMiles ? "mph" : "km/h"
+        return String(format: "%.1f %@", speed, unit)
+    }
+
+    /**
+     * CIE-039: Constructs a unified summary display and screen-reader accessibility description
+     * for a concluded live share session.
+     */
+    static func formatConcludedSummary(
+        stopReason: String?,
+        totalDistanceMeters: Double,
+        durationSeconds: Double,
+        useMiles: Bool = false
+    ) -> ConcludedSummary {
+        let cleanStop = stopReason?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedStop = (cleanStop?.isEmpty == false) ? cleanStop! : LocalizationHelper.localized("The rider has ended this live trip.")
+
+        let safeDuration = max(0, durationSeconds)
+        let totalMinutes = Int(safeDuration / 60.0)
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        let durationStr: String = {
+            if totalMinutes < 1 { return "< 1m" }
+            if hours == 0 { return "\(minutes)m" }
+            if minutes == 0 { return "\(hours)h" }
+            return "\(hours)h \(minutes)m"
+        }()
+
+        let distanceUnit = useMiles ? "mi" : "km"
+        let distanceVal = useMiles ? totalDistanceMeters / 1609.344 : totalDistanceMeters / 1000.0
+        let distanceStr = totalDistanceMeters <= 0
+            ? (useMiles ? "0.0 mi" : "0.0 km")
+            : String(format: "%.1f %@", distanceVal, distanceUnit)
+
+        let avgSpeed = computeAverageSpeed(distanceMeters: totalDistanceMeters, durationSeconds: safeDuration, useMiles: useMiles)
+        let avgSpeedStr = formatAverageSpeed(averageSpeed: avgSpeed, useMiles: useMiles)
+
+        var parts: [String] = [resolvedStop]
+        parts.append(LocalizationHelper.formatted("Duration: %@", durationStr))
+        if totalDistanceMeters > 0 {
+            parts.append(LocalizationHelper.formatted("Distance: %@", distanceStr))
+        }
+        if let avgSpeedStr {
+            let avgLabel = LocalizationHelper.localized("Average Speed")
+            parts.append("\(avgLabel): \(avgSpeedStr)")
+        }
+
+        let detailsText = parts.joined(separator: " · ")
+        let a11yAvgPart = avgSpeedStr != nil ? ", \(LocalizationHelper.localized("Average Speed")) \(avgSpeedStr!)" : ""
+        let a11yText = "Trip ended. \(resolvedStop) \(LocalizationHelper.formatted("Distance: %@", distanceStr)). \(LocalizationHelper.formatted("Duration: %@", durationStr))\(a11yAvgPart)."
+
+        return ConcludedSummary(
+            statusText: LocalizationHelper.localized("ENDED"),
+            detailsText: detailsText,
+            a11yText: a11yText,
+            avgSpeedStr: avgSpeedStr,
+            durationStr: durationStr,
+            distanceStr: distanceStr
+        )
+    }
+
     /**
      * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
      * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
