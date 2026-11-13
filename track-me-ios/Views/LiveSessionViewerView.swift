@@ -26,6 +26,7 @@ struct LiveSessionViewerView: View {
     @State private var refreshTrigger: Int = 0
     @State private var lastTrackedLowBattery: Int? = nil
     @State private var continuousHeading: Double? = nil
+    @State private var stoppedSinceDate: Date? = nil
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     private let startGreen = Color(red: 16.0 / 255.0, green: 185.0 / 255.0, blue: 129.0 / 255.0)
@@ -151,7 +152,14 @@ struct LiveSessionViewerView: View {
 
                 if let current = currentCoordinate {
                     let isEnded = snapshot?.isActive == false
-                    let hasHeading = snapshot?.lastLocation?.headingDeg != nil && !isEnded
+                    let speedStatus = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+                        speedKmh: snapshot?.lastLocation?.speedKmh,
+                        stoppedSinceDate: stoppedSinceDate,
+                        now: nowDate,
+                        useMiles: unitSettings.unit == .imperial
+                    )
+                    let isStationary = speedStatus.isStationary
+                    let hasHeading = snapshot?.lastLocation?.headingDeg != nil && !isEnded && !isStationary
                     let title: String = {
                         if isEnded {
                             if let dest = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines), !dest.isEmpty {
@@ -381,12 +389,13 @@ struct LiveSessionViewerView: View {
 
     private var bottomTelemetryBar: some View {
         let lastLoc = snapshot?.lastLocation
-        let speedText: String = {
-            if let mps = lastLoc?.speedMetersPerSecond {
-                return UnitFormatter.speed(mps: mps, unit: unitSettings.unit)
-            }
-            return "—"
-        }()
+        let speedStatus = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: lastLoc?.speedKmh,
+            stoppedSinceDate: stoppedSinceDate,
+            now: nowDate,
+            useMiles: unitSettings.unit == .imperial
+        )
+        let speedText = speedStatus.displayText
         let destinationText = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasDestination = destinationText.map { !$0.isEmpty } ?? false
         let ageSeconds = LiveSessionViewerRepository.ageSeconds(timestampIso: lastLoc?.timestampIso, now: nowDate)
@@ -463,11 +472,7 @@ struct LiveSessionViewerView: View {
                                 .font(.subheadline.weight(.bold))
                         }
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(
-                            lastLoc?.speedMetersPerSecond != nil
-                                ? LocalizationHelper.formatted("Rider speed: %@", speedText)
-                                : LocalizationHelper.localized("Rider speed unavailable")
-                        )
+                        .accessibilityLabel(speedStatus.a11yText)
 
                         if let battery = lastLoc?.batteryLevel {
                             let isLowBattery = battery <= 15
@@ -637,6 +642,14 @@ struct LiveSessionViewerView: View {
                 isExpiredOrMissing = false
                 errorMessage = nil
                 isLoading = false
+                let lastLoc = fetched.lastLocation
+                let locDate = LiveSessionViewerRepository.parseTimestamp(lastLoc?.timestampIso)
+                stoppedSinceDate = LiveSessionViewerRepository.computeStoppedSinceDate(
+                    speedKmh: lastLoc?.speedKmh,
+                    previousStoppedSinceDate: stoppedSinceDate,
+                    lastLocationDate: locDate,
+                    now: nowDate
+                )
                 if !hasRenderedLocationInitially, fetched.lastLocation != nil {
                     hasRenderedLocationInitially = true
                     TelemetryManager.shared.trackLiveShareLocationRendered(
