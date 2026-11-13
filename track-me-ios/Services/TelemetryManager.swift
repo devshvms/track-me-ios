@@ -366,6 +366,7 @@ class TelemetryManager {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("live_share_started", properties: [
             "share_id": shareId,
+            "session_id": shareId,
             "recipient_count": recipientCount
         ])
     }
@@ -374,6 +375,7 @@ class TelemetryManager {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("live_share_ended", properties: [
             "share_id": shareId,
+            "session_id": shareId,
             "duration_seconds": durationSeconds
         ])
     }
@@ -731,20 +733,56 @@ class TelemetryManager {
         PostHogSDK.shared.capture("onboarding_completed", properties: outcome.telemetryProperties)
     }
 
-    // MARK: - 12. v1.9.3 Intent-First Live Share & Trusted Watchers
+    // MARK: - 12. v1.9.3 Intent-First Live Share & Trusted Watchers (CIE-002 Parity)
     func trackDirectLiveShareTappedHome() {
         guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("direct_live_share_tapped_home")
+        PostHogSDK.shared.capture("live_share_tapped_home", properties: [
+            "platform": "ios"
+        ])
     }
 
     func trackDirectLiveShareStoppedRide() {
         guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("direct_live_share_stopped_ride")
+        PostHogSDK.shared.capture("live_share_stopped_ride", properties: [
+            "platform": "ios"
+        ])
     }
 
     func trackDirectLiveShareKeptRide() {
         guard shouldTrack() else { return }
-        PostHogSDK.shared.capture("direct_live_share_kept_ride")
+        PostHogSDK.shared.capture("live_share_stopped_keep_ride", properties: [
+            "platform": "ios"
+        ])
+    }
+
+    func trackLiveShareViewed(sessionId: String, surface: String = "in_app_viewer") {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("live_share_viewed", properties: [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "surface": surface,
+            "platform": "ios"
+        ])
+    }
+
+    func trackLiveShareLocationRendered(
+        sessionId: String,
+        pathPoints: Int,
+        hasHeading: Bool,
+        isStopped: Bool
+    ) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("live_share_location_rendered", properties: [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "path_points": pathPoints,
+            "pathPoints": pathPoints,
+            "has_heading": hasHeading,
+            "hasHeading": hasHeading,
+            "is_stopped": isStopped,
+            "isStopped": isStopped,
+            "platform": "ios"
+        ])
     }
 
     func trackTrustedWatcherAdded() {
