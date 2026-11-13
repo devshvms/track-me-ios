@@ -33,6 +33,7 @@ struct LiveSessionSnapshot: Equatable {
     let sessionId: String
     let username: String
     let status: String
+    let startedAt: String?
     let stopReason: String?
     let endReason: String?
     let endedAt: String?
@@ -43,6 +44,22 @@ struct LiveSessionSnapshot: Equatable {
 
     var isActive: Bool {
         status.caseInsensitiveCompare("active") == .orderedSame
+    }
+
+    func isStaleSignal(now: Date = Date()) -> Bool {
+        LiveSessionViewerRepository.isStaleSignal(
+            isActive: isActive,
+            timestampIso: lastLocation?.timestampIso,
+            now: now
+        )
+    }
+
+    func formatDuration(now: Date = Date()) -> String? {
+        LiveSessionViewerRepository.formatDuration(
+            startedAtRaw: startedAt,
+            endedAtRaw: endedAt,
+            now: now
+        )
     }
 }
 
@@ -127,6 +144,8 @@ final class LiveSessionViewerRepository {
         let stopReason = (root["stopReason"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         let endReason = (root["endReason"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         let endedAt = (root["endedAt"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        let startedAt = (root["startedAt"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            ?? (root["startedAt"] as? NSNumber).map { "\($0.int64Value)" }
         let destination = (root["destination"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         let deadlineAt = (root["deadlineAt"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
 
@@ -176,6 +195,7 @@ final class LiveSessionViewerRepository {
             sessionId: sessionId,
             username: username,
             status: status,
+            startedAt: startedAt,
             stopReason: stopReason,
             endReason: endReason,
             endedAt: endedAt,
@@ -187,10 +207,22 @@ final class LiveSessionViewerRepository {
     }
 
     static let delayedUpdateThresholdSeconds = 45
+    static let staleSignalThresholdSeconds = 180
+
+    static func parseTimestamp(_ raw: String?) -> Date? {
+        guard let clean = raw?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty else {
+            return nil
+        }
+        if let epochMs = Double(clean), epochMs > 0 {
+            let seconds = epochMs > 1_000_000_000_000 ? epochMs / 1000.0 : epochMs
+            return Date(timeIntervalSince1970: seconds)
+        }
+        return parseISO8601Date(clean)
+    }
 
     static func ageSeconds(timestampIso: String?, now: Date = Date()) -> Int? {
         guard let clean = timestampIso?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-              let parsedDate = parseISO8601Date(clean) else {
+              let parsedDate = parseTimestamp(clean) else {
             return nil
         }
         return max(0, Int(now.timeIntervalSince(parsedDate)))
@@ -204,6 +236,36 @@ final class LiveSessionViewerRepository {
             return false
         }
         return age >= delayedUpdateThresholdSeconds
+    }
+
+    static func isStaleSignal(isActive: Bool, timestampIso: String?, now: Date = Date(), thresholdSeconds: Int = staleSignalThresholdSeconds) -> Bool {
+        guard isActive else { return false }
+        guard let age = ageSeconds(timestampIso: timestampIso, now: now) else { return false }
+        return age >= thresholdSeconds
+    }
+
+    /// Formats the elapsed or total trip duration into a concise string.
+    /// Examples:
+    /// - < 1 min: "< 1m"
+    /// - 45 min: "45m"
+    /// - 1 hour 15 min: "1h 15m"
+    /// - 2 hours exactly: "2h"
+    static func formatDuration(startedAtRaw: String?, endedAtRaw: String? = nil, now: Date = Date()) -> String? {
+        guard let startDate = parseTimestamp(startedAtRaw) else { return nil }
+        let endDate = parseTimestamp(endedAtRaw) ?? now
+        let durationSeconds = max(0, endDate.timeIntervalSince(startDate))
+        let totalMinutes = Int(durationSeconds / 60)
+
+        if totalMinutes < 1 {
+            return "< 1m"
+        }
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+
+        if hours == 0 {
+            return "\(minutes)m"
+        }
+        return minutes == 0 ? "\(hours)h" : "\(hours)h \(minutes)m"
     }
 
     private static func parseISO8601Date(_ string: String) -> Date? {

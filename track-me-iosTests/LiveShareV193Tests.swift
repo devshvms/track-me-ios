@@ -211,7 +211,11 @@ final class LiveShareV193Tests: XCTestCase {
             "Rider battery: %lld percent",
             "Rider battery low: %lld percent",
             "Opens this live tracking session in Safari",
-            "The rider has ended this live trip."
+            "The rider has ended this live trip.",
+            "Signal paused",
+            "GPS signal paused, waiting for rider location",
+            "Signal paused · Waiting for rider GPS",
+            "Duration: %@"
         ]
 
         for lang in shipped {
@@ -244,6 +248,50 @@ final class LiveShareV193Tests: XCTestCase {
                 "Central Station"
             )
             XCTAssertTrue(formattedDest.contains("Central Station"), "Destination format failed in \(lang): \(formattedDest)")
+
+            let formattedDuration = String(
+                format: LocalizationHelper.localized("Duration: %@", localeCode: lang),
+                "45m"
+            )
+            XCTAssertTrue(formattedDuration.contains("45m"), "Duration format failed in \(lang): \(formattedDuration)")
         }
+    }
+
+    func testLiveViewerStaleSignalDetection() {
+        let now = Date(timeIntervalSince1970: 1_700_000_200)
+        let freshIso = ISO8601DateFormatter().string(from: now.addingTimeInterval(-30)) // 30s ago
+        let staleIso = ISO8601DateFormatter().string(from: now.addingTimeInterval(-200)) // > 3m ago
+
+        // Inactive session is never stale
+        XCTAssertFalse(LiveSessionViewerRepository.isStaleSignal(isActive: false, timestampIso: staleIso, now: now))
+
+        // Active session: fresh vs stale
+        XCTAssertFalse(LiveSessionViewerRepository.isStaleSignal(isActive: true, timestampIso: freshIso, now: now))
+        XCTAssertTrue(LiveSessionViewerRepository.isStaleSignal(isActive: true, timestampIso: staleIso, now: now))
+    }
+
+    func testLiveViewerDurationFormatting() {
+        let startEpochMs = 1_700_000_000_000.0
+        let start = Date(timeIntervalSince1970: startEpochMs / 1000.0)
+
+        // Under 1 minute
+        let underOneMin = start.addingTimeInterval(40)
+        XCTAssertEqual(LiveSessionViewerRepository.formatDuration(startedAtRaw: "\(Int64(startEpochMs))", now: underOneMin), "< 1m")
+
+        // 42 minutes
+        let fortyTwoMin = start.addingTimeInterval(42 * 60)
+        XCTAssertEqual(LiveSessionViewerRepository.formatDuration(startedAtRaw: "\(Int64(startEpochMs))", now: fortyTwoMin), "42m")
+
+        // Exact 2 hours
+        let twoHours = start.addingTimeInterval(120 * 60)
+        XCTAssertEqual(LiveSessionViewerRepository.formatDuration(startedAtRaw: "\(Int64(startEpochMs))", now: twoHours), "2h")
+
+        // 1 hour 15 minutes
+        let oneHourFifteen = start.addingTimeInterval(75 * 60)
+        XCTAssertEqual(LiveSessionViewerRepository.formatDuration(startedAtRaw: "\(Int64(startEpochMs))", now: oneHourFifteen), "1h 15m")
+
+        // Invalid
+        XCTAssertNil(LiveSessionViewerRepository.formatDuration(startedAtRaw: nil))
+        XCTAssertNil(LiveSessionViewerRepository.formatDuration(startedAtRaw: "invalid"))
     }
 }
