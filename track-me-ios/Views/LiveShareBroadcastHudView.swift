@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Intent-first broadcast HUD displayed when the rider launches "Share Live Location" from Home.
 /// Centers active viewer count, notified watchers, quick link sharing, and an encapsulated ride
@@ -34,6 +35,14 @@ struct LiveShareBroadcastHudView: View {
 
     private var notifiedCount: Int {
         max(liveSharingManager.notifiedWatchersCount, liveSharingManager.sharedWatcherNames.count)
+    }
+
+    private var isPowerSaveActive: Bool {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let rawBattery = UIDevice.current.batteryLevel
+        let battery = rawBattery >= 0 ? Int(rawBattery * 100) : 100
+        let isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+        return LiveSharingManager.isEffectivePowerSave(isOsLowPower: isLowPower, batteryLevel: battery)
     }
 
     var body: some View {
@@ -169,6 +178,16 @@ struct LiveShareBroadcastHudView: View {
                 background: BrandColor.cyanBright,
                 foreground: BrandColor.navy900
             )
+
+            if isPowerSaveActive {
+                broadcastPill(
+                    title: LocalizationHelper.localized("Power Saving"),
+                    systemImage: "battery.25",
+                    background: Color(red: 0.96, green: 0.62, blue: 0.04),
+                    foreground: .black
+                )
+                .accessibilityLabel(LocalizationHelper.localized("Power saving mode active, location updates spaced out to conserve battery"))
+            }
 
             if let remainingLabel {
                 broadcastPill(

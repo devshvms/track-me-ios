@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import MapKit
 import StoreKit
 import FirebaseAuth
@@ -1727,6 +1728,14 @@ private struct RideStatusChips: View {
     var isTouchLocked: Bool = false
     var onToggleTouchLock: (() -> Void)? = nil
 
+    private var isPowerSaveActive: Bool {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let rawBattery = UIDevice.current.batteryLevel
+        let battery = rawBattery >= 0 ? Int(rawBattery * 100) : 100
+        let isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+        return LiveSharingManager.isEffectivePowerSave(isOsLowPower: isLowPower, batteryLevel: battery)
+    }
+
     var body: some View {
         CenteredFlowLayout(spacing: 8) {
             // Touch Lock Chip (TASK-350 / LOCK-01)
@@ -1772,6 +1781,16 @@ private struct RideStatusChips: View {
                     background: BrandColor.cyanBright,
                     foreground: BrandColor.navy900
                 )
+
+                if isPowerSaveActive {
+                    RideStatusChip(
+                        title: LocalizationHelper.localized("Power Saving"),
+                        systemImage: "battery.25",
+                        background: Color(red: 0.96, green: 0.62, blue: 0.04),
+                        foreground: .black
+                    )
+                    .accessibilityLabel(LocalizationHelper.localized("Power saving mode active, location updates spaced out to conserve battery"))
+                }
             }
 
             if isOffline {
