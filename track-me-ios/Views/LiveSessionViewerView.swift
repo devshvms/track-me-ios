@@ -21,6 +21,7 @@ struct LiveSessionViewerView: View {
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var isFollowingRider = true
     @State private var hasCenteredInitially = false
+    @State private var hasRenderedLocationInitially = false
     @State private var nowDate = Date()
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
@@ -133,9 +134,13 @@ struct LiveSessionViewerView: View {
                 }
 
                 if let current = currentCoordinate {
-                    let heading = snapshot?.lastLocation?.headingDeg ?? 0
+                    let hasHeading = snapshot?.lastLocation?.headingDeg != nil && snapshot?.isActive == true
                     Annotation(snapshot?.username ?? LocalizationHelper.localized("TrackMe Rider"), coordinate: current) {
-                        HeadingConeMarker(headingDegrees: heading, accentColor: liveCyan)
+                        if hasHeading, let heading = snapshot?.lastLocation?.headingDeg {
+                            HeadingConeMarker(headingDegrees: heading, accentColor: liveCyan)
+                        } else {
+                            StationaryDotMarker(accentColor: liveCyan)
+                        }
                     }
                 }
             }
@@ -380,6 +385,7 @@ struct LiveSessionViewerView: View {
     }
 
     private func pollSessionLoop() async {
+        TelemetryManager.shared.trackLiveShareViewed(sessionId: sessionId, surface: "in_app_viewer")
         var tick = 0
         while !Task.isCancelled {
             nowDate = Date()
@@ -390,6 +396,15 @@ struct LiveSessionViewerView: View {
                 isExpiredOrMissing = false
                 errorMessage = nil
                 isLoading = false
+                if !hasRenderedLocationInitially, fetched.lastLocation != nil {
+                    hasRenderedLocationInitially = true
+                    TelemetryManager.shared.trackLiveShareLocationRendered(
+                        sessionId: sessionId,
+                        pathPoints: fetched.path.count,
+                        hasHeading: fetched.lastLocation?.headingDeg != nil,
+                        isStopped: !fetched.isActive
+                    )
+                }
                 if let coordinate = fetched.lastLocation?.coordinate,
                    isFollowingRider || !hasCenteredInitially {
                     focusCamera(on: coordinate)
@@ -460,5 +475,30 @@ private struct ConeTriangle: Shape {
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
         path.closeSubpath()
         return path
+    }
+}
+
+private struct StationaryDotMarker: View {
+    let accentColor: Color
+
+    var body: some View {
+        ZStack {
+            // Subtle translucent pulse ring
+            Circle()
+                .fill(accentColor.opacity(0.22))
+                .frame(width: 32, height: 32)
+
+            // White halo ring
+            Circle()
+                .fill(Color.white)
+                .frame(width: 22, height: 22)
+                .shadow(radius: 2)
+
+            // Solid cyan center dot
+            Circle()
+                .fill(accentColor)
+                .frame(width: 16, height: 16)
+        }
+        .frame(width: 44, height: 44)
     }
 }

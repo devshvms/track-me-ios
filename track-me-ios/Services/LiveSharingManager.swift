@@ -365,6 +365,28 @@ class LiveSharingManager {
         self.latestLocation = location
     }
 
+    static func buildPushLocationBody(
+        loc: CLLocation,
+        batteryLevel: Int,
+        isLowPower: Bool
+    ) -> [String: Any] {
+        var body: [String: Any] = [
+            "lat": loc.coordinate.latitude,
+            "lng": loc.coordinate.longitude,
+            "batteryLevel": batteryLevel >= 0 ? batteryLevel : 100, // Handle simulator returning -1
+            "speed": max(loc.speed * 3.6, 0), // km/h
+            "powerSaveMode": isLowPower,
+            "timestamp": ISO8601DateFormatter().string(from: loc.timestamp)
+        ]
+        // Only include heading when CLLocation course is valid (>= 0).
+        // Negative course indicates undetermined heading (e.g. stationary device),
+        // matching Android's location.hasBearing() contract and avoiding falsely locking the server to North.
+        if loc.course >= 0 {
+            body["heading"] = loc.course
+        }
+        return body
+    }
+
     private func pushLocation(_ loc: CLLocation, isRetry: Bool = false) {
         guard let sessionId = sessionId, let url = URL(string: APIConfig.LiveShare.locationPush(sessionId: sessionId)) else { return }
 
@@ -378,16 +400,11 @@ class LiveSharingManager {
         // Fetch battery level
         UIDevice.current.isBatteryMonitoringEnabled = true
         let batteryLevel = Int(UIDevice.current.batteryLevel * 100)
-
-        let body: [String: Any] = [
-            "lat": loc.coordinate.latitude,
-            "lng": loc.coordinate.longitude,
-            "batteryLevel": batteryLevel >= 0 ? batteryLevel : 100, // Handle simulator returning -1
-            "speed": max(loc.speed * 3.6, 0), // km/h
-            "heading": loc.course >= 0 ? loc.course : 0,
-            "powerSaveMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
-            "timestamp": ISO8601DateFormatter().string(from: loc.timestamp)
-        ]
+        let body = Self.buildPushLocationBody(
+            loc: loc,
+            batteryLevel: batteryLevel,
+            isLowPower: ProcessInfo.processInfo.isLowPowerModeEnabled
+        )
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 

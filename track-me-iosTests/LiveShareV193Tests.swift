@@ -1,4 +1,5 @@
 import XCTest
+import CoreLocation
 @testable import track_me_ios
 
 final class LiveShareV193Tests: XCTestCase {
@@ -104,5 +105,45 @@ final class LiveShareV193Tests: XCTestCase {
 
         let emptyJson = #"{"invite":null}"#.data(using: .utf8)!
         XCTAssertNil(TrustedWatchersManager.parseInboxInvite(from: emptyJson, now: now))
+    }
+
+    func testBuildPushLocationBodyIncludesHeadingWhenCourseValid() {
+        let loc = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            altitude: 10,
+            horizontalAccuracy: 5,
+            verticalAccuracy: 5,
+            course: 142.5,
+            speed: 5.0, // 5 m/s = 18 km/h
+            timestamp: Date(timeIntervalSince1970: 1_893_499_200)
+        )
+        let body = LiveSharingManager.buildPushLocationBody(loc: loc, batteryLevel: 85, isLowPower: false)
+
+        XCTAssertEqual(body["lat"] as? Double, 37.7749)
+        XCTAssertEqual(body["lng"] as? Double, -122.4194)
+        XCTAssertEqual(body["batteryLevel"] as? Int, 85)
+        XCTAssertEqual(body["speed"] as? Double, 18.0)
+        XCTAssertEqual(body["heading"] as? Double, 142.5)
+        XCTAssertEqual(body["powerSaveMode"] as? Bool, false)
+    }
+
+    func testBuildPushLocationBodyOmitsHeadingWhenCourseNegative() {
+        let loc = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            altitude: 10,
+            horizontalAccuracy: 5,
+            verticalAccuracy: 5,
+            course: -1.0, // Invalid course / stationary device
+            speed: -1.0, // Invalid speed
+            timestamp: Date(timeIntervalSince1970: 1_893_499_200)
+        )
+        let body = LiveSharingManager.buildPushLocationBody(loc: loc, batteryLevel: -1, isLowPower: true)
+
+        XCTAssertEqual(body["lat"] as? Double, 37.7749)
+        XCTAssertEqual(body["lng"] as? Double, -122.4194)
+        XCTAssertEqual(body["batteryLevel"] as? Int, 100, "Simulator -1 battery must fall back to 100")
+        XCTAssertEqual(body["speed"] as? Double, 0.0, "Invalid speed must clamp to 0")
+        XCTAssertNil(body["heading"], "Negative course must be omitted from body to prevent false North locking")
+        XCTAssertEqual(body["powerSaveMode"] as? Bool, true)
     }
 }
