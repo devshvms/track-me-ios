@@ -19841,6 +19841,100 @@
         }
       }
     },
+    "Remove trusted watcher?": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertrauten Beobachter entfernen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove trusted watcher?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar observador de confianza?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer le contact de confiance ?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "भरोसेमंद वॉचर हटाएँ?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信頼できるウォッチャーを削除しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除受信任的查看者？"
+          }
+        }
+      }
+    },
+    "Remove %@ from trusted watchers? They will no longer receive live ride alerts automatically.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Möchtest du %@ aus den vertrauten Beobachtern entfernen? Die Person erhält künftig keine automatischen Live-Fahrtbenachrichtigungen mehr."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %@ from trusted watchers? They will no longer receive live ride alerts automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar a %@ de los observadores de confianza? Ya no recibirá alertas de viaje en vivo automáticamente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer %@ des contacts de confiance ? Cette personne ne recevra plus automatiquement vos alertes de trajet en direct."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्या %@ को भरोसेमंद वॉचर्स से हटाना चाहते हैं? उन्हें अब लाइव राइड की सूचनाएँ स्वतः नहीं मिलेंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ を信頼できるウォッチャーから削除しますか？今後のライブライド通知が自動で届かなくなります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要将 %@ 从受信任的查看者中移除吗？对方将不再自动接收实时骑行提醒。"
+          }
+        }
+      }
+    },
     "Request a comprehensive archive of your synchronized ride history (GPX files & JSON metadata). The ZIP is assembled when you download it and expires six hours after retrieval, or after 48 hours if untouched.": {
       "localizations": {
         "de": {
