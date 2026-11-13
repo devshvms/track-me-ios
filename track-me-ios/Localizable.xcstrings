@@ -32558,6 +32558,53 @@
         }
       }
     },
+    "Rider battery low: %lld percent": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niedriger Akkustand des Fahrers: %lld Prozent"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rider battery low: %lld percent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería del usuario baja: %lld por ciento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batterie faible du cycliste : %lld pour cent"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइडर की बैटरी कम है: %lld प्रतिशत"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライダーのバッテリー残量低下: %lldパーセント"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "骑手电量偏低：%lld%%"
+          }
+        }
+      }
+    },
     "Opens this live tracking session in Safari": {
       "extractionState": "manual",
       "localizations": {

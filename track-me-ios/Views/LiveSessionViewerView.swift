@@ -325,16 +325,26 @@ struct LiveSessionViewerView: View {
                     )
 
                     if let battery = lastLoc?.batteryLevel {
+                        let isLowBattery = battery <= 15
+                        let batteryColor: Color = isLowBattery ? .red : .secondary
+                        let batteryIconName: String = isLowBattery
+                            ? "battery.25"
+                            : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
+                        let a11yLabel = isLowBattery
+                            ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
+                            : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
+
                         HStack(spacing: 3) {
-                            Image(systemName: lastLoc?.powerSaveMode == true ? "battery.25" : "battery.100")
+                            Image(systemName: batteryIconName)
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(batteryColor)
                             Text("\(battery)%")
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .fontWeight(isLowBattery ? .semibold : .regular)
+                                .foregroundStyle(batteryColor)
                         }
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery)))
+                        .accessibilityLabel(a11yLabel)
                     }
                 }
 
