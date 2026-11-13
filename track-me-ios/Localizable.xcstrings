@@ -32042,6 +32042,198 @@
       },
       "generatesSymbol": false
     },
+    "Active units: imperial. Tap to switch to metric.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktive Einheiten: imperial. Tippen, um auf metrisch umzuschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active units: imperial. Tap to switch to metric."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unidades activas: imperiales. Toca para cambiar a métricas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unités actives : impériales. Touchez pour passer au système métrique."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सक्रिय इकाइयाँ: इम्पीरियल। मीट्रिक में बदलने के लिए टैप करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の単位: マイル。タップしてキロメートルに切り替え。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前单位：英制。点击切换为公制。"
+          }
+        }
+      },
+      "generatesSymbol": false
+    },
+    "Active units: metric. Tap to switch to imperial.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktive Einheiten: metrisch. Tippen, um auf imperial umzuschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active units: metric. Tap to switch to imperial."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unidades activas: métricas. Toca para cambiar a imperiales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unités actives : métriques. Touchez pour passer au système impérial."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सक्रिय इकाइयाँ: मीट्रिक। इम्पीरियल में बदलने के लिए टैप करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の単位: キロメートル。タップしてマイルに切り替え。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前单位：公制。点击切换为英制。"
+          }
+        }
+      },
+      "generatesSymbol": false
+    },
+    "Units changed to miles and mph": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einheiten auf Meilen und mph geändert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Units changed to miles and mph"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unidades cambiadas a millas y mph"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unités changées en miles et mph"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इकाइयाँ मील और mph में बदल दी गईं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単位をマイルとmphに変更しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单位已更改为英里和mph"
+          }
+        }
+      },
+      "generatesSymbol": false
+    },
+    "Units changed to kilometers and km/h": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einheiten auf Kilometer und km/h geändert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Units changed to kilometers and km/h"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unidades cambiadas a kilómetros y km/h"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unités changées en kilomètres et km/h"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इकाइयाँ किलोमीटर और km/h में बदल दी गईं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単位をキロメートルとkm/hに変更しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单位已更改为公里和km/h"
+          }
+        }
+      },
+      "generatesSymbol": false
+    },
     "Loading live location…": {
       "extractionState": "manual",
       "localizations": {

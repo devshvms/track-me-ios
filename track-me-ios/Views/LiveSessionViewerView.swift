@@ -27,6 +27,21 @@ struct LiveSessionViewerView: View {
     @State private var lastTrackedLowBattery: Int? = nil
     @State private var continuousHeading: Double? = nil
     @State private var stoppedSinceDate: Date? = nil
+    @State private var isImperialOverride: Bool? = nil
+
+    private var useMiles: Bool {
+        isImperialOverride ?? (unitSettings.unit == .imperial)
+    }
+
+    private func toggleUnitSystem() {
+        let nextUseMiles = !useMiles
+        isImperialOverride = nextUseMiles
+        unitSettings.set(nextUseMiles ? .imperial : .metric)
+        let announcement = nextUseMiles
+            ? LocalizationHelper.localized("Units changed to miles and mph")
+            : LocalizationHelper.localized("Units changed to kilometers and km/h")
+        UIAccessibility.post(notification: .announcement, argument: announcement)
+    }
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     private let startGreen = Color(red: 16.0 / 255.0, green: 185.0 / 255.0, blue: 129.0 / 255.0)
@@ -55,6 +70,20 @@ struct LiveSessionViewerView: View {
                             .fontWeight(.semibold)
                     }
                     .accessibilityLabel(LocalizationHelper.localized("Close"))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: toggleUnitSystem) {
+                        Text(useMiles ? "mph" : "km/h")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(liveCyan.opacity(0.15))
+                            .foregroundStyle(liveCyan)
+                            .clipShape(Capsule())
+                    }
+                    .accessibilityLabel(useMiles
+                        ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.")
+                        : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))
                 }
             }
         }
@@ -156,7 +185,7 @@ struct LiveSessionViewerView: View {
                         speedKmh: snapshot?.lastLocation?.speedKmh,
                         stoppedSinceDate: stoppedSinceDate,
                         now: nowDate,
-                        useMiles: unitSettings.unit == .imperial
+                        useMiles: useMiles
                     )
                     let isStationary = speedStatus.isStationary
                     let hasHeading = snapshot?.lastLocation?.headingDeg != nil && !isEnded && !isStationary
@@ -393,7 +422,7 @@ struct LiveSessionViewerView: View {
             speedKmh: lastLoc?.speedKmh,
             stoppedSinceDate: stoppedSinceDate,
             now: nowDate,
-            useMiles: unitSettings.unit == .imperial
+            useMiles: useMiles
         )
         let speedText = speedStatus.displayText
         let destinationText = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -464,15 +493,19 @@ struct LiveSessionViewerView: View {
             HStack(spacing: 12) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "speedometer")
-                                .font(.subheadline)
-                                .foregroundStyle(liveCyan)
-                            Text(speedText)
-                                .font(.subheadline.weight(.bold))
+                        Button(action: toggleUnitSystem) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "speedometer")
+                                    .font(.subheadline)
+                                    .foregroundStyle(liveCyan)
+                                Text(speedText)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(.primary)
+                            }
                         }
+                        .buttonStyle(.plain)
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(speedStatus.a11yText)
+                        .accessibilityLabel("\(speedStatus.a11yText). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
 
                         if let battery = lastLoc?.batteryLevel {
                             let isLowBattery = battery <= 15
@@ -513,18 +546,22 @@ struct LiveSessionViewerView: View {
                         if totalDistance > 0.0 {
                             let distanceText = UnitFormatter.distance(
                                 meters: totalDistance,
-                                unit: unitSettings.unit,
+                                unit: useMiles ? .imperial : .metric,
                                 decimals: 1
                             )
-                            HStack(spacing: 3) {
-                                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                                    .font(.subheadline)
-                                    .foregroundStyle(liveCyan)
-                                Text(distanceText)
-                                    .font(.subheadline.weight(.semibold))
+                            Button(action: toggleUnitSystem) {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                        .font(.subheadline)
+                                        .foregroundStyle(liveCyan)
+                                    Text(distanceText)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                }
                             }
+                            .buttonStyle(.plain)
                             .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(LocalizationHelper.formatted("Distance: %@", distanceText))
+                            .accessibilityLabel("\(LocalizationHelper.formatted("Distance: %@", distanceText)). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
                         }
                     }
                 }
