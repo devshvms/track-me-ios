@@ -23,6 +23,14 @@ struct ViewerForegroundReconnectionState: Equatable {
     let clearErrorMessage: Bool
 }
 
+struct LiveViewerSpeedStatus: Equatable {
+    let isStationary: Bool
+    let isStoppedTimerActive: Bool
+    let stoppedMinutes: Int
+    let displayText: String
+    let a11yText: String
+}
+
 struct LiveViewerLastLocation: Equatable {
     let lat: Double
     let lng: Double
@@ -446,6 +454,119 @@ final class LiveSessionViewerRepository {
         guard let currentAngle = current, currentAngle.isFinite else { return target }
         let delta = computeShortestArcDelta(from: currentAngle, to: target)
         return currentAngle + delta
+    }
+
+    /// Speed threshold below which rider is treated as stationary (CIE-029).
+    static let stationarySpeedThresholdKmh: Double = 3.0
+
+    /**
+     * Computes the timestamp from which the rider has been continuously stationary (CIE-029).
+     * If speed >= 3.0 km/h, returns nil (clearing stopped state).
+     * If stationary:
+     * - Returns previousStoppedSinceDate if already stopped.
+     * - Otherwise initializes to lastLocationDate (if within 30 min of now) or now.
+     */
+    static func computeStoppedSinceDate(
+        speedKmh: Double?,
+        previousStoppedSinceDate: Date?,
+        lastLocationDate: Date?,
+        now: Date = Date()
+    ) -> Date? {
+        let isSpeedValid = speedKmh != nil && !(speedKmh!.isNaN || speedKmh!.isInfinite)
+        let effectiveSpeed = isSpeedValid ? max(0.0, speedKmh!) : nil
+        let isStationary = effectiveSpeed == nil || effectiveSpeed! < stationarySpeedThresholdKmh
+
+        if !isStationary {
+            return nil
+        }
+
+        if let prev = previousStoppedSinceDate {
+            return prev
+        }
+
+        if let locDate = lastLocationDate {
+            let ageSeconds = now.timeIntervalSince(locDate)
+            if ageSeconds >= 0 && ageSeconds <= 1800 { // within 30 min
+                return locDate
+            }
+        }
+        return now
+    }
+
+    /**
+     * Formats duration in seconds into human-readable compact string ("< 1m", "42m", "1h", "1h 15m").
+     */
+    static func formatDurationSeconds(_ seconds: TimeInterval) -> String {
+        let totalMinutes = max(0, Int(seconds / 60))
+        if totalMinutes < 1 {
+            return "< 1m"
+        }
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        if hours == 0 {
+            return "\(minutes)m"
+        } else if minutes == 0 {
+            return "\(hours)h"
+        } else {
+            return "\(hours)h \(minutes)m"
+        }
+    }
+
+    /**
+     * Evaluates live rider speed vs stationary state and stopped duration (CIE-029).
+     * When stationary for >= 60 seconds, displays "Stopped · Xm" instead of "0 km/h".
+     */
+    static func evaluateSpeedOrStopped(
+        speedKmh: Double?,
+        stoppedSinceDate: Date?,
+        now: Date = Date(),
+        useMiles: Bool = false
+    ) -> LiveViewerSpeedStatus {
+        let isSpeedValid = speedKmh != nil && !(speedKmh!.isNaN || speedKmh!.isInfinite)
+        let effectiveSpeed = isSpeedValid ? max(0.0, speedKmh!) : nil
+        let isStationary = effectiveSpeed == nil || effectiveSpeed! < stationarySpeedThresholdKmh
+        let unit = useMiles ? "mph" : "km/h"
+
+        if !isStationary {
+            let rawVal = useMiles ? (effectiveSpeed! * 0.621371) : effectiveSpeed!
+            let rounded = Int(rawVal.rounded())
+            let text = "\(rounded) \(unit)"
+            let a11y = LocalizationHelper.formatted("Rider speed: %@", text)
+            return LiveViewerSpeedStatus(
+                isStationary: false,
+                isStoppedTimerActive: false,
+                stoppedMinutes: 0,
+                displayText: text,
+                a11yText: a11y
+            )
+        }
+
+        if let stoppedSince = stoppedSinceDate, now >= stoppedSince {
+            let stoppedSeconds = now.timeIntervalSince(stoppedSince)
+            let stoppedMinutes = Int(stoppedSeconds / 60)
+            if stoppedMinutes >= 1 {
+                let durationStr = formatDurationSeconds(stoppedSeconds)
+                let text = LocalizationHelper.formatted("Stopped · %@", durationStr)
+                let a11y = LocalizationHelper.formatted("Rider stopped for %@", durationStr)
+                return LiveViewerSpeedStatus(
+                    isStationary: true,
+                    isStoppedTimerActive: true,
+                    stoppedMinutes: stoppedMinutes,
+                    displayText: text,
+                    a11yText: a11y
+                )
+            }
+        }
+
+        let zeroText = "0 \(unit)"
+        let zeroA11y = LocalizationHelper.formatted("Rider speed: %@", zeroText)
+        return LiveViewerSpeedStatus(
+            isStationary: true,
+            isStoppedTimerActive: false,
+            stoppedMinutes: 0,
+            displayText: zeroText,
+            a11yText: zeroA11y
+        )
     }
 }
 

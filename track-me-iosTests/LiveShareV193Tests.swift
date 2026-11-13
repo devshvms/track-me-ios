@@ -605,4 +605,139 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertEqual(LiveSessionViewerRepository.computeShortestArcDelta(from: .nan, to: 5.0), 0.0, accuracy: 0.001)
         XCTAssertEqual(LiveSessionViewerRepository.computeContinuousAngle(current: 45.0, target: .nan), 45.0, accuracy: 0.001)
     }
+
+    func testComputeStoppedSinceDate() {
+        let now = Date(timeIntervalSince1970: 1_700_000_100)
+        let locDate = Date(timeIntervalSince1970: 1_700_000_100 - 300) // 5m ago
+
+        // In motion (speed >= 3.0 km/h) -> returns nil (clears stopped timer)
+        let inMotion = LiveSessionViewerRepository.computeStoppedSinceDate(
+            speedKmh: 18.5,
+            previousStoppedSinceDate: Date(timeIntervalSince1970: 1_700_000_000),
+            lastLocationDate: locDate,
+            now: now
+        )
+        XCTAssertNil(inMotion)
+
+        // Stationary (speed < 3.0 km/h) with existing stopped timer -> preserves existing date
+        let existingStopped = Date(timeIntervalSince1970: 1_700_000_050)
+        let keptStopped = LiveSessionViewerRepository.computeStoppedSinceDate(
+            speedKmh: 1.2,
+            previousStoppedSinceDate: existingStopped,
+            lastLocationDate: locDate,
+            now: now
+        )
+        XCTAssertEqual(keptStopped, existingStopped)
+
+        // Stationary without existing timer, recent location timestamp -> initializes to locDate
+        let initFromLoc = LiveSessionViewerRepository.computeStoppedSinceDate(
+            speedKmh: 0.0,
+            previousStoppedSinceDate: nil,
+            lastLocationDate: locDate,
+            now: now
+        )
+        XCTAssertEqual(initFromLoc, locDate)
+
+        // Stationary without existing timer, very stale location (> 30 min ago) -> initializes to now
+        let staleLocDate = Date(timeIntervalSince1970: 1_700_000_100 - 2700)
+        let initFromNow = LiveSessionViewerRepository.computeStoppedSinceDate(
+            speedKmh: 0.0,
+            previousStoppedSinceDate: nil,
+            lastLocationDate: staleLocDate,
+            now: now
+        )
+        XCTAssertEqual(initFromNow, now)
+    }
+
+    func testEvaluateSpeedOrStopped() {
+        let now = Date(timeIntervalSince1970: 1_700_000_200)
+
+        // 1. Moving at 25 km/h
+        let moving = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 25.0,
+            stoppedSinceDate: nil,
+            now: now,
+            useMiles: false
+        )
+        XCTAssertFalse(moving.isStationary)
+        XCTAssertEqual(moving.displayText, "25 km/h")
+        XCTAssertEqual(moving.a11yText, "Rider speed: 25 km/h")
+
+        // 2. Moving imperial (approx 16 mph)
+        let movingImperial = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 25.0,
+            stoppedSinceDate: nil,
+            now: now,
+            useMiles: true
+        )
+        XCTAssertFalse(movingImperial.isStationary)
+        XCTAssertEqual(movingImperial.displayText, "16 mph")
+        XCTAssertEqual(movingImperial.a11yText, "Rider speed: 16 mph")
+
+        // 3. Just stopped (< 60s) -> displays 0 km/h
+        let justStopped = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 0.5,
+            stoppedSinceDate: Date(timeIntervalSince1970: 1_700_000_200 - 35),
+            now: now,
+            useMiles: false
+        )
+        XCTAssertTrue(justStopped.isStationary)
+        XCTAssertEqual(justStopped.displayText, "0 km/h")
+        XCTAssertEqual(justStopped.a11yText, "Rider speed: 0 km/h")
+
+        // 4. Stopped for 5 minutes (>= 60s) -> displays "Stopped · 5m"
+        let stopped5m = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 0.0,
+            stoppedSinceDate: Date(timeIntervalSince1970: 1_700_000_200 - 300),
+            now: now,
+            useMiles: false
+        )
+        XCTAssertTrue(stopped5m.isStationary)
+        XCTAssertEqual(stopped5m.displayText, "Stopped · 5m")
+        XCTAssertEqual(stopped5m.a11yText, "Rider stopped for 5m")
+
+        // 5. Stopped for 1 hour 15 minutes -> displays "Stopped · 1h 15m"
+        let stoppedLong = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: 1.0,
+            stoppedSinceDate: Date(timeIntervalSince1970: 1_700_000_200 - 4500),
+            now: now,
+            useMiles: false
+        )
+        XCTAssertTrue(stoppedLong.isStationary)
+        XCTAssertEqual(stoppedLong.displayText, "Stopped · 1h 15m")
+        XCTAssertEqual(stoppedLong.a11yText, "Rider stopped for 1h 15m")
+
+        // 6. Null speed -> treated as stationary 0 km/h
+        let nullSpeed = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: nil,
+            stoppedSinceDate: nil,
+            now: now,
+            useMiles: false
+        )
+        XCTAssertTrue(nullSpeed.isStationary)
+        XCTAssertEqual(nullSpeed.displayText, "0 km/h")
+        XCTAssertEqual(nullSpeed.a11yText, "Rider speed: 0 km/h")
+    }
+
+    func testStoppedDurationLocalizationParity() {
+        let languages = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        for lang in languages {
+            let stoppedFormat = LocalizationHelper.localized("Stopped · %@", localeCode: lang)
+            XCTAssertFalse(stoppedFormat.isEmpty, "Missing Stopped · %@ for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(stoppedFormat.hasPrefix("Stopped ·"), "Untranslated Stopped · %@ for \(lang)")
+            }
+
+            let a11yFormat = LocalizationHelper.localized("Rider stopped for %@", localeCode: lang)
+            XCTAssertFalse(a11yFormat.isEmpty, "Missing Rider stopped for %@ for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(a11yFormat.hasPrefix("Rider stopped for"), "Untranslated Rider stopped for %@ for \(lang)")
+            }
+
+            let formattedStopped = String(format: stoppedFormat, "12m")
+            XCTAssertTrue(formattedStopped.contains("12m"), "Formatted stopped should contain 12m in \(lang): \(formattedStopped)")
+            let formattedA11y = String(format: a11yFormat, "12m")
+            XCTAssertTrue(formattedA11y.contains("12m"), "Formatted a11y should contain 12m in \(lang): \(formattedA11y)")
+        }
+    }
 }
