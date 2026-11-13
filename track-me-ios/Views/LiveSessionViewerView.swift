@@ -25,6 +25,7 @@ struct LiveSessionViewerView: View {
     @State private var nowDate = Date()
     @State private var refreshTrigger: Int = 0
     @State private var lastTrackedLowBattery: Int? = nil
+    @State private var continuousHeading: Double? = nil
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     private let startGreen = Color(red: 16.0 / 255.0, green: 185.0 / 255.0, blue: 129.0 / 255.0)
@@ -175,7 +176,7 @@ struct LiveSessionViewerView: View {
                                     .foregroundStyle(.white)
                             }
                         } else if hasHeading, let heading = snapshot?.lastLocation?.headingDeg {
-                            HeadingConeMarker(headingDegrees: heading, accentColor: liveCyan)
+                            HeadingConeMarker(headingDegrees: continuousHeading ?? heading, accentColor: liveCyan)
                         } else {
                             StationaryDotMarker(accentColor: liveCyan)
                         }
@@ -658,6 +659,9 @@ struct LiveSessionViewerView: View {
                     focusCamera(on: coordinate)
                     hasCenteredInitially = true
                 }
+                if let heading = fetched.lastLocation?.headingDeg {
+                    continuousHeading = LiveSessionViewerRepository.computeContinuousAngle(current: continuousHeading, target: heading)
+                }
                 if fetched.isActive && tick % 3 == 0 {
                     _ = await repository.sendViewerPing(sessionId: sessionId, viewerId: viewerId)
                 }
@@ -716,6 +720,7 @@ private struct HeadingConeMarker: View {
                 .rotationEffect(.degrees(headingDegrees))
         }
         .frame(width: 72, height: 72)
+        .animation(.easeInOut(duration: 0.35), value: headingDegrees)
     }
 }
 

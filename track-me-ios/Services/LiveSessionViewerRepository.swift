@@ -421,6 +421,32 @@ final class LiveSessionViewerRepository {
             clearErrorMessage: true
         )
     }
+
+    /**
+     * Calculates the shortest signed angular difference between two compass bearings in degrees.
+     * Returns a value in [-180.0, 180.0). Positive indicates clockwise turn, negative indicates counter-clockwise.
+     *
+     * Prevents 350-degree spin-around jitter when heading crosses the 0°/360° north boundary (CIE-028).
+     */
+    static func computeShortestArcDelta(from fromAngle: Double, to toAngle: Double) -> Double {
+        guard fromAngle.isFinite, toAngle.isFinite else { return 0.0 }
+        var c = fromAngle.truncatingRemainder(dividingBy: 360.0)
+        if c < 0.0 { c += 360.0 }
+        var t = toAngle.truncatingRemainder(dividingBy: 360.0)
+        if t < 0.0 { t += 360.0 }
+        return ((t - c + 540.0).truncatingRemainder(dividingBy: 360.0)) - 180.0
+    }
+
+    /**
+     * Calculates continuous rotation angle by applying shortest-arc delta to existing continuous angle.
+     * Used for smooth map marker rotation transitions without boundary wrap flips (CIE-028).
+     */
+    static func computeContinuousAngle(current: Double?, target: Double) -> Double {
+        guard target.isFinite else { return current ?? 0.0 }
+        guard let currentAngle = current, currentAngle.isFinite else { return target }
+        let delta = computeShortestArcDelta(from: currentAngle, to: target)
+        return currentAngle + delta
+    }
 }
 
 private extension String {
