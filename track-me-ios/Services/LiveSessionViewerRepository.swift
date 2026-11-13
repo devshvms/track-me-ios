@@ -23,6 +23,12 @@ struct ViewerForegroundReconnectionState: Equatable {
     let clearErrorMessage: Bool
 }
 
+struct ViewerNetworkReconnectionState: Equatable {
+    let shouldFetchImmediately: Bool
+    let resetConsecutiveErrors: Bool
+    let showOfflineToast: Bool
+}
+
 struct LiveViewerSpeedStatus: Equatable {
     let isStationary: Bool
     let isStoppedTimerActive: Bool
@@ -446,6 +452,37 @@ final class LiveSessionViewerRepository {
             shouldFetchImmediately: shouldFetch,
             resetConsecutiveErrors: true,
             clearErrorMessage: true
+        )
+    }
+
+    /**
+     * Evaluates network reconnection state transitions for live session viewers (CIE-034).
+     *
+     * When connection state changes:
+     * - If trip has ended or session is missing/expired, suppresses network toasts and polling.
+     * - If currently disconnected: shows non-blocking persistent offline toast pill.
+     * - If transitioning from disconnected to connected (reconnecting):
+     *   triggers immediate location fetch without waiting for delay timer,
+     *   and resets consecutive error backoff counter.
+     */
+    static func evaluateNetworkReconnection(
+        isConnected: Bool,
+        wasDisconnected: Bool,
+        isActive: Bool,
+        isExpiredOrMissing: Bool = false
+    ) -> ViewerNetworkReconnectionState {
+        if !isActive || isExpiredOrMissing {
+            return ViewerNetworkReconnectionState(
+                shouldFetchImmediately: false,
+                resetConsecutiveErrors: false,
+                showOfflineToast: false
+            )
+        }
+        let isReconnecting = wasDisconnected && isConnected
+        return ViewerNetworkReconnectionState(
+            shouldFetchImmediately: isReconnecting,
+            resetConsecutiveErrors: isReconnecting,
+            showOfflineToast: !isConnected
         )
     }
 

@@ -8,6 +8,11 @@ struct LiveSessionViewerView: View {
     let sessionId: String
     let onDismiss: () -> Void
 
+    init(sessionId: String, onDismiss: @escaping () -> Void) {
+        self.sessionId = sessionId
+        self.onDismiss = onDismiss
+    }
+
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var unitSettings = UnitSettings.shared
@@ -29,6 +34,8 @@ struct LiveSessionViewerView: View {
     @State private var continuousHeading: Double? = nil
     @State private var stoppedSinceDate: Date? = nil
     @State private var isImperialOverride: Bool? = nil
+    @State private var wasDisconnected = false
+    private var networkMonitor = NetworkMonitor.shared
 
     private var useMiles: Bool {
         isImperialOverride ?? (unitSettings.unit == .imperial)
@@ -92,6 +99,15 @@ struct LiveSessionViewerView: View {
             guard scenePhase == .active else { return }
             if isExpiredOrMissing || snapshot?.isActive == false { return }
             await pollSessionLoop()
+        }
+        .onChange(of: networkMonitor.isConnected) { _, isConnected in
+            if !isConnected {
+                wasDisconnected = true
+            } else if wasDisconnected {
+                wasDisconnected = false
+                errorMessage = nil
+                refreshTrigger += 1
+            }
         }
     }
 
@@ -341,80 +357,118 @@ struct LiveSessionViewerView: View {
                     Spacer()
                 }
             } else if snapshot?.isActive == true && currentCoordinate != nil {
-                VStack(spacing: 8) {
-                    if snapshot?.isStaleSignal(now: nowDate) == true {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.red)
-                            Text(LocalizationHelper.localized("Signal paused · Waiting for rider GPS"))
-                                .font(.caption.weight(.medium))
-                            Button {
-                                refreshTrigger += 1
-                            } label: {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(.red)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(LocalizationHelper.localized("Retry"))
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.red.opacity(0.5), lineWidth: 1)
-                        )
-                    } else if errorMessage != nil {
-                        HStack(spacing: 8) {
-                            Text(LocalizationHelper.localized("Connection slow — retrying…"))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
-                            Button {
-                                refreshTrigger += 1
-                            } label: {
-                                Text(LocalizationHelper.localized("Retry"))
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.white.opacity(0.85), in: Capsule())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(LocalizationHelper.localized("Retry"))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.orange.opacity(0.92), in: Capsule())
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(LocalizationHelper.formatted("%@ %@", LocalizationHelper.localized("Connection slow — retrying…"), LocalizationHelper.localized("Retry")))
-                    }
-
-                    if let battery = snapshot?.lastLocation?.batteryLevel, battery <= 15 {
-                        HStack(spacing: 8) {
-                            Image(systemName: "battery.25")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.red)
-                            Text(LocalizationHelper.formatted("Rider battery low (%lld%%) · Signal may pause if phone powers off", Int64(battery)))
-                                .font(.caption.weight(.medium))
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.red.opacity(0.5), lineWidth: 1)
-                        )
-                        .accessibilityElement(children: .combine)
-                    }
-
-                    Spacer()
-                }
-                .padding(12)
+                activeViewerOverlays
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var activeViewerOverlays: some View {
+        VStack(spacing: 8) {
+            if !networkMonitor.isConnected {
+                offlineToastPill
+            } else if snapshot?.isStaleSignal(now: nowDate) == true {
+                staleSignalOverlay
+            } else if errorMessage != nil {
+                reconnectingOverlay
+            }
+
+            if let battery = snapshot?.lastLocation?.batteryLevel, battery <= 15 {
+                lowBatteryOverlay(battery: battery)
+            }
+
+            Spacer()
+        }
+        .padding(12)
+    }
+
+    private var offlineToastPill: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.slash")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.red)
+            Text(LocalizationHelper.localized("Network offline · Retrying automatically"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(
+            Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(LocalizationHelper.localized("Network offline · Retrying automatically"))
+    }
+
+    private var staleSignalOverlay: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.red)
+            Text(LocalizationHelper.localized("Signal paused · Waiting for rider GPS"))
+                .font(.caption.weight(.medium))
+            Button {
+                refreshTrigger += 1
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.red)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(LocalizationHelper.localized("Retry"))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.red.opacity(0.5), lineWidth: 1)
+        )
+    }
+
+    private var reconnectingOverlay: some View {
+        HStack(spacing: 8) {
+            Text(LocalizationHelper.localized("Connection slow — retrying…"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+            Button {
+                refreshTrigger += 1
+            } label: {
+                Text(LocalizationHelper.localized("Retry"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.white.opacity(0.85), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(LocalizationHelper.localized("Retry"))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.92), in: Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(LocalizationHelper.formatted("%@ %@", LocalizationHelper.localized("Connection slow — retrying…"), LocalizationHelper.localized("Retry")))
+    }
+
+    private func lowBatteryOverlay(battery: Int) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "battery.25")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.red)
+            Text(LocalizationHelper.formatted("Rider battery low (%lld%%) · Signal may pause if phone powers off", Int64(battery)))
+                .font(.caption.weight(.medium))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.red.opacity(0.5), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 
     private var bottomTelemetryBar: some View {

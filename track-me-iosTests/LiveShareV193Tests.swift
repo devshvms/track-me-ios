@@ -261,6 +261,7 @@ final class LiveShareV193Tests: XCTestCase {
             "Power Saving",
             "Power saving mode active, location updates spaced out to conserve battery",
             "Retry",
+            "Network offline · Retrying automatically",
             "Track my live ride on TrackMe: %@",
             "Add me as a trusted contact on TrackMe to see my live rides: %@"
         ]
@@ -868,4 +869,51 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertTrue(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 45.0, targetBearing: 48.0, isStationary: false))
         XCTAssertTrue(LiveSessionViewerRepository.shouldUpdateBearing(currentBearing: 355.0, targetBearing: 2.0, isStationary: false)) // 7 degree arc
     }
+
+    func testEvaluateNetworkReconnection() {
+        // Disconnected during active session: show offline toast, do not fetch immediately
+        let offlineState = LiveSessionViewerRepository.evaluateNetworkReconnection(
+            isConnected: false,
+            wasDisconnected: false,
+            isActive: true,
+            isExpiredOrMissing: false
+        )
+        XCTAssertFalse(offlineState.shouldFetchImmediately)
+        XCTAssertFalse(offlineState.resetConsecutiveErrors)
+        XCTAssertTrue(offlineState.showOfflineToast)
+
+        // Reconnecting from disconnected to connected: fetch immediately, reset errors, dismiss toast
+        let reconnectingState = LiveSessionViewerRepository.evaluateNetworkReconnection(
+            isConnected: true,
+            wasDisconnected: true,
+            isActive: true,
+            isExpiredOrMissing: false
+        )
+        XCTAssertTrue(reconnectingState.shouldFetchImmediately)
+        XCTAssertTrue(reconnectingState.resetConsecutiveErrors)
+        XCTAssertFalse(reconnectingState.showOfflineToast)
+
+        // Steady online state: no toast, no immediate trigger needed
+        let steadyOnline = LiveSessionViewerRepository.evaluateNetworkReconnection(
+            isConnected: true,
+            wasDisconnected: false,
+            isActive: true,
+            isExpiredOrMissing: false
+        )
+        XCTAssertFalse(steadyOnline.shouldFetchImmediately)
+        XCTAssertFalse(steadyOnline.resetConsecutiveErrors)
+        XCTAssertFalse(steadyOnline.showOfflineToast)
+
+        // Ended or expired session: suppresses toasts and immediate fetch
+        let endedState = LiveSessionViewerRepository.evaluateNetworkReconnection(
+            isConnected: false,
+            wasDisconnected: true,
+            isActive: false,
+            isExpiredOrMissing: false
+        )
+        XCTAssertFalse(endedState.shouldFetchImmediately)
+        XCTAssertFalse(endedState.resetConsecutiveErrors)
+        XCTAssertFalse(endedState.showOfflineToast)
+    }
 }
+
