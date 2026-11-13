@@ -24,6 +24,7 @@ struct LiveSessionViewerView: View {
     @State private var hasRenderedLocationInitially = false
     @State private var nowDate = Date()
     @State private var refreshTrigger: Int = 0
+    @State private var lastTrackedLowBattery: Int? = nil
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     private let startGreen = Color(red: 16.0 / 255.0, green: 185.0 / 255.0, blue: 129.0 / 255.0)
@@ -284,59 +285,76 @@ struct LiveSessionViewerView: View {
                     .padding(12)
                     Spacer()
                 }
-            } else if snapshot?.isStaleSignal(now: nowDate) == true && currentCoordinate != nil {
-                VStack {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.red)
-                        Text(LocalizationHelper.localized("Signal paused · Waiting for rider GPS"))
-                            .font(.caption.weight(.medium))
-                        Button {
-                            refreshTrigger += 1
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.caption.weight(.bold))
+            } else if snapshot?.isActive == true && currentCoordinate != nil {
+                VStack(spacing: 8) {
+                    if snapshot?.isStaleSignal(now: nowDate) == true {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption.weight(.semibold))
                                 .foregroundStyle(.red)
+                            Text(LocalizationHelper.localized("Signal paused · Waiting for rider GPS"))
+                                .font(.caption.weight(.medium))
+                            Button {
+                                refreshTrigger += 1
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.red)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(LocalizationHelper.localized("Retry"))
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(LocalizationHelper.localized("Retry"))
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.red.opacity(0.5), lineWidth: 1)
-                    )
-                    .padding(12)
-                    Spacer()
-                }
-            } else if errorMessage != nil {
-                VStack {
-                    HStack(spacing: 8) {
-                        Text(LocalizationHelper.localized("Connection slow — retrying…"))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
-                        Button {
-                            refreshTrigger += 1
-                        } label: {
-                            Text(LocalizationHelper.localized("Retry"))
-                                .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                        )
+                    } else if errorMessage != nil {
+                        HStack(spacing: 8) {
+                            Text(LocalizationHelper.localized("Connection slow — retrying…"))
+                                .font(.caption.weight(.semibold))
                                 .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.white.opacity(0.85), in: Capsule())
+                            Button {
+                                refreshTrigger += 1
+                            } label: {
+                                Text(LocalizationHelper.localized("Retry"))
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.white.opacity(0.85), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(LocalizationHelper.localized("Retry"))
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(LocalizationHelper.localized("Retry"))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.orange.opacity(0.92), in: Capsule())
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.92), in: Capsule())
-                    .padding(12)
+
+                    if let battery = snapshot?.lastLocation?.batteryLevel, battery <= 15 {
+                        HStack(spacing: 8) {
+                            Image(systemName: "battery.25")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.red)
+                            Text(LocalizationHelper.formatted("Rider battery low (%lld%%) · Signal may pause if phone powers off", Int64(battery)))
+                                .font(.caption.weight(.medium))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                        )
+                        .accessibilityElement(children: .combine)
+                    }
+
                     Spacer()
                 }
+                .padding(12)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -527,6 +545,14 @@ struct LiveSessionViewerView: View {
                         hasHeading: fetched.lastLocation?.headingDeg != nil,
                         isStopped: !fetched.isActive
                     )
+                }
+                if let battery = fetched.lastLocation?.batteryLevel, battery <= 15, fetched.isActive {
+                    if lastTrackedLowBattery != battery {
+                        lastTrackedLowBattery = battery
+                        TelemetryManager.shared.trackLiveShareViewerLowBattery(sessionId: sessionId, batteryLevel: battery)
+                        let alertMessage = LocalizationHelper.formatted("Rider battery low (%lld%%) · Signal may pause if phone powers off", Int64(battery))
+                        UIAccessibility.post(notification: .announcement, argument: alertMessage)
+                    }
                 }
                 if let coordinate = fetched.lastLocation?.coordinate,
                    isFollowingRider || !hasCenteredInitially {

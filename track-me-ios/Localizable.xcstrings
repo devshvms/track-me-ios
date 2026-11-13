@@ -33028,6 +33028,53 @@
         }
       }
     },
+    "Rider battery low (%lld%%) · Signal may pause if phone powers off": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrer-Akku schwach (%lld%%) · Signal kann pausieren, wenn sich das Telefon ausschaltet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rider battery low (%lld%%) · Signal may pause if phone powers off"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería del ciclista baja (%lld%%) · La señal puede pausarse si el teléfono se apaga"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batterie du cycliste faible (%lld%%) · Le signal peut s'interrompre si le téléphone s'éteint"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइडर की बैटरी कम है (%lld%%) · फ़ोन बंद होने पर सिग्नल रुक सकता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライダーのバッテリー低下 (%lld%%) · 電源が切れると信号が停止する可能性があります"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "骑手电量偏低 (%lld%%) · 如果手机关机，信号可能会暂停"
+          }
+        }
+      }
+    },
     "Opens this live tracking session in Safari": {
       "extractionState": "manual",
       "localizations": {
