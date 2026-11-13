@@ -915,5 +915,85 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertFalse(endedState.resetConsecutiveErrors)
         XCTAssertFalse(endedState.showOfflineToast)
     }
+
+    func testSnapshotCachingAndStatePreservation() {
+        let testSessionId = "cie035_ios_session"
+        let sampleSnapshot = LiveSessionSnapshot(
+            sessionId: testSessionId,
+            username: "Rider",
+            status: "active",
+            startedAt: "2026-11-13T12:00:00Z",
+            stopReason: nil,
+            endReason: nil,
+            endedAt: nil,
+            destination: "Central Park",
+            deadlineAt: nil,
+            lastLocation: LiveViewerLastLocation(
+                lat: 28.6139,
+                lng: 77.2090,
+                speedKmh: 20.0,
+                headingDeg: 180.0,
+                batteryLevel: 90,
+                powerSaveMode: false,
+                timestampIso: "2026-11-13T12:01:00Z"
+            ),
+            path: [LiveViewerPoint(lat: 28.6139, lng: 77.2090)]
+        )
+
+        // Initial state
+        LiveSessionViewerRepository.clearCachedSnapshot(sessionId: testSessionId)
+        XCTAssertNil(LiveSessionViewerRepository.getCachedSnapshot(sessionId: testSessionId))
+
+        // Cache snapshot
+        LiveSessionViewerRepository.cacheSnapshot(sessionId: testSessionId, snapshot: sampleSnapshot)
+        let retrieved = LiveSessionViewerRepository.getCachedSnapshot(sessionId: testSessionId)
+        XCTAssertNotNil(retrieved)
+        XCTAssertEqual(retrieved?.destination, "Central Park")
+        XCTAssertEqual(retrieved?.lastLocation?.batteryLevel, 90)
+
+        // Clear cache
+        LiveSessionViewerRepository.clearCachedSnapshot(sessionId: testSessionId)
+        XCTAssertNil(LiveSessionViewerRepository.getCachedSnapshot(sessionId: testSessionId))
+
+        // Viewport preservation evaluation:
+        // 1. If not following rider and already centered initially, camera should not move
+        let coord1 = CLLocationCoordinate2D(latitude: 28.6139, longitude: 77.2090)
+        let coord2 = CLLocationCoordinate2D(latitude: 28.6200, longitude: 77.2100)
+        let shouldMoveUserPanned = LiveSessionViewerRepository.evaluateViewportPreservation(
+            isFollowingRider: false,
+            lastCoordinate: coord1,
+            newCoordinate: coord2,
+            hasCenteredInitially: true
+        )
+        XCTAssertFalse(shouldMoveUserPanned)
+
+        // 2. If not centered initially, camera must move regardless of follow mode
+        let shouldMoveInitial = LiveSessionViewerRepository.evaluateViewportPreservation(
+            isFollowingRider: false,
+            lastCoordinate: nil,
+            newCoordinate: coord1,
+            hasCenteredInitially: false
+        )
+        XCTAssertTrue(shouldMoveInitial)
+
+        // 3. If following rider and rider moved >= 3m, camera should animate
+        let shouldMoveFollow = LiveSessionViewerRepository.evaluateViewportPreservation(
+            isFollowingRider: true,
+            lastCoordinate: coord1,
+            newCoordinate: coord2,
+            hasCenteredInitially: true
+        )
+        XCTAssertTrue(shouldMoveFollow)
+
+        // 4. If following rider but displacement < 3m, suppress camera jitter
+        let jitterCoord = CLLocationCoordinate2D(latitude: 28.6139001, longitude: 77.2090)
+        let shouldMoveJitter = LiveSessionViewerRepository.evaluateViewportPreservation(
+            isFollowingRider: true,
+            lastCoordinate: coord1,
+            newCoordinate: jitterCoord,
+            hasCenteredInitially: true
+        )
+        XCTAssertFalse(shouldMoveJitter)
+    }
 }
 
