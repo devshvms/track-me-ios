@@ -572,4 +572,37 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertTrue(finishedRes.resetConsecutiveErrors)
         XCTAssertTrue(finishedRes.clearErrorMessage)
     }
+
+    func testLiveViewerHeadingSmoothingAcrossNorthBoundary() {
+        // Crossing north clockwise: 355° to 5° should be +10° delta, not -350°
+        let deltaClockwise = LiveSessionViewerRepository.computeShortestArcDelta(from: 355.0, to: 5.0)
+        XCTAssertEqual(deltaClockwise, 10.0, accuracy: 0.001)
+        let continuousClockwise = LiveSessionViewerRepository.computeContinuousAngle(current: 355.0, target: 5.0)
+        XCTAssertEqual(continuousClockwise, 365.0, accuracy: 0.001)
+
+        // Crossing north counter-clockwise: 5° to 355° should be -10° delta, not +350°
+        let deltaCounter = LiveSessionViewerRepository.computeShortestArcDelta(from: 5.0, to: 355.0)
+        XCTAssertEqual(deltaCounter, -10.0, accuracy: 0.001)
+        let continuousCounter = LiveSessionViewerRepository.computeContinuousAngle(current: 5.0, target: 355.0)
+        XCTAssertEqual(continuousCounter, -5.0, accuracy: 0.001)
+
+        // Normal turn: 90° to 120°
+        let deltaNormal = LiveSessionViewerRepository.computeShortestArcDelta(from: 90.0, to: 120.0)
+        XCTAssertEqual(deltaNormal, 30.0, accuracy: 0.001)
+        let continuousNormal = LiveSessionViewerRepository.computeContinuousAngle(current: 90.0, target: 120.0)
+        XCTAssertEqual(continuousNormal, 120.0, accuracy: 0.001)
+
+        // Preserves continuous angle across multi-revolution turns
+        let multiTurn = LiveSessionViewerRepository.computeContinuousAngle(current: 725.0, target: 15.0)
+        // 725 % 360 = 5°, 5° to 15° is +10° -> 725 + 10 = 735°
+        XCTAssertEqual(multiTurn, 735.0, accuracy: 0.001)
+
+        // Initial angle with nil current: should return target
+        let initialAngle = LiveSessionViewerRepository.computeContinuousAngle(current: nil, target: 180.0)
+        XCTAssertEqual(initialAngle, 180.0, accuracy: 0.001)
+
+        // Edge case: NaN / Infinity
+        XCTAssertEqual(LiveSessionViewerRepository.computeShortestArcDelta(from: .nan, to: 5.0), 0.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeContinuousAngle(current: 45.0, target: .nan), 45.0, accuracy: 0.001)
+    }
 }
