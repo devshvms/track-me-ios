@@ -262,13 +262,29 @@ struct LiveSessionViewerView: View {
                 }
             } else if let errorMessage, snapshot == nil {
                 VStack {
-                    Text(errorMessage)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.red.opacity(0.9), in: RoundedRectangle(cornerRadius: 12))
-                        .padding(12)
+                    HStack(spacing: 12) {
+                        Text(errorMessage)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.leading)
+                        Button {
+                            refreshTrigger += 1
+                        } label: {
+                            Text(LocalizationHelper.localized("Retry"))
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Color.red)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.white, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(LocalizationHelper.localized("Retry"))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.red.opacity(0.9), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(12)
+                    .accessibilityElement(children: .combine)
                     Spacer()
                 }
             } else if snapshot?.isActive == true && currentCoordinate == nil {
@@ -332,6 +348,8 @@ struct LiveSessionViewerView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(Color.orange.opacity(0.92), in: Capsule())
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(LocalizationHelper.formatted("%@ %@", LocalizationHelper.localized("Connection slow — retrying…"), LocalizationHelper.localized("Retry")))
                     }
 
                     if let battery = snapshot?.lastLocation?.batteryLevel, battery <= 15 {
@@ -605,6 +623,8 @@ struct LiveSessionViewerView: View {
         TelemetryManager.shared.trackLiveShareViewed(sessionId: sessionId, surface: "in_app_viewer")
         var tick = 0
         var consecutiveErrors = 0
+        // Clear stale connection error on initial/foreground start so fresh poll runs cleanly (CIE-027)
+        errorMessage = nil
         while !Task.isCancelled {
             nowDate = Date()
             let result = await repository.fetchSnapshot(sessionId: sessionId)

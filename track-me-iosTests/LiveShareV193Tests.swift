@@ -543,4 +543,33 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertTrue(formattedFallback.contains(testUrl), "\(lang) formatted fallback should contain '\(testUrl)': \(formattedFallback)")
         }
     }
+
+    func testLiveViewerForegroundReconnectionEvaluation() {
+        // Active and valid session: triggers immediate fetch, clears errors, resets counter
+        let activeRes = LiveSessionViewerRepository.evaluateForegroundReconnection(
+            isActive: true,
+            isExpiredOrMissing: false
+        )
+        XCTAssertTrue(activeRes.shouldFetchImmediately)
+        XCTAssertTrue(activeRes.resetConsecutiveErrors)
+        XCTAssertTrue(activeRes.clearErrorMessage)
+
+        // Expired or missing session: suppresses polling
+        let expiredRes = LiveSessionViewerRepository.evaluateForegroundReconnection(
+            isActive: true,
+            isExpiredOrMissing: true
+        )
+        XCTAssertFalse(expiredRes.shouldFetchImmediately)
+        XCTAssertTrue(expiredRes.resetConsecutiveErrors)
+        XCTAssertTrue(expiredRes.clearErrorMessage)
+
+        // Inactive / finished session: suppresses polling
+        let finishedRes = LiveSessionViewerRepository.evaluateForegroundReconnection(
+            isActive: false,
+            isExpiredOrMissing: false
+        )
+        XCTAssertFalse(finishedRes.shouldFetchImmediately)
+        XCTAssertTrue(finishedRes.resetConsecutiveErrors)
+        XCTAssertTrue(finishedRes.clearErrorMessage)
+    }
 }
