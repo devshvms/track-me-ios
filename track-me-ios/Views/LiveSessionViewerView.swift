@@ -455,6 +455,24 @@ struct LiveSessionViewerView: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(LocalizationHelper.formatted("Duration: %@", duration))
                     }
+
+                    let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
+                    if totalDistance > 0.0 {
+                        let distanceText = UnitFormatter.distance(
+                            meters: totalDistance,
+                            unit: unitSettings.unit,
+                            decimals: 1
+                        )
+                        HStack(spacing: 3) {
+                            Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                .font(.subheadline)
+                                .foregroundStyle(liveCyan)
+                            Text(distanceText)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.formatted("Distance: %@", distanceText))
+                    }
                 }
 
                 Spacer(minLength: 8)
