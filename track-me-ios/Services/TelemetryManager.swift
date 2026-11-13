@@ -796,6 +796,15 @@ class TelemetryManager {
         ])
     }
 
+    func trackLiveShareViewerShareClicked(sessionId: String) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("live_share_viewer_share_clicked", properties: [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "platform": "ios"
+        ])
+    }
+
     func trackTrustedWatcherAdded() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("trusted_watcher_added")
