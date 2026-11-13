@@ -19,6 +19,32 @@ final class LiveShareDeepLinkAndIntervalTests: XCTestCase {
 
         let queryBased = URL(string: "trackme://live?sessionId=sess_8888")!
         XCTAssertEqual(LiveShareLink.parse(url: queryBased), .session("sess_8888"))
+
+        let tripleSlash = URL(string: "trackme:///live/sess_3333")!
+        XCTAssertEqual(LiveShareLink.parse(url: tripleSlash), .session("sess_3333"))
+    }
+
+    func testParsesUrlStringWithUnencodedQuerySpaces() {
+        let parsed = LiveShareLink.parse(urlString: "https://trackme.shvms.in/live/sess_4444?utm=chat share&name=John Doe")
+        XCTAssertEqual(parsed, .session("sess_4444"))
+    }
+
+    func testGroupRideManagerHandlesIncomingURLsWithWwwAndQueryCodes() {
+        let manager = GroupRideManager.shared
+        // 1. https with www host and token fragment
+        let wwwUrl = URL(string: "https://www.trackme.shvms.in/g#Zm9vYmFyYmF6cXV4MTIzNA")!
+        XCTAssertTrue(manager.handleIncomingURL(wwwUrl))
+        XCTAssertEqual(manager.pendingJoinToken, "Zm9vYmFyYmF6cXV4MTIzNA")
+
+        // 2. https path with query code fallback when fragment absent
+        let queryCodeUrl = URL(string: "https://trackme.shvms.in/g?code=ABC123")!
+        XCTAssertTrue(manager.handleIncomingURL(queryCodeUrl))
+        XCTAssertEqual(manager.pendingJoinCode, "ABC123")
+
+        // 3. custom scheme with path prefix
+        let customSchemeUrl = URL(string: "trackme:///group?c=XYZ789")!
+        XCTAssertTrue(manager.handleIncomingURL(customSchemeUrl))
+        XCTAssertEqual(manager.pendingJoinCode, "XYZ789")
     }
 
     func testExcludesWatcherInviteLinksFromLiveSessionParsing() {

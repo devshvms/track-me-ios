@@ -227,9 +227,11 @@ final class GroupRideManager {
     }
 
     func handleIncomingURL(_ url: URL) -> Bool {
-        guard url.scheme == "trackme" || url.host == "trackme.shvms.in" else { return false }
+        let scheme = url.scheme?.lowercased() ?? ""
+        let host = url.host?.lowercased() ?? ""
+        guard scheme == "trackme" || host == "trackme.shvms.in" || host == "www.trackme.shvms.in" else { return false }
         var accepted = false
-        if url.scheme == "trackme", url.host == "group" || url.path == "/group" {
+        if scheme == "trackme", host == "group" || url.path == "/group" || url.path.hasPrefix("/group") {
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
             let token = items.first(where: { $0.name == "t" || $0.name == "token" })?.value
             let code = items.first(where: { $0.name == "c" || $0.name == "code" })?.value
@@ -250,6 +252,15 @@ final class GroupRideManager {
                 pendingJoinCode = nil
                 pendingJoinViaCode = false
                 accepted = true
+            } else {
+                let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                let code = items.first(where: { $0.name == "c" || $0.name == "code" })?.value
+                if let code, !code.isEmpty {
+                    pendingJoinToken = nil
+                    pendingJoinCode = code
+                    pendingJoinViaCode = false
+                    accepted = true
+                }
             }
         }
         if accepted {

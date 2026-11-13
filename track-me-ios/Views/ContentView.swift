@@ -139,16 +139,16 @@ struct ContentView: View {
                 Task { _ = await trustedWatchers.refreshInbox() }
             }
         }
-        .onChange(of: trustedWatchers.pendingWatcherInvite) { _, invite in
+        .onChange(of: trustedWatchers.pendingWatcherInvite, initial: true) { _, invite in
             if invite != nil { selectedTab = .home }
         }
-        .onChange(of: trustedWatchers.pendingOpenSessionId) { _, sessionId in
+        .onChange(of: trustedWatchers.pendingOpenSessionId, initial: true) { _, sessionId in
             if sessionId != nil { selectedTab = .home }
         }
-        .onChange(of: groupRide.pendingJoinCode) { _, code in
+        .onChange(of: groupRide.pendingJoinCode, initial: true) { _, code in
             if code != nil { selectedTab = .community }
         }
-        .onChange(of: groupRide.pendingJoinToken) { _, token in
+        .onChange(of: groupRide.pendingJoinToken, initial: true) { _, token in
             if token != nil { selectedTab = .community }
         }
         .onChange(of: groupRide.communityNavigationRequest) { _, _ in
