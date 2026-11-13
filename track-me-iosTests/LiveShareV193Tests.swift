@@ -1235,5 +1235,100 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertTrue(imperialSummary.detailsText.contains("10.0 mi"))
         XCTAssertTrue(imperialSummary.detailsText.contains("10.0 mph"))
     }
+
+    func testOffScreenRiderDistanceBadgeAndFollowModeAutoResume() {
+        let center = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        let nearRider = CLLocationCoordinate2D(latitude: 37.7755, longitude: -122.4190) // ~80m
+        let farRider = CLLocationCoordinate2D(latitude: 37.7880, longitude: -122.4050) // ~1.9km
+
+        let nearDist = LiveSessionViewerRepository.computeOffCenterDistanceMeters(center: center, rider: nearRider)
+        let farDist = LiveSessionViewerRepository.computeOffCenterDistanceMeters(center: center, rider: farRider)
+        XCTAssertLessThan(nearDist, 200.0)
+        XCTAssertGreaterThan(farDist, 1000.0)
+
+        // Threshold suppressions
+        XCTAssertNil(LiveSessionViewerRepository.formatOffCenterDistance(distanceMeters: nil))
+        XCTAssertNil(LiveSessionViewerRepository.formatOffCenterDistance(distanceMeters: -50.0))
+        XCTAssertNil(LiveSessionViewerRepository.formatOffCenterDistance(distanceMeters: Double.nan))
+        XCTAssertNil(LiveSessionViewerRepository.formatOffCenterDistance(distanceMeters: 249.0, thresholdMeters: 250.0))
+
+        // Formatting above threshold
+        XCTAssertEqual(LiveSessionViewerRepository.formatOffCenterDistance(distanceMeters: 1400.0, useMiles: false), "1.4 km")
+        XCTAssertEqual(LiveSessionViewerRepository.formatOffCenterDistance(distanceMeters: 1609.344, useMiles: true), "1.0 mi")
+
+        // Recenter button label
+        XCTAssertEqual(
+            LiveSessionViewerRepository.formatRecenterButtonLabel(distanceMeters: 100.0, baseLabel: "Recenter"),
+            "Recenter"
+        )
+        XCTAssertEqual(
+            LiveSessionViewerRepository.formatRecenterButtonLabel(distanceMeters: 1400.0, baseLabel: "Recenter"),
+            "Recenter · 1.4 km"
+        )
+        XCTAssertEqual(
+            LiveSessionViewerRepository.formatRecenterButtonLabel(distanceMeters: 1609.344, useMiles: true, baseLabel: "Recenter"),
+            "Recenter · 1.0 mi"
+        )
+
+        // Recenter accessibility label
+        XCTAssertEqual(
+            LiveSessionViewerRepository.formatRecenterAccessibilityLabel(distanceMeters: 100.0, baseLabel: "Recenter on rider"),
+            "Recenter on rider"
+        )
+        XCTAssertEqual(
+            LiveSessionViewerRepository.formatRecenterAccessibilityLabel(distanceMeters: 1400.0, baseLabel: "Recenter on rider"),
+            "Recenter on rider, 1.4 km away"
+        )
+
+        // Inactivity follow-mode auto resume
+        let baseTime = Date(timeIntervalSince1970: 1_700_000_000)
+        let twentyOneSecLater = baseTime.addingTimeInterval(21.0)
+        let tenSecLater = baseTime.addingTimeInterval(10.0)
+
+        // Already following -> false
+        XCTAssertFalse(LiveSessionViewerRepository.shouldResumeFollowMode(
+            isFollowing: true,
+            isEnded: false,
+            lastInteractionDate: baseTime,
+            now: twentyOneSecLater,
+            timeoutSeconds: 20.0
+        ))
+
+        // Ended trip -> false
+        XCTAssertFalse(LiveSessionViewerRepository.shouldResumeFollowMode(
+            isFollowing: false,
+            isEnded: true,
+            lastInteractionDate: baseTime,
+            now: twentyOneSecLater,
+            timeoutSeconds: 20.0
+        ))
+
+        // Nil last interaction -> false
+        XCTAssertFalse(LiveSessionViewerRepository.shouldResumeFollowMode(
+            isFollowing: false,
+            isEnded: false,
+            lastInteractionDate: nil,
+            now: twentyOneSecLater,
+            timeoutSeconds: 20.0
+        ))
+
+        // Inactivity duration < timeout -> false
+        XCTAssertFalse(LiveSessionViewerRepository.shouldResumeFollowMode(
+            isFollowing: false,
+            isEnded: false,
+            lastInteractionDate: baseTime,
+            now: tenSecLater,
+            timeoutSeconds: 20.0
+        ))
+
+        // Inactivity duration >= timeout -> true
+        XCTAssertTrue(LiveSessionViewerRepository.shouldResumeFollowMode(
+            isFollowing: false,
+            isEnded: false,
+            lastInteractionDate: baseTime,
+            now: twentyOneSecLater,
+            timeoutSeconds: 20.0
+        ))
+    }
 }
 

@@ -44,6 +44,8 @@ struct LiveSessionViewerView: View {
     @State private var wasDisconnected = false
     @State private var hasAnnouncedStale = false
     @State private var hasAnnouncedEnded = false
+    @State private var lastCameraCenter: CLLocationCoordinate2D? = nil
+    @State private var lastUserInteractionDate: Date? = Date()
     private var networkMonitor = NetworkMonitor.shared
 
     private var useMiles: Bool {
@@ -251,21 +253,41 @@ struct LiveSessionViewerView: View {
                 }
             }
             .mapStyle(.standard)
+            .onMapCameraChange(frequency: .onEnd) { context in
+                lastCameraCenter = context.camera.centerCoordinate
+            }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 10).onChanged { _ in
                     isFollowingRider = false
+                    lastUserInteractionDate = Date()
                 }
             )
             .overlay(alignment: .bottomTrailing) {
                 if currentCoordinate != nil || coordinates.count >= 2 {
                     VStack(alignment: .trailing, spacing: 8) {
                         if !isFollowingRider, let target = currentCoordinate {
+                            let offCenterDist: Double? = {
+                                if let lastCameraCenter {
+                                    return LiveSessionViewerRepository.computeOffCenterDistanceMeters(center: lastCameraCenter, rider: target)
+                                }
+                                return nil
+                            }()
+                            let recenterLabel = LiveSessionViewerRepository.formatRecenterButtonLabel(
+                                distanceMeters: offCenterDist,
+                                useMiles: useMiles
+                            )
+                            let recenterA11y = LiveSessionViewerRepository.formatRecenterAccessibilityLabel(
+                                distanceMeters: offCenterDist,
+                                useMiles: useMiles
+                            )
+
                             Button {
                                 isFollowingRider = true
+                                lastUserInteractionDate = Date()
                                 focusCamera(on: target)
                             } label: {
                                 Label(
-                                    LocalizationHelper.localized("Recenter"),
+                                    recenterLabel,
                                     systemImage: "location.fill"
                                 )
                                 .font(.caption.weight(.semibold))
@@ -275,7 +297,7 @@ struct LiveSessionViewerView: View {
                                 .background(.regularMaterial, in: Capsule())
                                 .shadow(radius: 3)
                             }
-                            .accessibilityLabel(LocalizationHelper.localized("Recenter"))
+                            .accessibilityLabel(recenterA11y)
                             .accessibilityHint(LocalizationHelper.localized("Re-center map on rider's current location"))
                         }
                         if coordinates.count >= 2 {
@@ -729,6 +751,7 @@ struct LiveSessionViewerView: View {
     }
 
     private func focusCamera(on coordinate: CLLocationCoordinate2D) {
+        lastCameraCenter = coordinate
         let region = MKCoordinateRegion(
             center: coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
@@ -744,6 +767,7 @@ struct LiveSessionViewerView: View {
 
     private func fitRouteCamera(coordinates: [CLLocationCoordinate2D]) {
         guard !coordinates.isEmpty else { return }
+        lastUserInteractionDate = Date()
         var minLat = coordinates[0].latitude
         var maxLat = coordinates[0].latitude
         var minLng = coordinates[0].longitude
@@ -760,6 +784,7 @@ struct LiveSessionViewerView: View {
             latitude: (minLat + maxLat) / 2.0,
             longitude: (minLng + maxLng) / 2.0
         )
+        lastCameraCenter = center
         let latDelta = max(0.004, (maxLat - minLat) * 1.35)
         let lngDelta = max(0.004, (maxLng - minLng) * 1.35)
 
@@ -827,6 +852,22 @@ struct LiveSessionViewerView: View {
                         TelemetryManager.shared.trackLiveShareViewerLowBattery(sessionId: sessionId, batteryLevel: battery)
                     }
                 }
+
+                // CIE-040: Auto-resume follow mode after inactivity timeout (default 20s) if trip is active
+                if LiveSessionViewerRepository.shouldResumeFollowMode(
+                    isFollowing: isFollowingRider,
+                    isEnded: !fetched.isActive,
+                    lastInteractionDate: lastUserInteractionDate,
+                    now: nowDate,
+                    timeoutSeconds: 20.0
+                ) {
+                    isFollowingRider = true
+                    if let coordinate = fetched.lastLocation?.coordinate {
+                        lastFocusedCoordinate = coordinate
+                        focusCamera(on: coordinate)
+                    }
+                }
+
                 if let coordinate = fetched.lastLocation?.coordinate,
                    isFollowingRider || !hasCenteredInitially {
                     let shouldAnimate = !hasCenteredInitially || LiveSessionViewerRepository.shouldAnimateCamera(
