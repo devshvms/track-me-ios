@@ -12617,6 +12617,100 @@
         }
       }
     },
+    "Track my live ride on TrackMe: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verfolge meine Fahrt live auf TrackMe: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track my live ride on TrackMe: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigue mi ruta en vivo en TrackMe: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivez ma sortie en direct sur TrackMe : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe पर मेरी लाइव सवारी को ट्रैक करें: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMeで私のライブライドを追跡: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 TrackMe 上关注我的实时骑行：%@"
+          }
+        }
+      }
+    },
+    "Add me as a trusted contact on TrackMe to see my live rides: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge mich als vertrauenswürdigen Kontakt auf TrackMe hinzu, um meine Live-Fahrten zu sehen: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add me as a trusted contact on TrackMe to see my live rides: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añádeme como contacto de confianza en TrackMe para ver mis rutas en vivo: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez-moi comme contact de confiance sur TrackMe pour voir mes sorties en direct : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेरी लाइव सवारी देखने के लिए मुझे TrackMe पर एक विश्वसनीय संपर्क के रूप में जोड़ें: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "私のライブライドを確認するには、TrackMeで信頼できる連絡先として追加してください: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 TrackMe 上将我添加为常用联系人以查看我的实时骑行：%@"
+          }
+        }
+      }
+    },
     "Join with a code": {
       "extractionState": "manual",
       "localizations": {
