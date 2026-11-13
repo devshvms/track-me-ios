@@ -146,4 +146,56 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertNil(body["heading"], "Negative course must be omitted from body to prevent false North locking")
         XCTAssertEqual(body["powerSaveMode"] as? Bool, true)
     }
+
+    func testComputePushBackoffDelayScalesPredictablyAndClampsAtMax() {
+        let noJitter = { 0.0 }
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 0, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 5.0)
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: -1, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 5.0)
+
+        // 1 failure -> 5 + 1 = 6.0s
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 1, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 6.0)
+
+        // 2 failures -> 5 + 3 = 8.0s
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 2, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 8.0)
+
+        // 3 failures -> 5 + 6 = 11.0s
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 3, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 11.0)
+
+        // 4 failures -> 5 + 10 = 15.0s (clamped to max)
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 4, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 15.0)
+
+        // 10 failures -> clamped to max
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 10, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 15.0)
+
+        // With jitter:
+        let halfJitter = { 0.5 }
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 1, baseInterval: 5.0, maxInterval: 15.0, randomProvider: halfJitter), 6.25)
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 4, baseInterval: 5.0, maxInterval: 15.0, randomProvider: halfJitter), 15.0)
+    }
+
+    func testComputeViewerBackoffSecondsScalesPredictablyAndClampsAtMax() {
+        let noJitter = { 0.0 }
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 0, randomProvider: noJitter), 5.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: -1, randomProvider: noJitter), 5.0)
+
+        // 1 error -> 5 + 1 = 6.0s
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 1, randomProvider: noJitter), 6.0)
+
+        // 2 errors -> 5 + 3 = 8.0s
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 2, randomProvider: noJitter), 8.0)
+
+        // 3 errors -> 5 + 6 = 11.0s
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 3, randomProvider: noJitter), 11.0)
+
+        // 4 errors -> 5 + 10 = 15.0s
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 4, randomProvider: noJitter), 15.0)
+
+        // 10 errors -> clamped to 15.0s
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 10, randomProvider: noJitter), 15.0)
+
+        // With jitter:
+        let halfJitter = { 0.5 }
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 1, randomProvider: halfJitter), 6.25)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: 4, randomProvider: halfJitter), 15.0)
+    }
 }

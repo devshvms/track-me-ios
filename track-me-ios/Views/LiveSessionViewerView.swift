@@ -387,11 +387,14 @@ struct LiveSessionViewerView: View {
     private func pollSessionLoop() async {
         TelemetryManager.shared.trackLiveShareViewed(sessionId: sessionId, surface: "in_app_viewer")
         var tick = 0
+        var consecutiveErrors = 0
         while !Task.isCancelled {
             nowDate = Date()
             let result = await repository.fetchSnapshot(sessionId: sessionId)
+            var nextSleepSeconds: Double = 5.0
             switch result {
             case .success(let fetched):
+                consecutiveErrors = 0
                 snapshot = fetched
                 isExpiredOrMissing = false
                 errorMessage = nil
@@ -416,16 +419,20 @@ struct LiveSessionViewerView: View {
                 if !fetched.isActive {
                     return
                 }
+                nextSleepSeconds = 5.0
             case .notFoundOrExpired:
                 isExpiredOrMissing = true
                 isLoading = false
                 return
             case .error(let msg):
+                consecutiveErrors += 1
                 errorMessage = msg
                 isLoading = false
+                nextSleepSeconds = LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: consecutiveErrors)
             }
             tick += 1
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            let sleepNanos = UInt64(nextSleepSeconds * 1_000_000_000)
+            try? await Task.sleep(nanoseconds: sleepNanos)
         }
     }
 }

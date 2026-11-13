@@ -35,6 +35,32 @@ class LiveSharingManager {
 
     private var isRetryingAuth = false
     private var lastErrorToastAt = Date.distantPast
+    private var isPushInProgress = false
+    private var consecutivePushFailures = 0
+    private var nextEligiblePushTime = Date.distantPast
+
+    /**
+     * Calculates an adaptive, jittered exponential backoff delay for location pushes during live sharing (CIE-003).
+     * Progression:
+     * - 0 failures: [baseInterval] (standard broadcast cadence, e.g. 5.0s)
+     * - 1 failure:  base + 1.0s + jitter
+     * - 2 failures: base + 3.0s + jitter
+     * - 3 failures: base + 6.0s + jitter
+     * - 4+ failures: capped at [maxInterval] (default 15.0s)
+     */
+    static func computePushBackoffDelay(
+        consecutiveFailures: Int,
+        baseInterval: TimeInterval = 5.0,
+        maxInterval: TimeInterval = 15.0,
+        randomProvider: () -> Double = { Double.random(in: 0.0...1.0) }
+    ) -> TimeInterval {
+        if consecutiveFailures <= 0 { return baseInterval }
+        let increments: [TimeInterval] = [1.0, 3.0, 6.0, 10.0]
+        let stepIndex = min(consecutiveFailures - 1, increments.count - 1)
+        let step = increments[stepIndex]
+        let jitter = randomProvider() * 0.5
+        return min(maxInterval, baseInterval + step + jitter)
+    }
 
     // MARK: - Request construction
     private static let requestTimeout: TimeInterval = 15   // parity with Android LiveShareManager (connect/read = 15s)
@@ -115,7 +141,11 @@ class LiveSharingManager {
     }
 
     private func withAuthToken(forceRefresh: Bool = false, _ completion: @escaping (String?) -> Void) {
-        Auth.auth().currentUser?.getIDTokenForcingRefresh(forceRefresh) { token, _ in
+        guard let user = Auth.auth().currentUser else {
+            completion(nil)
+            return
+        }
+        user.getIDTokenForcingRefresh(forceRefresh) { token, _ in
             completion(token)
         }
     }
@@ -323,17 +353,23 @@ class LiveSharingManager {
             self.sessionStartTime = nil
             self.isRetryingAuth = false
             self.stopTimers()
+            self.isPushInProgress = false
+            self.consecutivePushFailures = 0
+            self.nextEligiblePushTime = .distantPast
         }
     }
 
     private func startTimers() {
         stopTimers()
 
-        // Push Timer
-        pushTimer = Timer.scheduledTimer(withTimeInterval: updateFrequency, repeats: true) { [weak self] _ in
+        // Push Timer: Evaluates every 1.0s to honor backoff delays and single in-flight concurrency cleanly
+        pushTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             // Only push if the ride is actually actively tracking (as per user request)
-            if TrackingManager.shared.state == .tracking, let loc = self.latestLocation {
+            if TrackingManager.shared.state == .tracking,
+               let loc = self.latestLocation,
+               !self.isPushInProgress,
+               Date() >= self.nextEligiblePushTime {
                 self.pushLocation(loc)
             }
         }
@@ -359,6 +395,9 @@ class LiveSharingManager {
         pushTimer = nil
         countdownTimer?.invalidate()
         countdownTimer = nil
+        isPushInProgress = false
+        consecutivePushFailures = 0
+        nextEligiblePushTime = .distantPast
     }
 
     func updateLatestLocation(_ location: CLLocation) {
@@ -395,6 +434,9 @@ class LiveSharingManager {
             return
         }
 
+        guard !isPushInProgress || isRetry else { return }
+        isPushInProgress = true
+
         var request = Self.makeLiveShareRequest(url: url)
 
         // Fetch battery level
@@ -420,6 +462,10 @@ class LiveSharingManager {
 
                 DispatchQueue.main.async {
                     if let error = error {
+                        self.isPushInProgress = false
+                        self.consecutivePushFailures += 1
+                        let delay = Self.computePushBackoffDelay(consecutiveFailures: self.consecutivePushFailures, baseInterval: self.updateFrequency)
+                        self.nextEligiblePushTime = Date().addingTimeInterval(delay)
                         self.handleTransportError(error)
                         return
                     }
@@ -427,21 +473,32 @@ class LiveSharingManager {
                     switch code {
                     case .some(200...299):
                         self.isRetryingAuth = false
+                        self.consecutivePushFailures = 0
+                        self.isPushInProgress = false
+                        self.nextEligiblePushTime = Date().addingTimeInterval(self.updateFrequency)
                         if self.isActive, let data {
                             self.activeViewers = Self.parseActiveViewers(data: data, fallback: self.activeViewers)
                         }
                     case .some(404):
+                        self.isPushInProgress = false
                         ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing expired"), style: .error)
                         self.stopSession(reason: "Session expired on server.")
                     case .some(401):
                         if isRetry {
+                            self.isPushInProgress = false
                             ToastManager.shared.show(message: LiveShareError.message(statusCode: 401, error: nil), style: .error)
                             self.stopSession(reason: "Authentication expired.")
                         } else if !self.isRetryingAuth {
                             self.isRetryingAuth = true
                             self.pushLocation(loc, isRetry: true)
+                        } else {
+                            self.isPushInProgress = false
                         }
                     default:
+                        self.isPushInProgress = false
+                        self.consecutivePushFailures += 1
+                        let delay = Self.computePushBackoffDelay(consecutiveFailures: self.consecutivePushFailures, baseInterval: self.updateFrequency)
+                        self.nextEligiblePushTime = Date().addingTimeInterval(delay)
                         self.handleHTTPError(code)
                     }
                 }

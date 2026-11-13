@@ -223,6 +223,28 @@ final class LiveSessionViewerRepository {
         }
         return num
     }
+
+    /// Computes an adaptive, jittered polling delay for Live Share viewers during network errors or server hiccups (CIE-003).
+    /// Backs off consecutive errors to avoid stampeding Redis and Vercel serverless ($0/mo cost mandate).
+    /// Progression:
+    /// - 0 errors: baseDelay (standard 5.0s polling)
+    /// - 1 error:  base + 1.0s + jitter (~6.0s - 6.5s)
+    /// - 2 errors: base + 3.0s + jitter (~8.0s - 8.5s)
+    /// - 3 errors: base + 6.0s + jitter (~11.0s - 11.5s)
+    /// - 4+ errors: capped at maxDelay (15.0s)
+    static func computeViewerBackoffSeconds(
+        consecutiveErrors: Int,
+        baseDelay: Double = 5.0,
+        maxDelay: Double = 15.0,
+        randomProvider: () -> Double = { Double.random(in: 0.0...1.0) }
+    ) -> Double {
+        if consecutiveErrors <= 0 { return baseDelay }
+        let increments: [Double] = [1.0, 3.0, 6.0, 10.0]
+        let stepIndex = min(consecutiveErrors - 1, increments.count - 1)
+        let step = increments[stepIndex]
+        let jitter = randomProvider() * 0.5
+        return min(maxDelay, baseDelay + step + jitter)
+    }
 }
 
 private extension String {
