@@ -61,7 +61,8 @@ struct LiveSessionViewerView: View {
 
     private var headerTitle: some View {
         let lastLoc = snapshot?.lastLocation
-        let isDelayed = snapshot?.isActive == true && LiveSessionViewerRepository.isDelayedUpdate(
+        let isStale = snapshot?.isStaleSignal(now: nowDate) == true
+        let isDelayed = snapshot?.isActive == true && !isStale && LiveSessionViewerRepository.isDelayedUpdate(
             powerSaveMode: lastLoc?.powerSaveMode == true,
             timestampIso: lastLoc?.timestampIso,
             now: nowDate
@@ -98,7 +99,15 @@ struct LiveSessionViewerView: View {
                 .accessibilityElement(children: .combine)
             }
 
-            if isDelayed {
+            if isStale {
+                Text(LocalizationHelper.localized("Signal paused"))
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.red.opacity(0.18), in: Capsule())
+                    .foregroundStyle(.red)
+                    .accessibilityLabel(LocalizationHelper.localized("GPS signal paused, waiting for rider location"))
+            } else if isDelayed {
                 Text(LocalizationHelper.localized("Delayed"))
                     .font(.caption2.weight(.bold))
                     .padding(.horizontal, 7)
@@ -249,6 +258,25 @@ struct LiveSessionViewerView: View {
                     .padding(12)
                     Spacer()
                 }
+            } else if snapshot?.isStaleSignal(now: nowDate) == true && currentCoordinate != nil {
+                VStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.red)
+                        Text(LocalizationHelper.localized("Signal paused · Waiting for rider GPS"))
+                            .font(.caption.weight(.medium))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                    )
+                    .padding(12)
+                    Spacer()
+                }
             } else if errorMessage != nil {
                 VStack {
                     Text(LocalizationHelper.localized("Connection slow — retrying…"))
@@ -347,6 +375,18 @@ struct LiveSessionViewerView: View {
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(a11yLabel)
+                    }
+
+                    if let duration = snapshot?.formatDuration(now: nowDate) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "timer")
+                                .font(.subheadline)
+                                .foregroundStyle(liveCyan)
+                            Text(duration)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.formatted("Duration: %@", duration))
                     }
                 }
 
