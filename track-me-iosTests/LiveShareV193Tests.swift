@@ -209,6 +209,7 @@ final class LiveShareV193Tests: XCTestCase {
             "Rider speed: %@",
             "Rider speed unavailable",
             "Rider battery: %lld percent",
+            "Rider battery low: %lld percent",
             "Opens this live tracking session in Safari"
         ]
 
@@ -224,6 +225,12 @@ final class LiveShareV193Tests: XCTestCase {
                 88
             )
             XCTAssertTrue(formattedBattery.contains("88"), "Battery format failed in \(lang): \(formattedBattery)")
+
+            let formattedLowBattery = String(
+                format: LocalizationHelper.localized("Rider battery low: %lld percent", localeCode: lang),
+                12
+            )
+            XCTAssertTrue(formattedLowBattery.contains("12"), "Low battery format failed in \(lang): \(formattedLowBattery)")
 
             let formattedSpeed = String(
                 format: LocalizationHelper.localized("Rider speed: %@", localeCode: lang),
