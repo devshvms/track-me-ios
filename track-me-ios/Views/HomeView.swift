@@ -272,7 +272,7 @@ struct HomeView: View {
             )
         }
         .sheet(item: $liveShareSharePayload) { payload in
-            ActivityView(activityItems: [payload.url])
+            ShareSheet(activityItems: payload.activityItems)
         }
         .sheet(isPresented: $showHomeSharing) {
             LiveShareSetupSheet(
@@ -292,32 +292,9 @@ struct HomeView: View {
                         style: .info
                     )
                 },
-                onShareLink: {
-                    if let link = liveSharingManager.shareLink, let url = URL(string: link) {
-                        liveShareSharePayload = LiveShareSharePayload(url: url)
-                    }
-                },
-                onCopyLink: {
-                    if let link = liveSharingManager.shareLink {
-                        UIPasteboard.general.string = link
-                        ToastManager.shared.show(
-                            message: LocalizationHelper.localized("Link copied to clipboard"),
-                            style: .success
-                        )
-                    }
-                },
-                onInviteWatcher: {
-                    if let link = trustedWatchers.buildCurrentUserInviteLink(),
-                       let url = URL(string: link) {
-                        UIPasteboard.general.string = link
-                        liveShareSharePayload = LiveShareSharePayload(url: url)
-                    } else {
-                        ToastManager.shared.show(
-                            message: LocalizationHelper.localized("Sign in to share your live location."),
-                            style: .warning
-                        )
-                    }
-                },
+                onShareLink: shareLiveShareLink,
+                onCopyLink: copyLiveShareLink,
+                onInviteWatcher: shareWatcherInviteLink,
                 onToggleWatcherAutoNotify: { uid, enabled in
                     Task {
                         let ok = await trustedWatchers.setAutoNotify(watcherUid: uid, enabled: enabled)
@@ -715,6 +692,34 @@ struct HomeView: View {
         return (enabled.map(\.uid), enabled.map(\.displayName))
     }
 
+    private func shareLiveShareLink() {
+        guard let link = liveSharingManager.shareLink else { return }
+        let message = LocalizationHelper.formatted("Track my live ride on TrackMe: %@", link)
+        liveShareSharePayload = LiveShareSharePayload(activityItems: [message])
+    }
+
+    private func copyLiveShareLink() {
+        guard let link = liveSharingManager.shareLink else { return }
+        UIPasteboard.general.string = link
+        ToastManager.shared.show(
+            message: LocalizationHelper.localized("Link copied to clipboard"),
+            style: .success
+        )
+    }
+
+    private func shareWatcherInviteLink() {
+        if let link = trustedWatchers.buildCurrentUserInviteLink() {
+            UIPasteboard.general.string = link
+            let message = LocalizationHelper.formatted("Add me as a trusted contact on TrackMe to see my live rides: %@", link)
+            liveShareSharePayload = LiveShareSharePayload(activityItems: [message])
+        } else {
+            ToastManager.shared.show(
+                message: LocalizationHelper.localized("Sign in to share your live location."),
+                style: .warning
+            )
+        }
+    }
+
     private func launchDirectLiveShare(durationMinutes: Int) {
         guard Auth.auth().currentUser != nil else {
             ToastManager.shared.show(
@@ -1088,19 +1093,8 @@ struct HomeView: View {
                         showFullRideHudForPrimaryShare = true
                     }
                 },
-                onCopyShare: {
-                    guard let link = liveSharingManager.shareLink else { return }
-                    UIPasteboard.general.string = link
-                    ToastManager.shared.show(
-                        message: LocalizationHelper.localized("Link copied to clipboard"),
-                        style: .success
-                    )
-                },
-                onSendShare: {
-                    guard let link = liveSharingManager.shareLink,
-                          let url = URL(string: link) else { return }
-                    liveShareSharePayload = LiveShareSharePayload(url: url)
-                },
+                onCopyShare: copyLiveShareLink,
+                onSendShare: shareLiveShareLink,
                 onStopShareAndRide: handleStopRide,
                 onKeepRecordingRide: {
                     TelemetryManager.shared.trackDirectLiveShareKeptRide()
@@ -1173,19 +1167,8 @@ struct HomeView: View {
                         style: .info
                     )
                 },
-                onShareLink: {
-                    guard let link = liveSharingManager.shareLink,
-                          let url = URL(string: link) else { return }
-                    liveShareSharePayload = LiveShareSharePayload(url: url)
-                },
-                onCopyLink: {
-                    guard let link = liveSharingManager.shareLink else { return }
-                    UIPasteboard.general.string = link
-                    ToastManager.shared.show(
-                        message: LocalizationHelper.localized("Link copied to clipboard"),
-                        style: .success
-                    )
-                },
+                onShareLink: shareLiveShareLink,
+                onCopyLink: copyLiveShareLink,
                 onShareAuthRequired: {
                     ToastManager.shared.show(
                         message: LocalizationHelper.localized("Sign in to share your live location."),
@@ -1401,7 +1384,7 @@ private extension View {
 
 private struct LiveShareSharePayload: Identifiable {
     let id = UUID()
-    let url: URL
+    let activityItems: [Any]
 }
 
 /// Compact three-column metrics matching the active Android HUD. The visual

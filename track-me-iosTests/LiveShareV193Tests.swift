@@ -260,7 +260,9 @@ final class LiveShareV193Tests: XCTestCase {
             "Duration: %@",
             "Power Saving",
             "Power saving mode active, location updates spaced out to conserve battery",
-            "Retry"
+            "Retry",
+            "Track my live ride on TrackMe: %@",
+            "Add me as a trusted contact on TrackMe to see my live rides: %@"
         ]
 
         for lang in shipped {
@@ -299,6 +301,18 @@ final class LiveShareV193Tests: XCTestCase {
                 "45m"
             )
             XCTAssertTrue(formattedDuration.contains("45m"), "Duration format failed in \(lang): \(formattedDuration)")
+
+            let formattedShareMsg = String(
+                format: LocalizationHelper.localized("Track my live ride on TrackMe: %@", localeCode: lang),
+                "https://trackme.shvms.in/live/abc123"
+            )
+            XCTAssertTrue(formattedShareMsg.contains("https://trackme.shvms.in/live/abc123"), "Share message failed in \(lang): \(formattedShareMsg)")
+
+            let formattedWatcherMsg = String(
+                format: LocalizationHelper.localized("Add me as a trusted contact on TrackMe to see my live rides: %@", localeCode: lang),
+                "https://trackme.shvms.in/watcher/xyz789"
+            )
+            XCTAssertTrue(formattedWatcherMsg.contains("https://trackme.shvms.in/watcher/xyz789"), "Watcher message failed in \(lang): \(formattedWatcherMsg)")
         }
     }
 
