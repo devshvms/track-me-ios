@@ -138,6 +138,7 @@ final class LiveSessionViewerRepository {
             guard let snapshot = Self.parseSnapshot(sessionId: cleanId, data: data) else {
                 return .error(LocalizationHelper.localized("Invalid response from server"))
             }
+            Self.cacheSnapshot(sessionId: cleanId, snapshot: snapshot)
             return .success(snapshot)
         } catch {
             return .error(error.localizedDescription)
@@ -166,6 +167,59 @@ final class LiveSessionViewerRepository {
         } catch {
             return false
         }
+    }
+
+    // MARK: - In-Memory Snapshot Cache (CIE-035)
+
+    private static var snapshotCache: [String: LiveSessionSnapshot] = [:]
+    private static let cacheLock = NSLock()
+
+    static func getCachedSnapshot(sessionId: String) -> LiveSessionSnapshot? {
+        let clean = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return nil }
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return snapshotCache[clean]
+    }
+
+    static func cacheSnapshot(sessionId: String, snapshot: LiveSessionSnapshot) {
+        let clean = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        snapshotCache[clean] = snapshot
+    }
+
+    static func clearCachedSnapshot(sessionId: String) {
+        let clean = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        snapshotCache.removeValue(forKey: clean)
+    }
+
+    static func clearAllCachedSnapshots() {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        snapshotCache.removeAll()
+    }
+
+    func getCachedSnapshot(sessionId: String) -> LiveSessionSnapshot? {
+        Self.getCachedSnapshot(sessionId: sessionId)
+    }
+
+    /**
+     * CIE-035: Evaluates camera movement necessity considering follow mode and initial centering.
+     */
+    static func evaluateViewportPreservation(
+        isFollowingRider: Bool,
+        lastCoordinate: CLLocationCoordinate2D?,
+        newCoordinate: CLLocationCoordinate2D?,
+        hasCenteredInitially: Bool
+    ) -> Bool {
+        guard let newCoordinate else { return false }
+        if !isFollowingRider && hasCenteredInitially { return false }
+        return !hasCenteredInitially || shouldAnimateCamera(from: lastCoordinate, to: newCoordinate)
     }
 
     /**

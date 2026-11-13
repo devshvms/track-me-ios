@@ -11,6 +11,11 @@ struct LiveSessionViewerView: View {
     init(sessionId: String, onDismiss: @escaping () -> Void) {
         self.sessionId = sessionId
         self.onDismiss = onDismiss
+        let cached = LiveSessionViewerRepository.getCachedSnapshot(sessionId: sessionId)
+        _snapshot = State(initialValue: cached)
+        _isLoading = State(initialValue: cached == nil)
+        _hasCenteredInitially = State(initialValue: cached != nil)
+        _hasRenderedLocationInitially = State(initialValue: cached != nil)
     }
 
     @Environment(\.openURL) private var openURL
@@ -432,16 +437,16 @@ struct LiveSessionViewerView: View {
         HStack(spacing: 8) {
             Text(LocalizationHelper.localized("Connection slow — retrying…"))
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+                .foregroundStyle(.primary)
             Button {
                 refreshTrigger += 1
             } label: {
                 Text(LocalizationHelper.localized("Retry"))
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+                    .foregroundStyle(.primary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Color.white.opacity(0.85), in: Capsule())
+                    .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(LocalizationHelper.localized("Retry"))
