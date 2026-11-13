@@ -37,6 +37,7 @@ struct LiveSessionViewerView: View {
     @State private var nowDate = Date()
     @State private var refreshTrigger: Int = 0
     @State private var lastTrackedLowBattery: Int? = nil
+    @State private var lastAnnouncedLowBattery: Int? = nil
     @State private var continuousHeading: Double? = nil
     @State private var stoppedSinceDate: Date? = nil
     @State private var isImperialOverride: Bool? = nil
@@ -384,7 +385,9 @@ struct LiveSessionViewerView: View {
                 reconnectingOverlay
             }
 
-            if let battery = snapshot?.lastLocation?.batteryLevel, battery <= 15 {
+            if let rawBattery = snapshot?.lastLocation?.batteryLevel,
+               let battery = LiveSessionViewerRepository.clampBatteryLevel(rawBattery),
+               battery <= 15 {
                 lowBatteryOverlay(battery: battery)
             }
 
@@ -572,7 +575,8 @@ struct LiveSessionViewerView: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("\(speedStatus.a11yText). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
 
-                        if let battery = lastLoc?.batteryLevel {
+                        if let rawBattery = lastLoc?.batteryLevel,
+                           let battery = LiveSessionViewerRepository.clampBatteryLevel(rawBattery) {
                             let isLowBattery = battery <= 15
                             let batteryColor: Color = isLowBattery ? .red : .secondary
                             let batteryIconName: String = isLowBattery
@@ -768,12 +772,21 @@ struct LiveSessionViewerView: View {
                         isStopped: !fetched.isActive
                     )
                 }
-                if let battery = fetched.lastLocation?.batteryLevel, battery <= 15, fetched.isActive {
+                if let rawBattery = fetched.lastLocation?.batteryLevel,
+                   let battery = LiveSessionViewerRepository.clampBatteryLevel(rawBattery),
+                   battery <= 15,
+                   fetched.isActive {
+                    if LiveSessionViewerRepository.shouldAnnounceLowBattery(
+                        previousBattery: lastAnnouncedLowBattery,
+                        newBattery: battery
+                    ) {
+                        lastAnnouncedLowBattery = battery
+                        let alertMessage = LocalizationHelper.formatted("Rider battery low (%lld%%) · Signal may pause if phone powers off", Int64(battery))
+                        UIAccessibility.post(notification: .announcement, argument: alertMessage)
+                    }
                     if lastTrackedLowBattery != battery {
                         lastTrackedLowBattery = battery
                         TelemetryManager.shared.trackLiveShareViewerLowBattery(sessionId: sessionId, batteryLevel: battery)
-                        let alertMessage = LocalizationHelper.formatted("Rider battery low (%lld%%) · Signal may pause if phone powers off", Int64(battery))
-                        UIAccessibility.post(notification: .announcement, argument: alertMessage)
                     }
                 }
                 if let coordinate = fetched.lastLocation?.coordinate,
@@ -831,7 +844,11 @@ struct LiveSessionViewerView: View {
                     }
                     return
                 }
-                nextSleepSeconds = 5.0
+                nextSleepSeconds = LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(
+                    powerSaveMode: fetched.lastLocation?.powerSaveMode ?? false,
+                    batteryLevel: fetched.lastLocation?.batteryLevel,
+                    basePollSeconds: 5.0
+                )
             case .notFoundOrExpired:
                 isExpiredOrMissing = true
                 isLoading = false

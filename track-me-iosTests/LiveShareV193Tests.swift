@@ -1017,5 +1017,65 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertNotNil(localizations[locale], "Missing locale '\(locale)' for key: \(targetKey)")
         }
     }
+
+    func testLowBatteryThrottleAndPowerSaveParity() {
+        // 1. clampBatteryLevel
+        XCTAssertEqual(LiveSessionViewerRepository.clampBatteryLevel(0), 0)
+        XCTAssertEqual(LiveSessionViewerRepository.clampBatteryLevel(15), 15)
+        XCTAssertEqual(LiveSessionViewerRepository.clampBatteryLevel(80), 80)
+        XCTAssertEqual(LiveSessionViewerRepository.clampBatteryLevel(100), 100)
+        XCTAssertNil(LiveSessionViewerRepository.clampBatteryLevel(-1)) // Simulator fallback
+        XCTAssertNil(LiveSessionViewerRepository.clampBatteryLevel(-20))
+        XCTAssertNil(LiveSessionViewerRepository.clampBatteryLevel(101))
+        XCTAssertNil(LiveSessionViewerRepository.clampBatteryLevel(200))
+        XCTAssertNil(LiveSessionViewerRepository.clampBatteryLevel(nil))
+
+        // 2. shouldAnnounceLowBattery
+        // Initial low battery entry (<= 15%)
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: nil, newBattery: 15))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 80, newBattery: 15))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 16, newBattery: 14))
+
+        // Suppresses intermediate 1% drops to prevent VoiceOver spam
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 15, newBattery: 14))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 14, newBattery: 13))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 13, newBattery: 10))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 10, newBattery: 8))
+
+        // Critical entry (<= 5%)
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 12, newBattery: 5))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 6, newBattery: 4))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 15, newBattery: 3))
+
+        // Suppresses intermediate drops in critical zone
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 5, newBattery: 4))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 4, newBattery: 2))
+
+        // Normal, charging, or invalid inputs
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: nil, newBattery: 80))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 15, newBattery: 20))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 5, newBattery: 5))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: nil, newBattery: -1))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: -1, newBattery: -1))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldAnnounceLowBattery(previousBattery: 80, newBattery: nil))
+
+        // 3. computeViewerAdaptivePollSeconds
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: true, batteryLevel: 80), 12.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: true, batteryLevel: nil), 12.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: false, batteryLevel: 15), 12.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: false, batteryLevel: 5), 12.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: false, batteryLevel: 80), 5.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: false, batteryLevel: nil), 5.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: false, batteryLevel: -1), 5.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: false, batteryLevel: 80, basePollSeconds: 7.0), 7.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(powerSaveMode: true, batteryLevel: 80, basePollSeconds: 7.0), 12.0)
+
+        // 4. formatPowerSaveCadenceNotice
+        XCTAssertNotNil(LiveSessionViewerRepository.formatPowerSaveCadenceNotice(powerSaveMode: true, batteryLevel: 80))
+        XCTAssertNotNil(LiveSessionViewerRepository.formatPowerSaveCadenceNotice(powerSaveMode: false, batteryLevel: 14))
+        XCTAssertNil(LiveSessionViewerRepository.formatPowerSaveCadenceNotice(powerSaveMode: false, batteryLevel: 50))
+        XCTAssertNil(LiveSessionViewerRepository.formatPowerSaveCadenceNotice(powerSaveMode: false, batteryLevel: nil))
+        XCTAssertNil(LiveSessionViewerRepository.formatPowerSaveCadenceNotice(powerSaveMode: false, batteryLevel: -1))
+    }
 }
 

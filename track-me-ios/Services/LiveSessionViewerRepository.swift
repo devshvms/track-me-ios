@@ -231,6 +231,65 @@ final class LiveSessionViewerRepository {
     }
 
     /**
+     * CIE-037: Sanitize and clamp battery level to 0-100%, rejecting negative simulator fallbacks (-1) and out-of-bounds values.
+     */
+    static func clampBatteryLevel(_ battery: Int?) -> Int? {
+        guard let battery = battery, battery >= 0, battery <= 100 else {
+            return nil
+        }
+        return max(0, min(100, battery))
+    }
+
+    /**
+     * CIE-037: Evaluates whether an auditory/VoiceOver announcement should be made for low battery.
+     * Throttles announcements to prevent auditory spam:
+     * - Fires when first transitioning into low battery (<= 15%).
+     * - Fires when battery drops to critical level (<= 5%) from a higher level.
+     * - Suppresses redundant announcements on intermediate 1% drops (e.g. 14%, 13%, 12%).
+     */
+    static func shouldAnnounceLowBattery(previousBattery: Int?, newBattery: Int?) -> Bool {
+        guard let curr = clampBatteryLevel(newBattery) else { return false }
+        let prev = clampBatteryLevel(previousBattery)
+
+        // 1. Initial warning when dipping into low battery (<= 15%)
+        if curr <= 15 && (prev == nil || prev! > 15) {
+            return true
+        }
+
+        // 2. Critical warning when dipping into <= 5%
+        if curr <= 5, let p = prev, p > 5 {
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * CIE-037: Computes adaptive polling interval for the live viewer.
+     * When the rider is in power-save mode (or battery <= 15%), broadcaster pushes occur at ~15s cadence.
+     * Adapting the viewer polling interval to 12s avoids burning ~66% unnecessary Redis queries on the $0/mo free tier.
+     */
+    static func computeViewerAdaptivePollSeconds(
+        powerSaveMode: Bool,
+        batteryLevel: Int?,
+        basePollSeconds: Double = 5.0
+    ) -> Double {
+        let clampedBat = clampBatteryLevel(batteryLevel)
+        let isEffectivePowerSave = powerSaveMode || (clampedBat != nil && clampedBat! <= 15)
+        return isEffectivePowerSave ? 12.0 : basePollSeconds
+    }
+
+    /**
+     * CIE-037: Formats user-facing disclosure when updates arrive at relaxed interval due to power saving.
+     */
+    static func formatPowerSaveCadenceNotice(powerSaveMode: Bool, batteryLevel: Int?) -> String? {
+        let clampedBat = clampBatteryLevel(batteryLevel)
+        let isEffectivePowerSave = powerSaveMode || (clampedBat != nil && clampedBat! <= 15)
+        guard isEffectivePowerSave else { return nil }
+        return LocalizationHelper.localized("Power save active · Location updates every ~15s")
+    }
+
+    /**
      * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
      * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
      */
