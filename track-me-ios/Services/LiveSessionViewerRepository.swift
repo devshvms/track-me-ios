@@ -10,6 +10,13 @@ struct LiveViewerPoint: Equatable {
     }
 }
 
+struct LiveViewerDeadlineStatus: Equatable {
+    let isOverdue: Bool
+    let deadlineDate: Date
+    let timeFormatted: String
+    let overdueMinutes: Int
+}
+
 struct LiveViewerLastLocation: Equatable {
     let lat: Double
     let lng: Double
@@ -64,6 +71,10 @@ struct LiveSessionSnapshot: Equatable {
 
     var totalDistanceMeters: Double {
         LiveSessionViewerRepository.computePathDistanceMeters(path)
+    }
+
+    func deadlineStatus(now: Date = Date(), timeFormatter: ((Date) -> String)? = nil) -> LiveViewerDeadlineStatus? {
+        LiveSessionViewerRepository.evaluateDeadline(deadlineRaw: deadlineAt, now: now, timeFormatter: timeFormatter)
     }
 }
 
@@ -152,6 +163,9 @@ final class LiveSessionViewerRepository {
             ?? (root["startedAt"] as? NSNumber).map { "\($0.int64Value)" }
         let destination = (root["destination"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         let deadlineAt = (root["deadlineAt"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            ?? (root["deadlineAt"] as? NSNumber).map { "\($0.int64Value)" }
+            ?? (root["etaAt"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            ?? (root["etaAt"] as? NSNumber).map { "\($0.int64Value)" }
 
         var parsedLastLocation: LiveViewerLastLocation?
         if let loc = root["lastLocation"] as? [String: Any],
@@ -341,6 +355,45 @@ final class LiveSessionViewerRepository {
             }
         }
         return totalMeters
+    }
+
+    /// Evaluates scheduled ETA or deadline status (CIE-025).
+    /// Formats scheduled time (e.g. "6:30 PM") and calculates whether the trip is overdue.
+    static func evaluateDeadline(
+        deadlineRaw: String?,
+        now: Date = Date(),
+        timeFormatter: ((Date) -> String)? = nil
+    ) -> LiveViewerDeadlineStatus? {
+        guard let raw = deadlineRaw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return nil
+        }
+        let deadlineDate: Date
+        if let epochMs = Double(raw), epochMs > 0 {
+            deadlineDate = Date(timeIntervalSince1970: epochMs / 1000.0)
+        } else if let parsed = parseISO8601Date(raw) {
+            deadlineDate = parsed
+        } else {
+            return nil
+        }
+
+        let isOverdue = now > deadlineDate
+        let overdueMinutes = isOverdue ? max(0, Int(now.timeIntervalSince(deadlineDate) / 60.0)) : 0
+        let timeFormatted: String
+        if let customFormatter = timeFormatter {
+            timeFormatted = customFormatter(deadlineDate)
+        } else {
+            let df = DateFormatter()
+            df.timeStyle = .short
+            df.dateStyle = .none
+            timeFormatted = df.string(from: deadlineDate)
+        }
+
+        return LiveViewerDeadlineStatus(
+            isOverdue: isOverdue,
+            deadlineDate: deadlineDate,
+            timeFormatted: timeFormatted,
+            overdueMinutes: overdueMinutes
+        )
     }
 }
 

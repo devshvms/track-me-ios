@@ -448,4 +448,66 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertTrue(formatted.contains("14.2 km"), "Formatted message should contain '14.2 km' in \(lang): \(formatted)")
         }
     }
+
+    func testLiveViewerDeadlineEvaluationAndLocalizationParity() {
+        let deadlineEpochMs: Double = 1_700_000_000_000
+        let deadlineDate = Date(timeIntervalSince1970: deadlineEpochMs / 1000.0)
+        let fixedFormatter: (Date) -> String = { _ in "6:30 PM" }
+
+        // Null / empty / invalid
+        XCTAssertNil(LiveSessionViewerRepository.evaluateDeadline(deadlineRaw: nil))
+        XCTAssertNil(LiveSessionViewerRepository.evaluateDeadline(deadlineRaw: ""))
+        XCTAssertNil(LiveSessionViewerRepository.evaluateDeadline(deadlineRaw: "invalid_deadline"))
+
+        // On-time (15 minutes prior)
+        let onTimeNow = deadlineDate.addingTimeInterval(-15 * 60)
+        let onTime = LiveSessionViewerRepository.evaluateDeadline(
+            deadlineRaw: "\(Int64(deadlineEpochMs))",
+            now: onTimeNow,
+            timeFormatter: fixedFormatter
+        )
+        XCTAssertNotNil(onTime)
+        XCTAssertFalse(onTime?.isOverdue ?? true)
+        XCTAssertEqual(onTime?.overdueMinutes, 0)
+        XCTAssertEqual(onTime?.timeFormatted, "6:30 PM")
+
+        // Overdue (25 minutes past)
+        let overdueNow = deadlineDate.addingTimeInterval(25 * 60)
+        let overdue = LiveSessionViewerRepository.evaluateDeadline(
+            deadlineRaw: "\(Int64(deadlineEpochMs))",
+            now: overdueNow,
+            timeFormatter: fixedFormatter
+        )
+        XCTAssertNotNil(overdue)
+        XCTAssertTrue(overdue?.isOverdue ?? false)
+        XCTAssertEqual(overdue?.overdueMinutes, 25)
+        XCTAssertEqual(overdue?.timeFormatted, "6:30 PM")
+
+        // parseSnapshot etaAt fallback
+        let jsonEta = #"{"username":"Rider","status":"active","etaAt":"1700000000000"}"#.data(using: .utf8)!
+        let snap = LiveSessionViewerRepository.parseSnapshot(sessionId: "test-eta", data: jsonEta)
+        XCTAssertEqual(snap?.deadlineAt, "1700000000000")
+        let snapStatus = snap?.deadlineStatus(now: overdueNow, timeFormatter: fixedFormatter)
+        XCTAssertTrue(snapStatus?.isOverdue ?? false)
+
+        // 7-locale parity for Expected by %@ and Overdue · Expected by %@
+        let languages = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        for lang in languages {
+            let expectedFormat = LocalizationHelper.localized("Expected by %@", localeCode: lang)
+            XCTAssertFalse(expectedFormat.isEmpty, "Missing Expected by %@ for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(expectedFormat.hasPrefix("Expected by"), "Untranslated Expected by %@ for \(lang)")
+            }
+            let formattedExpected = String(format: expectedFormat, "6:30 PM")
+            XCTAssertTrue(formattedExpected.contains("6:30 PM"), "Expected by in \(lang) should contain '6:30 PM': \(formattedExpected)")
+
+            let overdueFormat = LocalizationHelper.localized("Overdue · Expected by %@", localeCode: lang)
+            XCTAssertFalse(overdueFormat.isEmpty, "Missing Overdue · Expected by %@ for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(overdueFormat.hasPrefix("Overdue · Expected by"), "Untranslated Overdue · Expected by %@ for \(lang)")
+            }
+            let formattedOverdue = String(format: overdueFormat, "6:30 PM")
+            XCTAssertTrue(formattedOverdue.contains("6:30 PM"), "Overdue in \(lang) should contain '6:30 PM': \(formattedOverdue)")
+        }
+    }
 }

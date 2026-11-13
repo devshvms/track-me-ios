@@ -371,36 +371,64 @@ struct LiveSessionViewerView: View {
         let destinationText = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasDestination = destinationText.map { !$0.isEmpty } ?? false
         let ageSeconds = LiveSessionViewerRepository.ageSeconds(timestampIso: lastLoc?.timestampIso, now: nowDate)
+        let deadlineStatus = snapshot?.isActive == true ? snapshot?.deadlineStatus(now: nowDate) : nil
+        let hasHeaderMeta = hasDestination || ageSeconds != nil || deadlineStatus != nil
 
         return VStack(spacing: 8) {
-            if hasDestination || ageSeconds != nil {
-                HStack(spacing: 8) {
-                    if let destinationText, !destinationText.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flag.fill")
-                                .font(.caption2)
-                                .foregroundStyle(liveCyan)
-                            Text(destinationText)
-                                .font(.caption)
-                                .lineLimit(1)
+            if hasHeaderMeta {
+                VStack(alignment: .leading, spacing: 4) {
+                    if hasDestination || ageSeconds != nil {
+                        HStack(spacing: 8) {
+                            if let destinationText, !destinationText.isEmpty {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "flag.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(liveCyan)
+                                    Text(destinationText)
+                                        .font(.caption)
+                                        .lineLimit(1)
+                                }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(LocalizationHelper.formatted("Destination: %@", destinationText))
+                            }
+
+                            Spacer(minLength: 8)
+
+                            if let ageSeconds {
+                                let ageLabel = ageSeconds < 60 ? "\(ageSeconds)s" : "\(ageSeconds / 60)m"
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text(LocalizationHelper.formatted("Updated %@", ageLabel))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .accessibilityElement(children: .combine)
+                            }
                         }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.formatted("Destination: %@", destinationText))
                     }
 
-                    Spacer(minLength: 8)
+                    if let deadline = deadlineStatus {
+                        let deadlineLabel = deadline.isOverdue
+                            ? LocalizationHelper.formatted("Overdue · Expected by %@", deadline.timeFormatted)
+                            : LocalizationHelper.formatted("Expected by %@", deadline.timeFormatted)
+                        let deadlineColor: Color = deadline.isOverdue ? Color.orange : Color.indigo
+                        let deadlineBg: Color = deadline.isOverdue ? Color.orange.opacity(0.15) : Color.indigo.opacity(0.12)
 
-                    if let ageSeconds {
-                        let ageLabel = ageSeconds < 60 ? "\(ageSeconds)s" : "\(ageSeconds / 60)m"
                         HStack(spacing: 4) {
-                            Image(systemName: "clock")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            Text(LocalizationHelper.formatted("Updated %@", ageLabel))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Image(systemName: deadline.isOverdue ? "exclamationmark.triangle.fill" : "clock.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(deadlineColor)
+                            Text(deadlineLabel)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(deadlineColor)
                         }
-                        .accessibilityElement(children: .combine)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(deadlineBg, in: Capsule())
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(deadlineLabel)
                     }
                 }
             }
