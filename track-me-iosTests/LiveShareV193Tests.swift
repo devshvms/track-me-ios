@@ -259,7 +259,8 @@ final class LiveShareV193Tests: XCTestCase {
             "Signal paused · Waiting for rider GPS",
             "Duration: %@",
             "Power Saving",
-            "Power saving mode active, location updates spaced out to conserve battery"
+            "Power saving mode active, location updates spaced out to conserve battery",
+            "Retry"
         ]
 
         for lang in shipped {

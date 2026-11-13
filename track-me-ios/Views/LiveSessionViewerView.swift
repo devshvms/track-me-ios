@@ -23,6 +23,7 @@ struct LiveSessionViewerView: View {
     @State private var hasCenteredInitially = false
     @State private var hasRenderedLocationInitially = false
     @State private var nowDate = Date()
+    @State private var refreshTrigger: Int = 0
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     private let startGreen = Color(red: 16.0 / 255.0, green: 185.0 / 255.0, blue: 129.0 / 255.0)
@@ -31,6 +32,7 @@ struct LiveSessionViewerView: View {
     private struct ViewerPollKey: Equatable {
         let sessionId: String
         let isSceneActive: Bool
+        let refreshTrigger: Int
     }
 
     var body: some View {
@@ -53,7 +55,7 @@ struct LiveSessionViewerView: View {
                 }
             }
         }
-        .task(id: ViewerPollKey(sessionId: sessionId, isSceneActive: scenePhase == .active)) {
+        .task(id: ViewerPollKey(sessionId: sessionId, isSceneActive: scenePhase == .active, refreshTrigger: refreshTrigger)) {
             guard scenePhase == .active else { return }
             if isExpiredOrMissing || snapshot?.isActive == false { return }
             await pollSessionLoop()
@@ -290,9 +292,18 @@ struct LiveSessionViewerView: View {
                             .foregroundStyle(.red)
                         Text(LocalizationHelper.localized("Signal paused · Waiting for rider GPS"))
                             .font(.caption.weight(.medium))
+                        Button {
+                            refreshTrigger += 1
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(LocalizationHelper.localized("Retry"))
                     }
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
+                    .padding(.vertical, 8)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
@@ -303,13 +314,27 @@ struct LiveSessionViewerView: View {
                 }
             } else if errorMessage != nil {
                 VStack {
-                    Text(LocalizationHelper.localized("Connection slow — retrying…"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.orange.opacity(0.92), in: Capsule())
-                        .padding(12)
+                    HStack(spacing: 8) {
+                        Text(LocalizationHelper.localized("Connection slow — retrying…"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+                        Button {
+                            refreshTrigger += 1
+                        } label: {
+                            Text(LocalizationHelper.localized("Retry"))
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color(red: 0.12, green: 0.16, blue: 0.22))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.white.opacity(0.85), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(LocalizationHelper.localized("Retry"))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.92), in: Capsule())
+                    .padding(12)
                     Spacer()
                 }
             }
