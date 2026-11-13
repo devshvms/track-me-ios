@@ -156,10 +156,15 @@ class LiveSharingManager {
         }
     }
 
-    // Helper to get AppStorage values directly
+    // Helper to get AppStorage values directly with adaptive low-battery/power-save defense (CIE-015)
     private var updateFrequency: TimeInterval {
         let val = UserDefaults.standard.integer(forKey: "liveShareFrequency")
-        return val == 0 ? 10 : TimeInterval(val)
+        let configured = val == 0 ? 10.0 : TimeInterval(val)
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let batteryLevel = Int(UIDevice.current.batteryLevel * 100)
+        let isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+        let effectivePowerSave = Self.isEffectivePowerSave(isOsLowPower: isLowPower, batteryLevel: batteryLevel)
+        return Self.computeAdaptiveInterval(configuredInterval: configured, isPowerSaveOrLowBattery: effectivePowerSave)
     }
 
     func demotePrimaryToRideOnly() {
@@ -404,17 +409,45 @@ class LiveSharingManager {
         self.latestLocation = location
     }
 
+    /// Battery level threshold (percentage) at or below which power save cadence is enforced.
+    static let lowBatteryThresholdPercent = 15
+
+    /// Minimum broadcast interval (15s) enforced when device is in low battery or power save mode.
+    static let powerSaveMinInterval: TimeInterval = 15.0
+
+    /// Resolves whether power save mode should be active based on OS low power mode
+    /// and low battery threshold (<= 15%).
+    static func isEffectivePowerSave(isOsLowPower: Bool, batteryLevel: Int) -> Bool {
+        if isOsLowPower { return true }
+        if batteryLevel >= 0 && batteryLevel <= lowBatteryThresholdPercent { return true }
+        return false
+    }
+
+    /// Computes the adaptive interval for location pushes (CIE-015).
+    /// When in power saving mode or low battery (<= 15%), updates are throttled
+    /// to at least `powerSaveMinInterval` (15s) to defend the rider's remaining battery.
+    static func computeAdaptiveInterval(
+        configuredInterval: TimeInterval,
+        isPowerSaveOrLowBattery: Bool
+    ) -> TimeInterval {
+        if isPowerSaveOrLowBattery {
+            return max(configuredInterval, powerSaveMinInterval)
+        }
+        return configuredInterval
+    }
+
     static func buildPushLocationBody(
         loc: CLLocation,
         batteryLevel: Int,
         isLowPower: Bool
     ) -> [String: Any] {
+        let effectivePowerSave = isEffectivePowerSave(isOsLowPower: isLowPower, batteryLevel: batteryLevel)
         var body: [String: Any] = [
             "lat": loc.coordinate.latitude,
             "lng": loc.coordinate.longitude,
             "batteryLevel": batteryLevel >= 0 ? batteryLevel : 100, // Handle simulator returning -1
             "speed": max(loc.speed * 3.6, 0), // km/h
-            "powerSaveMode": isLowPower,
+            "powerSaveMode": effectivePowerSave,
             "timestamp": ISO8601DateFormatter().string(from: loc.timestamp)
         ]
         // Only include heading when CLLocation course is valid (>= 0).

@@ -147,6 +147,48 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertEqual(body["powerSaveMode"] as? Bool, true)
     }
 
+    func testBuildPushLocationBodyEnforcesPowerSaveModeOnLowBatteryThreshold() {
+        let loc = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            altitude: 10,
+            horizontalAccuracy: 5,
+            verticalAccuracy: 5,
+            course: 90.0,
+            speed: 5.0,
+            timestamp: Date(timeIntervalSince1970: 1_893_499_200)
+        )
+
+        // <= 15% battery triggers powerSaveMode even when OS Low Power Mode is false (CIE-015)
+        let body15 = LiveSharingManager.buildPushLocationBody(loc: loc, batteryLevel: 15, isLowPower: false)
+        XCTAssertEqual(body15["powerSaveMode"] as? Bool, true)
+
+        let body10 = LiveSharingManager.buildPushLocationBody(loc: loc, batteryLevel: 10, isLowPower: false)
+        XCTAssertEqual(body10["powerSaveMode"] as? Bool, true)
+
+        let body0 = LiveSharingManager.buildPushLocationBody(loc: loc, batteryLevel: 0, isLowPower: false)
+        XCTAssertEqual(body0["powerSaveMode"] as? Bool, true)
+
+        // > 15% battery does not trigger powerSaveMode if OS Low Power Mode is false
+        let body16 = LiveSharingManager.buildPushLocationBody(loc: loc, batteryLevel: 16, isLowPower: false)
+        XCTAssertEqual(body16["powerSaveMode"] as? Bool, false)
+    }
+
+    func testIsEffectivePowerSaveAndAdaptiveInterval() {
+        // Effective power save rules
+        XCTAssertTrue(LiveSharingManager.isEffectivePowerSave(isOsLowPower: false, batteryLevel: 15))
+        XCTAssertTrue(LiveSharingManager.isEffectivePowerSave(isOsLowPower: false, batteryLevel: 5))
+        XCTAssertFalse(LiveSharingManager.isEffectivePowerSave(isOsLowPower: false, batteryLevel: 16))
+        XCTAssertFalse(LiveSharingManager.isEffectivePowerSave(isOsLowPower: false, batteryLevel: 80))
+        XCTAssertTrue(LiveSharingManager.isEffectivePowerSave(isOsLowPower: true, batteryLevel: 100))
+
+        // Adaptive broadcast cadence throttling
+        XCTAssertEqual(LiveSharingManager.computeAdaptiveInterval(configuredInterval: 5.0, isPowerSaveOrLowBattery: true), 15.0)
+        XCTAssertEqual(LiveSharingManager.computeAdaptiveInterval(configuredInterval: 10.0, isPowerSaveOrLowBattery: true), 15.0)
+        XCTAssertEqual(LiveSharingManager.computeAdaptiveInterval(configuredInterval: 30.0, isPowerSaveOrLowBattery: true), 30.0)
+        XCTAssertEqual(LiveSharingManager.computeAdaptiveInterval(configuredInterval: 5.0, isPowerSaveOrLowBattery: false), 5.0)
+        XCTAssertEqual(LiveSharingManager.computeAdaptiveInterval(configuredInterval: 10.0, isPowerSaveOrLowBattery: false), 10.0)
+    }
+
     func testComputePushBackoffDelayScalesPredictablyAndClampsAtMax() {
         let noJitter = { 0.0 }
         XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 0, baseInterval: 5.0, maxInterval: 15.0, randomProvider: noJitter), 5.0)
