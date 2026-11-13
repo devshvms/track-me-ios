@@ -26,6 +26,7 @@ struct LiveSessionViewerView: View {
 
     private let liveCyan = Color(red: 6.0 / 255.0, green: 182.0 / 255.0, blue: 212.0 / 255.0)
     private let startGreen = Color(red: 16.0 / 255.0, green: 185.0 / 255.0, blue: 129.0 / 255.0)
+    private let finishRed = Color(red: 239.0 / 255.0, green: 68.0 / 255.0, blue: 68.0 / 255.0)
 
     private struct ViewerPollKey: Equatable {
         let sessionId: String
@@ -145,9 +146,32 @@ struct LiveSessionViewerView: View {
                 }
 
                 if let current = currentCoordinate {
-                    let hasHeading = snapshot?.lastLocation?.headingDeg != nil && snapshot?.isActive == true
-                    Annotation(snapshot?.username ?? LocalizationHelper.localized("TrackMe Rider"), coordinate: current) {
-                        if hasHeading, let heading = snapshot?.lastLocation?.headingDeg {
+                    let isEnded = snapshot?.isActive == false
+                    let hasHeading = snapshot?.lastLocation?.headingDeg != nil && !isEnded
+                    let title: String = {
+                        if isEnded {
+                            if let dest = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines), !dest.isEmpty {
+                                return dest
+                            }
+                            return LocalizationHelper.localized("Destination")
+                        }
+                        return snapshot?.username ?? LocalizationHelper.localized("TrackMe Rider")
+                    }()
+                    Annotation(title, coordinate: current) {
+                        if isEnded {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 22, height: 22)
+                                    .shadow(radius: 2)
+                                Circle()
+                                    .fill(finishRed)
+                                    .frame(width: 16, height: 16)
+                                Image(systemName: "flag.fill")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                        } else if hasHeading, let heading = snapshot?.lastLocation?.headingDeg {
                             HeadingConeMarker(headingDegrees: heading, accentColor: liveCyan)
                         } else {
                             StationaryDotMarker(accentColor: liveCyan)
