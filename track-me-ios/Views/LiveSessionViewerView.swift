@@ -569,8 +569,8 @@ struct LiveSessionViewerView: View {
                 Spacer(minLength: 8)
 
                 HStack(spacing: 8) {
-                    if let url = URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
-                        let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let url = LiveSessionViewerRepository.buildShareUrl(baseURL: APIConfig.baseURL, sessionId: sessionId, riderName: riderName) ?? URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
                         let shareText: String = {
                             if let name = riderName, !name.isEmpty {
                                 return LocalizationHelper.formatted("Track %@'s live ride on TrackMe: %@", name, url.absoluteString)
@@ -599,7 +599,8 @@ struct LiveSessionViewerView: View {
                     }
 
                     Button {
-                        if let url = URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
+                        let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if let url = LiveSessionViewerRepository.buildShareUrl(baseURL: APIConfig.baseURL, sessionId: sessionId, riderName: riderName) ?? URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
                             openURL(url)
                         }
                     } label: {
