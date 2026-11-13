@@ -510,4 +510,37 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertTrue(formattedOverdue.contains("6:30 PM"), "Overdue in \(lang) should contain '6:30 PM': \(formattedOverdue)")
         }
     }
+
+    func testLiveViewerShareRideFormattingAndLocaleParity() {
+        let languages = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        let testUrl = "https://trackme.shvms.in/live/abc-123"
+
+        for lang in languages {
+            let shareRideLabel = LocalizationHelper.localized("Share Ride", localeCode: lang)
+            XCTAssertFalse(shareRideLabel.isEmpty, "Missing Share Ride for \(lang)")
+            if lang != "en" {
+                XCTAssertNotEqual(shareRideLabel, "Share Ride", "Untranslated Share Ride for \(lang)")
+            }
+
+            let shareA11y = LocalizationHelper.localized("Share this live tracking session", localeCode: lang)
+            XCTAssertFalse(shareA11y.isEmpty, "Missing Share this live tracking session for \(lang)")
+            if lang != "en" {
+                XCTAssertNotEqual(shareA11y, "Share this live tracking session", "Untranslated Share this live tracking session for \(lang)")
+            }
+
+            let subject = LocalizationHelper.localized("TrackMe Live Ride", localeCode: lang)
+            XCTAssertFalse(subject.isEmpty, "Missing TrackMe Live Ride for \(lang)")
+
+            let formatWithName = LocalizationHelper.localized("Track %@'s live ride on TrackMe: %@", localeCode: lang)
+            XCTAssertFalse(formatWithName.isEmpty, "Missing Track %@'s live ride on TrackMe: %@ for \(lang)")
+            let formattedWithName = String(format: formatWithName, "Alice", testUrl)
+            XCTAssertTrue(formattedWithName.contains("Alice"), "\(lang) formatted message should contain 'Alice': \(formattedWithName)")
+            XCTAssertTrue(formattedWithName.contains(testUrl), "\(lang) formatted message should contain '\(testUrl)': \(formattedWithName)")
+
+            let formatFallback = LocalizationHelper.localized("Track this live ride on TrackMe: %@", localeCode: lang)
+            XCTAssertFalse(formatFallback.isEmpty, "Missing Track this live ride on TrackMe: %@ for \(lang)")
+            let formattedFallback = String(format: formatFallback, testUrl)
+            XCTAssertTrue(formattedFallback.contains(testUrl), "\(lang) formatted fallback should contain '\(testUrl)': \(formattedFallback)")
+        }
+    }
 }

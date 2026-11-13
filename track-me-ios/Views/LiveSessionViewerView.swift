@@ -434,91 +434,124 @@ struct LiveSessionViewerView: View {
             }
 
             HStack(spacing: 12) {
-                HStack(spacing: 14) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "speedometer")
-                            .font(.subheadline)
-                            .foregroundStyle(liveCyan)
-                        Text(speedText)
-                            .font(.subheadline.weight(.bold))
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(
-                        lastLoc?.speedMetersPerSecond != nil
-                            ? LocalizationHelper.formatted("Rider speed: %@", speedText)
-                            : LocalizationHelper.localized("Rider speed unavailable")
-                    )
-
-                    if let battery = lastLoc?.batteryLevel {
-                        let isLowBattery = battery <= 15
-                        let batteryColor: Color = isLowBattery ? .red : .secondary
-                        let batteryIconName: String = isLowBattery
-                            ? "battery.25"
-                            : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
-                        let a11yLabel = isLowBattery
-                            ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
-                            : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
-
-                        HStack(spacing: 3) {
-                            Image(systemName: batteryIconName)
-                                .font(.subheadline)
-                                .foregroundStyle(batteryColor)
-                            Text("\(battery)%")
-                                .font(.subheadline)
-                                .fontWeight(isLowBattery ? .semibold : .regular)
-                                .foregroundStyle(batteryColor)
-                        }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(a11yLabel)
-                    }
-
-                    if let duration = snapshot?.formatDuration(now: nowDate) {
-                        HStack(spacing: 3) {
-                            Image(systemName: "timer")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "speedometer")
                                 .font(.subheadline)
                                 .foregroundStyle(liveCyan)
-                            Text(duration)
-                                .font(.subheadline.weight(.semibold))
+                            Text(speedText)
+                                .font(.subheadline.weight(.bold))
                         }
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.formatted("Duration: %@", duration))
-                    }
-
-                    let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
-                    if totalDistance > 0.0 {
-                        let distanceText = UnitFormatter.distance(
-                            meters: totalDistance,
-                            unit: unitSettings.unit,
-                            decimals: 1
+                        .accessibilityLabel(
+                            lastLoc?.speedMetersPerSecond != nil
+                                ? LocalizationHelper.formatted("Rider speed: %@", speedText)
+                                : LocalizationHelper.localized("Rider speed unavailable")
                         )
-                        HStack(spacing: 3) {
-                            Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                                .font(.subheadline)
-                                .foregroundStyle(liveCyan)
-                            Text(distanceText)
-                                .font(.subheadline.weight(.semibold))
+
+                        if let battery = lastLoc?.batteryLevel {
+                            let isLowBattery = battery <= 15
+                            let batteryColor: Color = isLowBattery ? .red : .secondary
+                            let batteryIconName: String = isLowBattery
+                                ? "battery.25"
+                                : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
+                            let a11yLabel = isLowBattery
+                                ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
+                                : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
+
+                            HStack(spacing: 3) {
+                                Image(systemName: batteryIconName)
+                                    .font(.subheadline)
+                                    .foregroundStyle(batteryColor)
+                                Text("\(battery)%")
+                                    .font(.subheadline)
+                                    .fontWeight(isLowBattery ? .semibold : .regular)
+                                    .foregroundStyle(batteryColor)
+                            }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(a11yLabel)
                         }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(LocalizationHelper.formatted("Distance: %@", distanceText))
+
+                        if let duration = snapshot?.formatDuration(now: nowDate) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "timer")
+                                    .font(.subheadline)
+                                    .foregroundStyle(liveCyan)
+                                Text(duration)
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(LocalizationHelper.formatted("Duration: %@", duration))
+                        }
+
+                        let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
+                        if totalDistance > 0.0 {
+                            let distanceText = UnitFormatter.distance(
+                                meters: totalDistance,
+                                unit: unitSettings.unit,
+                                decimals: 1
+                            )
+                            HStack(spacing: 3) {
+                                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                    .font(.subheadline)
+                                    .foregroundStyle(liveCyan)
+                                Text(distanceText)
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(LocalizationHelper.formatted("Distance: %@", distanceText))
+                        }
                     }
                 }
 
                 Spacer(minLength: 8)
 
-                Button {
+                HStack(spacing: 8) {
                     if let url = URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
-                        openURL(url)
+                        let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let shareText: String = {
+                            if let name = riderName, !name.isEmpty {
+                                return LocalizationHelper.formatted("Track %@'s live ride on TrackMe: %@", name, url.absoluteString)
+                            } else {
+                                return LocalizationHelper.formatted("Track this live ride on TrackMe: %@", url.absoluteString)
+                            }
+                        }()
+
+                        ShareLink(
+                            item: url,
+                            subject: Text(LocalizationHelper.localized("TrackMe Live Ride")),
+                            message: Text(shareText)
+                        ) {
+                            Label(
+                                LocalizationHelper.localized("Share Ride"),
+                                systemImage: "square.and.arrow.up"
+                            )
+                            .font(.subheadline.weight(.semibold))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityLabel(LocalizationHelper.localized("Share Ride"))
+                        .accessibilityHint(LocalizationHelper.localized("Share this live tracking session"))
+                        .simultaneousGesture(TapGesture().onEnded {
+                            TelemetryManager.shared.trackLiveShareViewerShareClicked(sessionId: sessionId)
+                        })
                     }
-                } label: {
-                    Label(
-                        LocalizationHelper.localized("Open in browser"),
-                        systemImage: "safari"
-                    )
-                    .font(.subheadline.weight(.semibold))
+
+                    Button {
+                        if let url = URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
+                            openURL(url)
+                        }
+                    } label: {
+                        Label(
+                            LocalizationHelper.localized("Open in browser"),
+                            systemImage: "safari"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel(LocalizationHelper.localized("Open in browser"))
+                    .accessibilityHint(LocalizationHelper.localized("Opens this live tracking session in Safari"))
                 }
-                .buttonStyle(.bordered)
-                .accessibilityLabel(LocalizationHelper.localized("Open in browser"))
-                .accessibilityHint(LocalizationHelper.localized("Opens this live tracking session in Safari"))
             }
         }
         .padding(.horizontal, 16)
