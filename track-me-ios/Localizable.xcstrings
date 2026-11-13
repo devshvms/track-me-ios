@@ -31618,6 +31618,53 @@
         }
       }
     },
+    "The rider has ended this live trip.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Fahrer hat diese Live-Fahrt beendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The rider has ended this live trip."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El ciclista ha finalizado este recorrido en directo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le cycliste a terminé ce trajet en direct."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइडर ने यह लाइव ट्रिप समाप्त कर दी है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライダーがこのライブトリップを終了しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "骑手已结束此实时行程。"
+          }
+        }
+      }
+    },
     "Open in browser": {
       "extractionState": "manual",
       "localizations": {

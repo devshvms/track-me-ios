@@ -210,7 +210,8 @@ final class LiveShareV193Tests: XCTestCase {
             "Rider speed unavailable",
             "Rider battery: %lld percent",
             "Rider battery low: %lld percent",
-            "Opens this live tracking session in Safari"
+            "Opens this live tracking session in Safari",
+            "The rider has ended this live trip."
         ]
 
         for lang in shipped {
