@@ -17,6 +17,12 @@ struct LiveViewerDeadlineStatus: Equatable {
     let overdueMinutes: Int
 }
 
+struct ViewerForegroundReconnectionState: Equatable {
+    let shouldFetchImmediately: Bool
+    let resetConsecutiveErrors: Bool
+    let clearErrorMessage: Bool
+}
+
 struct LiveViewerLastLocation: Equatable {
     let lat: Double
     let lng: Double
@@ -393,6 +399,26 @@ final class LiveSessionViewerRepository {
             deadlineDate: deadlineDate,
             timeFormatted: timeFormatted,
             overdueMinutes: overdueMinutes
+        )
+    }
+
+    /**
+     * Evaluates foreground reconnection transition for active live session viewers (CIE-027).
+     *
+     * When app returns to foreground:
+     * - If trip has ended or session is expired/missing, suppresses polling.
+     * - If active, triggers immediate location fetch without waiting for delay timer,
+     *   resets consecutive error backoff counter, and clears stale error banner.
+     */
+    static func evaluateForegroundReconnection(
+        isActive: Bool,
+        isExpiredOrMissing: Bool
+    ) -> ViewerForegroundReconnectionState {
+        let shouldFetch = isActive && !isExpiredOrMissing
+        return ViewerForegroundReconnectionState(
+            shouldFetchImmediately: shouldFetch,
+            resetConsecutiveErrors: true,
+            clearErrorMessage: true
         )
     }
 }
