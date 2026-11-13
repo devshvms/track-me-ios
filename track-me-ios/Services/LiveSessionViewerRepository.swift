@@ -223,6 +223,14 @@ final class LiveSessionViewerRepository {
     }
 
     /**
+     * CIE-036: Evaluates whether camera and UI transitions should be animated based on reduced motion accessibility preference.
+     * When reduced motion is preferred, transitions snap immediately to prevent motion sickness and vestibular discomfort.
+     */
+    static func shouldAnimateTransition(reduceMotion: Bool) -> Bool {
+        !reduceMotion
+    }
+
+    /**
      * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
      * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
      */
