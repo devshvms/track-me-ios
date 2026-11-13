@@ -61,6 +61,10 @@ struct LiveSessionSnapshot: Equatable {
             now: now
         )
     }
+
+    var totalDistanceMeters: Double {
+        LiveSessionViewerRepository.computePathDistanceMeters(path)
+    }
 }
 
 enum LiveSessionFetchResult: Equatable {
@@ -306,6 +310,37 @@ final class LiveSessionViewerRepository {
         let step = increments[stepIndex]
         let jitter = randomProvider() * 0.5
         return min(maxDelay, baseDelay + step + jitter)
+    }
+
+    static let maxPlausibleJumpMeters: Double = 50_000.0
+    static let minAccumulationDisplacementMeters: Double = 2.0
+
+    /// Computes accumulated distance in meters across the session's coordinate trail.
+    /// Discards sub-2m stationarity jitter and supersonic single-hop glitches (> 50 km).
+    /// Discards Null Island coordinates.
+    static func computePathDistanceMeters(_ path: [LiveViewerPoint]) -> Double {
+        guard path.count >= 2 else { return 0.0 }
+        var totalMeters: Double = 0.0
+        var prev: LiveViewerPoint? = nil
+
+        for pt in path {
+            guard pt.lat.isFinite, pt.lng.isFinite else { continue }
+            guard pt.lat >= -90.0, pt.lat <= 90.0, pt.lng >= -180.0, pt.lng <= 180.0 else { continue }
+            if abs(pt.lat) < 0.0001 && abs(pt.lng) < 0.0001 { continue } // Null Island
+
+            if let previous = prev {
+                let locPrev = CLLocation(latitude: previous.lat, longitude: previous.lng)
+                let locCur = CLLocation(latitude: pt.lat, longitude: pt.lng)
+                let dist = locPrev.distance(from: locCur)
+                if dist >= minAccumulationDisplacementMeters && dist <= maxPlausibleJumpMeters {
+                    totalMeters += dist
+                    prev = pt
+                }
+            } else {
+                prev = pt
+            }
+        }
+        return totalMeters
     }
 }
 

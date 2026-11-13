@@ -387,4 +387,65 @@ final class LiveShareV193Tests: XCTestCase {
             XCTAssertTrue(formatted.contains("Alex"), "Formatted message should contain 'Alex' in \(lang): \(formatted)")
         }
     }
+
+    func testComputePathDistanceMetersHandlesJitterJumpsAndInvalidPoints() {
+        // Empty or 1 point
+        XCTAssertEqual(LiveSessionViewerRepository.computePathDistanceMeters([]), 0.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computePathDistanceMeters([LiveViewerPoint(lat: 12.9716, lng: 77.5946)]), 0.0, accuracy: 0.001)
+
+        // 2 points ~111m apart
+        let p1 = LiveViewerPoint(lat: 12.9716, lng: 77.5946)
+        let p2 = LiveViewerPoint(lat: 12.9726, lng: 77.5946)
+        let dist2 = LiveSessionViewerRepository.computePathDistanceMeters([p1, p2])
+        XCTAssertTrue(dist2 >= 110.0 && dist2 <= 112.0, "Expected ~111m, got \(dist2)")
+
+        // Discards sub-2m jitter
+        let pJitter = LiveViewerPoint(lat: 12.97260001, lng: 77.5946)
+        let distWithJitter = LiveSessionViewerRepository.computePathDistanceMeters([p1, p2, pJitter])
+        XCTAssertEqual(distWithJitter, dist2, accuracy: 0.001)
+
+        // Discards supersonic jump (> 50 km)
+        let pJump = LiveViewerPoint(lat: 18.0, lng: 77.5946) // ~555 km away
+        let distWithJump = LiveSessionViewerRepository.computePathDistanceMeters([p1, p2, pJump])
+        XCTAssertEqual(distWithJump, dist2, accuracy: 0.001)
+
+        // Skips Null Island (0,0)
+        let pNullIsland = LiveViewerPoint(lat: 0.0, lng: 0.0)
+        let distWithNullIsland = LiveSessionViewerRepository.computePathDistanceMeters([pNullIsland, p1, p2])
+        XCTAssertEqual(distWithNullIsland, dist2, accuracy: 0.001)
+    }
+
+    func testLiveSessionSnapshotCalculatesTotalDistance() {
+        let p1 = LiveViewerPoint(lat: 12.9716, lng: 77.5946)
+        let p2 = LiveViewerPoint(lat: 12.9726, lng: 77.5946)
+        let snapshot = LiveSessionSnapshot(
+            sessionId: "test-dist",
+            username: "Rider",
+            status: "active",
+            startedAt: nil,
+            stopReason: nil,
+            endReason: nil,
+            endedAt: nil,
+            destination: nil,
+            deadlineAt: nil,
+            lastLocation: nil,
+            path: [p1, p2]
+        )
+
+        XCTAssertTrue(snapshot.totalDistanceMeters >= 110.0 && snapshot.totalDistanceMeters <= 112.0)
+    }
+
+    func testLiveViewerDistanceLocalizationParity() {
+        let languages = ["en", "es", "fr", "de", "hi", "ja", "zh-Hans"]
+        for lang in languages {
+            let format = LocalizationHelper.localized("Distance: %@", localeCode: lang)
+            XCTAssertFalse(format.isEmpty, "Missing Distance: %@ for \(lang)")
+            if lang != "en" {
+                XCTAssertFalse(format.hasPrefix("Distance:"), "Untranslated Distance: %@ for \(lang)")
+            }
+
+            let formatted = String(format: format, "14.2 km")
+            XCTAssertTrue(formatted.contains("14.2 km"), "Formatted message should contain '14.2 km' in \(lang): \(formatted)")
+        }
+    }
 }
