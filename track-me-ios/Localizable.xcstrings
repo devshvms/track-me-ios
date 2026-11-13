@@ -33410,6 +33410,53 @@
         }
       }
     },
+    "Network offline · Retrying automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netzwerk offline · Automatischer Neuversuch"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network offline · Retrying automatically"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin conexión · Reintentando automáticamente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réseau hors ligne · Nouvelle tentative automatique"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नेटवर्क ऑफ़लाइन · स्वचालित पुनः प्रयास जारी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワークオフライン · 自動再試行中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络离线 · 正在自动重试"
+          }
+        }
+      }
+    },
     "Location updates delayed": {
       "extractionState": "manual",
       "localizations": {

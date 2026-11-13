@@ -382,7 +382,7 @@ struct HomeView: View {
                 onDemoSave: nil
             )
         }
-        .sheet(item: $activeViewerSession) { session in
+        .sheet(item: $activeViewerSession) { (session: LiveViewerSessionItem) -> LiveSessionViewerView in
             LiveSessionViewerView(sessionId: session.id) {
                 activeViewerSession = nil
             }
