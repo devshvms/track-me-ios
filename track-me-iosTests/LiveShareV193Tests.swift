@@ -1330,5 +1330,85 @@ final class LiveShareV193Tests: XCTestCase {
             timeoutSeconds: 20.0
         ))
     }
+
+    // MARK: - CIE-041: Health Telemetry & Latency Diagnostics Tests
+
+    func testComputePollLatencyMs() {
+        let start = Date(timeIntervalSince1970: 1000.0)
+        let end = Date(timeIntervalSince1970: 1000.245)
+        XCTAssertEqual(LiveSessionViewerRepository.computePollLatencyMs(startTime: start, endTime: end), 245)
+
+        // Clamps negative duration to 0
+        let past = Date(timeIntervalSince1970: 999.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computePollLatencyMs(startTime: start, endTime: past), 0)
+    }
+
+    func testShouldSampleViewerHealth() {
+        // Below rate -> true
+        XCTAssertTrue(LiveSessionViewerRepository.shouldSampleViewerHealth(sampleRate: 0.01, randomValue: 0.005))
+        // Above rate -> false
+        XCTAssertFalse(LiveSessionViewerRepository.shouldSampleViewerHealth(sampleRate: 0.01, randomValue: 0.015))
+
+        // Clamps bounds
+        XCTAssertFalse(LiveSessionViewerRepository.shouldSampleViewerHealth(sampleRate: -0.5, randomValue: 0.0001))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldSampleViewerHealth(sampleRate: 1.5, randomValue: 0.99))
+    }
+
+    func testClassifyViewerError() {
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: 404, errorMessage: nil), "not_found_or_expired")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: 410, errorMessage: nil), "not_found_or_expired")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: 429, errorMessage: nil), "rate_limited")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: 500, errorMessage: nil), "server_error")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: 503, errorMessage: nil), "server_error")
+
+        // Error message classifications
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: nil, errorMessage: "Invalid response from server"), "malformed_response")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: nil, errorMessage: "The operation couldn’t be completed. (NSURLErrorDomain error -1009.)"), "offline_network")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: 0, errorMessage: nil), "offline_network")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: nil, errorMessage: "Session expired or not found"), "not_found_or_expired")
+        XCTAssertEqual(LiveSessionViewerRepository.classifyViewerError(statusCode: 400, errorMessage: "Bad request"), "unknown")
+    }
+
+    func testBuildViewerHealthTelemetryPayload() {
+        let payload = LiveSessionViewerRepository.buildViewerHealthTelemetryPayload(
+            sessionId: "live-session_123!@#",
+            pollLatencyMs: 142,
+            statusCode: 200,
+            isActive: true,
+            hasLocation: true,
+            batteryLevel: 88,
+            pointCount: 15,
+            isStale: false
+        )
+
+        XCTAssertEqual(payload["session_id"] as? String, "live-session_123")
+        XCTAssertEqual(payload["poll_latency_ms"] as? Int, 142)
+        XCTAssertEqual(payload["status_code"] as? Int, 200)
+        XCTAssertEqual(payload["is_active"] as? Bool, true)
+        XCTAssertEqual(payload["has_location"] as? Bool, true)
+        XCTAssertEqual(payload["battery_level"] as? Int, 88)
+        XCTAssertEqual(payload["point_count"] as? Int, 15)
+        XCTAssertEqual(payload["is_stale"] as? Bool, false)
+        XCTAssertEqual(payload["platform"] as? String, "ios")
+
+        // Zero coordinates or PII in payload
+        XCTAssertNil(payload["lat"])
+        XCTAssertNil(payload["lng"])
+        XCTAssertNil(payload["token"])
+
+        // Out-of-bounds battery clamped to nil
+        let payloadInvalidBattery = LiveSessionViewerRepository.buildViewerHealthTelemetryPayload(
+            sessionId: "test-sess",
+            pollLatencyMs: -10,
+            statusCode: 500,
+            isActive: false,
+            hasLocation: false,
+            batteryLevel: 150,
+            pointCount: -3
+        )
+        XCTAssertEqual(payloadInvalidBattery["poll_latency_ms"] as? Int, 0)
+        XCTAssertNil(payloadInvalidBattery["battery_level"])
+        XCTAssertEqual(payloadInvalidBattery["point_count"] as? Int, 0)
+    }
 }
 

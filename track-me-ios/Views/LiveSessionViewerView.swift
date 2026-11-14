@@ -809,10 +809,23 @@ struct LiveSessionViewerView: View {
         errorMessage = nil
         while !Task.isCancelled {
             nowDate = Date()
+            let pollStart = Date()
             let result = await repository.fetchSnapshot(sessionId: sessionId)
+            let pollLatencyMs = LiveSessionViewerRepository.computePollLatencyMs(startTime: pollStart, endTime: Date())
             var nextSleepSeconds: Double = 5.0
             switch result {
             case .success(let fetched):
+                if LiveSessionViewerRepository.shouldSampleViewerHealth() {
+                    TelemetryManager.shared.trackLiveShareViewerHealthSampled(
+                        sessionId: sessionId,
+                        pollLatencyMs: pollLatencyMs,
+                        statusCode: 200,
+                        isActive: fetched.isActive,
+                        hasLocation: fetched.lastLocation != nil,
+                        batteryLevel: fetched.lastLocation?.batteryLevel.flatMap { LiveSessionViewerRepository.clampBatteryLevel($0) },
+                        pointCount: fetched.path.count
+                    )
+                }
                 consecutiveErrors = 0
                 snapshot = fetched
                 isExpiredOrMissing = false
@@ -933,6 +946,13 @@ struct LiveSessionViewerView: View {
                     basePollSeconds: 5.0
                 )
             case .notFoundOrExpired:
+                if consecutiveErrors == 0 {
+                    TelemetryManager.shared.trackLiveShareViewerErrorLogged(
+                        sessionId: sessionId,
+                        errorCode: "not_found_or_expired",
+                        statusCode: 404
+                    )
+                }
                 isExpiredOrMissing = true
                 isLoading = false
                 if !hasAnnouncedEnded {
@@ -944,6 +964,14 @@ struct LiveSessionViewerView: View {
                 }
                 return
             case .error(let msg):
+                if consecutiveErrors == 0 {
+                    let errCode = LiveSessionViewerRepository.classifyViewerError(statusCode: nil, errorMessage: msg)
+                    TelemetryManager.shared.trackLiveShareViewerErrorLogged(
+                        sessionId: sessionId,
+                        errorCode: errCode,
+                        statusCode: 0
+                    )
+                }
                 consecutiveErrors += 1
                 errorMessage = msg
                 isLoading = false

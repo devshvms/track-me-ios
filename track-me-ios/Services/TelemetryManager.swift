@@ -805,6 +805,55 @@ class TelemetryManager {
         ])
     }
 
+    func trackLiveShareViewerHealthSampled(
+        sessionId: String,
+        pollLatencyMs: Int,
+        statusCode: Int,
+        isActive: Bool,
+        hasLocation: Bool,
+        batteryLevel: Int?,
+        pointCount: Int
+    ) {
+        guard shouldTrack() else { return }
+        var props: [String: Any] = [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "poll_latency_ms": pollLatencyMs,
+            "pollLatencyMs": pollLatencyMs,
+            "status_code": statusCode,
+            "statusCode": statusCode,
+            "is_active": isActive,
+            "isActive": isActive,
+            "has_location": hasLocation,
+            "hasLocation": hasLocation,
+            "point_count": pointCount,
+            "pointCount": pointCount,
+            "platform": "ios"
+        ]
+        if let bat = batteryLevel {
+            props["battery_level"] = bat
+            props["batteryLevel"] = bat
+        }
+        PostHogSDK.shared.capture("live_share_viewer_health_sampled", properties: props)
+    }
+
+    func trackLiveShareViewerErrorLogged(
+        sessionId: String,
+        errorCode: String,
+        statusCode: Int
+    ) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("live_share_viewer_error_logged", properties: [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "error_code": errorCode,
+            "errorCode": errorCode,
+            "status_code": statusCode,
+            "statusCode": statusCode,
+            "platform": "ios"
+        ])
+    }
+
     func trackTrustedWatcherAdded() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("trusted_watcher_added")

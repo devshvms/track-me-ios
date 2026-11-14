@@ -581,6 +581,110 @@ final class LiveSessionViewerRepository {
         return elapsed >= timeoutSeconds
     }
 
+    // MARK: - CIE-041: Live Share Viewer Session Health Telemetry & Latency Diagnostics
+
+    /**
+     * CIE-041: Computes latency in milliseconds between poll start and completion.
+     * Clamps negative durations or non-finite intervals to 0.
+     */
+    static func computePollLatencyMs(startTime: Date, endTime: Date = Date()) -> Int {
+        let elapsed = endTime.timeIntervalSince(startTime)
+        guard elapsed.isFinite, elapsed >= 0 else { return 0 }
+        return Int((elapsed * 1000.0).rounded())
+    }
+
+    /**
+     * CIE-041: Evaluates 1% sampling rate gate for viewer health telemetry.
+     * Strict $0/month free-tier protection for PostHog event quotas.
+     */
+    static func shouldSampleViewerHealth(
+        sampleRate: Double = 0.01,
+        randomValue: Double = Double.random(in: 0.0..<1.0)
+    ) -> Bool {
+        let clampedRate = max(0.0, min(1.0, sampleRate.isFinite ? sampleRate : 0.01))
+        return randomValue < clampedRate
+    }
+
+    /**
+     * CIE-041: Classifies viewer error codes for telemetry and diagnostics.
+     */
+    static func classifyViewerError(
+        statusCode: Int?,
+        errorMessage: String?
+    ) -> String {
+        if statusCode == 404 || statusCode == 410 {
+            return "not_found_or_expired"
+        }
+        if statusCode == 429 {
+            return "rate_limited"
+        }
+        if let code = statusCode, (500...599).contains(code) {
+            return "server_error"
+        }
+        let msg = (errorMessage ?? "").lowercased()
+        if msg.contains("404") || msg.contains("expired") || msg.contains("not found") {
+            return "not_found_or_expired"
+        }
+        if msg.contains("429") || msg.contains("rate limit") {
+            return "rate_limited"
+        }
+        if msg.contains("500") || msg.contains("502") || msg.contains("503") || msg.contains("server error") {
+            return "server_error"
+        }
+        if msg.contains("json") || msg.contains("syntax") || msg.contains("malformed") || msg.contains("invalid response") || msg.contains("decode") || msg.contains("corrupt") {
+            return "malformed_response"
+        }
+        if statusCode == 0 || msg.contains("network") || msg.contains("offline") || msg.contains("internet") || msg.contains("timed out") || msg.contains("connection") || msg.contains("could not connect") || msg.contains("nsurlerrordomain") || msg.contains("-1009") || msg.contains("-1001") || msg.contains("not connected") {
+            return "offline_network"
+        }
+        return "unknown"
+    }
+
+    /**
+     * CIE-041: Builds sanitized, privacy-safe health telemetry payload without raw coordinates or PII.
+     */
+    static func buildViewerHealthTelemetryPayload(
+        sessionId: String,
+        pollLatencyMs: Int,
+        statusCode: Int,
+        isActive: Bool,
+        hasLocation: Bool,
+        batteryLevel: Int?,
+        pointCount: Int,
+        isStale: Bool = false
+    ) -> [String: Any] {
+        let cleanId = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_")).inverted)
+            .joined()
+            .prefix(64)
+        let clampedLatency = max(0, pollLatencyMs)
+        let clampedBattery = batteryLevel.flatMap { clampBatteryLevel($0) }
+        let clampedPoints = max(0, pointCount)
+
+        var payload: [String: Any] = [
+            "session_id": String(cleanId),
+            "sessionId": String(cleanId),
+            "poll_latency_ms": clampedLatency,
+            "pollLatencyMs": clampedLatency,
+            "status_code": statusCode,
+            "statusCode": statusCode,
+            "is_active": isActive,
+            "isActive": isActive,
+            "has_location": hasLocation,
+            "hasLocation": hasLocation,
+            "point_count": clampedPoints,
+            "pointCount": clampedPoints,
+            "is_stale": isStale,
+            "isStale": isStale,
+            "platform": "ios"
+        ]
+        if let bat = clampedBattery {
+            payload["battery_level"] = bat
+            payload["batteryLevel"] = bat
+        }
+        return payload
+    }
+
     /**
      * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
      * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
