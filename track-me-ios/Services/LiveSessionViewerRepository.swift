@@ -465,6 +465,49 @@ final class LiveSessionViewerRepository {
         return LocalizationHelper.localized("Low-data mode active · Polling every 30s")
     }
 
+    // MARK: - CIE-046: Active Viewer Presence Ping Backoff & Throttle Parity
+
+    static let viewerPingBaseSeconds: TimeInterval = 15.0
+    static let viewerPingThrottledSeconds: TimeInterval = 30.0
+    static let viewerPingMaxBackoffSeconds: TimeInterval = 60.0
+
+    /**
+     * CIE-046: Suppresses presence pings when viewer is offline or snapshot fetches are failing (>= 2 errors).
+     */
+    static func shouldSkipPresencePing(consecutiveFetchFailures: Int, isOnline: Bool = true) -> Bool {
+        guard isOnline else { return true }
+        return consecutiveFetchFailures >= 2
+    }
+
+    /**
+     * CIE-046: Computes viewer presence ping interval in seconds.
+     * Steps up to 30.0s (< 40s server STALE_VIEWER_WINDOW_MS) under low-data, background, or idle throttling,
+     * and applies jittered backoff on consecutive ping failures.
+     */
+    static func computeViewerPingDelaySeconds(
+        consecutivePingFailures: Int,
+        isLowDataMode: Bool = false,
+        isBackground: Bool = false,
+        isViewerIdle: Bool = false,
+        baseSeconds: TimeInterval = viewerPingBaseSeconds,
+        throttledSeconds: TimeInterval = viewerPingThrottledSeconds,
+        maxSeconds: TimeInterval = viewerPingMaxBackoffSeconds,
+        jitterMaxSeconds: TimeInterval = 1.0,
+        randomProvider: () -> Double = { Double.random(in: 0.0..<1.0) }
+    ) -> TimeInterval {
+        let safeBase = max(1.0, baseSeconds)
+        let safeThrottled = max(safeBase, throttledSeconds)
+        let effectiveBase = (isLowDataMode || isBackground || isViewerIdle) ? safeThrottled : safeBase
+        if consecutivePingFailures <= 0 { return effectiveBase }
+        let safeMax = max(effectiveBase, maxSeconds)
+        let increments: [TimeInterval] = [5.0, 15.0, 30.0, 45.0]
+        let stepIndex = min(consecutivePingFailures - 1, increments.count - 1)
+        let step = increments[stepIndex]
+        let clampedRandom = min(max(randomProvider(), 0.0), 0.9999)
+        let jitter = jitterMaxSeconds > 0 ? clampedRandom * jitterMaxSeconds : 0.0
+        return min(safeMax, effectiveBase + step + jitter)
+    }
+
     /**
      * CIE-038: Evaluates whether a polyline should be decimated based on point count.
      * Short trips (<= minPointsThreshold, default 200) skip decimation to conserve cycles.

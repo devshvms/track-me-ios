@@ -1681,6 +1681,132 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertNotNil(LiveSessionViewerRepository.formatLowDataNoticeText(isLowDataMode: true))
         XCTAssertNil(LiveSessionViewerRepository.formatLowDataNoticeText(isLowDataMode: false))
     }
+
+    func testZeroViewerHibernationEvaluationAndTelemetryParity_CIE046() {
+        let t0 = Date(timeIntervalSince1970: 1_700_000_000)
+
+        // Below 10 minutes with 0 viewers -> keeps standard cadence
+        let beforeThreshold = LiveSharingManager.evaluateZeroViewerHibernation(
+            activeViewers: 0,
+            zeroViewersSince: t0,
+            now: t0.addingTimeInterval(599.0),
+            configuredInterval: 5.0,
+            isPowerSaveOrLowBattery: false
+        )
+        XCTAssertFalse(beforeThreshold.isHibernating)
+        XCTAssertEqual(beforeThreshold.zeroViewersSince, t0)
+        XCTAssertEqual(beforeThreshold.effectiveInterval, 5.0, accuracy: 0.001)
+
+        // At >= 10 minutes with 0 viewers -> hibernates to 30s
+        let hibernating = LiveSharingManager.evaluateZeroViewerHibernation(
+            activeViewers: 0,
+            zeroViewersSince: t0,
+            now: t0.addingTimeInterval(600.0),
+            configuredInterval: 5.0,
+            isPowerSaveOrLowBattery: false
+        )
+        XCTAssertTrue(hibernating.isHibernating)
+        XCTAssertEqual(hibernating.idleDuration, 600.0, accuracy: 0.001)
+        XCTAssertEqual(hibernating.effectiveInterval, 30.0, accuracy: 0.001)
+
+        // Longer configured user interval (60s) is respected during hibernation
+        let longerConfigured = LiveSharingManager.evaluateZeroViewerHibernation(
+            activeViewers: 0,
+            zeroViewersSince: t0,
+            now: t0.addingTimeInterval(700.0),
+            configuredInterval: 60.0,
+            isPowerSaveOrLowBattery: false
+        )
+        XCTAssertTrue(longerConfigured.isHibernating)
+        XCTAssertEqual(longerConfigured.effectiveInterval, 60.0, accuracy: 0.001)
+
+        // Viewer joining wakes broadcaster immediately
+        let woken = LiveSharingManager.evaluateZeroViewerHibernation(
+            activeViewers: 1,
+            zeroViewersSince: t0,
+            now: t0.addingTimeInterval(700.0),
+            configuredInterval: 5.0,
+            isPowerSaveOrLowBattery: false
+        )
+        XCTAssertFalse(woken.isHibernating)
+        XCTAssertNil(woken.zeroViewersSince)
+        XCTAssertEqual(woken.effectiveInterval, 5.0, accuracy: 0.001)
+
+        // Backoff never clamps below baseInterval when hibernating
+        let noJitter = { 0.0 }
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 0, baseInterval: 30.0, maxInterval: 45.0, randomProvider: noJitter), 30.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 1, baseInterval: 30.0, maxInterval: 45.0, randomProvider: noJitter), 31.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSharingManager.computePushBackoffDelay(consecutiveFailures: 1, baseInterval: 30.0, maxInterval: 15.0, randomProvider: noJitter), 30.0, accuracy: 0.001)
+
+        // Sanitized telemetry excludes coordinates, tokens, and PII
+        let payload = LiveSharingManager.buildZeroViewerHibernationTelemetryPayload(
+            sessionId: "sess-ios-46",
+            isHibernating: true,
+            idleDuration: 600.0,
+            interval: 30.0,
+            platform: "ios"
+        )
+        XCTAssertEqual(payload["session_id"] as? String, "sess-ios-46")
+        XCTAssertEqual(payload["is_hibernating"] as? Bool, true)
+        XCTAssertEqual(payload["idle_seconds"] as? Int, 600)
+        XCTAssertEqual(payload["interval_seconds"] as? Int, 30)
+        XCTAssertEqual(payload["platform"] as? String, "ios")
+        XCTAssertNil(payload["lat"])
+        XCTAssertNil(payload["lng"])
+        XCTAssertNil(payload["token"])
+        XCTAssertNil(payload["email"])
+    }
+
+    func testViewerPresencePingThrottleBackoffAndOfflineGating_CIE046() {
+        let noJitter = { 0.0 }
+        let fullJitter = { 0.9999 }
+
+        // Suppression when offline or >= 2 consecutive fetch failures
+        XCTAssertFalse(LiveSessionViewerRepository.shouldSkipPresencePing(consecutiveFetchFailures: 0, isOnline: true))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldSkipPresencePing(consecutiveFetchFailures: 1, isOnline: true))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldSkipPresencePing(consecutiveFetchFailures: 2, isOnline: true))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldSkipPresencePing(consecutiveFetchFailures: 0, isOnline: false))
+
+        // Healthy active -> 15s
+        XCTAssertEqual(
+            LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 0, randomProvider: noJitter),
+            15.0,
+            accuracy: 0.001
+        )
+
+        // Healthy throttled (low-data, background, or idle) -> 30s (< 40s server TTL)
+        XCTAssertEqual(
+            LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 0, isLowDataMode: true, randomProvider: noJitter),
+            30.0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 0, isBackground: true, randomProvider: noJitter),
+            30.0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 0, isViewerIdle: true, randomProvider: noJitter),
+            30.0,
+            accuracy: 0.001
+        )
+
+        // Exponential failure backoff on normal cadence: 20s -> 30s -> 45s -> 60s
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 1, randomProvider: noJitter), 20.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 2, randomProvider: noJitter), 30.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 3, randomProvider: noJitter), 45.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 4, randomProvider: noJitter), 60.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 8, randomProvider: noJitter), 60.0, accuracy: 0.001)
+
+        // Failure backoff while throttled: 35s -> 45s -> 60s
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 1, isLowDataMode: true, randomProvider: noJitter), 35.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 2, isViewerIdle: true, randomProvider: noJitter), 45.0, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 3, isBackground: true, randomProvider: noJitter), 60.0, accuracy: 0.001)
+
+        // Bounded jitter and max clamp
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 1, randomProvider: fullJitter), 20.9999, accuracy: 0.001)
+        XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 4, randomProvider: fullJitter), 60.0, accuracy: 0.001)
+    }
 }
 
 

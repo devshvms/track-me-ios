@@ -46,6 +46,9 @@ struct LiveSessionViewerView: View {
     @State private var hasAnnouncedEnded = false
     @State private var lastCameraCenter: CLLocationCoordinate2D? = nil
     @State private var lastUserInteractionDate: Date? = Date()
+    @State private var consecutivePingFailures = 0
+    @State private var lastPingSentDate: Date? = nil
+    @State private var isPingInFlight = false
     private var networkMonitor = NetworkMonitor.shared
 
     private var useMiles: Bool {
@@ -848,8 +851,10 @@ struct LiveSessionViewerView: View {
 
     private func pollSessionLoop() async {
         TelemetryManager.shared.trackLiveShareViewed(sessionId: sessionId, surface: "in_app_viewer")
-        var tick = 0
         var consecutiveErrors = 0
+        consecutivePingFailures = 0
+        lastPingSentDate = nil
+        isPingInFlight = false
         // Clear stale connection error on initial/foreground start so fresh poll runs cleanly (CIE-027)
         errorMessage = nil
         while !Task.isCancelled {
@@ -967,10 +972,35 @@ struct LiveSessionViewerView: View {
                         continuousHeading = LiveSessionViewerRepository.computeContinuousAngle(current: continuousHeading, target: heading)
                     }
                 }
-                if fetched.isActive && tick % 3 == 0 {
-                    let pingRepo = repository
-                    Task {
-                        _ = await pingRepo.sendViewerPing(sessionId: sessionId, viewerId: viewerId)
+                if fetched.isActive,
+                   !isPingInFlight,
+                   !LiveSessionViewerRepository.shouldSkipPresencePing(
+                       consecutiveFetchFailures: consecutiveErrors,
+                       isOnline: networkMonitor.isConnected
+                   ) {
+                    let pingDelay = LiveSessionViewerRepository.computeViewerPingDelaySeconds(
+                        consecutivePingFailures: consecutivePingFailures,
+                        isLowDataMode: false,
+                        isBackground: isBackground,
+                        isViewerIdle: throttle.isInactive
+                    )
+                    let pingNow = Date()
+                    let isPingDue = lastPingSentDate.map { pingNow.timeIntervalSince($0) >= pingDelay } ?? true
+                    if isPingDue {
+                        isPingInFlight = true
+                        let pingRepo = repository
+                        let activeSessionId = sessionId
+                        let activeViewerId = viewerId
+                        Task { @MainActor in
+                            let ok = await pingRepo.sendViewerPing(sessionId: activeSessionId, viewerId: activeViewerId)
+                            isPingInFlight = false
+                            lastPingSentDate = Date()
+                            if ok {
+                                consecutivePingFailures = 0
+                            } else {
+                                consecutivePingFailures += 1
+                            }
+                        }
                     }
                 }
                 let isStale = fetched.isStaleSignal(now: nowDate)
@@ -1033,7 +1063,6 @@ struct LiveSessionViewerView: View {
                 isLoading = false
                 nextSleepSeconds = LiveSessionViewerRepository.computeViewerBackoffSeconds(consecutiveErrors: consecutiveErrors)
             }
-            tick += 1
             let sleepNanos = UInt64(nextSleepSeconds * 1_000_000_000)
             try? await Task.sleep(nanoseconds: sleepNanos)
         }
