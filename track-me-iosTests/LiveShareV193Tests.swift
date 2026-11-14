@@ -1486,5 +1486,43 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertFalse(steadyRes.resetConsecutiveErrors)
         XCTAssertNil(steadyRes.statusMessage)
     }
+
+    // MARK: - CIE-043: Forward Share Message & Directions URL Tests
+
+    func testFormatLiveShareMessage() {
+        let testUrl = URL(string: "https://trackme.shvms.in/live/session-42")!
+
+        // With rider name
+        let messageWithName = LiveSessionViewerRepository.formatLiveShareMessage(username: "Sarah", shareUrl: testUrl)
+        XCTAssertTrue(messageWithName.contains("Sarah"))
+        XCTAssertTrue(messageWithName.contains(testUrl.absoluteString))
+
+        // Without rider name / nil
+        let messageFallback = LiveSessionViewerRepository.formatLiveShareMessage(username: nil, shareUrl: testUrl)
+        XCTAssertTrue(messageFallback.contains(testUrl.absoluteString))
+
+        // Empty whitespace rider name
+        let messageWhitespace = LiveSessionViewerRepository.formatLiveShareMessage(username: "   ", shareUrl: testUrl)
+        XCTAssertTrue(messageWhitespace.contains(testUrl.absoluteString))
+    }
+
+    func testBuildDirectionsUrl() {
+        // Valid Apple Maps directions URL
+        let appleUrl = LiveSessionViewerRepository.buildDirectionsUrl(lat: 37.7749, lng: -122.4194, provider: "apple_maps")
+        XCTAssertNotNil(appleUrl)
+        XCTAssertEqual(appleUrl?.absoluteString, "https://maps.apple.com/?daddr=37.7749,-122.4194")
+
+        // Valid Google Maps directions URL
+        let googleUrl = LiveSessionViewerRepository.buildDirectionsUrl(lat: 12.9716, lng: 77.5946, provider: "google_maps")
+        XCTAssertNotNil(googleUrl)
+        XCTAssertEqual(googleUrl?.absoluteString, "https://maps.google.com/?daddr=12.9716,77.5946")
+
+        // Invalid / out-of-range coordinates return nil
+        XCTAssertNil(LiveSessionViewerRepository.buildDirectionsUrl(lat: .nan, lng: 77.5946))
+        XCTAssertNil(LiveSessionViewerRepository.buildDirectionsUrl(lat: 12.9716, lng: .infinity))
+        XCTAssertNil(LiveSessionViewerRepository.buildDirectionsUrl(lat: 95.0, lng: 77.5946))
+        XCTAssertNil(LiveSessionViewerRepository.buildDirectionsUrl(lat: 12.9716, lng: -195.0))
+    }
 }
+
 
