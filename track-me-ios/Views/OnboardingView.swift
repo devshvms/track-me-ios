@@ -2,6 +2,7 @@ import CoreLocation
 import Combine
 import StoreKit
 import SwiftUI
+import UIKit
 import UserNotifications
 
 private enum OnboardingPage: Int, CaseIterable {
@@ -180,7 +181,9 @@ struct OnboardingView: View {
     }
 
     private var permissionsPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        let locationPresentation = permissions.locationCardPresentation
+
+        return VStack(alignment: .leading, spacing: 18) {
             Text(LocalizationHelper.localized("Permissions, when you need them"))
                 .font(BrandTypography.title2)
                 .accessibilityAddTraits(.isHeader)
@@ -190,12 +193,38 @@ struct OnboardingView: View {
             OnboardingPermissionCard(
                 systemImage: "location.fill",
                 title: "Location",
-                body: "Location is needed to record a ride or share your position with a live group. TrackMe will ask when you start your first ride.",
+                body: "Location is needed to record a ride or share your position with a live group. Allow it now so your first ride starts cleanly.",
                 badge: "Needed for rides",
-                status: permissions.locationStatusText,
-                isGranted: permissions.locationGranted,
-                pendingStatus: "Asked when you start a ride"
+                status: locationPresentation.statusKey,
+                isGranted: locationPresentation.isGranted,
+                isDeclined: locationPresentation.isDeclined,
+                pendingStatus: "Asked when you start a ride",
+                actionTitle: locationPresentation.actionTitleKey,
+                onAction: {
+                    switch locationPresentation {
+                    case .promptPending:
+                        permissions.requestLocationPermission()
+                    case .declined:
+                        openAppSettings()
+                    case .granted:
+                        break
+                    }
+                }
             )
+
+            if locationPresentation.isDeclined {
+                Label {
+                    Text(LocalizationHelper.localized("Without location, TrackMe can't record a ride. You can allow it later in Settings."))
+                        .font(BrandTypography.footnote)
+                        .foregroundStyle(.primary)
+                } icon: {
+                    Image(systemName: "location.slash.fill")
+                        .foregroundStyle(BrandColor.warning)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(BrandColor.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+            }
 
             OnboardingPermissionCard(
                 systemImage: "bell.fill",
@@ -263,10 +292,11 @@ struct OnboardingView: View {
             Button {
                 switch page {
                 case .setup:
-                    if permissions.locationStatus == .notDetermined {
+                    switch OnboardingSetupPolicy.primaryTapAction(locationStatus: permissions.locationStatus) {
+                    case .requestLocationPermission:
                         finishAfterLocationAuth = true
                         permissions.requestLocationPermission()
-                    } else {
+                    case .finishOnboarding:
                         finish()
                     }
                 default:
@@ -290,7 +320,7 @@ struct OnboardingView: View {
                 }
                 .font(BrandTypography.footnote.weight(.semibold))
                 .frame(minHeight: 44)
-            } else if page == .setup && !permissions.locationGranted {
+            } else if page == .setup && OnboardingSetupPolicy.shouldShowSecondaryContinue(locationStatus: permissions.locationStatus) {
                 Button(LocalizationHelper.localized("Continue")) {
                     finish()
                 }
@@ -304,8 +334,13 @@ struct OnboardingView: View {
         switch page {
         case .welcome: "Take the tour"
         case .tour: "Next"
-        case .setup: "Start my first ride"
+        case .setup: OnboardingSetupPolicy.primaryActionTitleKey(locationStatus: permissions.locationStatus)
         }
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     private func move(to next: OnboardingPage) {
@@ -372,7 +407,10 @@ private struct OnboardingPermissionCard: View {
     let badge: String
     let status: String?
     let isGranted: Bool
+    let isDeclined: Bool
     let pendingStatus: String
+    let actionTitle: String?
+    let onAction: (() -> Void)?
 
     init(
         systemImage: String,
@@ -381,7 +419,10 @@ private struct OnboardingPermissionCard: View {
         badge: String,
         status: String?,
         isGranted: Bool,
-        pendingStatus: String
+        isDeclined: Bool = false,
+        pendingStatus: String,
+        actionTitle: String? = nil,
+        onAction: (() -> Void)? = nil
     ) {
         self.systemImage = systemImage
         self.title = title
@@ -389,7 +430,10 @@ private struct OnboardingPermissionCard: View {
         self.badge = badge
         self.status = status
         self.isGranted = isGranted
+        self.isDeclined = isDeclined
         self.pendingStatus = pendingStatus
+        self.actionTitle = actionTitle
+        self.onAction = onAction
     }
 
     var body: some View {
@@ -416,9 +460,25 @@ private struct OnboardingPermissionCard: View {
                     .font(BrandTypography.footnote.weight(.semibold))
                     .foregroundStyle(BrandColor.success)
             } else {
-                Label(LocalizationHelper.localized(pendingStatus), systemImage: "clock")
-                    .font(BrandTypography.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                if isDeclined, let status {
+                    Label(LocalizationHelper.localized(status), systemImage: "exclamationmark.triangle.fill")
+                        .font(BrandTypography.footnote.weight(.semibold))
+                        .foregroundStyle(BrandColor.warning)
+                }
+                if let actionTitle, let onAction {
+                    Button(action: onAction) {
+                        Text(LocalizationHelper.localized(actionTitle))
+                            .font(BrandTypography.footnote.weight(.semibold))
+                            .foregroundStyle(BrandColor.primary)
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                            .background(BrandColor.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Label(LocalizationHelper.localized(pendingStatus), systemImage: "clock")
+                        .font(BrandTypography.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(16)
@@ -440,15 +500,11 @@ private final class OnboardingPermissionModel: NSObject, ObservableObject, CLLoc
     }
 
     var locationGranted: Bool {
-        locationStatus == .authorizedAlways || locationStatus == .authorizedWhenInUse
+        OnboardingSetupPolicy.isLocationGranted(locationStatus)
     }
 
-    var locationStatusText: String? {
-        switch locationStatus {
-        case .authorizedAlways: "Always allowed"
-        case .authorizedWhenInUse: "Allowed while using"
-        default: nil
-        }
+    var locationCardPresentation: OnboardingLocationCardPresentation {
+        OnboardingSetupPolicy.locationCardPresentation(locationStatus: locationStatus)
     }
 
     func requestLocationPermission() {

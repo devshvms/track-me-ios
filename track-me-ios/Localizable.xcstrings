@@ -7372,6 +7372,53 @@
         }
       }
     },
+    "Declined": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abgelehnt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Declined"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechazado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refusé"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अस्वीकृत"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拒否"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已拒绝"
+          }
+        }
+      }
+    },
     "Delete": {
       "localizations": {
         "de": {
@@ -14741,6 +14788,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "位置授权"
+          }
+        }
+      }
+    },
+    "Location is needed to record a ride or share your position with a live group. Allow it now so your first ride starts cleanly.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Standort wird benötigt, um eine Fahrt aufzuzeichnen oder deine Position mit einer Live-Gruppe zu teilen. Erlaube ihn jetzt, damit deine erste Fahrt direkt startet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location is needed to record a ride or share your position with a live group. Allow it now so your first ride starts cleanly."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La ubicación es necesaria para registrar una ruta o compartir tu posición con un grupo en vivo. Permítela ahora para que tu primer recorrido comience sin problemas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La position est nécessaire pour enregistrer un trajet ou partager votre emplacement avec un groupe en direct. Autorisez-la maintenant pour démarrer votre premier trajet sans friction."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राइड रिकॉर्ड करने या लाइव ग्रुप के साथ अपनी लोकेशन साझा करने के लिए लोकेशन आवश्यक है। अभी अनुमति दें ताकि आपकी पहली राइड बिना रुकावट शुरू हो सके।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライドの記録やライブグループへの現在地共有には位置情報が必要です。最初のライドをスムーズに始めるため、今すぐ許可してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要定位权限才能记录骑行或与实时群组共享您的位置。现在允许定位，以便顺畅开始您的首次骑行。"
           }
         }
       }
