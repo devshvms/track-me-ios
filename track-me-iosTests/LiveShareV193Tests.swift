@@ -1523,6 +1523,96 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertNil(LiveSessionViewerRepository.buildDirectionsUrl(lat: 95.0, lng: 77.5946))
         XCTAssertNil(LiveSessionViewerRepository.buildDirectionsUrl(lat: 12.9716, lng: -195.0))
     }
+
+    // MARK: - CIE-044: Spectator Battery Optimization & Dynamic Map Render Throttling Tests
+
+    func testSpectatorThrottleEvaluation() {
+        let now = Date()
+        let threshold: Double = 300.0 // 5 minutes
+
+        // 1. Active foreground session with recent interaction -> Unthrottled
+        let activeRecent = LiveSessionViewerRepository.evaluateSpectatorThrottleState(
+            isTripEnded: false,
+            isBackground: false,
+            lastInteractionDate: now.addingTimeInterval(-10.0),
+            now: now,
+            riderPowerSave: false,
+            riderBatteryLevel: nil,
+            basePollSeconds: 5.0,
+            inactivityThresholdSeconds: threshold
+        )
+        XCTAssertFalse(activeRecent.isInactive)
+        XCTAssertFalse(activeRecent.isThrottled)
+        XCTAssertEqual(activeRecent.pollDelaySeconds, 5.0)
+        XCTAssertTrue(activeRecent.shouldAnimateMap)
+        XCTAssertNil(activeRecent.noticeText)
+
+        // 2. Spectator idle for > 5 minutes -> Throttled to 15s, animation disabled
+        let idleSpectator = LiveSessionViewerRepository.evaluateSpectatorThrottleState(
+            isTripEnded: false,
+            isBackground: false,
+            lastInteractionDate: now.addingTimeInterval(-305.0),
+            now: now,
+            riderPowerSave: false,
+            riderBatteryLevel: nil,
+            basePollSeconds: 5.0,
+            inactivityThresholdSeconds: threshold
+        )
+        XCTAssertTrue(idleSpectator.isInactive)
+        XCTAssertTrue(idleSpectator.isThrottled)
+        XCTAssertEqual(idleSpectator.pollDelaySeconds, 15.0)
+        XCTAssertFalse(idleSpectator.shouldAnimateMap)
+        XCTAssertNotNil(idleSpectator.noticeText)
+
+        // 3. Background app state -> 30s poll, animation disabled
+        let backgroundApp = LiveSessionViewerRepository.evaluateSpectatorThrottleState(
+            isTripEnded: false,
+            isBackground: true,
+            lastInteractionDate: now.addingTimeInterval(-5.0),
+            now: now,
+            riderPowerSave: false,
+            riderBatteryLevel: nil,
+            basePollSeconds: 5.0,
+            inactivityThresholdSeconds: threshold
+        )
+        XCTAssertFalse(backgroundApp.isInactive)
+        XCTAssertTrue(backgroundApp.isThrottled)
+        XCTAssertEqual(backgroundApp.pollDelaySeconds, 30.0)
+        XCTAssertFalse(backgroundApp.shouldAnimateMap)
+
+        // 4. Rider power-save / low battery (<=15%) -> 12s poll, animation enabled
+        let riderPowerSave = LiveSessionViewerRepository.evaluateSpectatorThrottleState(
+            isTripEnded: false,
+            isBackground: false,
+            lastInteractionDate: now.addingTimeInterval(-5.0),
+            now: now,
+            riderPowerSave: true,
+            riderBatteryLevel: 10,
+            basePollSeconds: 5.0,
+            inactivityThresholdSeconds: threshold
+        )
+        XCTAssertFalse(riderPowerSave.isInactive)
+        XCTAssertTrue(riderPowerSave.isThrottled)
+        XCTAssertEqual(riderPowerSave.pollDelaySeconds, 12.0)
+        XCTAssertTrue(riderPowerSave.shouldAnimateMap)
+        XCTAssertNotNil(riderPowerSave.noticeText)
+
+        // 5. Trip ended -> Animation disabled, no notice
+        let endedTrip = LiveSessionViewerRepository.evaluateSpectatorThrottleState(
+            isTripEnded: true,
+            isBackground: false,
+            lastInteractionDate: now.addingTimeInterval(-500.0),
+            now: now,
+            riderPowerSave: false,
+            riderBatteryLevel: nil,
+            basePollSeconds: 5.0,
+            inactivityThresholdSeconds: threshold
+        )
+        XCTAssertFalse(endedTrip.isInactive)
+        XCTAssertFalse(endedTrip.isThrottled)
+        XCTAssertFalse(endedTrip.shouldAnimateMap)
+        XCTAssertNil(endedTrip.noticeText)
+    }
 }
 
 

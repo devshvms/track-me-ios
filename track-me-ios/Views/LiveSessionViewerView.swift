@@ -926,12 +926,24 @@ struct LiveSessionViewerView: View {
                     }
                 }
 
+                let isBackground = scenePhase != .active
+                let throttle = LiveSessionViewerRepository.evaluateSpectatorThrottleState(
+                    isTripEnded: !fetched.isActive,
+                    isBackground: isBackground,
+                    lastInteractionDate: lastUserInteractionDate,
+                    now: nowDate,
+                    riderPowerSave: fetched.lastLocation?.powerSaveMode ?? false,
+                    riderBatteryLevel: fetched.lastLocation?.batteryLevel,
+                    basePollSeconds: 5.0,
+                    inactivityThresholdSeconds: 300.0
+                )
+
                 if let coordinate = fetched.lastLocation?.coordinate,
                    isFollowingRider || !hasCenteredInitially {
-                    let shouldAnimate = !hasCenteredInitially || LiveSessionViewerRepository.shouldAnimateCamera(
+                    let shouldAnimate = (!hasCenteredInitially || LiveSessionViewerRepository.shouldAnimateCamera(
                         from: lastFocusedCoordinate,
                         to: coordinate
-                    )
+                    )) && throttle.shouldAnimateMap
                     if shouldAnimate {
                         lastFocusedCoordinate = coordinate
                         focusCamera(on: coordinate)
@@ -985,11 +997,7 @@ struct LiveSessionViewerView: View {
                     }
                     return
                 }
-                nextSleepSeconds = LiveSessionViewerRepository.computeViewerAdaptivePollSeconds(
-                    powerSaveMode: fetched.lastLocation?.powerSaveMode ?? false,
-                    batteryLevel: fetched.lastLocation?.batteryLevel,
-                    basePollSeconds: 5.0
-                )
+                nextSleepSeconds = throttle.pollDelaySeconds
             case .notFoundOrExpired:
                 if consecutiveErrors == 0 {
                     TelemetryManager.shared.trackLiveShareViewerErrorLogged(
