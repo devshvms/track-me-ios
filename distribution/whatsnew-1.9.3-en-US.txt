@@ -1,0 +1,6 @@
+What's New in TrackMe 1.9.3
+
+• Effortless Live Sharing: Start sharing from the new intent sheet or toggle the 1-tap Live Sharing pill and persistent HUD bar anytime.
+• Trusted Watchers: Invite chosen family or friends in seconds for live trip alerts without cluttered permission prompts.
+• Cross-Platform Live Viewer & /live Links: Open shared /live links directly in the app with breadcrumb route paths, start/finish markers, heading cone, km/mi toggle, and resilient reconnects.
+• Continuous Trip Tracking & Ride Badges: Opt-in indoor-safe auto-start and auto-end, plus Live and Group tags in History & Charts.
