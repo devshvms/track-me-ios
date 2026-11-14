@@ -781,6 +781,33 @@ final class LiveSessionViewerRepository {
         return URL(string: urlString)
     }
 
+    /**
+     * CIE-043: Formats localized share text for forwarding a live session.
+     */
+    static func formatLiveShareMessage(username: String?, shareUrl: URL) -> String {
+        let urlStr = shareUrl.absoluteString
+        if let username = username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
+            let format = LocalizationHelper.localized("Track %@'s live ride on TrackMe: %@")
+            return String(format: format, username, urlStr)
+        } else {
+            let format = LocalizationHelper.localized("Track this live ride on TrackMe: %@")
+            return String(format: format, urlStr)
+        }
+    }
+
+    /**
+     * CIE-043: Constructs external navigation URL to rider's current coordinate.
+     */
+    static func buildDirectionsUrl(lat: Double, lng: Double, provider: String = "apple_maps") -> URL? {
+        guard lat.isFinite, lng.isFinite, (-90.0...90.0).contains(lat), (-180.0...180.0).contains(lng) else {
+            return nil
+        }
+        if provider == "google_maps" {
+            return URL(string: "https://maps.google.com/?daddr=\(lat),\(lng)")
+        }
+        return URL(string: "https://maps.apple.com/?daddr=\(lat),\(lng)")
+    }
+
     static func parseSnapshot(sessionId: String, data: Data) -> LiveSessionSnapshot? {
         guard !data.isEmpty,
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

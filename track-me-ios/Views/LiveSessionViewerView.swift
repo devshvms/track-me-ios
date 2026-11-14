@@ -91,18 +91,63 @@ struct LiveSessionViewerView: View {
                     .accessibilityLabel(LocalizationHelper.localized("Close"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: toggleUnitSystem) {
-                        Text(useMiles ? "mph" : "km/h")
-                            .font(.caption.bold())
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(liveCyan.opacity(0.15))
-                            .foregroundStyle(liveCyan)
-                            .clipShape(Capsule())
+                    HStack(spacing: 8) {
+                        if let shareUrl = LiveSessionViewerRepository.buildShareUrl(
+                            baseURL: "https://trackme.shvms.in",
+                            sessionId: sessionId,
+                            riderName: snapshot?.username
+                        ) {
+                            ShareLink(
+                                item: shareUrl,
+                                subject: Text(LocalizationHelper.localized("TrackMe Live Ride")),
+                                message: Text(LiveSessionViewerRepository.formatLiveShareMessage(
+                                    username: snapshot?.username,
+                                    shareUrl: shareUrl
+                                ))
+                            ) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(liveCyan)
+                            }
+                            .accessibilityLabel(LocalizationHelper.localized("Share this live tracking session"))
+                            .simultaneousGesture(TapGesture().onEnded {
+                                TelemetryManager.shared.trackLiveShareViewerShareClicked(sessionId: sessionId)
+                            })
+                        }
+
+                        if let coord = snapshot?.lastLocation?.coordinate,
+                           let navUrl = LiveSessionViewerRepository.buildDirectionsUrl(
+                               lat: coord.latitude,
+                               lng: coord.longitude,
+                               provider: "apple_maps"
+                           ) {
+                            Button {
+                                openURL(navUrl)
+                                TelemetryManager.shared.trackLiveShareDirectionsClicked(
+                                    sessionId: sessionId,
+                                    provider: "apple_maps"
+                                )
+                            } label: {
+                                Image(systemName: "arrow.triangle.turn.up.right.diamond")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(liveCyan)
+                            }
+                            .accessibilityLabel(LocalizationHelper.localized("Directions"))
+                        }
+
+                        Button(action: toggleUnitSystem) {
+                            Text(useMiles ? "mph" : "km/h")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(liveCyan.opacity(0.15))
+                                .foregroundStyle(liveCyan)
+                                .clipShape(Capsule())
+                        }
+                        .accessibilityLabel(useMiles
+                            ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.")
+                            : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))
                     }
-                    .accessibilityLabel(useMiles
-                        ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.")
-                        : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))
                 }
             }
         }

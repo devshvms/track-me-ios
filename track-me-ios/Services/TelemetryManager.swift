@@ -805,6 +805,16 @@ class TelemetryManager {
         ])
     }
 
+    func trackLiveShareDirectionsClicked(sessionId: String, provider: String = "apple_maps") {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("live_share_directions_clicked", properties: [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "provider": provider,
+            "platform": "ios"
+        ])
+    }
+
     func trackLiveShareViewerHealthSampled(
         sessionId: String,
         pollLatencyMs: Int,
