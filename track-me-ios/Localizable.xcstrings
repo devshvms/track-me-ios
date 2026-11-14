@@ -34020,6 +34020,406 @@
           }
         }
       }
+    },
+    "Continuous Trip Tracking": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontinuierliche Fahrtenaufzeichnung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguimiento Continuo de Viajes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivi Continu des Trajets"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निरंतर यात्रा ट्रैकिंग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "継続的なトリップトラッキング"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "持续行程追踪"
+          }
+        }
+      }
+    },
+    "Automatically completes your ride when stopped indoors, and auto-starts the next ride when moving again.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet Fahrten bei längeren Stopps in Innenräumen automatisch und startet die nächste Fahrt bei Bewegung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completa automáticamente la ruta al detenerte en interiores e inicia la siguiente cuando te mueves."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termine automatiquement le trajet à l'arrêt en intérieur et démarre le suivant dès que vous repartez."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "घर या दफ्तर में रुकने पर यात्रा अपने आप पूरी हो जाती है, और फिर से चलने पर अगली यात्रा शुरू हो जाती है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屋内での停止時に乗車を自動完了し、再び移動を始めると次の乗車を自動開始します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "室内停留时自动结束行程，再次出发时自动开始下一次行程。"
+          }
+        }
+      }
+    },
+    "Auto-End Inactivity Window": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeitfenster für automatisches Beenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiempo de Espera para Finalización Automática"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Délai de Fin Automatique"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्वतः समाप्ति निष्क्रियता समय"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動終了までの待機時間"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动结束等待时间"
+          }
+        }
+      }
+    },
+    "Duration of dwelling indoors before automatically ending the ride (%lld minutes).": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verweildauer im Innenbereich bis zum automatischen Beenden (%lld Minuten)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duración de estancia en interiores antes de finalizar la ruta automáticamente (%lld minutos)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durée d'inactivité en intérieur avant la fin automatique du trajet (%lld minutes)."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यात्रा स्वतः समाप्त होने से पहले घर के अंदर रुकने की अवधि (%lld मिनट)।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "乗車が自動終了するまでの屋内滞在時間（%lld分）。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动结束行程前的室内停留时长（%lld分钟）。"
+          }
+        }
+      }
+    },
+    "Trim Indoor Dwell Points": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verweilpunkte in Innenräumen abschneiden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortar Puntos de Estancia en Interiores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tronquer les Points d'Arrêt en Intérieur"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "घर के अंदर के ठहराव बिंदु हटाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屋内の滞在ポイントをトリミング"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修剪室内停留轨迹点"
+          }
+        }
+      }
+    },
+    "Prunes trailing GPS points recorded while stationary indoors so distance and pace stay accurate.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernt nachgelagerte GPS-Punkte im Stillstand in Innenräumen für präzise Distanz- und Tempowerte."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina los puntos de GPS registrados durante la parada en interiores para mantener la precisión de la distancia y el ritmo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprime les points GPS enregistrés à l'arrêt en intérieur pour préserver la précision de la distance et de l'allure."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "घर के अंदर स्थिर रहने के दौरान रिकॉर्ड किए गए जीपीएस बिंदुओं को हटाता है ताकि दूरी और गति सटीक रहे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "距離とペースの正確性を保つため、屋内で静止中に記録されたGPSポイントを削除します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剔除室内静止时漂移记录的GPS点，确保距离与配速准确无误。"
+          }
+        }
+      }
+    },
+    "Ride Automatically Completed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrt automatisch abgeschlossen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruta Completada Automáticamente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trajet Terminé Automatiquement"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यात्रा स्वतः पूरी हो गई"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "乗車が自動完了しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "行程已自动完成"
+          }
+        }
+      }
+    },
+    "Your %1$@ ride of %2$@ has been saved to History.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine %1$@-Fahrt über %2$@ wurde im Verlauf gespeichert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu ruta en %1$@ de %2$@ se ha guardado en el Historial."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre trajet en %1$@ de %2$@ a été enregistré dans l'Historique."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी %1$@ की %2$@ यात्रा इतिहास में सुरक्षित कर ली गई है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの%1$@（%2$@）の乗車が履歴に保存されました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您的%1$@行程（%2$@）已保存至历史记录。"
+          }
+        }
+      }
+    },
+    "New Ride Automatically Started": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Fahrt automatisch gestartet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nueva Ruta Iniciada Automáticamente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau Trajet Démarré Automatiquement"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नई यात्रा स्वतः शुरू हो गई"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい乗車が自動開始されました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新行程已自动开始"
+          }
+        }
+      }
+    },
+    "TrackMe detected you're on the move and started recording.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe hat Bewegung erkannt und die Aufzeichnung gestartet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe ha detectado movimiento y ha comenzado a grabar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe a détecté un déplacement et a commencé l'enregistrement."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe ने हलचल का पता लगाया और रिकॉर्डिंग शुरू कर दी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMeが動きを検知し、記録を開始しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe检测到您正在移动，已开始记录。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

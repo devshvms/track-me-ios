@@ -288,6 +288,34 @@ final class DataRepository {
         }
     }
 
+    /**
+     * TASK-369: Prunes trailing dwell points recorded while stationary indoors after auto-ending.
+     * Keeps distance, pace, and route splits truthful to actual transit.
+     */
+    func deletePointsAfter(rideId: UUID, timestamp: Date) {
+        guard let container = container else { return }
+
+        let pendingWrites = pointWriteChain
+        pointWriteChain = Task { [weak self] in
+            await pendingWrites?.value
+            guard self != nil else { return }
+
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == rideId })
+            do {
+                guard let ride = try context.fetch(descriptor).first else { return }
+                if let points = ride.points {
+                    for point in points where point.timestamp > timestamp {
+                        context.delete(point)
+                    }
+                    try context.save()
+                }
+            } catch {
+                NSLog("TrackMe: failed to prune trailing dwell points: %@", error.localizedDescription)
+            }
+        }
+    }
+
     func deleteRide(rideId: UUID) {
         guard let container = container else { return }
 
