@@ -27,6 +27,9 @@ struct SettingsView: View {
     @State private var showLiveShareInfo = false
 
     @AppStorage("enableTelemetry") var isTelemetryEnabled: Bool = false
+    @AppStorage("autoTripChainingEnabled") private var autoTripChainingEnabled = false
+    @AppStorage("autoEndDwellMinutes") private var autoEndDwellMinutes = 10
+    @AppStorage("autoEndCropDwellEnabled") private var autoEndCropDwellEnabled = true
 
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appTheme") private var appTheme: String = "system"
@@ -329,6 +332,70 @@ struct SettingsView: View {
                                 .onChange(of: isTelemetryEnabled) { _, enabled in
                                     TelemetryManager.shared.updateLocalConsent(enabled)
                                 }
+                        }
+                    }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(16)
+
+                    // Advanced Settings Card (TASK-369)
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(LocalizationHelper.localized("Advanced Settings"))
+                            .font(.headline)
+                            .foregroundColor(.primary)
+
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(LocalizationHelper.localized("Continuous Trip Tracking"))
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                Text(LocalizationHelper.localized("Automatically completes your ride when stopped indoors, and auto-starts the next ride when moving again."))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $autoTripChainingEnabled)
+                                .labelsHidden()
+                                .tint(BrandColor.primary)
+                                .accessibilityLabel(LocalizationHelper.localized("Continuous Trip Tracking"))
+                        }
+
+                        if autoTripChainingEnabled {
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(LocalizationHelper.localized("Auto-End Inactivity Window"))
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                Text(String(format: LocalizationHelper.localized("Duration of dwelling indoors before automatically ending the ride (%lld minutes)."), Int64(autoEndDwellMinutes)))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+
+                                Picker("", selection: $autoEndDwellMinutes) {
+                                    Text("5 min").tag(5)
+                                    Text("10 min").tag(10)
+                                    Text("15 min").tag(15)
+                                }
+                                .pickerStyle(.segmented)
+                            }
+
+                            Divider()
+
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(LocalizationHelper.localized("Trim Indoor Dwell Points"))
+                                        .font(.subheadline)
+                                        .foregroundColor(.primary)
+                                    Text(LocalizationHelper.localized("Prunes trailing GPS points recorded while stationary indoors so distance and pace stay accurate."))
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                                Spacer()
+                                Toggle("", isOn: $autoEndCropDwellEnabled)
+                                    .labelsHidden()
+                                    .tint(BrandColor.primary)
+                                    .accessibilityLabel(LocalizationHelper.localized("Trim Indoor Dwell Points"))
+                            }
                         }
                     }
                     .padding()
