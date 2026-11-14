@@ -49,6 +49,7 @@ struct HomeView: View {
     @Bindable private var trustedWatchers = TrustedWatchersManager.shared
     @Environment(\.openURL) private var openURL
     @State private var liveShareSharePayload: LiveShareSharePayload?
+    @State private var pendingAutoShareOnLinkReady: Bool = false
     @State private var showGroupSheet = false
     @State private var selectedGroupMember: GroupWire.MemberPosition?
     @State private var explicitGroupMap = false
@@ -517,6 +518,26 @@ struct HomeView: View {
                 dashboard.invalidate()
             }
         }
+        .onChange(of: liveSharingManager.isActive) { _, isActive in
+            if isActive, let link = liveSharingManager.shareLink {
+                UIPasteboard.general.string = link
+                if pendingAutoShareOnLinkReady {
+                    pendingAutoShareOnLinkReady = false
+                    shareLiveShareLink()
+                }
+            } else if !isActive {
+                pendingAutoShareOnLinkReady = false
+            }
+        }
+        .onChange(of: liveSharingManager.shareLink) { _, newLink in
+            if let link = newLink, liveSharingManager.isActive {
+                UIPasteboard.general.string = link
+                if pendingAutoShareOnLinkReady {
+                    pendingAutoShareOnLinkReady = false
+                    shareLiveShareLink()
+                }
+            }
+        }
         .onChange(of: trackingManager.showLocationDeniedRecovery) { _, denied in
             if denied {
                 pendingDirectShareDuration = nil
@@ -736,6 +757,7 @@ struct HomeView: View {
             return
         }
         showFullRideHudForPrimaryShare = false
+        pendingAutoShareOnLinkReady = true
         if trackingManager.state == .idle {
             pendingDirectShareDuration = durationMinutes
             trackingManager.startTracking(persona: selectedDashboardPersona)
@@ -749,6 +771,7 @@ struct HomeView: View {
     }
 
     private func startDirectLiveShareSession(durationMinutes: Int) {
+        pendingAutoShareOnLinkReady = true
         let selection = autoNotifyWatchersSelection()
         liveSharingManager.startSession(
             durationMinutes: durationMinutes,
@@ -1153,6 +1176,7 @@ struct HomeView: View {
                         )
                         return
                     }
+                    pendingAutoShareOnLinkReady = true
                     let selection = autoNotifyWatchersSelection()
                     liveSharingManager.startSession(
                         durationMinutes: nil,
@@ -1608,7 +1632,8 @@ struct ActiveRideHUD: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isTouchLocked = true
                     }
-                }
+                },
+                onShareLink: onShareLink
             )
 
             VStack(spacing: 8) {
@@ -1642,6 +1667,56 @@ struct ActiveRideHUD: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
+                }
+
+                if isLiveSharing {
+                    HStack(spacing: 8) {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(activeLiveViewers > 0 ? BrandColor.success : BrandColor.cyanBright)
+                                .frame(width: 8, height: 8)
+
+                            Text(
+                                activeLiveViewers > 0
+                                    ? LocalizationHelper.formatted("%@ watching", String(activeLiveViewers))
+                                    : LocalizationHelper.localized("Live sharing")
+                            )
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        }
+
+                        Spacer(minLength: 4)
+
+                        Button(action: onCopyLink) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "doc.on.doc")
+                                    .font(.caption2.bold())
+                                Text(LocalizationHelper.localized("Copy link"))
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                        }
+                        .buttonStyle(.bordered)
+                        .clipShape(Capsule())
+
+                        Button(action: onShareLink) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.caption2.bold())
+                                Text(LocalizationHelper.localized("Share link"))
+                                    .font(.caption.weight(.bold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .clipShape(Capsule())
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
 
                 ZStack {
@@ -1710,6 +1785,7 @@ private struct RideStatusChips: View {
     let isOffline: Bool
     var isTouchLocked: Bool = false
     var onToggleTouchLock: (() -> Void)? = nil
+    var onShareLink: (() -> Void)? = nil
 
     private var isPowerSaveActive: Bool {
         UIDevice.current.isBatteryMonitoringEnabled = true
@@ -1758,12 +1834,24 @@ private struct RideStatusChips: View {
             }
 
             if isLiveSharing {
-                RideStatusChip(
-                    title: LocalizationHelper.localized("Live sharing"),
-                    systemImage: "antenna.radiowaves.left.and.right",
-                    background: BrandColor.cyanBright,
-                    foreground: BrandColor.navy900
-                )
+                if let onShareLink {
+                    Button(action: onShareLink) {
+                        RideStatusChip(
+                            title: LocalizationHelper.localized("Live sharing"),
+                            systemImage: "antenna.radiowaves.left.and.right",
+                            background: BrandColor.cyanBright,
+                            foreground: BrandColor.navy900
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    RideStatusChip(
+                        title: LocalizationHelper.localized("Live sharing"),
+                        systemImage: "antenna.radiowaves.left.and.right",
+                        background: BrandColor.cyanBright,
+                        foreground: BrandColor.navy900
+                    )
+                }
 
                 if isPowerSaveActive {
                     RideStatusChip(
@@ -2142,34 +2230,35 @@ struct LiveShareActionDrawer: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(baseAccessibilityLabel)
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: .bottomTrailing) {
             if isOpen, isAuthenticated, isActive {
-                VStack(spacing: 8) {
+                VStack(alignment: .trailing, spacing: 6) {
                     drawerButton(
                         systemImage: "square.and.arrow.up",
-                        label: "Share live link",
+                        label: "Share link",
                         background: BrandColor.primaryFill,
                         foreground: .white,
                         action: onShare
                     )
                     drawerButton(
                         systemImage: "doc.on.doc",
-                        label: "Copy live link",
-                        background: BrandColor.primaryFill,
-                        foreground: .white,
+                        label: "Copy link",
+                        background: Color(uiColor: .secondarySystemGroupedBackground),
+                        foreground: .primary,
                         action: onCopy
                     )
                     drawerButton(
                         systemImage: "stop.fill",
-                        label: "Stop live sharing",
+                        label: "Stop sharing",
                         background: Color(.systemRed).opacity(0.18),
                         foreground: BrandColor.destructiveText,
                         action: onStop
                     )
                 }
-                .padding(5)
-                .background(.ultraThinMaterial, in: Capsule())
-                .offset(y: -62)
+                .padding(6)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                .offset(y: -60)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(20)
             }
@@ -2228,11 +2317,18 @@ struct LiveShareActionDrawer: View {
             withAnimation(.easeOut(duration: 0.18)) { isOpen = false }
             action()
         } label: {
-            Image(systemName: systemImage)
-                .font(.body.bold())
-                .foregroundStyle(foreground)
-                .frame(width: 52, height: 52)
-                .background(background, in: Circle())
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.subheadline.bold())
+                Text(LocalizationHelper.localized(label))
+                    .font(.caption.weight(.bold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 14)
+            .frame(height: 38)
+            .background(background, in: Capsule())
+            .shadow(color: .black.opacity(0.12), radius: 3, y: 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(LocalizationHelper.localized(label))
