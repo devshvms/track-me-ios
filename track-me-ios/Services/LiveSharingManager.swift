@@ -23,6 +23,8 @@ class LiveSharingManager {
     var shareLink: String?
     var expiresAt: Date?
     var sessionStartTime: Date?
+    var zeroViewersSince: Date?
+    var isZeroViewerHibernating: Bool = false
 
     // Remaining time in seconds (updated for UI)
     var remainingSeconds: Int = 0
@@ -38,6 +40,7 @@ class LiveSharingManager {
     private var isPushInProgress = false
     private var consecutivePushFailures = 0
     private var nextEligiblePushTime = Date.distantPast
+    private var lastReportedZeroViewerHibernating: Bool?
 
     /**
      * Calculates an adaptive, jittered exponential backoff delay for location pushes during live sharing (CIE-003).
@@ -46,7 +49,7 @@ class LiveSharingManager {
      * - 1 failure:  base + 1.0s + jitter
      * - 2 failures: base + 3.0s + jitter
      * - 3 failures: base + 6.0s + jitter
-     * - 4+ failures: capped at [maxInterval] (default 15.0s)
+     * - 4+ failures: capped at max([baseInterval], [maxInterval]) (default 15.0s)
      */
     static func computePushBackoffDelay(
         consecutiveFailures: Int,
@@ -55,11 +58,12 @@ class LiveSharingManager {
         randomProvider: () -> Double = { Double.random(in: 0.0...1.0) }
     ) -> TimeInterval {
         if consecutiveFailures <= 0 { return baseInterval }
+        let effectiveMax = max(baseInterval, maxInterval)
         let increments: [TimeInterval] = [1.0, 3.0, 6.0, 10.0]
         let stepIndex = min(consecutiveFailures - 1, increments.count - 1)
         let step = increments[stepIndex]
         let jitter = randomProvider() * 0.5
-        return min(maxInterval, baseInterval + step + jitter)
+        return min(effectiveMax, baseInterval + step + jitter)
     }
 
     // MARK: - Request construction
@@ -157,14 +161,57 @@ class LiveSharingManager {
     }
 
     // Helper to get AppStorage values directly with adaptive low-battery/power-save defense (CIE-015)
-    private var updateFrequency: TimeInterval {
+    private func currentPushSettings() -> (configured: TimeInterval, powerSave: Bool) {
         let val = UserDefaults.standard.integer(forKey: "liveShareFrequency")
         let configured = val == 0 ? 10.0 : TimeInterval(val)
         UIDevice.current.isBatteryMonitoringEnabled = true
         let batteryLevel = Int(UIDevice.current.batteryLevel * 100)
         let isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
         let effectivePowerSave = Self.isEffectivePowerSave(isOsLowPower: isLowPower, batteryLevel: batteryLevel)
-        return Self.computeAdaptiveInterval(configuredInterval: configured, isPowerSaveOrLowBattery: effectivePowerSave)
+        return (configured, effectivePowerSave)
+    }
+
+    private var updateFrequency: TimeInterval {
+        let settings = currentPushSettings()
+        return Self.evaluateZeroViewerHibernation(
+            activeViewers: activeViewers,
+            zeroViewersSince: zeroViewersSince ?? sessionStartTime,
+            now: Date(),
+            configuredInterval: settings.configured,
+            isPowerSaveOrLowBattery: settings.powerSave
+        ).effectiveInterval
+    }
+
+    @discardableResult
+    private func syncZeroViewerHibernationIfNeeded(now: Date = Date()) -> ZeroViewerHibernationEvaluation {
+        let settings = currentPushSettings()
+        let eval = Self.evaluateZeroViewerHibernation(
+            activeViewers: activeViewers,
+            zeroViewersSince: zeroViewersSince ?? sessionStartTime,
+            now: now,
+            configuredInterval: settings.configured,
+            isPowerSaveOrLowBattery: settings.powerSave
+        )
+        guard isActive else { return eval }
+        if zeroViewersSince != eval.zeroViewersSince {
+            zeroViewersSince = eval.zeroViewersSince
+        }
+        if isZeroViewerHibernating != eval.isHibernating {
+            isZeroViewerHibernating = eval.isHibernating
+        }
+        if let id = sessionId, lastReportedZeroViewerHibernating != eval.isHibernating {
+            let shouldEmit = eval.isHibernating || (lastReportedZeroViewerHibernating == true)
+            lastReportedZeroViewerHibernating = eval.isHibernating
+            if shouldEmit {
+                TelemetryManager.shared.trackLiveShareZeroViewerHibernation(
+                    sessionId: id,
+                    isHibernating: eval.isHibernating,
+                    idleSeconds: Int(max(0.0, eval.idleDuration).rounded()),
+                    intervalSeconds: Int(max(0.0, eval.effectiveInterval).rounded())
+                )
+            }
+        }
+        return eval
     }
 
     func demotePrimaryToRideOnly() {
@@ -257,11 +304,15 @@ class LiveSharingManager {
 
                 if let parsed = Self.parseStartResponse(data: data, defaultDurationMinutes: durationMinutes) {
                     DispatchQueue.main.async {
+                        let startedAt = Date()
                         self.sessionId = parsed.sessionId
                         self.shareLink = parsed.shareLink
                         self.expiresAt = parsed.expiresAt
-                        self.sessionStartTime = Date()
+                        self.sessionStartTime = startedAt
                         self.activeViewers = 0
+                        self.zeroViewersSince = startedAt
+                        self.isZeroViewerHibernating = false
+                        self.lastReportedZeroViewerHibernating = false
                         self.notifiedWatchersCount = parsed.notifiedWatchersCount
                         self.sharedWatcherNames = sharedWatcherNames
                         self.remainingSeconds = max(0, Int(parsed.expiresAt.timeIntervalSinceNow))
@@ -327,6 +378,9 @@ class LiveSharingManager {
             self.shareLink = nil
             self.expiresAt = nil
             self.sessionStartTime = nil
+            self.zeroViewersSince = nil
+            self.isZeroViewerHibernating = false
+            self.lastReportedZeroViewerHibernating = nil
             self.isRetryingAuth = false
             self.stopTimers()
         }
@@ -357,6 +411,9 @@ class LiveSharingManager {
             self.shareLink = nil
             self.expiresAt = nil
             self.sessionStartTime = nil
+            self.zeroViewersSince = nil
+            self.isZeroViewerHibernating = false
+            self.lastReportedZeroViewerHibernating = nil
             self.isRetryingAuth = false
             self.stopTimers()
             self.isPushInProgress = false
@@ -371,6 +428,9 @@ class LiveSharingManager {
         // Push Timer: Evaluates every 1.0s to honor backoff delays and single in-flight concurrency cleanly
         pushTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
+            if self.isActive {
+                self.syncZeroViewerHibernationIfNeeded()
+            }
             // Only push if the ride is actually actively tracking (as per user request)
             if TrackingManager.shared.state == .tracking,
                let loc = self.latestLocation,
@@ -437,6 +497,58 @@ class LiveSharingManager {
         return configuredInterval
     }
 
+    static let zeroViewerHibernationThreshold: TimeInterval = 600.0
+    static let zeroViewerHibernationInterval: TimeInterval = 30.0
+
+    static func evaluateZeroViewerHibernation(
+        activeViewers: Int,
+        zeroViewersSince: Date?,
+        now: Date = Date(),
+        configuredInterval: TimeInterval = 10.0,
+        isPowerSaveOrLowBattery: Bool = false,
+        threshold: TimeInterval = zeroViewerHibernationThreshold,
+        hibernationInterval: TimeInterval = zeroViewerHibernationInterval
+    ) -> ZeroViewerHibernationEvaluation {
+        let baseInterval = computeAdaptiveInterval(
+            configuredInterval: configuredInterval,
+            isPowerSaveOrLowBattery: isPowerSaveOrLowBattery
+        )
+        if activeViewers > 0 {
+            return ZeroViewerHibernationEvaluation(
+                isHibernating: false,
+                zeroViewersSince: nil,
+                idleDuration: 0.0,
+                effectiveInterval: baseInterval
+            )
+        }
+        let anchor = zeroViewersSince ?? now
+        let idleDuration = max(0.0, now.timeIntervalSince(anchor))
+        let isHibernating = idleDuration >= threshold
+        return ZeroViewerHibernationEvaluation(
+            isHibernating: isHibernating,
+            zeroViewersSince: anchor,
+            idleDuration: idleDuration,
+            effectiveInterval: isHibernating ? max(baseInterval, hibernationInterval) : baseInterval
+        )
+    }
+
+    static func buildZeroViewerHibernationTelemetryPayload(
+        sessionId: String,
+        isHibernating: Bool,
+        idleDuration: TimeInterval,
+        interval: TimeInterval,
+        platform: String = "ios"
+    ) -> [String: Any] {
+        [
+            "session_id": sessionId,
+            "sessionId": sessionId,
+            "is_hibernating": isHibernating,
+            "idle_seconds": Int(max(0.0, idleDuration).rounded()),
+            "interval_seconds": Int(max(0.0, interval).rounded()),
+            "platform": platform
+        ]
+    }
+
     static func buildPushLocationBody(
         loc: CLLocation,
         batteryLevel: Int,
@@ -491,11 +603,7 @@ class LiveSharingManager {
                     self.isPushInProgress = false
                     self.isRetryingAuth = false
                     self.consecutivePushFailures += 1
-                    let delay = Self.computePushBackoffDelay(
-                        consecutiveFailures: self.consecutivePushFailures,
-                        baseInterval: self.updateFrequency
-                    )
-                    self.nextEligiblePushTime = Date().addingTimeInterval(delay)
+                    self.nextEligiblePushTime = self.computeNextPushFailureTime()
                     self.handleHTTPError(401)
                 }
                 return
@@ -513,21 +621,24 @@ class LiveSharingManager {
                         self.isPushInProgress = false
                         self.isRetryingAuth = false
                         self.consecutivePushFailures += 1
-                        let delay = Self.computePushBackoffDelay(consecutiveFailures: self.consecutivePushFailures, baseInterval: self.updateFrequency)
-                        self.nextEligiblePushTime = Date().addingTimeInterval(delay)
+                        self.nextEligiblePushTime = self.computeNextPushFailureTime()
                         self.handleTransportError(error)
                         return
                     }
 
                     switch code {
                     case .some(200...299):
+                        let now = Date()
                         self.isRetryingAuth = false
                         self.consecutivePushFailures = 0
                         self.isPushInProgress = false
-                        self.nextEligiblePushTime = Date().addingTimeInterval(self.updateFrequency)
                         if self.isActive, let data {
-                            self.activeViewers = Self.parseActiveViewers(data: data, fallback: self.activeViewers)
+                            let viewers = Self.parseActiveViewers(data: data, fallback: self.activeViewers)
+                            self.activeViewers = viewers
+                            self.zeroViewersSince = viewers > 0 ? nil : (self.zeroViewersSince ?? self.sessionStartTime ?? now)
                         }
+                        let eval = self.syncZeroViewerHibernationIfNeeded(now: now)
+                        self.nextEligiblePushTime = now.addingTimeInterval(eval.effectiveInterval)
                     case .some(404):
                         self.isPushInProgress = false
                         self.isRetryingAuth = false
@@ -550,13 +661,24 @@ class LiveSharingManager {
                         self.isPushInProgress = false
                         self.isRetryingAuth = false
                         self.consecutivePushFailures += 1
-                        let delay = Self.computePushBackoffDelay(consecutiveFailures: self.consecutivePushFailures, baseInterval: self.updateFrequency)
-                        self.nextEligiblePushTime = Date().addingTimeInterval(delay)
+                        self.nextEligiblePushTime = self.computeNextPushFailureTime()
                         self.handleHTTPError(code)
                     }
                 }
             }.resume()
         }
+    }
+
+    private func computeNextPushFailureTime(now: Date = Date()) -> Date {
+        let eval = syncZeroViewerHibernationIfNeeded(now: now)
+        let base = eval.effectiveInterval
+        let maxDelay = max(15.0, base + (eval.isHibernating ? 15.0 : 0.0))
+        let delay = Self.computePushBackoffDelay(
+            consecutiveFailures: consecutivePushFailures,
+            baseInterval: base,
+            maxInterval: maxDelay
+        )
+        return now.addingTimeInterval(delay)
     }
 
     private func handleTransportError(_ error: Error) {
@@ -573,6 +695,13 @@ class LiveSharingManager {
             ToastManager.shared.show(message: message, style: .error)
         }
     }
+}
+
+struct ZeroViewerHibernationEvaluation: Equatable {
+    let isHibernating: Bool
+    let zeroViewersSince: Date?
+    let idleDuration: TimeInterval
+    let effectiveInterval: TimeInterval
 }
 
 enum LiveShareError {

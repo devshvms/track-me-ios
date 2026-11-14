@@ -189,6 +189,15 @@ struct LiveShareBroadcastHudView: View {
                 .accessibilityLabel(LocalizationHelper.localized("Power saving mode active, location updates spaced out to conserve battery"))
             }
 
+            if liveSharingManager.isZeroViewerHibernating {
+                broadcastPill(
+                    title: LocalizationHelper.localized("Eco · 30s"),
+                    systemImage: "clock.fill",
+                    background: Color(uiColor: .secondarySystemGroupedBackground),
+                    foreground: .secondary
+                )
+            }
+
             if let remainingLabel {
                 broadcastPill(
                     title: remainingLabel,

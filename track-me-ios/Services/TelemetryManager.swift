@@ -864,6 +864,23 @@ class TelemetryManager {
         ])
     }
 
+    func trackLiveShareZeroViewerHibernation(
+        sessionId: String,
+        isHibernating: Bool,
+        idleSeconds: Int,
+        intervalSeconds: Int
+    ) {
+        guard shouldTrack() else { return }
+        let properties = LiveSharingManager.buildZeroViewerHibernationTelemetryPayload(
+            sessionId: sessionId,
+            isHibernating: isHibernating,
+            idleDuration: TimeInterval(idleSeconds),
+            interval: TimeInterval(intervalSeconds),
+            platform: "ios"
+        )
+        PostHogSDK.shared.capture("live_share_zero_viewer_hibernation", properties: properties)
+    }
+
     func trackTrustedWatcherAdded() {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture("trusted_watcher_added")
