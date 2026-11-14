@@ -1410,5 +1410,81 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertNil(payloadInvalidBattery["battery_level"])
         XCTAssertEqual(payloadInvalidBattery["point_count"] as? Int, 0)
     }
+
+    // MARK: - CIE-042: Reconnection State Memory & Cache Resync Tests
+
+    func testShouldPreserveViewerState() {
+        // Location rendered: preserve state regardless of network dropout
+        XCTAssertTrue(LiveSessionViewerRepository.shouldPreserveViewerState(hasRenderedLocation: true, isOffline: true))
+        XCTAssertTrue(LiveSessionViewerRepository.shouldPreserveViewerState(hasRenderedLocation: true, isOffline: false))
+
+        // No location rendered yet: returns false
+        XCTAssertFalse(LiveSessionViewerRepository.shouldPreserveViewerState(hasRenderedLocation: false, isOffline: true))
+        XCTAssertFalse(LiveSessionViewerRepository.shouldPreserveViewerState(hasRenderedLocation: false, isOffline: false))
+    }
+
+    func testEvaluateReconnectionResync() {
+        // Trip ended: suppresses immediate fetch
+        let endedRes = LiveSessionViewerRepository.evaluateReconnectionResync(
+            isOnline: true,
+            wasOffline: true,
+            hasCachedSnapshot: true,
+            isTripEnded: true
+        )
+        XCTAssertFalse(endedRes.shouldFetchImmediately)
+        XCTAssertTrue(endedRes.shouldUseCachedState)
+        XCTAssertFalse(endedRes.resetConsecutiveErrors)
+        XCTAssertNil(endedRes.statusMessage)
+
+        // Offline: suppresses immediate fetch, displays status
+        let offlineRes = LiveSessionViewerRepository.evaluateReconnectionResync(
+            isOnline: false,
+            wasOffline: false,
+            hasCachedSnapshot: true,
+            isTripEnded: false
+        )
+        XCTAssertFalse(offlineRes.shouldFetchImmediately)
+        XCTAssertTrue(offlineRes.shouldUseCachedState)
+        XCTAssertFalse(offlineRes.resetConsecutiveErrors)
+        XCTAssertEqual(offlineRes.statusMessage, "Viewer Offline")
+
+        // Reconnected after offline: triggers immediate fetch, resets errors
+        let reconnectedRes = LiveSessionViewerRepository.evaluateReconnectionResync(
+            isOnline: true,
+            wasOffline: true,
+            hasCachedSnapshot: true,
+            isTripEnded: false,
+            isFetchInProgress: false
+        )
+        XCTAssertTrue(reconnectedRes.shouldFetchImmediately)
+        XCTAssertTrue(reconnectedRes.shouldUseCachedState)
+        XCTAssertTrue(reconnectedRes.resetConsecutiveErrors)
+        XCTAssertEqual(reconnectedRes.statusMessage, "Reconnecting...")
+
+        // Reconnected but fetch already in progress: suppresses duplicate fetch
+        let inFlightRes = LiveSessionViewerRepository.evaluateReconnectionResync(
+            isOnline: true,
+            wasOffline: true,
+            hasCachedSnapshot: true,
+            isTripEnded: false,
+            isFetchInProgress: true
+        )
+        XCTAssertFalse(inFlightRes.shouldFetchImmediately)
+        XCTAssertTrue(inFlightRes.shouldUseCachedState)
+        XCTAssertTrue(inFlightRes.resetConsecutiveErrors)
+        XCTAssertEqual(inFlightRes.statusMessage, "Reconnecting...")
+
+        // Steady state online: no immediate fetch trigger
+        let steadyRes = LiveSessionViewerRepository.evaluateReconnectionResync(
+            isOnline: true,
+            wasOffline: false,
+            hasCachedSnapshot: true,
+            isTripEnded: false
+        )
+        XCTAssertFalse(steadyRes.shouldFetchImmediately)
+        XCTAssertTrue(steadyRes.shouldUseCachedState)
+        XCTAssertFalse(steadyRes.resetConsecutiveErrors)
+        XCTAssertNil(steadyRes.statusMessage)
+    }
 }
 

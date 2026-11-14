@@ -685,6 +685,83 @@ final class LiveSessionViewerRepository {
         return payload
     }
 
+    // MARK: - Reconnection State Memory & Cache Resync (CIE-042)
+
+    public struct ReconnectionResyncEvaluation: Equatable {
+        public let shouldFetchImmediately: Bool
+        public let shouldUseCachedState: Bool
+        public let resetConsecutiveErrors: Bool
+        public let statusMessage: String?
+
+        public init(
+            shouldFetchImmediately: Bool,
+            shouldUseCachedState: Bool,
+            resetConsecutiveErrors: Bool,
+            statusMessage: String?
+        ) {
+            self.shouldFetchImmediately = shouldFetchImmediately
+            self.shouldUseCachedState = shouldUseCachedState
+            self.resetConsecutiveErrors = resetConsecutiveErrors
+            self.statusMessage = statusMessage
+        }
+    }
+
+    /**
+     * CIE-042: Evaluates whether map viewport, breadcrumb polyline, and rider marker should be preserved
+     * during temporary cellular dropouts. Prevents jarring map resets.
+     */
+    static func shouldPreserveViewerState(
+        hasRenderedLocation: Bool,
+        isOffline: Bool
+    ) -> Bool {
+        hasRenderedLocation
+    }
+
+    /**
+     * CIE-042: Evaluates offline-to-online reconnection resynchronization logic.
+     */
+    static func evaluateReconnectionResync(
+        isOnline: Bool,
+        wasOffline: Bool,
+        hasCachedSnapshot: Bool,
+        isTripEnded: Bool,
+        isFetchInProgress: Bool = false
+    ) -> ReconnectionResyncEvaluation {
+        if isTripEnded {
+            return ReconnectionResyncEvaluation(
+                shouldFetchImmediately: false,
+                shouldUseCachedState: hasCachedSnapshot,
+                resetConsecutiveErrors: false,
+                statusMessage: nil
+            )
+        }
+
+        if !isOnline {
+            return ReconnectionResyncEvaluation(
+                shouldFetchImmediately: false,
+                shouldUseCachedState: hasCachedSnapshot,
+                resetConsecutiveErrors: false,
+                statusMessage: "Viewer Offline"
+            )
+        }
+
+        if isOnline && wasOffline {
+            return ReconnectionResyncEvaluation(
+                shouldFetchImmediately: !isFetchInProgress,
+                shouldUseCachedState: hasCachedSnapshot,
+                resetConsecutiveErrors: true,
+                statusMessage: "Reconnecting..."
+            )
+        }
+
+        return ReconnectionResyncEvaluation(
+            shouldFetchImmediately: false,
+            shouldUseCachedState: hasCachedSnapshot,
+            resetConsecutiveErrors: false,
+            statusMessage: nil
+        )
+    }
+
     /**
      * TASK-368 / SCOPE_1.9.3 / CIE-031: Builds a canonical live share URL with optional rider attribution.
      * Appending ?name=... enables rich social link previews on messaging apps (WhatsApp, iMessage, Telegram, etc.).
