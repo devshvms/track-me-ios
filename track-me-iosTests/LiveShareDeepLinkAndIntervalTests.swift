@@ -54,16 +54,20 @@ final class LiveShareDeepLinkAndIntervalTests: XCTestCase {
     }
 
     func testExcludesWatcherInviteLinksFromLiveSessionParsing() {
-        let watcherUrl = URL(string: "https://trackme.shvms.in/live/watcher?inviterUid=u1&inviterName=Alex")!
+        let watcherCode = "WatcherCode123456"
+        let watcherUrl = URL(string: "https://trackme.shvms.in/live/watcher?code=\(watcherCode)&inviterName=Alex")!
         XCTAssertNil(LiveShareLink.parseSessionURL(watcherUrl))
 
         switch LiveShareLink.parse(url: watcherUrl) {
         case .watcherInvite(let invite):
-            XCTAssertEqual(invite.inviterUid, "u1")
+            XCTAssertEqual(invite.code, watcherCode)
             XCTAssertEqual(invite.inviterName, "Alex")
         default:
             XCTFail("Expected watcherInvite, got \(String(describing: LiveShareLink.parse(url: watcherUrl)))")
         }
+
+        let legacyWatcherUrl = URL(string: "https://trackme.shvms.in/live/watcher?inviterUid=u1&inviterName=Alex")!
+        XCTAssertNil(LiveShareLink.parse(url: legacyWatcherUrl))
     }
 
     func testRejectsMalformedOrForeignLiveUrls() {

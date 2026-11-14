@@ -59,19 +59,26 @@ final class LiveShareV193Tests: XCTestCase {
     }
 
     func testParseWatcherInviteLinkSupportsHttpsAndCustomScheme() {
-        let httpsURL = URL(string: "https://trackme.shvms.in/live/watcher?inviterUid=u123&inviterName=Alex%20R")!
+        let sampleCode = "AbCdEf123456_-"
+        let httpsURL = URL(string: "https://trackme.shvms.in/live/watcher?code=\(sampleCode)&inviterName=Alex%20R")!
         let httpsParsed = TrustedWatchersManager.parseWatcherInviteLink(httpsURL)
-        XCTAssertEqual(httpsParsed, ParsedWatcherInviteLink(inviterUid: "u123", inviterName: "Alex R"))
+        XCTAssertEqual(httpsParsed, ParsedWatcherInviteLink(code: sampleCode, inviterName: "Alex R"))
 
-        let customURL = URL(string: "trackme://live/watcher?inviterUid=u999")!
+        let customURL = URL(string: "trackme://live/watcher?code=ZyXwVu987654")!
         let customParsed = TrustedWatchersManager.parseWatcherInviteLink(customURL)
-        XCTAssertEqual(customParsed, ParsedWatcherInviteLink(inviterUid: "u999", inviterName: nil))
+        XCTAssertEqual(customParsed, ParsedWatcherInviteLink(code: "ZyXwVu987654", inviterName: nil))
+
+        let legacyStaticURL = URL(string: "https://trackme.shvms.in/live/watcher?inviterUid=u123&inviterName=Alex")!
+        XCTAssertNil(TrustedWatchersManager.parseWatcherInviteLink(legacyStaticURL))
+
+        let shortCodeURL = URL(string: "https://trackme.shvms.in/live/watcher?code=tooShort")!
+        XCTAssertNil(TrustedWatchersManager.parseWatcherInviteLink(shortCodeURL))
 
         let invalidURL = URL(string: "https://trackme.shvms.in/live/abc123")!
         XCTAssertNil(TrustedWatchersManager.parseWatcherInviteLink(invalidURL))
 
-        let missingUID = URL(string: "https://trackme.shvms.in/live/watcher?inviterName=Alex")!
-        XCTAssertNil(TrustedWatchersManager.parseWatcherInviteLink(missingUID))
+        let missingCode = URL(string: "https://trackme.shvms.in/live/watcher?inviterName=Alex")!
+        XCTAssertNil(TrustedWatchersManager.parseWatcherInviteLink(missingCode))
     }
 
     func testParseInboxInviteRejectsExpiredAndAcceptsActive() {
@@ -92,18 +99,35 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertEqual(active?.riderName, "Maya")
         XCTAssertEqual(active?.shareUrl, "https://trackme.shvms.in/live/sess-1")
 
+        let serverEpochMsJson = """
+        {
+          "activeInvite": {
+            "sessionId": "sess-epoch",
+            "riderName": "Sam",
+            "shareUrl": "https://trackme.shvms.in/live/sess-epoch",
+            "startedAt": 1893498900000,
+            "expiresAt": 1893501000000
+          }
+        }
+        """.data(using: .utf8)!
+        let activeEpoch = TrustedWatchersManager.parseInboxInvite(from: serverEpochMsJson, now: now)
+        XCTAssertEqual(activeEpoch?.sessionId, "sess-epoch")
+        XCTAssertEqual(activeEpoch?.riderName, "Sam")
+        XCTAssertEqual(activeEpoch?.startedAt?.timeIntervalSince1970 ?? 0, 1_893_498_900, accuracy: 0.001)
+        XCTAssertEqual(activeEpoch?.expiresAt?.timeIntervalSince1970 ?? 0, 1_893_501_000, accuracy: 0.001)
+
         let expiredJson = """
         {
-          "invite": {
+          "activeInvite": {
             "sessionId": "sess-2",
             "riderName": "Maya",
-            "expiresAt": "2030-01-01T11:59:00.000Z"
+            "expiresAt": 1893499140000
           }
         }
         """.data(using: .utf8)!
         XCTAssertNil(TrustedWatchersManager.parseInboxInvite(from: expiredJson, now: now))
 
-        let emptyJson = #"{"invite":null}"#.data(using: .utf8)!
+        let emptyJson = #"{"activeInvite":null}"#.data(using: .utf8)!
         XCTAssertNil(TrustedWatchersManager.parseInboxInvite(from: emptyJson, now: now))
     }
 

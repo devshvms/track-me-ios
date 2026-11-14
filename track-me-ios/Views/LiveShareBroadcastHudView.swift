@@ -57,7 +57,7 @@ struct LiveShareBroadcastHudView: View {
 
                     Text(
                         liveSharingManager.activeViewers > 0
-                            ? LocalizationHelper.formatted("%@ watching", String(liveSharingManager.activeViewers))
+                            ? LocalizationHelper.formatted("%@ watching live", String(liveSharingManager.activeViewers))
                             : LocalizationHelper.localized("No viewers yet — link active")
                     )
                     .font(.headline.bold())

@@ -1385,49 +1385,49 @@
         }
       }
     },
-    "%@ watching": {
+    "%@ watching live": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ schauen zu"
+            "value": "%@ sehen live zu"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ watching"
+            "value": "%@ watching live"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ viendo"
+            "value": "%@ viendo en vivo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ regardent"
+            "value": "%@ regardent en direct"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ देख रहे हैं"
+            "value": "%@ लाइव देख रहे हैं"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@人が視聴中"
+            "value": "%@ 人がライブ視聴中"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ 人正在观看"
+            "value": "%@ 人正在实时观看"
           }
         }
       }
@@ -34029,6 +34029,12 @@
             "value": "Kontinuierliche Fahrtenaufzeichnung"
           }
         },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuous Trip Tracking"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -34067,6 +34073,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Beendet Fahrten bei längeren Stopps in Innenräumen automatisch und startet die nächste Fahrt bei Bewegung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically completes your ride when stopped indoors, and auto-starts the next ride when moving again."
           }
         },
         "es": {
@@ -34109,6 +34121,12 @@
             "value": "Zeitfenster für automatisches Beenden"
           }
         },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-End Inactivity Window"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -34147,6 +34165,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Verweildauer im Innenbereich bis zum automatischen Beenden (%lld Minuten)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duration of dwelling indoors before automatically ending the ride (%lld minutes)."
           }
         },
         "es": {
@@ -34189,6 +34213,12 @@
             "value": "Verweilpunkte in Innenräumen abschneiden"
           }
         },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trim Indoor Dwell Points"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -34227,6 +34257,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Entfernt nachgelagerte GPS-Punkte im Stillstand in Innenräumen für präzise Distanz- und Tempowerte."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prunes trailing GPS points recorded while stationary indoors so distance and pace stay accurate."
           }
         },
         "es": {
@@ -34269,6 +34305,12 @@
             "value": "Fahrt automatisch abgeschlossen"
           }
         },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride Automatically Completed"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -34307,6 +34349,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deine %1$@-Fahrt über %2$@ wurde im Verlauf gespeichert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your %1$@ ride of %2$@ has been saved to History."
           }
         },
         "es": {
@@ -34349,6 +34397,12 @@
             "value": "Neue Fahrt automatisch gestartet"
           }
         },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Ride Automatically Started"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -34389,6 +34443,12 @@
             "value": "TrackMe hat Bewegung erkannt und die Aufzeichnung gestartet."
           }
         },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe detected you're on the move and started recording."
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
@@ -34417,6 +34477,147 @@
           "stringUnit": {
             "state": "translated",
             "value": "TrackMe检测到您正在移动，已开始记录。"
+          }
+        }
+      }
+    },
+    "Auto-trip standby active": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-Trip-Standby aktiv"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-trip standby active"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo de espera automático activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veille de trajet automatique active"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑटो-ट्रिप स्टैंडबाय सक्रिय है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動トリップ待機中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动行程待机中"
+          }
+        }
+      }
+    },
+    "Stop standby": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standby stoppen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop standby"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detener espera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter la veille"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्टैंडबाय बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待機を停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止待机"
+          }
+        }
+      }
+    },
+    "Waiting for your next ride to auto-start (stops automatically after 2 hours).": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wartet auf deine nächste Fahrt zum automatischen Starten (stoppt automatisch nach 2 Stunden)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for your next ride to auto-start (stops automatically after 2 hours)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando tu próxima ruta para iniciar automáticamente (se detiene tras 2 horas)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente du prochain trajet à démarrer automatiquement (arrêt automatique après 2 heures)."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अगली यात्रा स्वतः शुरू होने की प्रतीक्षा में (2 घंटे बाद अपने-आप बंद हो जाता है)।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の乗車の自動開始を待機しています（2時間後に自動停止します）。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待下一段行程自动开始（2小时后自动停止）。"
           }
         }
       }

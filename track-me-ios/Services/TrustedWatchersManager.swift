@@ -25,7 +25,7 @@ struct WatcherInboxInvite: Identifiable, Equatable {
 }
 
 struct ParsedWatcherInviteLink: Equatable {
-    let inviterUid: String
+    let code: String
     let inviterName: String?
 }
 
@@ -139,9 +139,43 @@ final class TrustedWatchersManager {
             .setData(payload, merge: true)
     }
 
-    func buildCurrentUserInviteLink() -> String? {
-        guard let user = Auth.auth().currentUser, !user.isAnonymous else { return nil }
-        return APIConfig.LiveShare.watcherInviteLink(inviterUid: user.uid, inviterName: user.displayName)
+    func createWatcherInviteLink() async -> Result<String, Error> {
+        guard let user = Auth.auth().currentUser, !user.isAnonymous else {
+            return .failure(NSError(domain: "TrustedWatchers", code: 401, userInfo: [
+                NSLocalizedDescriptionKey: LocalizationHelper.localized("Sign in to share your live location.")
+            ]))
+        }
+        guard let url = URL(string: APIConfig.LiveShare.startSession) else {
+            return .failure(NSError(domain: "TrustedWatchers", code: 0))
+        }
+
+        var body: [String: Any] = ["action": "create_watcher_invite"]
+        if let displayName = user.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !displayName.isEmpty {
+            body["inviterName"] = displayName
+        }
+
+        do {
+            let (status, data) = try await postAuthenticated(url: url, user: user, body: body)
+            let json = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+            if status == 200 {
+                if let inviteUrl = (json["inviteUrl"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !inviteUrl.isEmpty {
+                    return .success(inviteUrl)
+                }
+                if let code = (json["code"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   Self.isValidInviteCode(code) {
+                    return .success(APIConfig.LiveShare.watcherInviteLink(code: code, inviterName: user.displayName))
+                }
+            }
+            let serverError = (json["error"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return .failure(NSError(domain: "TrustedWatchers", code: status, userInfo: [
+                NSLocalizedDescriptionKey: (serverError?.isEmpty == false ? serverError : nil)
+                    ?? LocalizationHelper.localized("Could not create watcher invite.")
+            ]))
+        } catch {
+            return .failure(error)
+        }
     }
 
     func setAutoNotify(watcherUid: String, enabled: Bool) async -> Bool {
@@ -175,14 +209,14 @@ final class TrustedWatchersManager {
         }
     }
 
-    func acceptWatcherInvite(inviterUid: String, inviterName: String?) async -> Result<Void, Error> {
+    func acceptWatcherInvite(code: String, inviterName: String?) async -> Result<Void, Error> {
         guard let user = Auth.auth().currentUser, !user.isAnonymous else {
             return .failure(NSError(domain: "TrustedWatchers", code: 401, userInfo: [
                 NSLocalizedDescriptionKey: LocalizationHelper.localized("Sign in to accept this Trusted Watcher invite.")
             ]))
         }
-        let cleanInviterUid = inviterUid.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanInviterUid.isEmpty, cleanInviterUid != user.uid else {
+        let cleanCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard Self.isValidInviteCode(cleanCode) else {
             return .failure(NSError(domain: "TrustedWatchers", code: 400, userInfo: [
                 NSLocalizedDescriptionKey: LocalizationHelper.localized("Invalid watcher invite.")
             ]))
@@ -193,7 +227,7 @@ final class TrustedWatchersManager {
 
         var body: [String: Any] = [
             "action": "accept_watcher",
-            "inviterUid": cleanInviterUid,
+            "code": cleanCode,
         ]
         if let inviterName = inviterName?.trimmingCharacters(in: .whitespacesAndNewlines), !inviterName.isEmpty {
             body["inviterName"] = inviterName
@@ -208,14 +242,25 @@ final class TrustedWatchersManager {
                 TelemetryManager.shared.trackTrustedWatcherAdded()
                 return .success(())
             }
+            let rawServerError = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            let serverError = rawServerError?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let serverError, !serverError.isEmpty {
+                return .failure(NSError(domain: "TrustedWatchers", code: status, userInfo: [
+                    NSLocalizedDescriptionKey: serverError
+                ]))
+            }
             if status == 409 {
                 return .failure(NSError(domain: "TrustedWatchers", code: 409, userInfo: [
                     NSLocalizedDescriptionKey: LocalizationHelper.localized("This rider already has 5 trusted watchers.")
                 ]))
             }
-            let serverError = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            if status == 404 {
+                return .failure(NSError(domain: "TrustedWatchers", code: 404, userInfo: [
+                    NSLocalizedDescriptionKey: LocalizationHelper.localized("This watcher invite has expired or already been used.")
+                ]))
+            }
             return .failure(NSError(domain: "TrustedWatchers", code: status, userInfo: [
-                NSLocalizedDescriptionKey: serverError ?? LocalizationHelper.localized("Could not accept watcher invite.")
+                NSLocalizedDescriptionKey: LocalizationHelper.localized("Could not accept watcher invite.")
             ]))
         } catch {
             return .failure(error)
@@ -337,6 +382,13 @@ final class TrustedWatchersManager {
 
     // MARK: - Pure Parsers (unit tested)
 
+    private static let inviteCodeRegex = try! NSRegularExpression(pattern: "^[A-Za-z0-9_-]{12,128}$")
+
+    static func isValidInviteCode(_ code: String) -> Bool {
+        let range = NSRange(location: 0, length: code.utf16.count)
+        return inviteCodeRegex.firstMatch(in: code, range: range) != nil
+    }
+
     static func parseWatcherInviteLink(_ url: URL) -> ParsedWatcherInviteLink? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
         let scheme = url.scheme?.lowercased() ?? ""
@@ -354,22 +406,22 @@ final class TrustedWatchersManager {
              (host == "watcher"))
 
         guard isWebWatcherPath || isCustomWatcherPath else { return nil }
-        guard let uid = components.queryItems?.first(where: { $0.name == "inviterUid" })?.value?
+        guard let code = components.queryItems?.first(where: { $0.name == "code" })?.value?
             .trimmingCharacters(in: .whitespacesAndNewlines),
-              !uid.isEmpty else {
+              isValidInviteCode(code) else {
             return nil
         }
         let name = components.queryItems?.first(where: { $0.name == "inviterName" })?.value?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return ParsedWatcherInviteLink(
-            inviterUid: uid,
+            code: code,
             inviterName: name?.isEmpty == false ? name : nil
         )
     }
 
     static func parseInboxInvite(from data: Data, now: Date = Date()) -> WatcherInboxInvite? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let invite = root["invite"] as? [String: Any],
+              let invite = (root["activeInvite"] as? [String: Any]) ?? (root["invite"] as? [String: Any]),
               let sessionId = (invite["sessionId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
               !sessionId.isEmpty else {
             return nil
@@ -384,9 +436,25 @@ final class TrustedWatchersManager {
         let isoBasic = ISO8601DateFormatter()
         isoBasic.formatOptions = [.withInternetDateTime]
 
+        func parseEpoch(_ raw: Double) -> Date? {
+            guard raw.isFinite, raw > 0 else { return nil }
+            let seconds = raw >= 1_000_000_000_000 ? raw / 1_000.0 : raw
+            return Date(timeIntervalSince1970: seconds)
+        }
+
         func parseDate(_ value: Any?) -> Date? {
-            guard let str = value as? String, !str.isEmpty else { return nil }
-            return isoWithFraction.date(from: str) ?? isoBasic.date(from: str)
+            if let num = value as? NSNumber, CFGetTypeID(num) != CFBooleanGetTypeID() {
+                return parseEpoch(num.doubleValue)
+            }
+            if let str = value as? String {
+                let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return nil }
+                if let raw = Double(trimmed), let parsed = parseEpoch(raw) {
+                    return parsed
+                }
+                return isoWithFraction.date(from: trimmed) ?? isoBasic.date(from: trimmed)
+            }
+            return nil
         }
 
         let startedAt = parseDate(invite["startedAt"])

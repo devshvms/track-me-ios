@@ -189,6 +189,7 @@ class LiveSharingManager {
         guard let url = URL(string: APIConfig.LiveShare.startSession) else { return }
 
         isStarting = true
+        TrackingManager.shared.noteLiveShareWillStart()
         self.isRideLinked = (durationMinutes == nil) || stopOnRideEnd
         self.isLiveSharePrimary = isLiveSharePrimary
 
@@ -485,6 +486,20 @@ class LiveSharingManager {
 
         withAuthToken(forceRefresh: isRetry) { [weak self] token in
             guard let self = self else { return }
+            guard let token = token, !token.isEmpty else {
+                DispatchQueue.main.async {
+                    self.isPushInProgress = false
+                    self.isRetryingAuth = false
+                    self.consecutivePushFailures += 1
+                    let delay = Self.computePushBackoffDelay(
+                        consecutiveFailures: self.consecutivePushFailures,
+                        baseInterval: self.updateFrequency
+                    )
+                    self.nextEligiblePushTime = Date().addingTimeInterval(delay)
+                    self.handleHTTPError(401)
+                }
+                return
+            }
             var authenticatedRequest = request
             self.applyAuth(&authenticatedRequest, token: token)
 
@@ -496,6 +511,7 @@ class LiveSharingManager {
                 DispatchQueue.main.async {
                     if let error = error {
                         self.isPushInProgress = false
+                        self.isRetryingAuth = false
                         self.consecutivePushFailures += 1
                         let delay = Self.computePushBackoffDelay(consecutiveFailures: self.consecutivePushFailures, baseInterval: self.updateFrequency)
                         self.nextEligiblePushTime = Date().addingTimeInterval(delay)
@@ -514,11 +530,13 @@ class LiveSharingManager {
                         }
                     case .some(404):
                         self.isPushInProgress = false
+                        self.isRetryingAuth = false
                         ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing expired"), style: .error)
                         self.stopSession(reason: "Session expired on server.")
                     case .some(401):
                         if isRetry {
                             self.isPushInProgress = false
+                            self.isRetryingAuth = false
                             ToastManager.shared.show(message: LiveShareError.message(statusCode: 401, error: nil), style: .error)
                             self.stopSession(reason: "Authentication expired.")
                         } else if !self.isRetryingAuth {
@@ -526,9 +544,11 @@ class LiveSharingManager {
                             self.pushLocation(loc, isRetry: true)
                         } else {
                             self.isPushInProgress = false
+                            self.isRetryingAuth = false
                         }
                     default:
                         self.isPushInProgress = false
+                        self.isRetryingAuth = false
                         self.consecutivePushFailures += 1
                         let delay = Self.computePushBackoffDelay(consecutiveFailures: self.consecutivePushFailures, baseInterval: self.updateFrequency)
                         self.nextEligiblePushTime = Date().addingTimeInterval(delay)
