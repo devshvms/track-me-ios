@@ -384,6 +384,87 @@ final class LiveSessionViewerRepository {
         )
     }
 
+    // MARK: - CIE-045: Low-Data Mode & Breadcrumb Decimation Telemetry
+
+    public struct DecimationMetrics: Equatable {
+        public let pointsPreDecimation: Int
+        public let pointsPostDecimation: Int
+        public let pointsSaved: Int
+        public let decimationRatio: Double
+        public let estimatedBytesSaved: Int
+
+        public init(
+            pointsPreDecimation: Int,
+            pointsPostDecimation: Int,
+            pointsSaved: Int,
+            decimationRatio: Double,
+            estimatedBytesSaved: Int
+        ) {
+            self.pointsPreDecimation = pointsPreDecimation
+            self.pointsPostDecimation = pointsPostDecimation
+            self.pointsSaved = pointsSaved
+            self.decimationRatio = decimationRatio
+            self.estimatedBytesSaved = estimatedBytesSaved
+        }
+    }
+
+    /**
+     * CIE-045: Computes polling delay under Low-Data Mode.
+     * When Low-Data Mode is enabled, polling slows to 30.0s to conserve cellular data.
+     */
+    static func computeLowDataPollDelay(isLowDataMode: Bool, defaultDelaySeconds: TimeInterval = 5.0) -> TimeInterval {
+        isLowDataMode ? 30.0 : max(1.0, defaultDelaySeconds)
+    }
+
+    /**
+     * CIE-045: Computes decimation metrics comparing raw points to decimated stored points.
+     * Standard JSON format for coordinate pair `[lat, lng]` consumes ~28 bytes.
+     */
+    static func computeDecimationMetrics(preCount: Int, postCount: Int) -> DecimationMetrics {
+        let safePre = max(0, preCount)
+        let safePost = max(0, postCount)
+        let pointsSaved = max(0, safePre - safePost)
+        let decimationRatio = safePre > 0 ? Double(pointsSaved) / Double(safePre) : 0.0
+        let estimatedBytesSaved = pointsSaved * 28
+
+        return DecimationMetrics(
+            pointsPreDecimation: safePre,
+            pointsPostDecimation: safePost,
+            pointsSaved: pointsSaved,
+            decimationRatio: decimationRatio,
+            estimatedBytesSaved: estimatedBytesSaved
+        )
+    }
+
+    /**
+     * CIE-045: Builds a sanitized, non-PII telemetry payload for low-data mode and decimation.
+     * Strictly adheres to privacy invariants: zero raw coordinates, session tokens, or personal info.
+     */
+    static func buildLowDataTelemetryPayload(
+        isLowDataMode: Bool,
+        preCount: Int = 0,
+        postCount: Int = 0
+    ) -> [String: Any] {
+        let metrics = computeDecimationMetrics(preCount: preCount, postCount: postCount)
+        let roundedRatio = (metrics.decimationRatio * 1000.0).rounded() / 1000.0
+        return [
+            "low_data_mode": isLowDataMode,
+            "points_pre_decimation": metrics.pointsPreDecimation,
+            "points_post_decimation": metrics.pointsPostDecimation,
+            "points_saved": metrics.pointsSaved,
+            "decimation_ratio": roundedRatio,
+            "estimated_bytes_saved": metrics.estimatedBytesSaved
+        ]
+    }
+
+    /**
+     * CIE-045: Formats user-facing status notice when low-data mode is active.
+     */
+    static func formatLowDataNoticeText(isLowDataMode: Bool) -> String? {
+        guard isLowDataMode else { return nil }
+        return LocalizationHelper.localized("Low-data mode active · Polling every 30s")
+    }
+
     /**
      * CIE-038: Evaluates whether a polyline should be decimated based on point count.
      * Short trips (<= minPointsThreshold, default 200) skip decimation to conserve cycles.

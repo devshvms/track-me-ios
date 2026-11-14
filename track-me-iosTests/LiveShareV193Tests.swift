@@ -1613,6 +1613,50 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertFalse(endedTrip.shouldAnimateMap)
         XCTAssertNil(endedTrip.noticeText)
     }
+
+    func testLowDataModeAndDecimationTelemetryParity() {
+        // 1. Poll delay under low-data mode
+        XCTAssertEqual(LiveSessionViewerRepository.computeLowDataPollDelay(isLowDataMode: true, defaultDelaySeconds: 5.0), 30.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeLowDataPollDelay(isLowDataMode: true, defaultDelaySeconds: 15.0), 30.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeLowDataPollDelay(isLowDataMode: false, defaultDelaySeconds: 5.0), 5.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeLowDataPollDelay(isLowDataMode: false, defaultDelaySeconds: 10.0), 10.0)
+        XCTAssertEqual(LiveSessionViewerRepository.computeLowDataPollDelay(isLowDataMode: false, defaultDelaySeconds: 0.5), 1.0)
+
+        // 2. Decimation metrics calculation
+        let metrics = LiveSessionViewerRepository.computeDecimationMetrics(preCount: 300, postCount: 60)
+        XCTAssertEqual(metrics.pointsPreDecimation, 300)
+        XCTAssertEqual(metrics.pointsPostDecimation, 60)
+        XCTAssertEqual(metrics.pointsSaved, 240)
+        XCTAssertEqual(metrics.decimationRatio, 0.8, accuracy: 0.001)
+        XCTAssertEqual(metrics.estimatedBytesSaved, 240 * 28)
+
+        let zeroMetrics = LiveSessionViewerRepository.computeDecimationMetrics(preCount: 0, postCount: 0)
+        XCTAssertEqual(zeroMetrics.pointsSaved, 0)
+        XCTAssertEqual(zeroMetrics.decimationRatio, 0.0, accuracy: 0.001)
+        XCTAssertEqual(zeroMetrics.estimatedBytesSaved, 0)
+
+        // 3. Telemetry payload generation (Privacy invariant check: zero coordinates or personal data)
+        let payload = LiveSessionViewerRepository.buildLowDataTelemetryPayload(
+            isLowDataMode: true,
+            preCount: 200,
+            postCount: 50
+        )
+        XCTAssertEqual(payload["low_data_mode"] as? Bool, true)
+        XCTAssertEqual(payload["points_pre_decimation"] as? Int, 200)
+        XCTAssertEqual(payload["points_post_decimation"] as? Int, 50)
+        XCTAssertEqual(payload["points_saved"] as? Int, 150)
+        XCTAssertEqual(payload["decimation_ratio"] as? Double, 0.75)
+        XCTAssertEqual(payload["estimated_bytes_saved"] as? Int, 150 * 28)
+
+        XCTAssertNil(payload["lat"])
+        XCTAssertNil(payload["lng"])
+        XCTAssertNil(payload["token"])
+        XCTAssertNil(payload["email"])
+
+        // 4. Status notice text formatting
+        XCTAssertNotNil(LiveSessionViewerRepository.formatLowDataNoticeText(isLowDataMode: true))
+        XCTAssertNil(LiveSessionViewerRepository.formatLowDataNoticeText(isLowDataMode: false))
+    }
 }
 
 
