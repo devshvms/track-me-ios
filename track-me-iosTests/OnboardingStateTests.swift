@@ -1,3 +1,4 @@
+import CoreLocation
 import XCTest
 @testable import track_me_ios
 
@@ -131,3 +132,73 @@ private final class TelemetrySpy: OnboardingTelemetryClient {
         calls.append("capture:\(defaults.bool(forKey: "enableTelemetry"))")
     }
 }
+
+final class OnboardingSetupPolicyTests: XCTestCase {
+    func testNotDeterminedPromptsAllowLocationAndShowsContinue() {
+        XCTAssertEqual(
+            OnboardingSetupPolicy.primaryActionTitleKey(locationStatus: .notDetermined),
+            "Allow location"
+        )
+        XCTAssertEqual(
+            OnboardingSetupPolicy.primaryTapAction(locationStatus: .notDetermined),
+            .requestLocationPermission
+        )
+        XCTAssertTrue(OnboardingSetupPolicy.shouldShowSecondaryContinue(locationStatus: .notDetermined))
+        XCTAssertEqual(
+            OnboardingSetupPolicy.locationCardPresentation(locationStatus: .notDetermined),
+            .promptPending
+        )
+        XCTAssertEqual(
+            OnboardingLocationCardPresentation.promptPending.actionTitleKey,
+            "Allow location"
+        )
+        XCTAssertNil(OnboardingLocationCardPresentation.promptPending.statusKey)
+    }
+
+    func testAuthorizedStatusesSwitchPrimaryToStartRideAndHideContinue() {
+        for (status, expectedStatusKey) in [
+            (CLAuthorizationStatus.authorizedWhenInUse, "Allowed while using"),
+            (CLAuthorizationStatus.authorizedAlways, "Always allowed")
+        ] {
+            XCTAssertTrue(OnboardingSetupPolicy.isLocationGranted(status))
+            XCTAssertFalse(OnboardingSetupPolicy.isLocationDeclined(status))
+            XCTAssertEqual(
+                OnboardingSetupPolicy.primaryActionTitleKey(locationStatus: status),
+                "Start my first ride"
+            )
+            XCTAssertEqual(
+                OnboardingSetupPolicy.primaryTapAction(locationStatus: status),
+                .finishOnboarding
+            )
+            XCTAssertFalse(OnboardingSetupPolicy.shouldShowSecondaryContinue(locationStatus: status))
+            XCTAssertEqual(
+                OnboardingSetupPolicy.locationCardPresentation(locationStatus: status),
+                .granted(statusKey: expectedStatusKey)
+            )
+        }
+    }
+
+    func testDeniedAndRestrictedOfferOpenSettingsRecoveryAndKeepContinue() {
+        for status in [CLAuthorizationStatus.denied, CLAuthorizationStatus.restricted] {
+            XCTAssertFalse(OnboardingSetupPolicy.isLocationGranted(status))
+            XCTAssertTrue(OnboardingSetupPolicy.isLocationDeclined(status))
+            XCTAssertEqual(
+                OnboardingSetupPolicy.primaryActionTitleKey(locationStatus: status),
+                "Start my first ride"
+            )
+            XCTAssertEqual(
+                OnboardingSetupPolicy.primaryTapAction(locationStatus: status),
+                .finishOnboarding
+            )
+            XCTAssertTrue(OnboardingSetupPolicy.shouldShowSecondaryContinue(locationStatus: status))
+
+            let presentation = OnboardingSetupPolicy.locationCardPresentation(locationStatus: status)
+            XCTAssertEqual(presentation, .declined)
+            XCTAssertTrue(presentation.isDeclined)
+            XCTAssertFalse(presentation.isGranted)
+            XCTAssertEqual(presentation.statusKey, "Declined")
+            XCTAssertEqual(presentation.actionTitleKey, "Open Settings")
+        }
+    }
+}
+

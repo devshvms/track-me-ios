@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 enum OnboardingState: String, Equatable {
@@ -207,3 +208,77 @@ enum AnalyticsDefault {
         return normalized.isEmpty ? nil : normalized
     }
 }
+
+enum OnboardingSetupPrimaryAction: Equatable {
+    case requestLocationPermission
+    case finishOnboarding
+}
+
+enum OnboardingLocationCardPresentation: Equatable {
+    case granted(statusKey: String)
+    case promptPending
+    case declined
+
+    var isGranted: Bool {
+        if case .granted = self { return true }
+        return false
+    }
+
+    var isDeclined: Bool {
+        self == .declined
+    }
+
+    var statusKey: String? {
+        switch self {
+        case .granted(let key): key
+        case .declined: "Declined"
+        case .promptPending: nil
+        }
+    }
+
+    var actionTitleKey: String? {
+        switch self {
+        case .granted: nil
+        case .promptPending: "Allow location"
+        case .declined: "Open Settings"
+        }
+    }
+}
+
+enum OnboardingSetupPolicy {
+    static func isLocationGranted(_ status: CLAuthorizationStatus) -> Bool {
+        status == .authorizedAlways || status == .authorizedWhenInUse
+    }
+
+    static func isLocationDeclined(_ status: CLAuthorizationStatus) -> Bool {
+        status == .denied || status == .restricted
+    }
+
+    static func primaryActionTitleKey(locationStatus: CLAuthorizationStatus) -> String {
+        locationStatus == .notDetermined ? "Allow location" : "Start my first ride"
+    }
+
+    static func primaryTapAction(locationStatus: CLAuthorizationStatus) -> OnboardingSetupPrimaryAction {
+        locationStatus == .notDetermined ? .requestLocationPermission : .finishOnboarding
+    }
+
+    static func shouldShowSecondaryContinue(locationStatus: CLAuthorizationStatus) -> Bool {
+        !isLocationGranted(locationStatus)
+    }
+
+    static func locationCardPresentation(locationStatus: CLAuthorizationStatus) -> OnboardingLocationCardPresentation {
+        switch locationStatus {
+        case .authorizedAlways:
+            .granted(statusKey: "Always allowed")
+        case .authorizedWhenInUse:
+            .granted(statusKey: "Allowed while using")
+        case .denied, .restricted:
+            .declined
+        case .notDetermined:
+            .promptPending
+        @unknown default:
+            .promptPending
+        }
+    }
+}
+
