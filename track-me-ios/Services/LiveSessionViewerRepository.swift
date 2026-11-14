@@ -289,6 +289,101 @@ final class LiveSessionViewerRepository {
         return LocalizationHelper.localized("Power save active · Location updates every ~15s")
     }
 
+    struct SpectatorThrottleEvaluation: Equatable {
+        let isInactive: Bool
+        let isThrottled: Bool
+        let pollDelaySeconds: Double
+        let shouldAnimateMap: Bool
+        let noticeText: String?
+    }
+
+    /**
+     * CIE-044: Evaluates spectator idle inactivity and render throttling state across Web & Mobile.
+     *
+     * Rules:
+     * 1. If trip has ended, disable animations and return base delay with no notice.
+     * 2. If app is in the background or obscured (isBackground=true):
+     *    - Throttled = true, shouldAnimateMap = false (prevent useless GPU/view repaints while invisible).
+     *    - pollDelaySeconds = 30.0s.
+     * 3. If spectator has not interacted for >= inactivityThresholdSeconds (default: 300.0s / 5 min):
+     *    - isInactive = true, isThrottled = true.
+     *    - pollDelaySeconds = 15.0s (relaxed from 5.0s, saving 66% network/CPU).
+     *    - shouldAnimateMap = false (avoid battery-draining continuous pan/rotate animation).
+     *    - noticeText = LocalizationHelper.localized("Viewer idle · Updates slowed to save battery").
+     * 4. If rider is in power-save mode or low battery (<= 15%):
+     *    - isThrottled = true, pollDelaySeconds = 12.0s.
+     *    - shouldAnimateMap = true.
+     *    - noticeText = LocalizationHelper.localized("Power save active · Location updates every ~15s").
+     * 5. Active foreground with recent interaction:
+     *    - isInactive = false, isThrottled = false, pollDelaySeconds = basePollSeconds (5.0s), shouldAnimateMap = true.
+     */
+    static func evaluateSpectatorThrottleState(
+        isTripEnded: Bool,
+        isBackground: Bool = false,
+        lastInteractionDate: Date? = nil,
+        now: Date = Date(),
+        riderPowerSave: Bool = false,
+        riderBatteryLevel: Int? = nil,
+        basePollSeconds: Double = 5.0,
+        inactivityThresholdSeconds: Double = 300.0 // 5 minutes
+    ) -> SpectatorThrottleEvaluation {
+        if isTripEnded {
+            return SpectatorThrottleEvaluation(
+                isInactive: false,
+                isThrottled: false,
+                pollDelaySeconds: basePollSeconds,
+                shouldAnimateMap: false,
+                noticeText: nil
+            )
+        }
+
+        if isBackground {
+            return SpectatorThrottleEvaluation(
+                isInactive: false,
+                isThrottled: true,
+                pollDelaySeconds: 30.0,
+                shouldAnimateMap: false,
+                noticeText: nil
+            )
+        }
+
+        let elapsed = lastInteractionDate != nil
+            ? max(0.0, now.timeIntervalSince(lastInteractionDate!))
+            : 0.0
+
+        let isInactive = lastInteractionDate != nil && elapsed >= inactivityThresholdSeconds
+
+        if isInactive {
+            return SpectatorThrottleEvaluation(
+                isInactive: true,
+                isThrottled: true,
+                pollDelaySeconds: 15.0,
+                shouldAnimateMap: false,
+                noticeText: LocalizationHelper.localized("Viewer idle · Updates slowed to save battery")
+            )
+        }
+
+        let clampedBat = clampBatteryLevel(riderBatteryLevel)
+        let isEffectivePowerSave = riderPowerSave || (clampedBat != nil && clampedBat! <= 15)
+        if isEffectivePowerSave {
+            return SpectatorThrottleEvaluation(
+                isInactive: false,
+                isThrottled: true,
+                pollDelaySeconds: 12.0,
+                shouldAnimateMap: true,
+                noticeText: LocalizationHelper.localized("Power save active · Location updates every ~15s")
+            )
+        }
+
+        return SpectatorThrottleEvaluation(
+            isInactive: false,
+            isThrottled: false,
+            pollDelaySeconds: basePollSeconds,
+            shouldAnimateMap: true,
+            noticeText: nil
+        )
+    }
+
     /**
      * CIE-038: Evaluates whether a polyline should be decimated based on point count.
      * Short trips (<= minPointsThreshold, default 200) skip decimation to conserve cycles.
