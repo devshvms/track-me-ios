@@ -116,9 +116,9 @@ final class DwellDetectorTests: XCTestCase {
         XCTAssertEqual(res.state, DwellState.standbyWaitingForNextTrip)
         XCTAssertFalse(res.shouldAutoStartNextRide)
 
-        // Breaks out > 150m at transit speed (277m away at 20 km/h)
+        // Breaks out > 150m at transit speed (277m away at 20 km/h) within the 2h standby window
         let outCoord = CLLocationCoordinate2D(latitude: homeCoord.latitude + 0.0025, longitude: homeCoord.longitude)
-        let tBreak = t0.addingTimeInterval(7200)
+        let tBreak = t0.addingTimeInterval(5400)
         res = detector.evaluate(coordinate: outCoord, speedKmh: 20.0, now: tBreak)
         XCTAssertEqual(res.state, DwellState.standbyWaitingForNextTrip)
         XCTAssertFalse(res.shouldAutoStartNextRide)
@@ -129,5 +129,69 @@ final class DwellDetectorTests: XCTestCase {
         XCTAssertEqual(resConfirmed.state, DwellState.activeTracking)
         XCTAssertTrue(resConfirmed.shouldAutoStartNextRide)
         XCTAssertEqual(resConfirmed.autoStartTimestamp, tBreak)
+    }
+
+    func testPoorHorizontalAccuracyDoesNotDropAnchorOrTriggerBreakout() {
+        let detector = DwellDetector(
+            isAutoTripChainingEnabled: true,
+            breakoutRadiusMeters: 150.0,
+            breakoutSpeedThresholdKmh: 8.0,
+            stationaryConfirmationDuration: 45.0,
+            breakoutConfirmationDuration: 20.0
+        )
+
+        let coord = CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946)
+        let t0 = Date(timeIntervalSince1970: 2_000_000)
+
+        // Poor accuracy (> 60m) and invalid (< 0) fixes must not confirm dwell anchor
+        _ = detector.evaluate(coordinate: coord, speedKmh: 0.2, now: t0, horizontalAccuracy: 120.0)
+        let resCoarse = detector.evaluate(coordinate: coord, speedKmh: 0.2, now: t0.addingTimeInterval(60), horizontalAccuracy: 120.0)
+        XCTAssertEqual(resCoarse.state, DwellState.activeTracking)
+        let resInvalid = detector.evaluate(coordinate: coord, speedKmh: 0.2, now: t0.addingTimeInterval(120), horizontalAccuracy: -1.0)
+        XCTAssertEqual(resInvalid.state, DwellState.activeTracking)
+
+        // Clean GPS fix (15m) establishes anchor after 45s
+        let tClean = t0.addingTimeInterval(200)
+        _ = detector.evaluate(coordinate: coord, speedKmh: 0.2, now: tClean, horizontalAccuracy: 15.0)
+        let resDwelling = detector.evaluate(coordinate: coord, speedKmh: 0.2, now: tClean.addingTimeInterval(45), horizontalAccuracy: 15.0)
+        XCTAssertEqual(resDwelling.state, DwellState.dwelling)
+
+        // In standby, coarse fixes must not cause false trip breakout
+        detector.transitionToStandby(lastAnchorCoordinate: coord, now: t0)
+        let farCoord = CLLocationCoordinate2D(latitude: coord.latitude + 0.003, longitude: coord.longitude)
+        _ = detector.evaluate(coordinate: farCoord, speedKmh: 22.0, now: t0.addingTimeInterval(100), horizontalAccuracy: 120.0)
+        let resStandbyCoarse = detector.evaluate(coordinate: farCoord, speedKmh: 22.0, now: t0.addingTimeInterval(130), horizontalAccuracy: 120.0)
+        XCTAssertEqual(resStandbyCoarse.state, DwellState.standbyWaitingForNextTrip)
+        XCTAssertFalse(resStandbyCoarse.shouldAutoStartNextRide)
+    }
+
+    func testStandbyModeStopsAutomaticallyAfterTwoHours() {
+        let detector = DwellDetector(isAutoTripChainingEnabled: true)
+        let homeCoord = CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946)
+        let t0 = Date(timeIntervalSince1970: 3_000_000)
+
+        detector.transitionToStandby(lastAnchorCoordinate: homeCoord, now: t0)
+        let nearRes = detector.evaluate(coordinate: homeCoord, speedKmh: 0.0, now: t0.addingTimeInterval(7199), horizontalAccuracy: 10.0)
+        XCTAssertEqual(nearRes.state, DwellState.standbyWaitingForNextTrip)
+        XCTAssertFalse(nearRes.shouldStopStandby)
+
+        let farCoord = CLLocationCoordinate2D(latitude: homeCoord.latitude + 0.003, longitude: homeCoord.longitude)
+        let expiredRes = detector.evaluate(coordinate: farCoord, speedKmh: 25.0, now: t0.addingTimeInterval(7200), horizontalAccuracy: 10.0)
+        XCTAssertEqual(expiredRes.state, DwellState.activeTracking)
+        XCTAssertTrue(expiredRes.shouldStopStandby)
+        XCTAssertFalse(expiredRes.shouldAutoStartNextRide)
+    }
+
+    func testDisablingAutoChainingDuringStandbyStopsStandby() {
+        let detector = DwellDetector(isAutoTripChainingEnabled: true)
+        let homeCoord = CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946)
+        let t0 = Date(timeIntervalSince1970: 4_000_000)
+
+        detector.transitionToStandby(lastAnchorCoordinate: homeCoord, now: t0)
+        detector.isAutoTripChainingEnabled = false
+        let res = detector.evaluate(coordinate: homeCoord, speedKmh: 0.0, now: t0.addingTimeInterval(30))
+        XCTAssertEqual(res.state, DwellState.activeTracking)
+        XCTAssertTrue(res.shouldStopStandby)
+        XCTAssertEqual(detector.state, DwellState.activeTracking)
     }
 }

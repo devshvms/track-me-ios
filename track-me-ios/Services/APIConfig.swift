@@ -18,15 +18,15 @@ struct APIConfig {
             return "\(APIConfig.baseURL)/api/track/\(sessionId)/ping"
         }
 
-        static func watcherInviteLink(inviterUid: String, inviterName: String?) -> String {
+        static func watcherInviteLink(code: String, inviterName: String?) -> String {
             var components = URLComponents(string: "\(APIConfig.baseURL)/live/watcher")!
-            var items = [URLQueryItem(name: "inviterUid", value: inviterUid)]
+            var items = [URLQueryItem(name: "code", value: code)]
             if let cleanName = inviterName?.trimmingCharacters(in: .whitespacesAndNewlines),
                !cleanName.isEmpty {
                 items.append(URLQueryItem(name: "inviterName", value: cleanName))
             }
             components.queryItems = items
-            return components.url?.absoluteString ?? "\(APIConfig.baseURL)/live/watcher?inviterUid=\(inviterUid)"
+            return components.url?.absoluteString ?? "\(APIConfig.baseURL)/live/watcher?code=\(code)"
         }
     }
 }

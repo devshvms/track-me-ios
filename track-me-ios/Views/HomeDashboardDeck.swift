@@ -18,6 +18,8 @@ struct HomeDashboardDeck: View {
     let scrollToTopRequest: Int
     var onOpenLiveSharing: () -> Void = {}
     var liveSharingActive = false
+    var isStandbyActive = false
+    var onStopStandby: (() -> Void)? = nil
     var watcherInboxInvite: WatcherInboxInvite? = nil
     var onWatchLiveInvite: (WatcherInboxInvite) -> Void = { _ in }
     var trustedWatcherCount: Int = 0
@@ -32,6 +34,18 @@ struct HomeDashboardDeck: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 14) {
+                if isStandbyActive {
+                    StandbyBannerCard(
+                        onStop: { onStopStandby?() }
+                    )
+                    .dashboardCardMotion(
+                        orderFromTop: 0,
+                        total: 5,
+                        isVisible: isVisible,
+                        reduceMotion: reduceMotion
+                    )
+                }
+
                 if let watcherInboxInvite {
                     WatcherInboxBannerCard(
                         invite: watcherInboxInvite,
@@ -785,6 +799,35 @@ private struct WatcherInboxBannerCard: View {
 
                 Button(LocalizationHelper.localized("Watch Live"), action: onWatch)
                     .buttonStyle(.borderedProminent)
+                    .lineLimit(1)
+            }
+        }
+    }
+}
+
+private struct StandbyBannerCard: View {
+    let onStop: () -> Void
+
+    var body: some View {
+        DashboardCard {
+            HStack(spacing: 12) {
+                Image(systemName: "pause.circle.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(BrandColor.warning)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(LocalizationHelper.localized("Auto-trip standby active"))
+                        .font(.subheadline.weight(.semibold))
+                    Text(LocalizationHelper.localized("Waiting for your next ride to auto-start (stops automatically after 2 hours)."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button(LocalizationHelper.localized("Stop standby"), action: onStop)
+                    .buttonStyle(.bordered)
                     .lineLimit(1)
             }
         }

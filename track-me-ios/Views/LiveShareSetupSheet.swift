@@ -169,7 +169,7 @@ struct LiveShareSetupSheet: View {
                     if liveSharingManager.isActive {
                         if liveSharingManager.activeViewers > 0 {
                             Label(
-                                LocalizationHelper.formatted("%@ watching", String(liveSharingManager.activeViewers)),
+                                LocalizationHelper.formatted("%@ watching live", String(liveSharingManager.activeViewers)),
                                 systemImage: "eye.fill"
                             )
                             .font(.subheadline.weight(.semibold))

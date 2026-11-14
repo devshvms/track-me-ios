@@ -50,6 +50,7 @@ struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @State private var liveShareSharePayload: LiveShareSharePayload?
     @State private var pendingAutoShareOnLinkReady: Bool = false
+    @State private var isCreatingWatcherInvite: Bool = false
     @State private var showGroupSheet = false
     @State private var selectedGroupMember: GroupWire.MemberPosition?
     @State private var explicitGroupMap = false
@@ -410,7 +411,7 @@ struct HomeView: View {
                 activeWatcherInvitePrompt = nil
                 Task {
                     let result = await trustedWatchers.acceptWatcherInvite(
-                        inviterUid: invite.inviterUid,
+                        code: invite.code,
                         inviterName: invite.inviterName
                     )
                     switch result {
@@ -520,8 +521,8 @@ struct HomeView: View {
         }
         .onChange(of: liveSharingManager.isActive) { _, isActive in
             if isActive, let link = liveSharingManager.shareLink {
-                UIPasteboard.general.string = link
                 if pendingAutoShareOnLinkReady {
+                    UIPasteboard.general.string = link
                     pendingAutoShareOnLinkReady = false
                     shareLiveShareLink()
                 }
@@ -531,8 +532,8 @@ struct HomeView: View {
         }
         .onChange(of: liveSharingManager.shareLink) { _, newLink in
             if let link = newLink, liveSharingManager.isActive {
-                UIPasteboard.general.string = link
                 if pendingAutoShareOnLinkReady {
+                    UIPasteboard.general.string = link
                     pendingAutoShareOnLinkReady = false
                     shareLiveShareLink()
                 }
@@ -696,6 +697,8 @@ struct HomeView: View {
                 }
             },
             liveSharingActive: liveSharingManager.isActive,
+            isStandbyActive: trackingManager.isStandbyActive,
+            onStopStandby: { trackingManager.stopStandby() },
             watcherInboxInvite: trustedWatchers.inboxInvite,
             onWatchLiveInvite: { invite in
                 TelemetryManager.shared.trackWatcherPushOpened()
@@ -729,15 +732,28 @@ struct HomeView: View {
     }
 
     private func shareWatcherInviteLink() {
-        if let link = trustedWatchers.buildCurrentUserInviteLink() {
-            UIPasteboard.general.string = link
-            let message = LocalizationHelper.formatted("Add me as a trusted contact on TrackMe to see my live rides: %@", link)
-            liveShareSharePayload = LiveShareSharePayload(activityItems: [message])
-        } else {
+        guard !isCreatingWatcherInvite else { return }
+        guard Auth.auth().currentUser != nil else {
             ToastManager.shared.show(
                 message: LocalizationHelper.localized("Sign in to share your live location."),
                 style: .warning
             )
+            return
+        }
+        isCreatingWatcherInvite = true
+        Task { @MainActor in
+            defer { isCreatingWatcherInvite = false }
+            switch await trustedWatchers.createWatcherInviteLink() {
+            case .success(let link):
+                UIPasteboard.general.string = link
+                let message = LocalizationHelper.formatted("Add me as a trusted contact on TrackMe to see my live rides: %@", link)
+                liveShareSharePayload = LiveShareSharePayload(activityItems: [message])
+            case .failure(let error):
+                ToastManager.shared.show(
+                    message: error.localizedDescription,
+                    style: .error
+                )
+            }
         }
     }
 
@@ -757,7 +773,7 @@ struct HomeView: View {
             return
         }
         showFullRideHudForPrimaryShare = false
-        pendingAutoShareOnLinkReady = true
+        pendingAutoShareOnLinkReady = autoNotifyWatchersSelection().uids.isEmpty
         if trackingManager.state == .idle {
             pendingDirectShareDuration = durationMinutes
             trackingManager.startTracking(persona: selectedDashboardPersona)
@@ -771,8 +787,8 @@ struct HomeView: View {
     }
 
     private func startDirectLiveShareSession(durationMinutes: Int) {
-        pendingAutoShareOnLinkReady = true
         let selection = autoNotifyWatchersSelection()
+        pendingAutoShareOnLinkReady = selection.uids.isEmpty
         liveSharingManager.startSession(
             durationMinutes: durationMinutes,
             stopOnRideEnd: true,
@@ -1176,8 +1192,8 @@ struct HomeView: View {
                         )
                         return
                     }
-                    pendingAutoShareOnLinkReady = true
                     let selection = autoNotifyWatchersSelection()
+                    pendingAutoShareOnLinkReady = selection.uids.isEmpty
                     liveSharingManager.startSession(
                         durationMinutes: nil,
                         watcherUids: selection.uids,
@@ -1678,7 +1694,7 @@ struct ActiveRideHUD: View {
 
                             Text(
                                 activeLiveViewers > 0
-                                    ? LocalizationHelper.formatted("%@ watching", String(activeLiveViewers))
+                                    ? LocalizationHelper.formatted("%@ watching live", String(activeLiveViewers))
                                     : LocalizationHelper.localized("Live sharing")
                             )
                             .font(.caption.weight(.bold))

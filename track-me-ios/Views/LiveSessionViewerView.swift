@@ -968,7 +968,10 @@ struct LiveSessionViewerView: View {
                     }
                 }
                 if fetched.isActive && tick % 3 == 0 {
-                    _ = await repository.sendViewerPing(sessionId: sessionId, viewerId: viewerId)
+                    let pingRepo = repository
+                    Task {
+                        _ = await pingRepo.sendViewerPing(sessionId: sessionId, viewerId: viewerId)
+                    }
                 }
                 let isStale = fetched.isStaleSignal(now: nowDate)
                 if isStale && !hasAnnouncedStale {

@@ -91,6 +91,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     // TASK-369: Dwell detector & continuous trip chaining engine
     private let dwellDetector = DwellDetector()
+    var isStandbyActive: Bool = false
+    private var standbyTimeoutTimer: Timer?
+    private var defaultsObserver: NSObjectProtocol?
+
+    private var isLiveShareBlockingDwell: Bool {
+        LiveSharingManager.shared.isActive || LiveSharingManager.shared.isStarting
+    }
 
     private func syncDwellDetectorPreferences() {
         let defaults = UserDefaults.standard
@@ -159,13 +166,65 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private let liveShareIntervalTracker = LiveShareIntervalTracker()
 
     @MainActor
+    func noteLiveShareWillStart() {
+        dwellDetector.reset()
+        if isStandbyActive || dwellDetector.state == .standbyWaitingForNextTrip {
+            stopStandby()
+        }
+    }
+
+    @MainActor
     func noteLiveShareStarted(at date: Date = Date()) {
+        dwellDetector.reset()
+        if isStandbyActive || dwellDetector.state == .standbyWaitingForNextTrip {
+            stopStandby()
+        }
         liveShareIntervalTracker.markLiveShareStarted(at: date, activeRideId: currentRideId)
     }
 
     @MainActor
     func noteLiveShareEnded(at date: Date = Date()) {
         liveShareIntervalTracker.markLiveShareEnded(at: date)
+    }
+
+    @MainActor
+    func stopStandby() {
+        standbyTimeoutTimer?.invalidate()
+        standbyTimeoutTimer = nil
+        let wasStandby = isStandbyActive || dwellDetector.state == .standbyWaitingForNextTrip
+        isStandbyActive = false
+        dwellDetector.reset()
+        guard wasStandby else { return }
+        if state == .idle {
+            locationManager.stopUpdatingLocation()
+            let keepBackgroundForGroup = GroupRideManager.shared.state.isActive
+            locationManager.allowsBackgroundLocationUpdates = keepBackgroundForGroup
+            locationManager.showsBackgroundLocationIndicator = keepBackgroundForGroup
+            GroupRideManager.shared.refreshLocationSource()
+        }
+    }
+
+    @MainActor
+    private func scheduleStandbyTimeout() {
+        standbyTimeoutTimer?.invalidate()
+        let timeoutSeconds = max(1, dwellDetector.maxStandbyWindow)
+        standbyTimeoutTimer = Timer.scheduledTimer(withTimeInterval: timeoutSeconds, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                self?.stopStandby()
+            }
+        }
+    }
+
+    @MainActor
+    private func handleDefaultsChanged() {
+        syncDwellDetectorPreferences()
+        if !dwellDetector.isAutoTripChainingEnabled {
+            if isStandbyActive || dwellDetector.state == .standbyWaitingForNextTrip {
+                stopStandby()
+            } else {
+                dwellDetector.reset()
+            }
+        }
     }
 
     override init() {
@@ -183,6 +242,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // engine for human-powered movement (parity with Android's continuous FGS).
         locationManager.activityType = config.activityType
         locationManager.pausesLocationUpdatesAutomatically = config.pausesLocationUpdatesAutomatically
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleDefaultsChanged()
+            }
+        }
     }
 
     static func activityType(for persona: RidePersona) -> CLActivityType {
@@ -304,6 +372,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             return
         }
 
+        standbyTimeoutTimer?.invalidate()
+        standbyTimeoutTimer = nil
+        isStandbyActive = false
         syncDwellDetectorPreferences()
         dwellDetector.reset()
         let recordingConfig = LocationSessionConfig.recordingRide
@@ -584,7 +655,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         ToastManager.shared.show(message: LocalizationHelper.localized("Resumed your interrupted ride"), style: .info)
     }
 
-    func stopTracking(discard: Bool = false) {
+    func stopTracking(discard: Bool = false, endedAtOverride: Date? = nil) {
+        standbyTimeoutTimer?.invalidate()
+        standbyTimeoutTimer = nil
+        isStandbyActive = false
         dwellDetector.reset()
         v2Pedometer.stop()
         locationManager.stopUpdatingLocation()
@@ -611,7 +685,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pausedElapsed: durationInMillis / 1000
         )
 
-        let endedAt = Date()
+        let endedAt = endedAtOverride ?? Date()
         if let id = currentRideId {
             if discard {
                 liveShareIntervalTracker.clear()
@@ -639,6 +713,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         lastV2DisplayCoordinate = nil
         selectedPersona = .auto
         locationManager.activityType = LocationSessionConfig.recordingRide.activityType
+        let keepBackgroundForGroup = GroupRideManager.shared.state.isActive
+        locationManager.allowsBackgroundLocationUpdates = keepBackgroundForGroup
+        locationManager.showsBackgroundLocationIndicator = keepBackgroundForGroup
         GroupRideManager.shared.refreshLocationSource()
 
         // Stop live sharing when the ride ends
@@ -867,11 +944,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         // TASK-369: Standby Trip Chaining evaluation
-        if dwellDetector.state == .standbyWaitingForNextTrip {
+        if dwellDetector.state == .standbyWaitingForNextTrip || isStandbyActive {
             syncDwellDetectorPreferences()
-            guard dwellDetector.isAutoTripChainingEnabled else {
-                dwellDetector.reset()
-                locationManager.stopUpdatingLocation()
+            guard dwellDetector.isAutoTripChainingEnabled, !isLiveShareBlockingDwell else {
+                stopStandby()
                 return
             }
             guard let newest = locations.last else { return }
@@ -879,9 +955,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             let result = dwellDetector.evaluate(
                 coordinate: newest.coordinate,
                 speedKmh: speedKmh,
-                now: newest.timestamp
+                now: newest.timestamp,
+                horizontalAccuracy: newest.horizontalAccuracy
             )
-            if result.shouldAutoStartNextRide {
+            if result.shouldStopStandby {
+                stopStandby()
+            } else if result.shouldAutoStartNextRide {
                 startNewAutoChainedRide(at: newest)
             }
             return
@@ -919,17 +998,20 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             // TASK-369: Evaluate dwell detection for active Tracking V2
             if let newest = newestRecorded ?? newestAdmitted {
                 syncDwellDetectorPreferences()
-                if dwellDetector.isAutoTripChainingEnabled {
+                if dwellDetector.isAutoTripChainingEnabled && !isLiveShareBlockingDwell {
                     let speedKmh = max(0, currentSpeed) * 3.6
                     let dwellResult = dwellDetector.evaluate(
                         coordinate: newest.coordinate,
                         speedKmh: speedKmh,
-                        now: newest.timestamp
+                        now: newest.timestamp,
+                        horizontalAccuracy: newest.horizontalAccuracy
                     )
                     if dwellResult.shouldAutoEndRide {
                         handleAutoEndRide(result: dwellResult, lastLocation: newest)
                         return
                     }
+                } else {
+                    dwellDetector.reset()
                 }
             }
 
@@ -1063,17 +1145,20 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // TASK-369: Evaluate dwell detection for active Tracking V1
         if let lastLoc = points.last {
             syncDwellDetectorPreferences()
-            if dwellDetector.isAutoTripChainingEnabled {
+            if dwellDetector.isAutoTripChainingEnabled && !isLiveShareBlockingDwell {
                 let speedKmh = max(0, currentSpeed) * 3.6
                 let dwellResult = dwellDetector.evaluate(
                     coordinate: lastLoc.coordinate,
                     speedKmh: speedKmh,
-                    now: lastLoc.timestamp
+                    now: lastLoc.timestamp,
+                    horizontalAccuracy: lastLoc.horizontalAccuracy
                 )
                 if dwellResult.shouldAutoEndRide {
                     handleAutoEndRide(result: dwellResult, lastLocation: lastLoc)
                     return
                 }
+            } else {
+                dwellDetector.reset()
             }
         }
 
@@ -1209,12 +1294,42 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
     // MARK: - TASK-369 Auto-End & Trip Chaining
 
+    private func applyCroppedMetricsAfterDwellPrune(prePrunePointCount: Int) {
+        guard points.count >= 2 else {
+            if prePrunePointCount > points.count {
+                totalDistance = 0
+                durationInMillis = 0
+                elapsedDurationInMillis = 0
+                maxSpeedMps = 0
+            }
+            return
+        }
+        let reconstructed = RideMetrics.reconstructed(from: points.map { loc in
+            GPSPoint(
+                latitude: loc.coordinate.latitude,
+                longitude: loc.coordinate.longitude,
+                altitude: loc.altitude,
+                accuracy: loc.horizontalAccuracy,
+                speed: loc.speed,
+                timestamp: loc.timestamp
+            )
+        })
+        totalDistance = min(totalDistance, reconstructed.distanceMeters)
+        durationInMillis = min(durationInMillis, Double(reconstructed.movingDurationMillis))
+        elapsedDurationInMillis = min(elapsedDurationInMillis, Double(reconstructed.movingDurationMillis))
+        maxSpeedMps = min(maxSpeedMps, reconstructed.maxSpeedMps)
+    }
+
     private func handleAutoEndRide(result: DwellEvaluationResult, lastLocation: CLLocation) {
         guard let id = currentRideId else { return }
 
-        // 1. Trailing point pruning if enabled
-        if result.shouldPruneTrailingPoints, let autoEndTs = result.autoEndTimestamp {
+        let prePrunePointCount = points.count
+        let autoEndTs = result.autoEndTimestamp
+
+        // 1. Trailing point pruning and metric cropping if enabled
+        if result.shouldPruneTrailingPoints, let autoEndTs {
             points.removeAll { $0.timestamp > autoEndTs }
+            applyCroppedMetricsAfterDwellPrune(prePrunePointCount: prePrunePointCount)
             DataRepository.shared.deletePointsAfter(rideId: id, timestamp: autoEndTs)
         }
 
@@ -1222,10 +1337,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         postAutoEndNotification()
 
         // 3. Either transition to standby for continuous trip chaining or stop tracking
-        if dwellDetector.isAutoTripChainingEnabled {
+        if dwellDetector.isAutoTripChainingEnabled && !isLiveShareBlockingDwell {
             stopTrackingForAutoChaining(lastLocation: lastLocation, result: result)
         } else {
-            stopTracking()
+            stopTracking(endedAtOverride: result.shouldPruneTrailingPoints ? autoEndTs : nil)
         }
     }
 
@@ -1273,7 +1388,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             pausedElapsed: durationInMillis / 1000
         )
 
-        let endedAt = result.autoEndTimestamp ?? Date()
+        let endedAt = result.shouldPruneTrailingPoints ? (result.autoEndTimestamp ?? Date()) : Date()
         if LiveSharingManager.shared.isActive {
             liveShareIntervalTracker.markLiveShareEnded(at: endedAt)
         }
@@ -1305,9 +1420,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             isRideActive: false
         ) }
 
-        // Transition dwell detector to standby waiting for next trip breakout
+        // Transition dwell detector to standby waiting for next trip breakout (capped at 2h)
         let anchorCoord = result.dwellAnchorCoordinate ?? lastLocation.coordinate
         dwellDetector.transitionToStandby(lastAnchorCoordinate: anchorCoord, now: Date())
+        isStandbyActive = true
+        scheduleStandbyTimeout()
 
         // Step down location manager to low-power standby (100m accuracy, 25m distance filter)
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -1319,6 +1436,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     private func startNewAutoChainedRide(at location: CLLocation) {
+        standbyTimeoutTimer?.invalidate()
+        standbyTimeoutTimer = nil
+        isStandbyActive = false
         startTracking(persona: .auto)
 
         let content = UNMutableNotificationContent()

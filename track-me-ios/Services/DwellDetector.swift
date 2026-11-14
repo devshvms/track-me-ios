@@ -34,6 +34,7 @@ public struct DwellEvaluationResult: Equatable {
     public let shouldPruneTrailingPoints: Bool
     public let shouldAutoStartNextRide: Bool
     public let autoStartTimestamp: Date?
+    public let shouldStopStandby: Bool
     public let dwellAnchorCoordinate: CLLocationCoordinate2D?
     public let currentDwellDuration: TimeInterval
     public let distanceFromAnchorMeters: Double
@@ -45,6 +46,7 @@ public struct DwellEvaluationResult: Equatable {
         shouldPruneTrailingPoints: Bool = false,
         shouldAutoStartNextRide: Bool = false,
         autoStartTimestamp: Date? = nil,
+        shouldStopStandby: Bool = false,
         dwellAnchorCoordinate: CLLocationCoordinate2D? = nil,
         currentDwellDuration: TimeInterval = 0.0,
         distanceFromAnchorMeters: Double = 0.0
@@ -55,6 +57,7 @@ public struct DwellEvaluationResult: Equatable {
         self.shouldPruneTrailingPoints = shouldPruneTrailingPoints
         self.shouldAutoStartNextRide = shouldAutoStartNextRide
         self.autoStartTimestamp = autoStartTimestamp
+        self.shouldStopStandby = shouldStopStandby
         self.dwellAnchorCoordinate = dwellAnchorCoordinate
         self.currentDwellDuration = currentDwellDuration
         self.distanceFromAnchorMeters = distanceFromAnchorMeters
@@ -67,6 +70,7 @@ public struct DwellEvaluationResult: Equatable {
             lhs.shouldPruneTrailingPoints == rhs.shouldPruneTrailingPoints &&
             lhs.shouldAutoStartNextRide == rhs.shouldAutoStartNextRide &&
             lhs.autoStartTimestamp == rhs.autoStartTimestamp &&
+            lhs.shouldStopStandby == rhs.shouldStopStandby &&
             lhs.dwellAnchorCoordinate?.latitude == rhs.dwellAnchorCoordinate?.latitude &&
             lhs.dwellAnchorCoordinate?.longitude == rhs.dwellAnchorCoordinate?.longitude &&
             abs(lhs.currentDwellDuration - rhs.currentDwellDuration) < 0.001 &&
@@ -84,6 +88,8 @@ public final class DwellDetector {
     public var breakoutSpeedThresholdKmh: Double
     public var stationaryConfirmationDuration: TimeInterval
     public var breakoutConfirmationDuration: TimeInterval
+    public var maxStandbyWindow: TimeInterval
+    public var maxAnchorAccuracyMeters: Double
 
     public private(set) var state: DwellState = .activeTracking
 
@@ -101,7 +107,9 @@ public final class DwellDetector {
         breakoutRadiusMeters: Double = 150.0,
         breakoutSpeedThresholdKmh: Double = 8.0,
         stationaryConfirmationDuration: TimeInterval = 45.0,
-        breakoutConfirmationDuration: TimeInterval = 20.0
+        breakoutConfirmationDuration: TimeInterval = 20.0,
+        maxStandbyWindow: TimeInterval = 2 * 3600,
+        maxAnchorAccuracyMeters: Double = 60.0
     ) {
         self.isAutoTripChainingEnabled = isAutoTripChainingEnabled
         self.autoEndDwellMinutes = autoEndDwellMinutes
@@ -112,6 +120,8 @@ public final class DwellDetector {
         self.breakoutSpeedThresholdKmh = breakoutSpeedThresholdKmh
         self.stationaryConfirmationDuration = stationaryConfirmationDuration
         self.breakoutConfirmationDuration = breakoutConfirmationDuration
+        self.maxStandbyWindow = maxStandbyWindow
+        self.maxAnchorAccuracyMeters = maxAnchorAccuracyMeters
     }
 
     public func reset() {
@@ -130,19 +140,34 @@ public final class DwellDetector {
         breakoutStartDate = nil
     }
 
+    private func isAccuracyAcceptable(_ horizontalAccuracy: CLLocationAccuracy?) -> Bool {
+        guard let horizontalAccuracy else { return true }
+        return horizontalAccuracy.isFinite && horizontalAccuracy >= 0 && horizontalAccuracy <= maxAnchorAccuracyMeters
+    }
+
     public func evaluate(
         coordinate: CLLocationCoordinate2D,
         speedKmh: Double,
-        now: Date = Date()
+        now: Date = Date(),
+        horizontalAccuracy: CLLocationAccuracy? = nil
     ) -> DwellEvaluationResult {
         guard isAutoTripChainingEnabled else {
-            return DwellEvaluationResult(state: .activeTracking)
+            let wasStandby = state == .standbyWaitingForNextTrip
+            reset()
+            return DwellEvaluationResult(
+                state: .activeTracking,
+                shouldStopStandby: wasStandby
+            )
         }
 
         let dwellTimeoutSeconds = Double(max(1, min(60, autoEndDwellMinutes))) * 60.0
+        let hasGoodAccuracy = isAccuracyAcceptable(horizontalAccuracy)
 
         switch state {
         case .activeTracking:
+            guard hasGoodAccuracy else {
+                return DwellEvaluationResult(state: .activeTracking)
+            }
             let isLowSpeed = speedKmh <= stationarySpeedThresholdKmh
             if isLowSpeed {
                 let lowStart = lowSpeedStartDate ?? now
@@ -171,7 +196,7 @@ public final class DwellDetector {
             let aTime = anchorTimestamp ?? now
             let dist = Self.computeDistanceMeters(from: aCoord, to: coordinate)
 
-            if dist > dwellAnchorRadiusMeters && speedKmh > stationarySpeedThresholdKmh {
+            if hasGoodAccuracy && dist > dwellAnchorRadiusMeters && speedKmh > stationarySpeedThresholdKmh {
                 state = .activeTracking
                 lowSpeedStartDate = nil
                 anchorCoordinate = nil
@@ -210,7 +235,24 @@ public final class DwellDetector {
             )
 
         case .standbyWaitingForNextTrip:
+            if maxStandbyWindow > 0, let startedAt = anchorTimestamp,
+               now.timeIntervalSince(startedAt) >= maxStandbyWindow {
+                reset()
+                return DwellEvaluationResult(
+                    state: .activeTracking,
+                    shouldStopStandby: true
+                )
+            }
+
             let aCoord = anchorCoordinate
+            guard hasGoodAccuracy else {
+                breakoutStartDate = nil
+                return DwellEvaluationResult(
+                    state: .standbyWaitingForNextTrip,
+                    dwellAnchorCoordinate: aCoord
+                )
+            }
+
             let dist: Double
             if let ac = aCoord {
                 dist = Self.computeDistanceMeters(from: ac, to: coordinate)
