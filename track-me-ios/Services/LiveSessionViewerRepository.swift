@@ -46,6 +46,30 @@ struct LiveViewerLastLocation: Equatable {
     let batteryLevel: Int?
     let powerSaveMode: Bool
     let timestampIso: String?
+    let isPaused: Bool
+    let pauseReason: String?
+
+    init(
+        lat: Double,
+        lng: Double,
+        speedKmh: Double?,
+        headingDeg: Double?,
+        batteryLevel: Int?,
+        powerSaveMode: Bool,
+        timestampIso: String?,
+        isPaused: Bool = false,
+        pauseReason: String? = nil
+    ) {
+        self.lat = lat
+        self.lng = lng
+        self.speedKmh = speedKmh
+        self.headingDeg = headingDeg
+        self.batteryLevel = batteryLevel
+        self.powerSaveMode = powerSaveMode
+        self.timestampIso = timestampIso
+        self.isPaused = isPaused
+        self.pauseReason = pauseReason
+    }
 
     var speedMetersPerSecond: Double? {
         speedKmh.map { max(0, $0) / 3.6 }
@@ -68,9 +92,61 @@ struct LiveSessionSnapshot: Equatable {
     let deadlineAt: String?
     let lastLocation: LiveViewerLastLocation?
     let path: [LiveViewerPoint]
+    let isPaused: Bool
+    let pauseReason: String?
+
+    init(
+        sessionId: String,
+        username: String,
+        status: String,
+        startedAt: String? = nil,
+        stopReason: String?,
+        endReason: String?,
+        endedAt: String?,
+        destination: String?,
+        deadlineAt: String?,
+        lastLocation: LiveViewerLastLocation?,
+        path: [LiveViewerPoint],
+        isPaused: Bool = false,
+        pauseReason: String? = nil
+    ) {
+        self.sessionId = sessionId
+        self.username = username
+        self.status = status
+        self.startedAt = startedAt
+        self.stopReason = stopReason
+        self.endReason = endReason
+        self.endedAt = endedAt
+        self.destination = destination
+        self.deadlineAt = deadlineAt
+        self.lastLocation = lastLocation
+        self.path = path
+        self.isPaused = isPaused
+        self.pauseReason = pauseReason
+    }
 
     var isActive: Bool {
         status.caseInsensitiveCompare("active") == .orderedSame
+            || status.caseInsensitiveCompare("paused") == .orderedSame
+    }
+
+    var isRiderPaused: Bool {
+        isActive && (
+            isPaused
+                || (lastLocation?.isPaused == true)
+                || status.caseInsensitiveCompare("paused") == .orderedSame
+        )
+    }
+
+    var effectivePauseReason: String? {
+        guard isRiderPaused else { return nil }
+        let raw = (pauseReason ?? lastLocation?.pauseReason)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if raw == "auto" || raw == "manual" {
+            return raw
+        }
+        return nil
     }
 
     func isStaleSignal(now: Date = Date()) -> Bool {
@@ -1057,6 +1133,8 @@ final class LiveSessionViewerRepository {
             let batteryLevel = (loc["batteryLevel"] as? NSNumber)?.intValue
             let powerSaveMode = (loc["powerSaveMode"] as? Bool) ?? false
             let timestampIso = (loc["timestamp"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            let locPaused = (loc["isPaused"] as? Bool) ?? (loc["paused"] as? Bool) ?? false
+            let locPauseReason = (loc["pauseReason"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
             parsedLastLocation = LiveViewerLastLocation(
                 lat: lat,
                 lng: lng,
@@ -1064,7 +1142,9 @@ final class LiveSessionViewerRepository {
                 headingDeg: headingDeg,
                 batteryLevel: batteryLevel,
                 powerSaveMode: powerSaveMode,
-                timestampIso: timestampIso
+                timestampIso: timestampIso,
+                isPaused: locPaused,
+                pauseReason: locPauseReason
             )
         }
 
@@ -1088,6 +1168,21 @@ final class LiveSessionViewerRepository {
             pathPoints.append(LiveViewerPoint(lat: last.lat, lng: last.lng))
         }
 
+        let topLevelPaused = (root["isPaused"] as? Bool)
+            ?? (root["paused"] as? Bool)
+            ?? (status.caseInsensitiveCompare("paused") == .orderedSame)
+        let snapshotPaused = topLevelPaused || (parsedLastLocation?.isPaused == true)
+        let topLevelPauseReason = (root["pauseReason"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfEmpty
+        let rawReason = (topLevelPauseReason ?? parsedLastLocation?.pauseReason)?
+            .lowercased()
+        let snapshotPauseReason: String? = if snapshotPaused, rawReason == "auto" || rawReason == "manual" {
+            rawReason
+        } else {
+            nil
+        }
+
         return LiveSessionSnapshot(
             sessionId: sessionId,
             username: username,
@@ -1099,7 +1194,9 @@ final class LiveSessionViewerRepository {
             destination: destination,
             deadlineAt: deadlineAt,
             lastLocation: parsedLastLocation,
-            path: pathPoints
+            path: pathPoints,
+            isPaused: snapshotPaused,
+            pauseReason: snapshotPauseReason
         )
     }
 

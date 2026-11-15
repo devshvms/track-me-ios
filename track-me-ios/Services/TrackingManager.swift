@@ -499,6 +499,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         state = .storageLow
         currentSpeed = 0.0
         locationManager.stopUpdatingLocation()
+        if LiveSharingManager.shared.isActive {
+            let pausedRefLoc = trackingAlgorithmVersion == 2
+                ? (lastV2DisplayCoordinate.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) } ?? lastV2RawLocation ?? points.last)
+                : points.last
+            LiveSharingManager.shared.updateTrackingLocation(
+                pausedRefLoc,
+                isPaused: true,
+                pauseReason: "manual"
+            )
+        }
 
         let content = UNMutableNotificationContent()
         content.title = LocalizationHelper.localized("Storage almost full")
@@ -565,6 +575,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     }
                     // Push immediately on a GPS-lost/restored transition, otherwise throttle.
                     self.updateLiveActivity(force: self.state != previous || previousAutoPaused != self.isAutoPaused)
+                    if previousAutoPaused != self.isAutoPaused,
+                       self.state == .tracking,
+                       LiveSharingManager.shared.isActive {
+                        LiveSharingManager.shared.syncPauseState(
+                            isPaused: self.isAutoPaused,
+                            pauseReason: self.isAutoPaused ? "auto" : nil
+                        )
+                    }
                 }
             }
         }
@@ -878,6 +896,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             v2Pedometer.stop()
             currentSpeed = 0.0
             updateLiveActivity(force: true)
+            if LiveSharingManager.shared.isActive {
+                let pausedRefLoc = trackingAlgorithmVersion == 2
+                    ? (lastV2DisplayCoordinate.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) } ?? lastV2RawLocation ?? points.last)
+                    : points.last
+                LiveSharingManager.shared.updateTrackingLocation(
+                    pausedRefLoc,
+                    isPaused: true,
+                    pauseReason: "manual"
+                )
+            }
         }
     }
 
@@ -940,6 +968,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             timeSinceLastGps = 0
         }
         updateLiveActivity(force: true)
+        if LiveSharingManager.shared.isActive {
+            let resumeLoc = trackingAlgorithmVersion == 2
+                ? (lastV2DisplayCoordinate.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) } ?? lastV2RawLocation ?? points.last)
+                : points.last
+            LiveSharingManager.shared.updateTrackingLocation(
+                resumeLoc,
+                isPaused: isAutoPaused,
+                pauseReason: isAutoPaused ? "auto" : nil
+            )
+        }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -1031,8 +1069,12 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
             // Presence and live-share need only the newest route-admitted fix from a delivered
             // batch. Sending every historical fix can make a remote marker walk backward.
-            if let newestRecorded, LiveSharingManager.shared.isActive {
-                LiveSharingManager.shared.updateLatestLocation(newestRecorded)
+            if LiveSharingManager.shared.isActive {
+                LiveSharingManager.shared.updateTrackingLocation(
+                    newestRecorded ?? newestAdmitted,
+                    isPaused: isAutoPaused,
+                    pauseReason: isAutoPaused ? "auto" : nil
+                )
             }
             if let newestRecorded, GroupRideManager.shared.state.isActive {
                 GroupRideManager.shared.updateLatestLocation(
@@ -1129,7 +1171,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
             // 6. Push to Live Sharing Manager
             if LiveSharingManager.shared.isActive {
-                LiveSharingManager.shared.updateLatestLocation(smoothedLocation)
+                LiveSharingManager.shared.updateTrackingLocation(
+                    smoothedLocation,
+                    isPaused: isPaused,
+                    pauseReason: isPaused ? "auto" : nil
+                )
             }
 
             if GroupRideManager.shared.state.isActive {

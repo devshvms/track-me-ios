@@ -41,6 +41,11 @@ class LiveSharingManager {
     private var consecutivePushFailures = 0
     private var nextEligiblePushTime = Date.distantPast
     private var lastReportedZeroViewerHibernating: Bool?
+    private var isTrackingPaused = false
+    private var trackingPauseReason: String?
+    private var pausedAnchorCoordinate: CLLocationCoordinate2D?
+    private var lastKnownCoordinate: CLLocationCoordinate2D?
+    private var lastReportedPausedState: Bool?
 
     /**
      * Calculates an adaptive, jittered exponential backoff delay for location pushes during live sharing (CIE-003).
@@ -382,6 +387,11 @@ class LiveSharingManager {
             self.isZeroViewerHibernating = false
             self.lastReportedZeroViewerHibernating = nil
             self.isRetryingAuth = false
+            self.isTrackingPaused = false
+            self.trackingPauseReason = nil
+            self.pausedAnchorCoordinate = nil
+            self.lastKnownCoordinate = nil
+            self.lastReportedPausedState = nil
             self.stopTimers()
         }
     }
@@ -415,6 +425,11 @@ class LiveSharingManager {
             self.isZeroViewerHibernating = false
             self.lastReportedZeroViewerHibernating = nil
             self.isRetryingAuth = false
+            self.isTrackingPaused = false
+            self.trackingPauseReason = nil
+            self.pausedAnchorCoordinate = nil
+            self.lastKnownCoordinate = nil
+            self.lastReportedPausedState = nil
             self.stopTimers()
             self.isPushInProgress = false
             self.consecutivePushFailures = 0
@@ -431,12 +446,37 @@ class LiveSharingManager {
             if self.isActive {
                 self.syncZeroViewerHibernationIfNeeded()
             }
-            // Only push if the ride is actually actively tracking (as per user request)
-            if TrackingManager.shared.state == .tracking,
-               let loc = self.latestLocation,
+            let trackingState = TrackingManager.shared.state
+            let isManualOrStoragePaused = trackingState == .paused || trackingState == .storageLow
+            let isAutoPaused = trackingState == .tracking && TrackingManager.shared.isAutoPaused
+            let effectivePaused = self.isTrackingPaused || isManualOrStoragePaused || isAutoPaused
+            let effectiveReason: String? = if isManualOrStoragePaused {
+                "manual"
+            } else if isAutoPaused {
+                "auto"
+            } else if effectivePaused {
+                self.trackingPauseReason
+            } else {
+                nil
+            }
+            if (trackingState == .tracking || isManualOrStoragePaused),
+               let baseLoc = self.latestLocation ?? TrackingManager.shared.points.last,
                !self.isPushInProgress,
                Date() >= self.nextEligiblePushTime {
-                self.pushLocation(loc)
+                let pushLoc: CLLocation = if effectivePaused {
+                    CLLocation(
+                        coordinate: self.pausedAnchorCoordinate ?? baseLoc.coordinate,
+                        altitude: baseLoc.altitude,
+                        horizontalAccuracy: baseLoc.horizontalAccuracy,
+                        verticalAccuracy: baseLoc.verticalAccuracy,
+                        course: -1,
+                        speed: 0,
+                        timestamp: Date()
+                    )
+                } else {
+                    baseLoc
+                }
+                self.pushLocation(pushLoc, isPaused: effectivePaused, pauseReason: effectiveReason)
             }
         }
 
@@ -467,7 +507,69 @@ class LiveSharingManager {
     }
 
     func updateLatestLocation(_ location: CLLocation) {
-        self.latestLocation = location
+        updateTrackingLocation(location, isPaused: false, pauseReason: nil)
+    }
+
+    func updateTrackingLocation(
+        _ location: CLLocation?,
+        isPaused: Bool,
+        pauseReason: String? = nil
+    ) {
+        let normalizedReason: String? = if isPaused {
+            switch pauseReason?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "auto": "auto"
+            case "manual": "manual"
+            default: nil
+            }
+        } else {
+            nil
+        }
+
+        if isPaused {
+            if pausedAnchorCoordinate == nil {
+                pausedAnchorCoordinate = lastKnownCoordinate ?? location?.coordinate ?? latestLocation?.coordinate
+            }
+            if let anchor = pausedAnchorCoordinate {
+                let base = location ?? latestLocation
+                latestLocation = CLLocation(
+                    coordinate: anchor,
+                    altitude: base?.altitude ?? 0,
+                    horizontalAccuracy: base?.horizontalAccuracy ?? 0,
+                    verticalAccuracy: base?.verticalAccuracy ?? -1,
+                    course: -1,
+                    speed: 0,
+                    timestamp: Date()
+                )
+            } else if let location {
+                latestLocation = location
+            }
+        } else {
+            pausedAnchorCoordinate = nil
+            if let location {
+                lastKnownCoordinate = location.coordinate
+                latestLocation = location
+            }
+        }
+
+        let previousPaused = isTrackingPaused
+        let previousReason = trackingPauseReason
+        isTrackingPaused = isPaused
+        trackingPauseReason = normalizedReason
+        let transitioned = (lastReportedPausedState != isPaused)
+            || (previousPaused != isPaused)
+            || (isPaused && previousReason != normalizedReason)
+        lastReportedPausedState = isPaused
+
+        if isActive && transitioned {
+            nextEligiblePushTime = .distantPast
+            if let pushLoc = latestLocation, !isPushInProgress {
+                pushLocation(pushLoc, isPaused: isPaused, pauseReason: normalizedReason)
+            }
+        }
+    }
+
+    func syncPauseState(isPaused: Bool, pauseReason: String? = nil) {
+        updateTrackingLocation(nil, isPaused: isPaused, pauseReason: pauseReason)
     }
 
     /// Battery level threshold (percentage) at or below which power save cadence is enforced.
@@ -475,6 +577,9 @@ class LiveSharingManager {
 
     /// Minimum broadcast interval (15s) enforced when device is in low battery or power save mode.
     static let powerSaveMinInterval: TimeInterval = 15.0
+
+    /// Minimum heartbeat interval (15s) while paused so viewers stay live without false signal-lost warnings.
+    static let pausedKeepaliveMinInterval: TimeInterval = 15.0
 
     /// Resolves whether power save mode should be active based on OS low power mode
     /// and low battery threshold (<= 15%).
@@ -552,27 +657,41 @@ class LiveSharingManager {
     static func buildPushLocationBody(
         loc: CLLocation,
         batteryLevel: Int,
-        isLowPower: Bool
+        isLowPower: Bool,
+        isPaused: Bool = false,
+        pauseReason: String? = nil
     ) -> [String: Any] {
         let effectivePowerSave = isEffectivePowerSave(isOsLowPower: isLowPower, batteryLevel: batteryLevel)
+        let sanitizedSpeed = isPaused ? 0.0 : max(loc.speed * 3.6, 0) // km/h
         var body: [String: Any] = [
             "lat": loc.coordinate.latitude,
             "lng": loc.coordinate.longitude,
             "batteryLevel": batteryLevel >= 0 ? batteryLevel : 100, // Handle simulator returning -1
-            "speed": max(loc.speed * 3.6, 0), // km/h
+            "speed": sanitizedSpeed,
             "powerSaveMode": effectivePowerSave,
+            "isPaused": isPaused,
             "timestamp": ISO8601DateFormatter().string(from: loc.timestamp)
         ]
-        // Only include heading when CLLocation course is valid (>= 0).
-        // Negative course indicates undetermined heading (e.g. stationary device),
-        // matching Android's location.hasBearing() contract and avoiding falsely locking the server to North.
-        if loc.course >= 0 {
+        if isPaused {
+            let normalized = pauseReason?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if normalized == "auto" || normalized == "manual" {
+                body["pauseReason"] = normalized
+            }
+        } else if loc.course >= 0 {
+            // Only include heading when CLLocation course is valid (>= 0) and rider is not paused.
+            // Negative course indicates undetermined heading (e.g. stationary device),
+            // matching Android's location.hasBearing() contract and avoiding falsely locking the server to North.
             body["heading"] = loc.course
         }
         return body
     }
 
-    private func pushLocation(_ loc: CLLocation, isRetry: Bool = false) {
+    private func pushLocation(
+        _ loc: CLLocation,
+        isPaused: Bool = false,
+        pauseReason: String? = nil,
+        isRetry: Bool = false
+    ) {
         guard let sessionId = sessionId, let url = URL(string: APIConfig.LiveShare.locationPush(sessionId: sessionId)) else { return }
 
         if let expiresAt = expiresAt, Date() > expiresAt {
@@ -591,7 +710,9 @@ class LiveSharingManager {
         let body = Self.buildPushLocationBody(
             loc: loc,
             batteryLevel: batteryLevel,
-            isLowPower: ProcessInfo.processInfo.isLowPowerModeEnabled
+            isLowPower: ProcessInfo.processInfo.isLowPowerModeEnabled,
+            isPaused: isPaused,
+            pauseReason: pauseReason
         )
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -638,7 +759,8 @@ class LiveSharingManager {
                             self.zeroViewersSince = viewers > 0 ? nil : (self.zeroViewersSince ?? self.sessionStartTime ?? now)
                         }
                         let eval = self.syncZeroViewerHibernationIfNeeded(now: now)
-                        self.nextEligiblePushTime = now.addingTimeInterval(eval.effectiveInterval)
+                        let nextInterval = isPaused ? max(eval.effectiveInterval, Self.pausedKeepaliveMinInterval) : eval.effectiveInterval
+                        self.nextEligiblePushTime = now.addingTimeInterval(nextInterval)
                     case .some(404):
                         self.isPushInProgress = false
                         self.isRetryingAuth = false
@@ -652,7 +774,7 @@ class LiveSharingManager {
                             self.stopSession(reason: "Authentication expired.")
                         } else if !self.isRetryingAuth {
                             self.isRetryingAuth = true
-                            self.pushLocation(loc, isRetry: true)
+                            self.pushLocation(loc, isPaused: isPaused, pauseReason: pauseReason, isRetry: true)
                         } else {
                             self.isPushInProgress = false
                             self.isRetryingAuth = false

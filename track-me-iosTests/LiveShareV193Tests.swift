@@ -1807,6 +1807,105 @@ final class LiveShareV193Tests: XCTestCase {
         XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 1, randomProvider: fullJitter), 20.9999, accuracy: 0.001)
         XCTAssertEqual(LiveSessionViewerRepository.computeViewerPingDelaySeconds(consecutivePingFailures: 4, randomProvider: fullJitter), 60.0, accuracy: 0.001)
     }
+
+    func testBuildPushLocationBodySanitizesSpeedAndHeadingWhilePaused() {
+        let movingLoc = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946),
+            altitude: 900,
+            horizontalAccuracy: 5,
+            verticalAccuracy: 5,
+            course: 142.0,
+            speed: 6.0,
+            timestamp: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+
+        let pausedBody = LiveSharingManager.buildPushLocationBody(
+            loc: movingLoc,
+            batteryLevel: 84,
+            isLowPower: false,
+            isPaused: true,
+            pauseReason: "AUTO"
+        )
+        XCTAssertEqual(pausedBody["isPaused"] as? Bool, true)
+        XCTAssertEqual(pausedBody["pauseReason"] as? String, "auto")
+        XCTAssertEqual(pausedBody["speed"] as? Double ?? -1, 0.0, accuracy: 0.0001)
+        XCTAssertNil(pausedBody["heading"])
+        XCTAssertEqual(pausedBody["batteryLevel"] as? Int, 84)
+
+        let activeBody = LiveSharingManager.buildPushLocationBody(
+            loc: movingLoc,
+            batteryLevel: 83,
+            isLowPower: false,
+            isPaused: false,
+            pauseReason: "manual"
+        )
+        XCTAssertEqual(activeBody["isPaused"] as? Bool, false)
+        XCTAssertNil(activeBody["pauseReason"])
+        XCTAssertEqual(activeBody["speed"] as? Double ?? 0, 21.6, accuracy: 0.05)
+        XCTAssertEqual(activeBody["heading"] as? Double ?? 0, 142.0, accuracy: 0.01)
+    }
+
+    func testParseSnapshotSupportsAutoAndManualPauseStatesAndClearsOnStop() throws {
+        let autoPausedJson = """
+        {
+          "status": "active",
+          "isPaused": true,
+          "pauseReason": "auto",
+          "lastLocation": {
+            "lat": 12.9716,
+            "lng": 77.5946,
+            "speed": 0,
+            "heading": null,
+            "isPaused": true,
+            "pauseReason": "auto",
+            "timestamp": "2026-11-15T04:00:00Z"
+          }
+        }
+        """.data(using: .utf8)!
+        let autoSnap = LiveSessionViewerRepository.parseSnapshot(sessionId: "ios-pause-auto", data: autoPausedJson)
+        XCTAssertNotNil(autoSnap)
+        XCTAssertTrue(autoSnap?.isActive == true)
+        XCTAssertTrue(autoSnap?.isRiderPaused == true)
+        XCTAssertEqual(autoSnap?.effectivePauseReason, "auto")
+
+        let manualPausedJson = """
+        {
+          "status": "paused",
+          "lastLocation": {
+            "lat": 12.9716,
+            "lng": 77.5946,
+            "speed": 0,
+            "pauseReason": "manual",
+            "timestamp": "2026-11-15T04:00:00Z"
+          }
+        }
+        """.data(using: .utf8)!
+        let manualSnap = LiveSessionViewerRepository.parseSnapshot(sessionId: "ios-pause-manual", data: manualPausedJson)
+        XCTAssertNotNil(manualSnap)
+        XCTAssertTrue(manualSnap?.isActive == true)
+        XCTAssertTrue(manualSnap?.isRiderPaused == true)
+        XCTAssertEqual(manualSnap?.effectivePauseReason, "manual")
+
+        let stoppedJson = """
+        {
+          "status": "stopped",
+          "isPaused": true,
+          "pauseReason": "auto",
+          "lastLocation": {
+            "lat": 12.9716,
+            "lng": 77.5946,
+            "isPaused": true,
+            "pauseReason": "auto",
+            "timestamp": "2026-11-15T04:00:00Z"
+          }
+        }
+        """.data(using: .utf8)!
+        let stoppedSnap = LiveSessionViewerRepository.parseSnapshot(sessionId: "ios-pause-stop", data: stoppedJson)
+        XCTAssertNotNil(stoppedSnap)
+        XCTAssertTrue(stoppedSnap?.isActive == false)
+        XCTAssertTrue(stoppedSnap?.isRiderPaused == false)
+        XCTAssertNil(stoppedSnap?.effectivePauseReason)
+    }
 }
 
 

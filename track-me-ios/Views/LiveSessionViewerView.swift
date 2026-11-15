@@ -189,6 +189,7 @@ struct LiveSessionViewerView: View {
 
                 if let current = currentCoordinate {
                     let isEnded = snapshot?.isActive == false
+                    let isRiderPaused = snapshot?.isRiderPaused == true && !isEnded
                     let speedStatus = LiveSessionViewerRepository.evaluateSpeedOrStopped(
                         speedKmh: snapshot?.lastLocation?.speedKmh,
                         stoppedSinceDate: stoppedSinceDate,
@@ -196,7 +197,7 @@ struct LiveSessionViewerView: View {
                         useMiles: useMiles
                     )
                     let isStationary = speedStatus.isStationary
-                    let hasHeading = snapshot?.lastLocation?.headingDeg != nil && !isEnded && !isStationary
+                    let hasHeading = snapshot?.lastLocation?.headingDeg != nil && !isEnded && !isStationary && !isRiderPaused
                     let title: String = {
                         if isEnded {
                             if let dest = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines), !dest.isEmpty {
@@ -220,6 +221,8 @@ struct LiveSessionViewerView: View {
                                     .font(.system(size: 8, weight: .bold))
                                     .foregroundStyle(.white)
                             }
+                        } else if isRiderPaused {
+                            PausedDotMarker()
                         } else if hasHeading, let heading = snapshot?.lastLocation?.headingDeg {
                             HeadingConeMarker(headingDegrees: continuousHeading ?? heading, accentColor: liveCyan)
                         } else {
@@ -383,6 +386,8 @@ struct LiveSessionViewerView: View {
                 staleSignalOverlay
             } else if errorMessage != nil {
                 reconnectingOverlay
+            } else if snapshot?.isRiderPaused == true {
+                pausedOverlay(isAutoPause: snapshot?.effectivePauseReason == "auto")
             }
 
             if let rawBattery = snapshot?.lastLocation?.batteryLevel,
@@ -394,6 +399,30 @@ struct LiveSessionViewerView: View {
             Spacer()
         }
         .padding(12)
+    }
+
+    private func pausedOverlay(isAutoPause: Bool) -> some View {
+        let slateTint = Color(red: 100.0 / 255.0, green: 116.0 / 255.0, blue: 139.0 / 255.0)
+        let message = isAutoPause
+            ? LocalizationHelper.localized("Rider is auto-paused while stationary · Route resumes on movement")
+            : LocalizationHelper.localized("Rider paused live tracking")
+        return HStack(spacing: 8) {
+            Image(systemName: "pause.circle.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(slateTint)
+            Text(message)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(slateTint.opacity(0.45), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message)
     }
 
     private var offlineToastPill: some View {
@@ -486,17 +515,12 @@ struct LiveSessionViewerView: View {
 
     private var bottomTelemetryBar: some View {
         let lastLoc = snapshot?.lastLocation
-        let speedStatus = LiveSessionViewerRepository.evaluateSpeedOrStopped(
-            speedKmh: lastLoc?.speedKmh,
-            stoppedSinceDate: stoppedSinceDate,
-            now: nowDate,
-            useMiles: useMiles
-        )
-        let speedText = speedStatus.displayText
         let isEnded = snapshot?.isActive == false
         let active = snapshot?.isActive == true
+        let isRiderPaused = snapshot?.isRiderPaused == true && !isEnded
+        let riderPauseReason = snapshot?.effectivePauseReason
         let isStale = snapshot?.isStaleSignal(now: nowDate) == true
-        let isDelayed = active && !isStale && LiveSessionViewerRepository.isDelayedUpdate(
+        let isDelayed = active && !isRiderPaused && !isStale && LiveSessionViewerRepository.isDelayedUpdate(
             powerSaveMode: lastLoc?.powerSaveMode == true,
             timestampIso: lastLoc?.timestampIso,
             now: nowDate
@@ -505,38 +529,16 @@ struct LiveSessionViewerView: View {
         let hasDestination = destinationText.map { !$0.isEmpty } ?? false
         let ageSeconds = isEnded ? nil : LiveSessionViewerRepository.ageSeconds(timestampIso: lastLoc?.timestampIso, now: nowDate)
         let deadlineStatus = active ? snapshot?.deadlineStatus(now: nowDate) : nil
-        let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
-        let elapsedSec = LiveSessionViewerRepository.computeElapsedSeconds(startedAt: snapshot?.startedAt, endedAt: snapshot?.endedAt, now: nowDate) ?? 0
-        let avgSpeed = LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: totalDistance, durationSeconds: Double(elapsedSec), useMiles: useMiles)
-        let avgSpeedStr = LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: avgSpeed, useMiles: useMiles)
-        let durationText = snapshot?.formatDuration(now: nowDate) ?? "0m"
-        let distanceText = UnitFormatter.distance(
-            meters: totalDistance,
-            unit: useMiles ? .imperial : .metric,
-            decimals: 1
-        )
-        let clampedBattery: Int? = lastLoc?.batteryLevel.flatMap { LiveSessionViewerRepository.clampBatteryLevel($0) }
 
         return VStack(alignment: .leading, spacing: 8) {
-            // Row 1: Status pills (LIVE/ENDED + Signal paused/Delayed) + Freshness/End reason
+            // Row 1: Status pills (LIVE/ENDED/PAUSED + Signal paused/Delayed) + Freshness/End reason
             HStack(spacing: 6) {
                 if snapshot != nil || isExpiredOrMissing {
-                    HStack(spacing: 4) {
-                        Image(systemName: "antenna.radiowaves.left.and.right")
-                            .font(.caption2.weight(.bold))
-                        Text(active
-                            ? LocalizationHelper.localized("LIVE")
-                            : LocalizationHelper.localized("ENDED"))
-                            .font(.caption2.weight(.bold))
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        (active ? liveCyan.opacity(0.16) : Color(uiColor: .secondarySystemFill)),
-                        in: Capsule()
+                    primaryStatusPill(
+                        active: active,
+                        isRiderPaused: isRiderPaused,
+                        pauseReason: riderPauseReason
                     )
-                    .foregroundStyle(active ? liveCyan : .secondary)
-                    .accessibilityElement(children: .combine)
                 }
 
                 if isStale {
@@ -630,79 +632,98 @@ struct LiveSessionViewerView: View {
             }
 
             // Row 2: Full-width unclipped telemetry grid (no horizontal scroll, no buttons competing)
-            let hasEndedAvgSpeed = isEnded && avgSpeedStr != nil
-            let speedValue = (isEnded ? avgSpeedStr.map { "\(LocalizationHelper.localized("Average Speed")): \($0)" } : nil) ?? speedText
-            let speedIconName = hasEndedAvgSpeed ? "gauge.with.dots.needle.bottom.50percent" : "speedometer"
-            let unitSuffix = useMiles
-                ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.")
-                : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial.")
-            let speedA11y = hasEndedAvgSpeed
+            telemetryMetricsGrid(
+                lastLoc: lastLoc,
+                isEnded: isEnded,
+                isRiderPaused: isRiderPaused,
+                pauseReason: riderPauseReason
+            )
+
+            // Row 3: Full-width viewer actions (Directions + Open in browser; Share lives once in toolbar)
+            telemetryActionsRow(lastLoc: lastLoc)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+    }
+
+    @ViewBuilder
+    private func telemetryMetricsGrid(
+        lastLoc: LiveViewerLastLocation?,
+        isEnded: Bool,
+        isRiderPaused: Bool,
+        pauseReason: String?
+    ) -> some View {
+        let speedStatus = LiveSessionViewerRepository.evaluateSpeedOrStopped(
+            speedKmh: lastLoc?.speedKmh,
+            stoppedSinceDate: stoppedSinceDate,
+            now: nowDate,
+            useMiles: useMiles
+        )
+        let speedText = speedStatus.displayText
+        let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
+        let elapsedSec = LiveSessionViewerRepository.computeElapsedSeconds(startedAt: snapshot?.startedAt, endedAt: snapshot?.endedAt, now: nowDate) ?? 0
+        let avgSpeed = LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: totalDistance, durationSeconds: Double(elapsedSec), useMiles: useMiles)
+        let avgSpeedStr = LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: avgSpeed, useMiles: useMiles)
+        let durationText = snapshot?.formatDuration(now: nowDate) ?? "0m"
+        let distanceText = UnitFormatter.distance(
+            meters: totalDistance,
+            unit: useMiles ? .imperial : .metric,
+            decimals: 1
+        )
+        let clampedBattery: Int? = lastLoc?.batteryLevel.flatMap { LiveSessionViewerRepository.clampBatteryLevel($0) }
+        let hasEndedAvgSpeed = isEnded && avgSpeedStr != nil
+        let pausedBadgeLabel = pauseReason == "auto"
+            ? LocalizationHelper.localized("Auto-paused")
+            : LocalizationHelper.localized("Ride paused")
+        let pausedBadgeA11y = pauseReason == "auto"
+            ? LocalizationHelper.localized("Rider auto-paused while stationary")
+            : LocalizationHelper.localized("Rider paused live tracking")
+        let endedSpeedLabel: String? = isEnded ? avgSpeedStr.map { "\(LocalizationHelper.localized("Average Speed")): \($0)" } : nil
+        let speedValue: String = isRiderPaused ? pausedBadgeLabel : (endedSpeedLabel ?? speedText)
+        let speedIconName = isRiderPaused
+            ? "pause.circle.fill"
+            : (hasEndedAvgSpeed ? "gauge.with.dots.needle.bottom.50percent" : "speedometer")
+        let speedIconColor: Color = isRiderPaused ? .secondary : liveCyan
+        let unitSuffix = useMiles
+            ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.")
+            : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial.")
+        let speedA11y = isRiderPaused
+            ? pausedBadgeA11y
+            : (hasEndedAvgSpeed
                 ? "\(speedValue). \(unitSuffix)"
-                : "\(speedStatus.a11yText). \(unitSuffix)"
-            let durationA11y = LocalizationHelper.formatted("Duration: %@", durationText)
-            let distanceA11y = "\(LocalizationHelper.formatted("Distance: %@", distanceText)). \(unitSuffix)"
-            let cellBg = Color(uiColor: .tertiarySystemGroupedBackground)
+                : "\(speedStatus.a11yText). \(unitSuffix)")
+        let durationA11y = LocalizationHelper.formatted("Duration: %@", durationText)
+        let distanceA11y = "\(LocalizationHelper.formatted("Distance: %@", distanceText)). \(unitSuffix)"
+        let cellBg = Color(uiColor: .tertiarySystemGroupedBackground)
 
-            if let battery = clampedBattery {
-                let isLowBattery = battery <= 15
-                let batteryColor: Color = isLowBattery ? .red : .secondary
-                let batteryIconName: String = isLowBattery
-                    ? "battery.25"
-                    : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
-                let batteryA11y = isLowBattery
-                    ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
-                    : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
+        let speedTextColor: Color = isRiderPaused ? .secondary : .primary
+        let speedTapAction: (() -> Void)? = isRiderPaused ? nil : { toggleUnitSystem() }
+        let distanceTapAction: (() -> Void)? = { toggleUnitSystem() }
 
-                VStack(spacing: 6) {
-                    HStack(spacing: 8) {
-                        telemetryMetricCell(
-                            systemImage: speedIconName,
-                            text: speedValue,
-                            accessibilityText: speedA11y,
-                            iconColor: liveCyan,
-                            weight: .bold,
-                            cellBg: cellBg,
-                            onTap: toggleUnitSystem
-                        )
-                        telemetryMetricCell(
-                            systemImage: "timer",
-                            text: durationText,
-                            accessibilityText: durationA11y,
-                            iconColor: liveCyan,
-                            cellBg: cellBg
-                        )
-                    }
+        if let battery = clampedBattery {
+            let isLowBattery = battery <= 15
+            let batteryColor: Color = isLowBattery ? .red : .secondary
+            let batteryTextColor: Color = isLowBattery ? .red : .primary
+            let batteryWeight: Font.Weight = isLowBattery ? .bold : .semibold
+            let batteryIconName: String = isLowBattery
+                ? "battery.25"
+                : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
+            let batteryA11y = isLowBattery
+                ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
+                : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
 
-                    HStack(spacing: 8) {
-                        telemetryMetricCell(
-                            systemImage: "point.topleft.down.to.point.bottomright.curvepath",
-                            text: distanceText,
-                            accessibilityText: distanceA11y,
-                            iconColor: liveCyan,
-                            cellBg: cellBg,
-                            onTap: toggleUnitSystem
-                        )
-                        telemetryMetricCell(
-                            systemImage: batteryIconName,
-                            text: "\(battery)%",
-                            accessibilityText: batteryA11y,
-                            iconColor: batteryColor,
-                            textColor: isLowBattery ? .red : .primary,
-                            weight: isLowBattery ? .bold : .semibold,
-                            cellBg: cellBg
-                        )
-                    }
-                }
-            } else {
+            VStack(spacing: 6) {
                 HStack(spacing: 8) {
                     telemetryMetricCell(
                         systemImage: speedIconName,
                         text: speedValue,
                         accessibilityText: speedA11y,
-                        iconColor: liveCyan,
+                        iconColor: speedIconColor,
+                        textColor: speedTextColor,
                         weight: .bold,
                         cellBg: cellBg,
-                        onTap: toggleUnitSystem
+                        onTap: speedTapAction
                     )
                     telemetryMetricCell(
                         systemImage: "timer",
@@ -711,66 +732,145 @@ struct LiveSessionViewerView: View {
                         iconColor: liveCyan,
                         cellBg: cellBg
                     )
+                }
+
+                HStack(spacing: 8) {
                     telemetryMetricCell(
                         systemImage: "point.topleft.down.to.point.bottomright.curvepath",
                         text: distanceText,
                         accessibilityText: distanceA11y,
                         iconColor: liveCyan,
                         cellBg: cellBg,
-                        onTap: toggleUnitSystem
+                        onTap: distanceTapAction
+                    )
+                    telemetryMetricCell(
+                        systemImage: batteryIconName,
+                        text: "\(battery)%",
+                        accessibilityText: batteryA11y,
+                        iconColor: batteryColor,
+                        textColor: batteryTextColor,
+                        weight: batteryWeight,
+                        cellBg: cellBg
                     )
                 }
             }
-
-            // Row 3: Full-width viewer actions (Directions + Open in browser; Share lives once in toolbar)
+        } else {
             HStack(spacing: 8) {
-                if let coord = lastLoc?.coordinate,
-                   let navUrl = LiveSessionViewerRepository.buildDirectionsUrl(
-                       lat: coord.latitude,
-                       lng: coord.longitude,
-                       provider: "apple_maps"
-                   ) {
-                    Button {
-                        openURL(navUrl)
-                        TelemetryManager.shared.trackLiveShareDirectionsClicked(
-                            sessionId: sessionId,
-                            provider: "apple_maps"
-                        )
-                    } label: {
-                        Label(
-                            LocalizationHelper.localized("Directions"),
-                            systemImage: "arrow.triangle.turn.up.right.diamond"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityLabel(LocalizationHelper.localized("Directions"))
-                }
+                telemetryMetricCell(
+                    systemImage: speedIconName,
+                    text: speedValue,
+                    accessibilityText: speedA11y,
+                    iconColor: speedIconColor,
+                    textColor: speedTextColor,
+                    weight: .bold,
+                    cellBg: cellBg,
+                    onTap: speedTapAction
+                )
+                telemetryMetricCell(
+                    systemImage: "timer",
+                    text: durationText,
+                    accessibilityText: durationA11y,
+                    iconColor: liveCyan,
+                    cellBg: cellBg
+                )
+                telemetryMetricCell(
+                    systemImage: "point.topleft.down.to.point.bottomright.curvepath",
+                    text: distanceText,
+                    accessibilityText: distanceA11y,
+                    iconColor: liveCyan,
+                    cellBg: cellBg,
+                    onTap: distanceTapAction
+                )
+            }
+        }
+    }
 
+    private func telemetryActionsRow(lastLoc: LiveViewerLastLocation?) -> some View {
+        HStack(spacing: 8) {
+            if let coord = lastLoc?.coordinate,
+               let navUrl = LiveSessionViewerRepository.buildDirectionsUrl(
+                   lat: coord.latitude,
+                   lng: coord.longitude,
+                   provider: "apple_maps"
+               ) {
                 Button {
-                    let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let url = LiveSessionViewerRepository.buildShareUrl(baseURL: APIConfig.baseURL, sessionId: sessionId, riderName: riderName) ?? URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
-                        openURL(url)
-                    }
+                    openURL(navUrl)
+                    TelemetryManager.shared.trackLiveShareDirectionsClicked(
+                        sessionId: sessionId,
+                        provider: "apple_maps"
+                    )
                 } label: {
                     Label(
-                        LocalizationHelper.localized("Open in browser"),
-                        systemImage: "safari"
+                        LocalizationHelper.localized("Directions"),
+                        systemImage: "arrow.triangle.turn.up.right.diamond"
                     )
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .accessibilityLabel(LocalizationHelper.localized("Open in browser"))
-                .accessibilityHint(LocalizationHelper.localized("Opens this live tracking session in Safari"))
+                .buttonStyle(.borderedProminent)
+                .accessibilityLabel(LocalizationHelper.localized("Directions"))
             }
+
+            Button {
+                let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let url = LiveSessionViewerRepository.buildShareUrl(baseURL: APIConfig.baseURL, sessionId: sessionId, riderName: riderName) ?? URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
+                    openURL(url)
+                }
+            } label: {
+                Label(
+                    LocalizationHelper.localized("Open in browser"),
+                    systemImage: "safari"
+                )
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .accessibilityLabel(LocalizationHelper.localized("Open in browser"))
+            .accessibilityHint(LocalizationHelper.localized("Opens this live tracking session in Safari"))
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
+    }
+
+    private func primaryStatusPill(
+        active: Bool,
+        isRiderPaused: Bool,
+        pauseReason: String?
+    ) -> some View {
+        let iconName = isRiderPaused ? "pause.circle.fill" : "antenna.radiowaves.left.and.right"
+        let pillText: String
+        if isRiderPaused {
+            pillText = pauseReason == "auto"
+                ? LocalizationHelper.localized("Auto-paused")
+                : LocalizationHelper.localized("Ride paused")
+        } else {
+            pillText = active
+                ? LocalizationHelper.localized("LIVE")
+                : LocalizationHelper.localized("ENDED")
+        }
+        let pillBg: Color = (active && !isRiderPaused) ? liveCyan.opacity(0.16) : Color(uiColor: .secondarySystemFill)
+        let pillFg: Color = (active && !isRiderPaused) ? liveCyan : .secondary
+        let a11yText: String
+        if isRiderPaused {
+            a11yText = pauseReason == "auto"
+                ? LocalizationHelper.localized("Rider auto-paused while stationary")
+                : LocalizationHelper.localized("Rider paused live tracking")
+        } else {
+            a11yText = pillText
+        }
+
+        return HStack(spacing: 4) {
+            Image(systemName: iconName)
+                .font(.caption2.weight(.bold))
+            Text(pillText)
+                .font(.caption2.weight(.bold))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(pillBg, in: Capsule())
+        .foregroundStyle(pillFg)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(a11yText)
     }
 
     @ViewBuilder
@@ -977,7 +1077,7 @@ struct LiveSessionViewerView: View {
                     now: nowDate,
                     useMiles: useMiles
                 )
-                if let heading = fetched.lastLocation?.headingDeg {
+                if !fetched.isRiderPaused, let heading = fetched.lastLocation?.headingDeg {
                     if continuousHeading == nil {
                         continuousHeading = heading
                     } else if LiveSessionViewerRepository.shouldUpdateBearing(
@@ -1154,6 +1254,33 @@ private struct StationaryDotMarker: View {
             // Solid cyan center dot
             Circle()
                 .fill(accentColor)
+                .frame(width: 16, height: 16)
+        }
+        .frame(width: 44, height: 44)
+    }
+}
+
+private struct PausedDotMarker: View {
+    private let pausedSlateFill = Color(red: 148.0 / 255.0, green: 163.0 / 255.0, blue: 184.0 / 255.0)
+    private let pausedSlateBorder = Color(red: 71.0 / 255.0, green: 85.0 / 255.0, blue: 105.0 / 255.0)
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(pausedSlateFill.opacity(0.24))
+                .frame(width: 34, height: 34)
+
+            Circle()
+                .fill(Color.white)
+                .frame(width: 22, height: 22)
+                .shadow(radius: 2)
+
+            Circle()
+                .fill(pausedSlateFill)
+                .frame(width: 16, height: 16)
+
+            Circle()
+                .stroke(pausedSlateBorder, lineWidth: 2)
                 .frame(width: 16, height: 16)
         }
         .frame(width: 44, height: 44)
