@@ -168,7 +168,7 @@ class LiveSharingManager {
     // Helper to get AppStorage values directly with adaptive low-battery/power-save defense (CIE-015)
     private func currentPushSettings() -> (configured: TimeInterval, powerSave: Bool) {
         let val = UserDefaults.standard.integer(forKey: "liveShareFrequency")
-        let configured = val == 0 ? 10.0 : TimeInterval(val)
+        let configured = val == 0 ? 15.0 : TimeInterval(val)
         UIDevice.current.isBatteryMonitoringEnabled = true
         let batteryLevel = Int(UIDevice.current.batteryLevel * 100)
         let isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
@@ -442,10 +442,8 @@ class LiveSharingManager {
 
         // Push Timer: Evaluates every 1.0s to honor backoff delays and single in-flight concurrency cleanly
         pushTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            if self.isActive {
-                self.syncZeroViewerHibernationIfNeeded()
-            }
+            guard let self = self, self.isActive, !self.isPushInProgress, Date() >= self.nextEligiblePushTime else { return }
+            self.syncZeroViewerHibernationIfNeeded()
             let trackingState = TrackingManager.shared.state
             let isManualOrStoragePaused = trackingState == .paused || trackingState == .storageLow
             let isAutoPaused = trackingState == .tracking && TrackingManager.shared.isAutoPaused
@@ -460,9 +458,7 @@ class LiveSharingManager {
                 nil
             }
             if (trackingState == .tracking || isManualOrStoragePaused),
-               let baseLoc = self.latestLocation ?? TrackingManager.shared.points.last,
-               !self.isPushInProgress,
-               Date() >= self.nextEligiblePushTime {
+               let baseLoc = self.latestLocation ?? TrackingManager.shared.points.last {
                 let pushLoc: CLLocation = if effectivePaused {
                     CLLocation(
                         coordinate: self.pausedAnchorCoordinate ?? baseLoc.coordinate,
@@ -578,8 +574,8 @@ class LiveSharingManager {
     /// Minimum broadcast interval (15s) enforced when device is in low battery or power save mode.
     static let powerSaveMinInterval: TimeInterval = 15.0
 
-    /// Minimum heartbeat interval (15s) while paused so viewers stay live without false signal-lost warnings.
-    static let pausedKeepaliveMinInterval: TimeInterval = 15.0
+    /// Minimum heartbeat interval (45s) while paused so viewers stay live without false signal-lost warnings while saving battery.
+    static let pausedKeepaliveMinInterval: TimeInterval = 45.0
 
     /// Resolves whether power save mode should be active based on OS low power mode
     /// and low battery threshold (<= 15%).

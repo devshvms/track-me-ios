@@ -23,7 +23,7 @@ struct SettingsView: View {
     @State private var isSyncing = false
     @State private var lastSyncString = FirestoreSyncManager.formattedLastSyncTime()
 
-    @AppStorage("liveShareFrequency") var liveShareFrequency: Int = 10
+    @AppStorage("liveShareFrequency") var liveShareFrequency: Int = 15
     @State private var showLiveShareInfo = false
 
     @AppStorage("enableTelemetry") var isTelemetryEnabled: Bool = false
@@ -293,6 +293,7 @@ struct SettingsView: View {
                             Picker("Frequency", selection: $liveShareFrequency) {
                                 Text("5s").tag(5)
                                 Text("10s").tag(10)
+                                Text("15s").tag(15)
                                 Text("30s").tag(30)
                                 Text("1m").tag(60)
                                 Text("5m").tag(300)
@@ -375,6 +376,7 @@ struct SettingsView: View {
                                     Text("5 min").tag(5)
                                     Text("10 min").tag(10)
                                     Text("15 min").tag(15)
+                                    Text("30 min").tag(30)
                                 }
                                 .pickerStyle(.segmented)
                             }
