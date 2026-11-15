@@ -102,11 +102,7 @@ struct LiveSessionViewerView: View {
                         ) {
                             ShareLink(
                                 item: shareUrl,
-                                subject: Text(LocalizationHelper.localized("TrackMe Live Ride")),
-                                message: Text(LiveSessionViewerRepository.formatLiveShareMessage(
-                                    username: snapshot?.username,
-                                    shareUrl: shareUrl
-                                ))
+                                subject: Text(LocalizationHelper.localized("TrackMe Live Ride"))
                             ) {
                                 Image(systemName: "square.and.arrow.up")
                                     .fontWeight(.semibold)
@@ -116,26 +112,6 @@ struct LiveSessionViewerView: View {
                             .simultaneousGesture(TapGesture().onEnded {
                                 TelemetryManager.shared.trackLiveShareViewerShareClicked(sessionId: sessionId)
                             })
-                        }
-
-                        if let coord = snapshot?.lastLocation?.coordinate,
-                           let navUrl = LiveSessionViewerRepository.buildDirectionsUrl(
-                               lat: coord.latitude,
-                               lng: coord.longitude,
-                               provider: "apple_maps"
-                           ) {
-                            Button {
-                                openURL(navUrl)
-                                TelemetryManager.shared.trackLiveShareDirectionsClicked(
-                                    sessionId: sessionId,
-                                    provider: "apple_maps"
-                                )
-                            } label: {
-                                Image(systemName: "arrow.triangle.turn.up.right.diamond")
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(liveCyan)
-                            }
-                            .accessibilityLabel(LocalizationHelper.localized("Directions"))
                         }
 
                         Button(action: toggleUnitSystem) {
@@ -173,63 +149,15 @@ struct LiveSessionViewerView: View {
     }
 
     private var headerTitle: some View {
-        let lastLoc = snapshot?.lastLocation
-        let isStale = snapshot?.isStaleSignal(now: nowDate) == true
-        let isDelayed = snapshot?.isActive == true && !isStale && LiveSessionViewerRepository.isDelayedUpdate(
-            powerSaveMode: lastLoc?.powerSaveMode == true,
-            timestampIso: lastLoc?.timestampIso,
-            now: nowDate
-        )
-
-        return HStack(spacing: 6) {
-            let titleText: String = {
-                if let username = snapshot?.username {
-                    return LocalizationHelper.formatted("Watching %@", username)
-                }
-                return LocalizationHelper.localized("Loading live location…")
-            }()
-            Text(titleText)
-                .font(.headline)
-                .lineLimit(1)
-
-            if snapshot != nil || isExpiredOrMissing {
-                let active = snapshot?.isActive == true
-                HStack(spacing: 4) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.caption2.weight(.bold))
-                    Text(active
-                        ? LocalizationHelper.localized("LIVE")
-                        : LocalizationHelper.localized("ENDED"))
-                        .font(.caption2.weight(.bold))
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(
-                    (active ? liveCyan.opacity(0.18) : Color(uiColor: .secondarySystemFill)),
-                    in: Capsule()
-                )
-                .foregroundStyle(active ? liveCyan : .secondary)
-                .accessibilityElement(children: .combine)
+        let titleText: String = {
+            if let username = snapshot?.username {
+                return LocalizationHelper.formatted("Watching %@", username)
             }
-
-            if isStale {
-                Text(LocalizationHelper.localized("Signal paused"))
-                    .font(.caption2.weight(.bold))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color.red.opacity(0.18), in: Capsule())
-                    .foregroundStyle(.red)
-                    .accessibilityLabel(LocalizationHelper.localized("GPS signal paused, waiting for rider location"))
-            } else if isDelayed {
-                Text(LocalizationHelper.localized("Delayed"))
-                    .font(.caption2.weight(.bold))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color.orange.opacity(0.18), in: Capsule())
-                    .foregroundStyle(.orange)
-                    .accessibilityLabel(LocalizationHelper.localized("Location updates delayed"))
-            }
-        }
+            return LocalizationHelper.localized("Loading live location…")
+        }()
+        return Text(titleText)
+            .font(.headline)
+            .lineLimit(1)
     }
 
     private var mapSection: some View {
@@ -566,58 +494,115 @@ struct LiveSessionViewerView: View {
         )
         let speedText = speedStatus.displayText
         let isEnded = snapshot?.isActive == false
+        let active = snapshot?.isActive == true
+        let isStale = snapshot?.isStaleSignal(now: nowDate) == true
+        let isDelayed = active && !isStale && LiveSessionViewerRepository.isDelayedUpdate(
+            powerSaveMode: lastLoc?.powerSaveMode == true,
+            timestampIso: lastLoc?.timestampIso,
+            now: nowDate
+        )
         let destinationText = snapshot?.destination?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasDestination = destinationText.map { !$0.isEmpty } ?? false
         let ageSeconds = isEnded ? nil : LiveSessionViewerRepository.ageSeconds(timestampIso: lastLoc?.timestampIso, now: nowDate)
-        let deadlineStatus = snapshot?.isActive == true ? snapshot?.deadlineStatus(now: nowDate) : nil
-        let hasHeaderMeta = hasDestination || ageSeconds != nil || deadlineStatus != nil || isEnded
+        let deadlineStatus = active ? snapshot?.deadlineStatus(now: nowDate) : nil
+        let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
+        let elapsedSec = LiveSessionViewerRepository.computeElapsedSeconds(startedAt: snapshot?.startedAt, endedAt: snapshot?.endedAt, now: nowDate) ?? 0
+        let avgSpeed = LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: totalDistance, durationSeconds: Double(elapsedSec), useMiles: useMiles)
+        let avgSpeedStr = LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: avgSpeed, useMiles: useMiles)
+        let durationText = snapshot?.formatDuration(now: nowDate) ?? "0m"
+        let distanceText = UnitFormatter.distance(
+            meters: totalDistance,
+            unit: useMiles ? .imperial : .metric,
+            decimals: 1
+        )
+        let clampedBattery: Int? = lastLoc?.batteryLevel.flatMap { LiveSessionViewerRepository.clampBatteryLevel($0) }
 
-        return VStack(spacing: 8) {
-            if hasHeaderMeta {
-                VStack(alignment: .leading, spacing: 4) {
-                    if hasDestination || ageSeconds != nil || isEnded {
-                        HStack(spacing: 8) {
-                            if let destinationText, !destinationText.isEmpty {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "flag.fill")
-                                        .font(.caption2)
-                                        .foregroundStyle(liveCyan)
-                                    Text(destinationText)
-                                        .font(.caption)
-                                        .lineLimit(1)
-                                }
-                                .accessibilityElement(children: .ignore)
-                                .accessibilityLabel(LocalizationHelper.formatted("Destination: %@", destinationText))
-                            }
-
-                            Spacer(minLength: 8)
-
-                            if isEnded {
-                                let stopReasonText = snapshot?.stopReason ?? snapshot?.endReason ?? LocalizationHelper.localized("The rider has ended this live trip.")
-                                HStack(spacing: 4) {
-                                    Image(systemName: "flag.checkered")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                    Text(stopReasonText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                .accessibilityElement(children: .combine)
-                            } else if let ageSeconds {
-                                let ageLabel = ageSeconds < 60 ? "\(ageSeconds)s" : "\(ageSeconds / 60)m"
-                                HStack(spacing: 4) {
-                                    Image(systemName: "clock")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                    Text(LocalizationHelper.formatted("Updated %@", ageLabel))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .accessibilityElement(children: .combine)
-                            }
-                        }
+        return VStack(alignment: .leading, spacing: 8) {
+            // Row 1: Status pills (LIVE/ENDED + Signal paused/Delayed) + Freshness/End reason
+            HStack(spacing: 6) {
+                if snapshot != nil || isExpiredOrMissing {
+                    HStack(spacing: 4) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.caption2.weight(.bold))
+                        Text(active
+                            ? LocalizationHelper.localized("LIVE")
+                            : LocalizationHelper.localized("ENDED"))
+                            .font(.caption2.weight(.bold))
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        (active ? liveCyan.opacity(0.16) : Color(uiColor: .secondarySystemFill)),
+                        in: Capsule()
+                    )
+                    .foregroundStyle(active ? liveCyan : .secondary)
+                    .accessibilityElement(children: .combine)
+                }
+
+                if isStale {
+                    Text(LocalizationHelper.localized("Signal paused"))
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.red.opacity(0.16), in: Capsule())
+                        .foregroundStyle(.red)
+                        .accessibilityLabel(LocalizationHelper.localized("GPS signal paused, waiting for rider location"))
+                } else if isDelayed {
+                    Text(LocalizationHelper.localized("Delayed"))
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.16), in: Capsule())
+                        .foregroundStyle(.orange)
+                        .accessibilityLabel(LocalizationHelper.localized("Location updates delayed"))
+                }
+
+                Spacer(minLength: 8)
+
+                if isEnded {
+                    let stopReasonText = snapshot?.stopReason ?? snapshot?.endReason ?? LocalizationHelper.localized("The rider has ended this live trip.")
+                    HStack(spacing: 4) {
+                        Image(systemName: "flag.checkered")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(stopReasonText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .accessibilityElement(children: .combine)
+                } else if let ageSeconds {
+                    let ageLabel = ageSeconds < 60 ? "\(ageSeconds)s" : "\(ageSeconds / 60)m"
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(LocalizationHelper.formatted("Updated %@", ageLabel))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+
+            // Optional Route Context Line: Destination + Deadline
+            if hasDestination || deadlineStatus != nil {
+                HStack(spacing: 8) {
+                    if let destinationText, !destinationText.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "flag.fill")
+                                .font(.caption2)
+                                .foregroundStyle(liveCyan)
+                            Text(destinationText)
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(LocalizationHelper.formatted("Destination: %@", destinationText))
+                    }
+
+                    Spacer(minLength: 8)
 
                     if let deadline = deadlineStatus {
                         let deadlineLabel = deadline.isOverdue
@@ -633,6 +618,7 @@ struct LiveSessionViewerView: View {
                             Text(deadlineLabel)
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(deadlineColor)
+                                .lineLimit(1)
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -643,159 +629,189 @@ struct LiveSessionViewerView: View {
                 }
             }
 
-            let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
-            let elapsedSec = LiveSessionViewerRepository.computeElapsedSeconds(startedAt: snapshot?.startedAt, endedAt: snapshot?.endedAt, now: nowDate) ?? 0
-            let avgSpeed = LiveSessionViewerRepository.computeAverageSpeed(distanceMeters: totalDistance, durationSeconds: Double(elapsedSec), useMiles: useMiles)
-            let avgSpeedStr = LiveSessionViewerRepository.formatAverageSpeed(averageSpeed: avgSpeed, useMiles: useMiles)
+            // Row 2: Full-width unclipped telemetry grid (no horizontal scroll, no buttons competing)
+            let hasEndedAvgSpeed = isEnded && avgSpeedStr != nil
+            let speedValue = (isEnded ? avgSpeedStr.map { "\(LocalizationHelper.localized("Average Speed")): \($0)" } : nil) ?? speedText
+            let speedIconName = hasEndedAvgSpeed ? "gauge.with.dots.needle.bottom.50percent" : "speedometer"
+            let unitSuffix = useMiles
+                ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.")
+                : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial.")
+            let speedA11y = hasEndedAvgSpeed
+                ? "\(speedValue). \(unitSuffix)"
+                : "\(speedStatus.a11yText). \(unitSuffix)"
+            let durationA11y = LocalizationHelper.formatted("Duration: %@", durationText)
+            let distanceA11y = "\(LocalizationHelper.formatted("Distance: %@", distanceText)). \(unitSuffix)"
+            let cellBg = Color(uiColor: .tertiarySystemGroupedBackground)
 
-            HStack(spacing: 12) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        if isEnded {
-                            if let avgSpeedStr {
-                                Button(action: toggleUnitSystem) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                                            .font(.subheadline)
-                                            .foregroundStyle(liveCyan)
-                                        Text("\(LocalizationHelper.localized("Average Speed")): \(avgSpeedStr)")
-                                            .font(.subheadline.weight(.bold))
-                                            .foregroundStyle(.primary)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityElement(children: .ignore)
-                                .accessibilityLabel("\(LocalizationHelper.localized("Average Speed")): \(avgSpeedStr). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
-                            }
-                        } else {
-                            Button(action: toggleUnitSystem) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "speedometer")
-                                        .font(.subheadline)
-                                        .foregroundStyle(liveCyan)
-                                    Text(speedText)
-                                        .font(.subheadline.weight(.bold))
-                                        .foregroundStyle(.primary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel("\(speedStatus.a11yText). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
+            if let battery = clampedBattery {
+                let isLowBattery = battery <= 15
+                let batteryColor: Color = isLowBattery ? .red : .secondary
+                let batteryIconName: String = isLowBattery
+                    ? "battery.25"
+                    : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
+                let batteryA11y = isLowBattery
+                    ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
+                    : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
 
-                            if let rawBattery = lastLoc?.batteryLevel,
-                               let battery = LiveSessionViewerRepository.clampBatteryLevel(rawBattery) {
-                                let isLowBattery = battery <= 15
-                                let batteryColor: Color = isLowBattery ? .red : .secondary
-                                let batteryIconName: String = isLowBattery
-                                    ? "battery.25"
-                                    : (lastLoc?.powerSaveMode == true ? "battery.50" : "battery.100")
-                                let a11yLabel = isLowBattery
-                                    ? LocalizationHelper.formatted("Rider battery low: %lld percent", Int64(battery))
-                                    : LocalizationHelper.formatted("Rider battery: %lld percent", Int64(battery))
+                VStack(spacing: 6) {
+                    HStack(spacing: 8) {
+                        telemetryMetricCell(
+                            systemImage: speedIconName,
+                            text: speedValue,
+                            accessibilityText: speedA11y,
+                            iconColor: liveCyan,
+                            weight: .bold,
+                            cellBg: cellBg,
+                            onTap: toggleUnitSystem
+                        )
+                        telemetryMetricCell(
+                            systemImage: "timer",
+                            text: durationText,
+                            accessibilityText: durationA11y,
+                            iconColor: liveCyan,
+                            cellBg: cellBg
+                        )
+                    }
 
-                                HStack(spacing: 3) {
-                                    Image(systemName: batteryIconName)
-                                        .font(.subheadline)
-                                        .foregroundStyle(batteryColor)
-                                    Text("\(battery)%")
-                                        .font(.subheadline)
-                                        .fontWeight(isLowBattery ? .semibold : .regular)
-                                        .foregroundStyle(batteryColor)
-                                }
-                                .accessibilityElement(children: .ignore)
-                                .accessibilityLabel(a11yLabel)
-                            }
-                        }
-
-                        if let duration = snapshot?.formatDuration(now: nowDate) {
-                            HStack(spacing: 3) {
-                                Image(systemName: "timer")
-                                    .font(.subheadline)
-                                    .foregroundStyle(liveCyan)
-                                Text(duration)
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(LocalizationHelper.formatted("Duration: %@", duration))
-                        }
-
-                        let totalDistance = snapshot?.totalDistanceMeters ?? 0.0
-                        if totalDistance > 0.0 {
-                            let distanceText = UnitFormatter.distance(
-                                meters: totalDistance,
-                                unit: useMiles ? .imperial : .metric,
-                                decimals: 1
-                            )
-                            Button(action: toggleUnitSystem) {
-                                HStack(spacing: 3) {
-                                    Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                                        .font(.subheadline)
-                                        .foregroundStyle(liveCyan)
-                                    Text(distanceText)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel("\(LocalizationHelper.formatted("Distance: %@", distanceText)). \(useMiles ? LocalizationHelper.localized("Active units: imperial. Tap to switch to metric.") : LocalizationHelper.localized("Active units: metric. Tap to switch to imperial."))")
-                        }
+                    HStack(spacing: 8) {
+                        telemetryMetricCell(
+                            systemImage: "point.topleft.down.to.point.bottomright.curvepath",
+                            text: distanceText,
+                            accessibilityText: distanceA11y,
+                            iconColor: liveCyan,
+                            cellBg: cellBg,
+                            onTap: toggleUnitSystem
+                        )
+                        telemetryMetricCell(
+                            systemImage: batteryIconName,
+                            text: "\(battery)%",
+                            accessibilityText: batteryA11y,
+                            iconColor: batteryColor,
+                            textColor: isLowBattery ? .red : .primary,
+                            weight: isLowBattery ? .bold : .semibold,
+                            cellBg: cellBg
+                        )
                     }
                 }
-
-                Spacer(minLength: 8)
-
+            } else {
                 HStack(spacing: 8) {
-                    let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let url = LiveSessionViewerRepository.buildShareUrl(baseURL: APIConfig.baseURL, sessionId: sessionId, riderName: riderName) ?? URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
-                        let shareText: String = {
-                            if let name = riderName, !name.isEmpty {
-                                return LocalizationHelper.formatted("Track %@'s live ride on TrackMe: %@", name, url.absoluteString)
-                            } else {
-                                return LocalizationHelper.formatted("Track this live ride on TrackMe: %@", url.absoluteString)
-                            }
-                        }()
-
-                        ShareLink(
-                            item: url,
-                            subject: Text(LocalizationHelper.localized("TrackMe Live Ride")),
-                            message: Text(shareText)
-                        ) {
-                            Label(
-                                LocalizationHelper.localized("Share Ride"),
-                                systemImage: "square.and.arrow.up"
-                            )
-                            .font(.subheadline.weight(.semibold))
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .accessibilityLabel(LocalizationHelper.localized("Share Ride"))
-                        .accessibilityHint(LocalizationHelper.localized("Share this live tracking session"))
-                        .simultaneousGesture(TapGesture().onEnded {
-                            TelemetryManager.shared.trackLiveShareViewerShareClicked(sessionId: sessionId)
-                        })
-                    }
-
-                    Button {
-                        let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if let url = LiveSessionViewerRepository.buildShareUrl(baseURL: APIConfig.baseURL, sessionId: sessionId, riderName: riderName) ?? URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
-                            openURL(url)
-                        }
-                    } label: {
-                        Label(
-                            LocalizationHelper.localized("Open in browser"),
-                            systemImage: "safari"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel(LocalizationHelper.localized("Open in browser"))
-                    .accessibilityHint(LocalizationHelper.localized("Opens this live tracking session in Safari"))
+                    telemetryMetricCell(
+                        systemImage: speedIconName,
+                        text: speedValue,
+                        accessibilityText: speedA11y,
+                        iconColor: liveCyan,
+                        weight: .bold,
+                        cellBg: cellBg,
+                        onTap: toggleUnitSystem
+                    )
+                    telemetryMetricCell(
+                        systemImage: "timer",
+                        text: durationText,
+                        accessibilityText: durationA11y,
+                        iconColor: liveCyan,
+                        cellBg: cellBg
+                    )
+                    telemetryMetricCell(
+                        systemImage: "point.topleft.down.to.point.bottomright.curvepath",
+                        text: distanceText,
+                        accessibilityText: distanceA11y,
+                        iconColor: liveCyan,
+                        cellBg: cellBg,
+                        onTap: toggleUnitSystem
+                    )
                 }
             }
+
+            // Row 3: Full-width viewer actions (Directions + Open in browser; Share lives once in toolbar)
+            HStack(spacing: 8) {
+                if let coord = lastLoc?.coordinate,
+                   let navUrl = LiveSessionViewerRepository.buildDirectionsUrl(
+                       lat: coord.latitude,
+                       lng: coord.longitude,
+                       provider: "apple_maps"
+                   ) {
+                    Button {
+                        openURL(navUrl)
+                        TelemetryManager.shared.trackLiveShareDirectionsClicked(
+                            sessionId: sessionId,
+                            provider: "apple_maps"
+                        )
+                    } label: {
+                        Label(
+                            LocalizationHelper.localized("Directions"),
+                            systemImage: "arrow.triangle.turn.up.right.diamond"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityLabel(LocalizationHelper.localized("Directions"))
+                }
+
+                Button {
+                    let riderName = snapshot?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let url = LiveSessionViewerRepository.buildShareUrl(baseURL: APIConfig.baseURL, sessionId: sessionId, riderName: riderName) ?? URL(string: "\(APIConfig.baseURL)/live/\(sessionId)") {
+                        openURL(url)
+                    }
+                } label: {
+                    Label(
+                        LocalizationHelper.localized("Open in browser"),
+                        systemImage: "safari"
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel(LocalizationHelper.localized("Open in browser"))
+                .accessibilityHint(LocalizationHelper.localized("Opens this live tracking session in Safari"))
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(Color(uiColor: .secondarySystemGroupedBackground))
+    }
+
+    @ViewBuilder
+    private func telemetryMetricCell(
+        systemImage: String,
+        text: String,
+        accessibilityText: String,
+        iconColor: Color,
+        textColor: Color = .primary,
+        weight: Font.Weight = .semibold,
+        cellBg: Color,
+        onTap: (() -> Void)? = nil
+    ) -> some View {
+        let cell = HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.subheadline)
+                .foregroundStyle(iconColor)
+            Text(text)
+                .font(.subheadline.weight(weight))
+                .foregroundStyle(textColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity)
+        .background(cellBg, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+        if let onTap {
+            Button(action: onTap) {
+                cell
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
+        } else {
+            cell
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityText)
+        }
     }
 
     private func focusCamera(on coordinate: CLLocationCoordinate2D) {

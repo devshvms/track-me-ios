@@ -1635,7 +1635,7 @@ struct ActiveRideHUD: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             RideStatusChips(
                 trackingState: trackingState,
                 persona: persona,
@@ -1652,7 +1652,7 @@ struct ActiveRideHUD: View {
                 onShareLink: onShareLink
             )
 
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 RideStatsRow(
                     isTracking: true,
                     duration: duration,
@@ -1683,56 +1683,6 @@ struct ActiveRideHUD: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
-                }
-
-                if isLiveSharing {
-                    HStack(spacing: 8) {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(activeLiveViewers > 0 ? BrandColor.success : BrandColor.cyanBright)
-                                .frame(width: 8, height: 8)
-
-                            Text(
-                                activeLiveViewers > 0
-                                    ? LocalizationHelper.formatted("%@ watching live", String(activeLiveViewers))
-                                    : LocalizationHelper.localized("Live sharing")
-                            )
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                        }
-
-                        Spacer(minLength: 4)
-
-                        Button(action: onCopyLink) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "doc.on.doc")
-                                    .font(.caption2.bold())
-                                Text(LocalizationHelper.localized("Copy link"))
-                                    .font(.caption.weight(.semibold))
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                        }
-                        .buttonStyle(.bordered)
-                        .clipShape(Capsule())
-
-                        Button(action: onShareLink) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.caption2.bold())
-                                Text(LocalizationHelper.localized("Share link"))
-                                    .font(.caption.weight(.bold))
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .clipShape(Capsule())
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
 
                 ZStack {
@@ -1782,7 +1732,7 @@ struct ActiveRideHUD: View {
                 }
                 .frame(height: 54)
             }
-            .padding(10)
+            .padding(8)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -2249,6 +2199,23 @@ struct LiveShareActionDrawer: View {
         .overlay(alignment: .bottomTrailing) {
             if isOpen, isAuthenticated, isActive {
                 VStack(alignment: .trailing, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(activeViewers > 0 ? BrandColor.success : BrandColor.cyanBright)
+                            .frame(width: 8, height: 8)
+                        Text(
+                            activeViewers > 0
+                                ? LocalizationHelper.formatted("%@ watching live", String(activeViewers))
+                                : LocalizationHelper.localized("No viewers yet — link active")
+                        )
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
+
                     drawerButton(
                         systemImage: "square.and.arrow.up",
                         label: "Share link",
