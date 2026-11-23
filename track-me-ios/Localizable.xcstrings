@@ -4984,6 +4984,100 @@
         }
       }
     },
+    "Auto-start & auto-stop future trips hands-free": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Künftige Fahrten automatisch starten & stoppen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-start & auto-stop future trips hands-free"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar y detener futuros viajes en manos libres"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Démarrer et arrêter les prochains trajets en mains libres"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आने वाली यात्राएं अपने-आप शुरू और बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今後の移動をハンズフリーで自動開始・自動終了"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未来行程免提自动开始与自动结束"
+          }
+        }
+      }
+    },
+    "Auto-stop trips indoors & auto-start when you head out": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stoppt Fahrten drinnen automatisch und startet, wenn du losgehst"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-stop trips indoors & auto-start when you head out"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detiene viajes en interiores y los inicia automáticamente al salir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêt auto en intérieur et démarrage auto dès votre départ"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अंदर रुकने पर अपने-आप समाप्त और निकलते ही ऑटो-स्टार्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "室内で自動終了し、出発時に自動で記録開始"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "室内自动结束行程，出门后自动开始记录"
+          }
+        }
+      }
+    },
     "Auto-trip standby active": {
       "extractionState": "manual",
       "localizations": {
@@ -8882,6 +8976,53 @@
         }
       }
     },
+    "Discard & Auto-Start Next Trip": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwerfen & Autostart"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard & Auto-Start Next Trip"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar y auto-iniciar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer et auto-démarrer"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हटाएं और ऑटो-स्टार्ट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "破棄して次回を自動開始"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "丢弃并自动开始下次行程"
+          }
+        }
+      }
+    },
     "Discard this ride?": {
       "localizations": {
         "de": {
@@ -8918,6 +9059,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "丢弃此次行程？"
+          }
+        }
+      }
+    },
+    "Dismiss hands-free tip": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freihand-Hinweis schließen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss hands-free tip"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar aviso de manos libres"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermer l'astuce mains libres"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हैंड्स-फ़्री सुझाव बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハンズフリーのヒントを閉じる"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭免提提示"
           }
         }
       }
@@ -9725,6 +9913,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "海拔 · 爬升 %@"
+          }
+        }
+      }
+    },
+    "Enable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चालू करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効にする"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启"
           }
         }
       }
@@ -12475,6 +12710,100 @@
         }
       }
     },
+    "Hands-free enabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freihand aktiviert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hands-free enabled"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manos libres activado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mains libres activé"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हैंड्स-फ़्री चालू है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハンズフリーを有効にしました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已开启免提模式"
+          }
+        }
+      }
+    },
+    "Hands-free mode": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freihand-Modus"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hands-free mode"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo manos libres"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode mains libres"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हैंड्स-फ़्री मोड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハンズフリーモード"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "免提模式"
+          }
+        }
+      }
+    },
     "Help & Feedback": {
       "extractionState": "stale",
       "localizations": {
@@ -13996,6 +14325,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "已加入，未开始"
+          }
+        }
+      }
+    },
+    "Just Discard": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur verwerfen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just Discard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo descartar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer seulement"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ हटाएं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "破棄のみ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅丢弃"
           }
         }
       }
@@ -18050,6 +18426,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有可用的地图应用。"
+          }
+        }
+      }
+    },
+    "No movement detected (<50m). Testing indoors? Discard this test and turn on Hands-Free Auto-Start so TrackMe records automatically when you head out.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Bewegung erkannt (<50 m). Test in Innenräumen? Verwirf diesen Test und aktiviere Freihand-Autostart, damit TrackMe automatisch aufzeichnet, sobald du losgehst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No movement detected (<50m). Testing indoors? Discard this test and turn on Hands-Free Auto-Start so TrackMe records automatically when you head out."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se detectó movimiento (<50 m). ¿Probando en interiores? Descarta esta prueba y activa el inicio automático manos libres para que TrackMe grabe al salir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun mouvement détecté (<50 m). Test en intérieur ? Supprimez ce test et activez le démarrage auto mains libres pour enregistrer dès que vous sortez."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई हलचल नहीं मिली (<50 मी)। घर के अंदर टेस्ट कर रहे हैं? इसे हटाएं और हैंड्स-फ़्री ऑटो-स्टार्ट चालू करें ताकि बाहर निकलते ही TrackMe अपने-आप रिकॉर्ड करे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動が検出されませんでした（50m未満）。室内テスト中ですか？このテストを破棄してハンズフリー自動開始をオンにすると、外出時に自動で記録を開始します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未检测到移动（<50米）。正在室内测试？丢弃此次测试并开启免提自动开始，出发时 TrackMe 将自动记录行程。"
           }
         }
       }

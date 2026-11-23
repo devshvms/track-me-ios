@@ -896,6 +896,41 @@ class TelemetryManager {
         PostHogSDK.shared.capture("watcher_push_opened")
     }
 
+    // MARK: - TASK-371..373 Hands-Free Auto-Start/Auto-Stop Funnel & Harm Indicators
+
+    private func capture(_ event: HandsFreeTelemetryEvent) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture(event.name, properties: event.properties)
+    }
+
+    func trackHandsFreeOfferShown(surface: String) {
+        capture(HandsFreeTelemetryContract.offerShown(surface: surface))
+    }
+
+    func trackHandsFreeEnabled(surface: String, dwellMinutes: Int) {
+        capture(HandsFreeTelemetryContract.enabled(surface: surface, dwellMinutes: dwellMinutes))
+    }
+
+    func trackHandsFreeDisabled(surface: String) {
+        capture(HandsFreeTelemetryContract.disabled(surface: surface))
+    }
+
+    func trackHandsFreeStandbyArmed(trigger: String, timeoutMinutes: Int = HandsFreeReliabilityPolicy.standbyTimeoutMinutes) {
+        capture(HandsFreeTelemetryContract.standbyArmed(trigger: trigger, timeoutMinutes: timeoutMinutes))
+    }
+
+    func trackHandsFreeRideAutoStarted(standbyWaitSeconds: Int, activityType: String) {
+        capture(HandsFreeTelemetryContract.rideAutoStarted(standbyWaitSeconds: standbyWaitSeconds, activityType: activityType))
+    }
+
+    func trackHandsFreeRideAutoEnded(dwellMinutes: Int, croppedPoints: Int, wasGpsThrottled: Bool) {
+        capture(HandsFreeTelemetryContract.rideAutoEnded(dwellMinutes: dwellMinutes, croppedPoints: croppedPoints, wasGpsThrottled: wasGpsThrottled))
+    }
+
+    func trackHandsFreeFalseStartAborted(elapsedSeconds: Int, distanceMeters: Int) {
+        capture(HandsFreeTelemetryContract.falseStartAborted(elapsedSeconds: elapsedSeconds, distanceMeters: distanceMeters))
+    }
+
     private func capture(_ event: GroupTelemetryEvent) {
         guard shouldTrack() else { return }
         PostHogSDK.shared.capture(event.name, properties: event.properties)

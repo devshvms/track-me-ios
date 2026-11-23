@@ -76,6 +76,10 @@ struct HomeView: View {
     @State private var activeViewerSession: LiveViewerSessionItem?
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
     @AppStorage(OnboardingGate.startHintSeenKey) private var legacyStartHintSeen = false
+    @AppStorage("autoTripChainingEnabled") private var autoTripChainingEnabled: Bool = false
+    @AppStorage("autoEndDwellMinutes") private var autoEndDwellMinutes: Int = 10
+    @AppStorage("autoTripChainingTipDismissed") private var autoTripChainingTipDismissed: Bool = false
+    @Bindable private var broadcasts = BroadcastStore.shared
 
     private var presentationMode: HomePresentationMode {
         HomePresentationModePolicy.resolve(
@@ -373,6 +377,14 @@ struct HomeView: View {
                     if let uuid = UUID(uuidString: id) {
                         selectedRecentRideId = uuid
                     }
+                },
+                autoTripChainingEnabled: autoTripChainingEnabled,
+                onEnableHandsFree: {
+                    autoTripChainingEnabled = true
+                    TelemetryManager.shared.trackHandsFreeEnabled(
+                        surface: "post_ride_reveal",
+                        dwellMinutes: autoEndDwellMinutes
+                    )
                 }
             )
         }
@@ -442,9 +454,43 @@ struct HomeView: View {
             LocalizationHelper.localized("Discard this ride?"),
             isPresented: $showDiscardRideDialog
         ) {
-            Button(LocalizationHelper.localized("Discard"), role: .destructive) {
-                TelemetryManager.shared.trackRideStartAborted(method: .shortIndoorTest)
-                trackingManager.stopTracking(discard: true)
+            if !autoTripChainingEnabled {
+                Button(LocalizationHelper.localized("Discard & Auto-Start Next Trip")) {
+                    if trackingManager.isCurrentRideAutoStarted {
+                        TelemetryManager.shared.trackHandsFreeFalseStartAborted(
+                            elapsedSeconds: Int(trackingManager.elapsedDurationInMillis / 1000),
+                            distanceMeters: Int(trackingManager.totalDistance)
+                        )
+                    }
+                    TelemetryManager.shared.trackRideStartAborted(method: .shortIndoorTest)
+                    autoTripChainingEnabled = true
+                    TelemetryManager.shared.trackHandsFreeEnabled(
+                        surface: "discard_dialog",
+                        dwellMinutes: autoEndDwellMinutes
+                    )
+                    trackingManager.discardNearEmptyRideAndArmStandby()
+                }
+                Button(LocalizationHelper.localized("Just Discard"), role: .destructive) {
+                    if trackingManager.isCurrentRideAutoStarted {
+                        TelemetryManager.shared.trackHandsFreeFalseStartAborted(
+                            elapsedSeconds: Int(trackingManager.elapsedDurationInMillis / 1000),
+                            distanceMeters: Int(trackingManager.totalDistance)
+                        )
+                    }
+                    TelemetryManager.shared.trackRideStartAborted(method: .shortIndoorTest)
+                    trackingManager.stopTracking(discard: true)
+                }
+            } else {
+                Button(LocalizationHelper.localized("Discard"), role: .destructive) {
+                    if trackingManager.isCurrentRideAutoStarted {
+                        TelemetryManager.shared.trackHandsFreeFalseStartAborted(
+                            elapsedSeconds: Int(trackingManager.elapsedDurationInMillis / 1000),
+                            distanceMeters: Int(trackingManager.totalDistance)
+                        )
+                    }
+                    TelemetryManager.shared.trackRideStartAborted(method: .shortIndoorTest)
+                    trackingManager.stopTracking(discard: true)
+                }
             }
             Button(LocalizationHelper.localized("Save anyway")) {
                 if liveSharingManager.isLiveSharePrimary {
@@ -454,7 +500,18 @@ struct HomeView: View {
             }
             Button(LocalizationHelper.localized("Cancel"), role: .cancel) { }
         } message: {
-            Text(LocalizationHelper.localized("This ride did not record meaningful distance. You can discard it or save it anyway."))
+            Text(
+                LocalizationHelper.localized(
+                    autoTripChainingEnabled
+                        ? "This ride did not record meaningful distance. You can discard it or save it anyway."
+                        : "No movement detected (<50m). Testing indoors? Discard this test and turn on Hands-Free Auto-Start so TrackMe records automatically when you head out."
+                )
+            )
+        }
+        .onChange(of: showDiscardRideDialog) { _, isPresented in
+            if isPresented && !autoTripChainingEnabled {
+                TelemetryManager.shared.trackHandsFreeOfferShown(surface: "discard_dialog")
+            }
         }
         // TASK-226: double-tapping the tab returns to the deck. Home's push is already
         // programmatic, so clearing the selection is the whole pop.
@@ -698,7 +755,35 @@ struct HomeView: View {
             },
             liveSharingActive: liveSharingManager.isActive,
             isStandbyActive: trackingManager.isStandbyActive,
-            onStopStandby: { trackingManager.stopStandby() },
+            onStopStandby: {
+                TelemetryManager.shared.trackHandsFreeDisabled(surface: "standby_banner")
+                trackingManager.stopStandby()
+            },
+            showHandsFreeTip: HandsFreeReliabilityPolicy.shouldShowHomeHandsFreeTip(
+                isStandbyActive: trackingManager.isStandbyActive,
+                autoTripChainingEnabled: autoTripChainingEnabled,
+                tipDismissed: autoTripChainingTipDismissed,
+                hasUnreadBroadcast: broadcasts.unread(
+                    release: OperatorBroadcastReceiver.currentRelease()
+                ).first != nil
+            ),
+            onEnableHandsFree: {
+                autoTripChainingEnabled = true
+                TelemetryManager.shared.trackHandsFreeEnabled(
+                    surface: "home_top_slot",
+                    dwellMinutes: autoEndDwellMinutes
+                )
+                let armed = trackingManager.armStandbyFromHome()
+                if !armed {
+                    ToastManager.shared.show(
+                        message: LocalizationHelper.localized("Hands-free enabled"),
+                        style: .success
+                    )
+                }
+            },
+            onDismissHandsFreeTip: {
+                autoTripChainingTipDismissed = true
+            },
             watcherInboxInvite: trustedWatchers.inboxInvite,
             onWatchLiveInvite: { invite in
                 TelemetryManager.shared.trackWatcherPushOpened()
@@ -1041,14 +1126,14 @@ struct HomeView: View {
     }
 
     private var shouldShowStationaryHint: Bool {
-        trackingManager.state == .tracking
+        (trackingManager.state == .tracking || trackingManager.state == .gpsLost)
             && trackingManager.totalDistance < 5.0
             && trackingManager.elapsedDurationInMillis >= 12_000
     }
 
     private func handleStopRide() {
         if RideStartAbortPolicy.isShortIndoorTest(
-            durationInMillis: trackingManager.durationInMillis,
+            durationInMillis: trackingManager.elapsedDurationInMillis,
             distanceMeters: trackingManager.totalDistance
         ) {
             showDiscardRideDialog = true
@@ -1099,13 +1184,22 @@ struct HomeView: View {
     @ViewBuilder
     private var activeHUDView: some View {
         if RideStartAbortPolicy.canOfferPostCommitUndo(
-            durationInMillis: trackingManager.durationInMillis,
+            durationInMillis: trackingManager.elapsedDurationInMillis,
             distanceMeters: trackingManager.totalDistance
         ) {
             Button(role: .destructive) {
+                let wasAutoStarted = trackingManager.isCurrentRideAutoStarted
+                let elapsedSeconds = Int(trackingManager.elapsedDurationInMillis / 1000)
+                let distanceMeters = Int(trackingManager.totalDistance)
                 guard trackingManager.discardNearEmptyRideStart() else { return }
                 Haptics.notify(.warning)
                 TelemetryManager.shared.trackRideStartAborted(method: .postCommitUndo)
+                if wasAutoStarted {
+                    TelemetryManager.shared.trackHandsFreeFalseStartAborted(
+                        elapsedSeconds: elapsedSeconds,
+                        distanceMeters: distanceMeters
+                    )
+                }
             } label: {
                 Label(LocalizationHelper.localized("Cancel"), systemImage: "xmark")
                     .font(.subheadline.bold())

@@ -136,10 +136,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
 
             switch response.actionIdentifier {
-            // §6.1.1 #4. "Finish ride" goes through the ordinary stop path — a shortcut that
-            // skipped the save would turn a helpful question into the worst bug in the release.
+            // §6.1.1 #4 / TASK-372. "Finish ride" goes through the ordinary stop path — cropping
+            // trailing stationary points when Hands-Free Auto-Stop is off so forgotten indoor rides
+            // do not save hours of zero-speed duration.
             case ForgottenRideNotifier.finishActionIdentifier:
-                TrackingManager.shared.stopTracking()
+                TrackingManager.shared.finishForgottenRideFromNotification()
             // "Keep recording" only dismisses. The once-per-ride flag was set when the question was
             // asked, so there is no state to change: answering "yes I am still here" and answering
             // nothing must lead to the same place.
