@@ -1,0 +1,2 @@
+TrackMe 1.9.4
+Choose the Live Share update interval in Settings and review the time limit before sharing.

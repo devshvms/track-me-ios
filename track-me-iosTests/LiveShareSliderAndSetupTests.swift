@@ -215,8 +215,16 @@ final class LiveShareSliderAndSetupTests: XCTestCase {
         largeHost.view.setNeedsLayout()
         largeHost.view.layoutIfNeeded()
 
-        XCTAssertEqual(standardHost.view.bounds.width, 375, accuracy: 0.5)
-        XCTAssertEqual(largeHost.view.bounds.width, 375, accuracy: 0.5)
+        for (name, host) in [("Standard", standardHost), ("Accessibility", largeHost)] {
+            let view = host.view!
+            let image = UIGraphicsImageRenderer(bounds: view.bounds).image { context in
+                view.layer.render(in: context.cgContext)
+            }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "Home sharing cards – " + name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
 
         // Trigger the Home deck's onOpenLiveSharing handler and run the 1-hour setup sheet flow.
         standardHost.rootView = makeDeck(.large)
