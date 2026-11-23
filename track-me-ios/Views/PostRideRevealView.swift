@@ -15,12 +15,15 @@ struct PostRideRevealView: View {
     var onDismiss: () -> Void
     var onShareCard: () -> Void = {}
     var onViewDetails: () -> Void = {}
+    var autoTripChainingEnabled: Bool = true
+    var onEnableHandsFree: (() -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var unitSettings = UnitSettings.shared
 
     @State private var ridePolyline: String?
     @State private var pointCount: Int = 0
+    @State private var handsFreeOptedIn = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -97,6 +100,41 @@ struct PostRideRevealView: View {
             }
             .padding(.horizontal, 20)
 
+            // TASK-372: Non-intrusive inline Hands-Free opt-in chip embedded in existing PostRideRevealView
+            if onEnableHandsFree != nil && (!autoTripChainingEnabled || handsFreeOptedIn) {
+                Button {
+                    guard !handsFreeOptedIn else { return }
+                    handsFreeOptedIn = true
+                    onEnableHandsFree?()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: handsFreeOptedIn ? "checkmark.circle.fill" : "sparkles")
+                            .font(.subheadline.weight(.semibold))
+                        Text(
+                            LocalizationHelper.localized(
+                                handsFreeOptedIn
+                                    ? "Hands-free enabled"
+                                    : "Auto-start & auto-stop future trips hands-free"
+                            )
+                        )
+                        .font(.footnote.weight(.semibold))
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .foregroundStyle(handsFreeOptedIn ? BrandColor.success : Color.accentColor)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .frame(minHeight: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill((handsFreeOptedIn ? BrandColor.success : Color.accentColor).opacity(0.12))
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(handsFreeOptedIn)
+                .padding(.horizontal, 20)
+            }
+
             // Actions: Primary Share Button
             Button(action: onShareCard) {
                 HStack(spacing: 8) {
@@ -130,7 +168,7 @@ struct PostRideRevealView: View {
             .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity)
-        .presentationDetents([.height(520), .large])
+        .presentationDetents([.height(576), .large])
         .presentationBackground(.ultraThinMaterial)
         .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
@@ -139,6 +177,9 @@ struct PostRideRevealView: View {
         .accessibilityLabel("\(title). \(message)")
         .task(id: reveal.rideId) {
             TelemetryManager.shared.trackPostRideRevealShown(revealType: reveal.revealType)
+            if onEnableHandsFree != nil && !autoTripChainingEnabled {
+                TelemetryManager.shared.trackHandsFreeOfferShown(surface: "post_ride_reveal")
+            }
             if let uuid = UUID(uuidString: reveal.rideId) {
                 var descriptor = FetchDescriptor<Ride>(predicate: #Predicate { $0.id == uuid })
                 descriptor.fetchLimit = 1

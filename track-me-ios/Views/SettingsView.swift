@@ -359,6 +359,16 @@ struct SettingsView: View {
                                 .labelsHidden()
                                 .tint(BrandColor.primary)
                                 .accessibilityLabel(LocalizationHelper.localized("Continuous Trip Tracking"))
+                                .onChange(of: autoTripChainingEnabled) { _, enabled in
+                                    if enabled {
+                                        TelemetryManager.shared.trackHandsFreeEnabled(
+                                            surface: "settings",
+                                            dwellMinutes: autoEndDwellMinutes
+                                        )
+                                    } else {
+                                        TelemetryManager.shared.trackHandsFreeDisabled(surface: "settings")
+                                    }
+                                }
                         }
 
                         if autoTripChainingEnabled {

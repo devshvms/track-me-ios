@@ -20,6 +20,9 @@ struct HomeDashboardDeck: View {
     var liveSharingActive = false
     var isStandbyActive = false
     var onStopStandby: (() -> Void)? = nil
+    var showHandsFreeTip = false
+    var onEnableHandsFree: (() -> Void)? = nil
+    var onDismissHandsFreeTip: (() -> Void)? = nil
     var watcherInboxInvite: WatcherInboxInvite? = nil
     var onWatchLiveInvite: (WatcherInboxInvite) -> Void = { _ in }
     var trustedWatcherCount: Int = 0
@@ -30,6 +33,7 @@ struct HomeDashboardDeck: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showHowItWorks = false
     @State private var showLiveSharingInfo = false
+    @State private var didTrackHandsFreeTipOffer = false
 
     var body: some View {
         ScrollView {
@@ -44,6 +48,22 @@ struct HomeDashboardDeck: View {
                         isVisible: isVisible,
                         reduceMotion: reduceMotion
                     )
+                } else if showHandsFreeTip {
+                    HandsFreeTipBannerCard(
+                        onEnable: { onEnableHandsFree?() },
+                        onDismiss: { onDismissHandsFreeTip?() }
+                    )
+                    .dashboardCardMotion(
+                        orderFromTop: 0,
+                        total: 5,
+                        isVisible: isVisible,
+                        reduceMotion: reduceMotion
+                    )
+                    .task(id: isVisible && showHandsFreeTip) {
+                        guard isVisible && showHandsFreeTip && !didTrackHandsFreeTipOffer else { return }
+                        didTrackHandsFreeTipOffer = true
+                        TelemetryManager.shared.trackHandsFreeOfferShown(surface: "home_top_slot")
+                    }
                 }
 
                 if let watcherInboxInvite {
@@ -829,6 +849,51 @@ private struct StandbyBannerCard: View {
                 Button(LocalizationHelper.localized("Stop standby"), action: onStop)
                     .buttonStyle(.bordered)
                     .lineLimit(1)
+            }
+        }
+    }
+}
+
+private struct HandsFreeTipBannerCard: View {
+    let onEnable: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        DashboardCard {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(BrandColor.primary)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(LocalizationHelper.localized("Hands-free mode"))
+                        .font(.subheadline.weight(.semibold))
+                    Text(LocalizationHelper.localized("Auto-stop trips indoors & auto-start when you head out"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button(action: onEnable) {
+                    Text(LocalizationHelper.localized("Enable"))
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .frame(minHeight: 32)
+                }
+                .buttonStyle(.borderedProminent)
+                .frame(minHeight: 44)
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(LocalizationHelper.localized("Dismiss hands-free tip"))
             }
         }
     }

@@ -44,10 +44,12 @@ enum ForgottenRideNotice {
     static func shouldAsk(
         stillnessSeconds: TimeInterval,
         alreadyAsked: Bool,
-        isTracking: Bool
+        isTracking: Bool,
+        autoTripChainingEnabled: Bool = false
     ) -> Bool {
         guard isTracking else { return false }
         guard !alreadyAsked else { return false }
+        guard !autoTripChainingEnabled else { return false }
         return stillnessSeconds >= stillnessBeforeNoticeSeconds
     }
 }

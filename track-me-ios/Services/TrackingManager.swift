@@ -89,9 +89,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     private var lastGpsPauseTelemetryDate: Date = .distantPast
     private var lastGpsResumeTelemetryDate: Date = .distantPast
 
-    // TASK-369: Dwell detector & continuous trip chaining engine
+    // TASK-369 / TASK-371..373: Dwell detector & continuous trip chaining engine
     private let dwellDetector = DwellDetector()
     var isStandbyActive: Bool = false
+    var isCurrentRideAutoStarted: Bool = false
+    private var standbyStartedAt: Date?
     private var standbyTimeoutTimer: Timer?
     private var defaultsObserver: NSObjectProtocol?
 
@@ -133,9 +135,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var timeSinceLastGps: TimeInterval = 0
     var lastGpsTimestamp: Date?
     var isGpsLostWarningActive: Bool {
+        let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
+        if HandsFreeReliabilityPolicy.shouldSuppressGpsLost(
+            isGpsThrottled: isGpsThrottled,
+            isStationary: isStationary
+        ) {
+            return false
+        }
         if state == .gpsLost { return true }
         guard state == .tracking else { return false }
-        let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
         let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
         return timeSinceLastGps > timeout
     }
@@ -191,12 +199,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     func stopStandby() {
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
+        standbyStartedAt = nil
         let wasStandby = isStandbyActive || dwellDetector.state == .standbyWaitingForNextTrip
         isStandbyActive = false
         dwellDetector.reset()
         guard wasStandby else { return }
         if state == .idle {
             locationManager.stopUpdatingLocation()
+            motionSensor.stopListening()
             let keepBackgroundForGroup = GroupRideManager.shared.state.isActive
             locationManager.allowsBackgroundLocationUpdates = keepBackgroundForGroup
             locationManager.showsBackgroundLocationIndicator = keepBackgroundForGroup
@@ -207,12 +217,61 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     @MainActor
     private func scheduleStandbyTimeout() {
         standbyTimeoutTimer?.invalidate()
-        let timeoutSeconds = max(1, dwellDetector.maxStandbyWindow)
-        standbyTimeoutTimer = Timer.scheduledTimer(withTimeInterval: timeoutSeconds, repeats: false) { [weak self] _ in
+        let maxWindow = max(1, dwellDetector.maxStandbyWindow)
+        let checkInterval = min(60.0, maxWindow)
+        standbyTimeoutTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.stopStandby()
+                guard let self else { return }
+                guard self.isStandbyActive || self.dwellDetector.state == .standbyWaitingForNextTrip else {
+                    self.standbyTimeoutTimer?.invalidate()
+                    self.standbyTimeoutTimer = nil
+                    return
+                }
+                let startedAt = self.standbyStartedAt ?? Date()
+                if Date().timeIntervalSince(startedAt) >= maxWindow {
+                    self.stopStandby()
+                }
             }
         }
+    }
+
+    @MainActor
+    private func enterStandby(anchorCoordinate: CLLocationCoordinate2D?, trigger: String) {
+        guard !isLiveShareBlockingDwell else { return }
+        let now = Date()
+        standbyStartedAt = now
+        dwellDetector.transitionToStandby(lastAnchorCoordinate: anchorCoordinate, now: now)
+        isStandbyActive = true
+        scheduleStandbyTimeout()
+
+        // Step down location manager to low-power standby (100m accuracy, 25m distance filter)
+        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager.distanceFilter = 25.0
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.showsBackgroundLocationIndicator = true
+        locationManager.pausesLocationUpdatesAutomatically = false
+        locationManager.startUpdatingLocation()
+
+        let timeoutMinutes = max(1, Int(dwellDetector.maxStandbyWindow / 60.0))
+        TelemetryManager.shared.trackHandsFreeStandbyArmed(
+            trigger: trigger,
+            timeoutMinutes: timeoutMinutes
+        )
+    }
+
+    /// TASK-372: Arms 2-hour low-power standby from Home discovery banner without starting a ride.
+    /// Does not trigger permission prompts; returns false if location permission is not yet granted.
+    @MainActor
+    @discardableResult
+    func armStandbyFromHome() -> Bool {
+        guard state == .idle, currentRideId == nil else { return false }
+        guard mappedAuth == .always || mappedAuth == .whenInUse else { return false }
+        guard !isLiveShareBlockingDwell else { return false }
+        UserDefaults.standard.set(true, forKey: "autoTripChainingEnabled")
+        syncDwellDetectorPreferences()
+        guard dwellDetector.isAutoTripChainingEnabled else { return false }
+        enterStandby(anchorCoordinate: locationManager.location?.coordinate, trigger: "home_opt_in")
+        return true
     }
 
     @MainActor
@@ -343,10 +402,16 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// is an involuntary system pause, not a user pause; the ride is still "tracking".
     func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
         guard Self.shouldRearmOnInvoluntaryPause(state: state) else { return }
-        let now = Date()
-        if now.timeIntervalSince(lastGpsPauseTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
-            lastGpsPauseTelemetryDate = now
-            TelemetryManager.shared.trackLocationUpdatesPaused()
+        let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
+        if !HandsFreeReliabilityPolicy.shouldSuppressGpsLost(
+            isGpsThrottled: isGpsThrottled,
+            isStationary: isStationary
+        ) {
+            let now = Date()
+            if now.timeIntervalSince(lastGpsPauseTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
+                lastGpsPauseTelemetryDate = now
+                TelemetryManager.shared.trackLocationUpdatesPaused()
+            }
         }
         manager.startUpdatingLocation()
     }
@@ -374,7 +439,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
+        standbyStartedAt = nil
         isStandbyActive = false
+        isCurrentRideAutoStarted = false
         syncDwellDetectorPreferences()
         dwellDetector.reset()
         let recordingConfig = LocationSessionConfig.recordingRide
@@ -556,22 +623,80 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 } else { self.isAutoPaused = false }
                 if self.trackingAlgorithmVersion != 2 && !self.isAutoPaused { self.durationInMillis += 1000 }
                 if let lastTs = self.lastGpsTimestamp {
-                    self.timeSinceLastGps = Date().timeIntervalSince(lastTs)
+                    let now = Date()
+                    self.timeSinceLastGps = now.timeIntervalSince(lastTs)
                     let previous = self.state
-                    let isStationary = self.isAutoPaused || self.motionSensor.isDeviceStationary()
-                    self.updateStillness(isStill: isStationary, fixTime: Date())
-                    let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
-                    if self.timeSinceLastGps > timeout {
-                        self.state = .gpsLost
-                        if previous == .tracking {
-                            let now = Date()
-                            if now.timeIntervalSince(self.lastGpsPauseTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
-                                self.lastGpsPauseTelemetryDate = now
-                                TelemetryManager.shared.trackLocationUpdatesPaused()
-                            }
+                    let hasMotionSample = self.motionSensor.currentEnergy != nil
+                    let isMotionStationary = self.motionSensor.isDeviceStationary()
+                    let isHardwareMoving = hasMotionSample && !isMotionStationary
+
+                    // TASK-373 (Invariant 4): Immediately restore high-accuracy GPS polling when
+                    // hardware IMU detects physical movement resuming.
+                    if HandsFreeReliabilityPolicy.shouldUnthrottleOnMotionWake(
+                        isGpsThrottled: self.isGpsThrottled,
+                        isMotionStationary: isMotionStationary,
+                        hasMotionSample: hasMotionSample
+                    ) {
+                        self.setStationaryThrottled(false)
+                        self.locationManager.startUpdatingLocation()
+                    }
+
+                    let isStationary = self.isAutoPaused || isMotionStationary
+                    self.updateStillness(isStill: isStationary, fixTime: now, allowThrottle: !isHardwareMoving)
+
+                    // TASK-372 (Invariants 2 & 5): Evaluate DwellDetector on the 1Hz timer while
+                    // stationary/throttled so 5/10/15/30-min Auto-End fires deterministically even
+                    // with zero CoreLocation callbacks after 3-minute stationary throttling.
+                    self.syncDwellDetectorPreferences()
+                    if self.isLiveShareBlockingDwell {
+                        if self.dwellDetector.state != .activeTracking {
+                            self.dwellDetector.reset()
                         }
-                    } else {
+                    } else if HandsFreeReliabilityPolicy.shouldEvaluateDwellOnTimerTick(
+                        isAutoTripChainingEnabled: self.dwellDetector.isAutoTripChainingEnabled,
+                        isLiveShareBlockingDwell: false,
+                        isAutoPaused: self.isAutoPaused,
+                        isMotionStationary: isMotionStationary,
+                        isGpsThrottled: self.isGpsThrottled,
+                        dwellState: self.dwellDetector.state
+                    ), let anchorLoc = self.lastV2RawLocation ?? self.points.last {
+                        let wasThrottled = self.isGpsThrottled
+                        let dwellResult = self.dwellDetector.evaluate(
+                            coordinate: anchorLoc.coordinate,
+                            speedKmh: 0.0,
+                            now: now,
+                            horizontalAccuracy: anchorLoc.horizontalAccuracy
+                        )
+                        if dwellResult.shouldAutoEndRide {
+                            self.handleAutoEndRide(
+                                result: dwellResult,
+                                lastLocation: anchorLoc,
+                                wasGpsThrottled: wasThrottled
+                            )
+                            return
+                        }
+                    }
+
+                    // TASK-373 (Invariant 3): Suppress false .gpsLost and location_updates_paused
+                    // telemetry when stationary GPS throttling intentionally holds back callbacks.
+                    if HandsFreeReliabilityPolicy.shouldSuppressGpsLost(
+                        isGpsThrottled: self.isGpsThrottled,
+                        isStationary: isStationary
+                    ) {
                         self.state = .tracking
+                    } else {
+                        let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+                        if self.timeSinceLastGps > timeout {
+                            self.state = .gpsLost
+                            if previous == .tracking {
+                                if now.timeIntervalSince(self.lastGpsPauseTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
+                                    self.lastGpsPauseTelemetryDate = now
+                                    TelemetryManager.shared.trackLocationUpdatesPaused()
+                                }
+                            }
+                        } else {
+                            self.state = .tracking
+                        }
                     }
                     // Push immediately on a GPS-lost/restored transition, otherwise throttle.
                     self.updateLiveActivity(force: self.state != previous || previousAutoPaused != self.isAutoPaused)
@@ -676,7 +801,9 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     func stopTracking(discard: Bool = false, endedAtOverride: Date? = nil) {
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
+        standbyStartedAt = nil
         isStandbyActive = false
+        isCurrentRideAutoStarted = false
         dwellDetector.reset()
         v2Pedometer.stop()
         locationManager.stopUpdatingLocation()
@@ -754,13 +881,35 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         ) }
     }
 
+    /// TASK-372: Finishes a ride from the ForgottenRideNotifier action, cropping trailing
+    /// stationary points since `stillnessStartedAt` when Hands-Free Auto-Stop is OFF.
+    @MainActor
+    func finishForgottenRideFromNotification() {
+        guard state != .idle, let id = currentRideId else {
+            stopTracking()
+            return
+        }
+        syncDwellDetectorPreferences()
+        if !dwellDetector.isAutoTripChainingEnabled, let cutoff = stillnessStartedAt {
+            let prePrunePointCount = points.count
+            if points.contains(where: { $0.timestamp <= cutoff }) {
+                points.removeAll { $0.timestamp > cutoff }
+                applyCroppedMetricsAfterDwellPrune(prePrunePointCount: prePrunePointCount)
+                DataRepository.shared.deletePointsAfter(rideId: id, timestamp: cutoff)
+                stopTracking(endedAtOverride: cutoff)
+                return
+            }
+        }
+        stopTracking()
+    }
+
     /// SCOPE_1.8.7 §6.1.1 scenario 4 — track how long the rider has been still, and ask once.
     ///
     /// - Parameter fixTime: the location's own timestamp, not the wall clock. A batch of fixes
     ///   delivered late — which is exactly what happens when a suspended app is resumed — would
     ///   otherwise look like 45 minutes of stillness compressed into a second, and the rider would
     ///   be asked about a ride they are actively on.
-    private func updateStillness(isStill: Bool, fixTime: Date) {
+    private func updateStillness(isStill: Bool, fixTime: Date, allowThrottle: Bool = true) {
         guard isStill else {
             // Moving again. Reset the clock but keep `forgottenRideAsked`: the policy is once per
             // ride, and a rider who moves, stops again and gets asked a second time is being argued
@@ -781,20 +930,23 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         guard stillnessSeconds >= 0 else { return }
 
         // TASK-351 (BATT-01): Throttle GPS polling rate when confirmed stationary > 3m
-        if AdaptiveGpsThrottlePolicy.shouldThrottle(isStationary: true, stillnessDuration: stillnessSeconds) {
+        if allowThrottle,
+           AdaptiveGpsThrottlePolicy.shouldThrottle(isStationary: true, stillnessDuration: stillnessSeconds) {
             if !isGpsThrottled {
                 setStationaryThrottled(true)
             }
         }
 
+        syncDwellDetectorPreferences()
         guard ForgottenRideNotice.shouldAsk(
             stillnessSeconds: stillnessSeconds,
             alreadyAsked: forgottenRideAsked,
-            isTracking: (state == .tracking || state == .gpsLost) && currentRideId != nil
+            isTracking: (state == .tracking || state == .gpsLost) && currentRideId != nil,
+            autoTripChainingEnabled: dwellDetector.isAutoTripChainingEnabled
         ) else { return }
 
         forgottenRideAsked = true
-        let elapsedSeconds = durationInMillis / 1000
+        let elapsedSeconds = elapsedDurationInMillis / 1000
         Task { await ForgottenRideNotifier.notifyForgottenRide(
             elapsedSeconds: elapsedSeconds,
             stillSince: startedAt
@@ -826,7 +978,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         guard state != .idle,
               let id = currentRideId,
               RideStartAbortPolicy.canOfferPostCommitUndo(
-                durationInMillis: durationInMillis,
+                durationInMillis: elapsedDurationInMillis,
                 distanceMeters: totalDistance
               ) else { return false }
 
@@ -834,9 +986,14 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         dwellDetector.reset()
         v2Pedometer.stop()
         motionSensor.stopListening()
+        ForgottenRideNotifier.cancel()
+        setStationaryThrottled(false)
+        stillnessStartedAt = nil
+        forgottenRideAsked = false
         timer?.invalidate()
         timer = nil
         storageWarningShown = false
+        isCurrentRideAutoStarted = false
         state = .idle
         UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["StorageLow"])
@@ -873,6 +1030,75 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             LiveSharingManager.shared.stopSession(reason: "Ride start cancelled.")
         }
         return true
+    }
+
+    /// TASK-371: Discards a short indoor test ride, enables Hands-Free trip chaining, and
+    /// transitions directly into the 2-hour low-power standby loop.
+    @MainActor
+    func discardNearEmptyRideAndArmStandby() {
+        UserDefaults.standard.set(true, forKey: "autoTripChainingEnabled")
+        syncDwellDetectorPreferences()
+
+        let anchorCoord = lastV2RawLocation?.coordinate
+            ?? points.last?.coordinate
+            ?? locationManager.location?.coordinate
+
+        v2Pedometer.stop()
+        motionSensor.stopListening()
+        ForgottenRideNotifier.cancel()
+        setStationaryThrottled(false)
+        stillnessStartedAt = nil
+        forgottenRideAsked = false
+        timer?.invalidate()
+        timer = nil
+        storageWarningShown = false
+        isCurrentRideAutoStarted = false
+        state = .idle
+        UserDefaults.standard.removeObject(forKey: Self.activeRideKey)
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["StorageLow"])
+
+        RideActivityManager.shared.end(
+            startedAt: Date().addingTimeInterval(-durationInMillis / 1000),
+            distanceMeters: totalDistance,
+            speedMps: 0,
+            pausedElapsed: durationInMillis / 1000
+        )
+
+        if let id = currentRideId {
+            liveShareIntervalTracker.clear()
+            DataRepository.shared.deleteRide(rideId: id)
+        }
+        currentRideId = nil
+        points.removeAll(keepingCapacity: false)
+        currentSpeed = 0
+        totalDistance = 0
+        maxSpeedMps = 0
+        durationInMillis = 0
+        elapsedDurationInMillis = 0
+        skipsNextDistanceSegmentAfterManualPause = false
+        v2LocationEligibleAfter = .distantPast
+        lastAcceptedV2LocationTimestamp = nil
+        lastV2RawLocation = nil
+        lastV2DisplayCoordinate = nil
+        selectedPersona = .auto
+        locationManager.activityType = LocationSessionConfig.recordingRide.activityType
+        isAutoPaused = false
+        timeSinceLastGps = 0
+        lastGpsTimestamp = nil
+        GroupRideManager.shared.refreshLocationSource()
+
+        if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
+            LiveSharingManager.shared.stopSession(reason: "Ride test discarded; armed hands-free standby.")
+        }
+
+        if dwellDetector.isAutoTripChainingEnabled && !isLiveShareBlockingDwell {
+            enterStandby(anchorCoordinate: anchorCoord, trigger: "indoor_test_discard")
+        } else {
+            locationManager.stopUpdatingLocation()
+            let keepBackgroundForGroup = GroupRideManager.shared.state.isActive
+            locationManager.allowsBackgroundLocationUpdates = keepBackgroundForGroup
+            locationManager.showsBackgroundLocationIndicator = keepBackgroundForGroup
+        }
     }
 
     func pauseTracking() {
@@ -1045,7 +1271,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                         horizontalAccuracy: newest.horizontalAccuracy
                     )
                     if dwellResult.shouldAutoEndRide {
-                        handleAutoEndRide(result: dwellResult, lastLocation: newest)
+                        handleAutoEndRide(result: dwellResult, lastLocation: newest, wasGpsThrottled: isGpsThrottled)
                         return
                     }
                 } else {
@@ -1056,8 +1282,15 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
             if let newestAdmitted {
                 lastGpsTimestamp = newestAdmitted.timestamp
                 let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
-                let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
-                state = timeSinceLastGps > timeout ? .gpsLost : .tracking
+                if HandsFreeReliabilityPolicy.shouldSuppressGpsLost(
+                    isGpsThrottled: isGpsThrottled,
+                    isStationary: isStationary
+                ) {
+                    state = .tracking
+                } else {
+                    let timeout = isStationary ? Self.stationaryGpsLossTimeout : Self.gpsLossTimeout
+                    state = timeSinceLastGps > timeout ? .gpsLost : .tracking
+                }
                 if stateBeforeDelivery == .gpsLost && state == .tracking {
                     let now = Date()
                     if now.timeIntervalSince(lastGpsResumeTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
@@ -1200,7 +1433,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     horizontalAccuracy: lastLoc.horizontalAccuracy
                 )
                 if dwellResult.shouldAutoEndRide {
-                    handleAutoEndRide(result: dwellResult, lastLocation: lastLoc)
+                    handleAutoEndRide(result: dwellResult, lastLocation: lastLoc, wasGpsThrottled: isGpsThrottled)
                     return
                 }
             } else {
@@ -1366,18 +1599,33 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         maxSpeedMps = min(maxSpeedMps, reconstructed.maxSpeedMps)
     }
 
-    private func handleAutoEndRide(result: DwellEvaluationResult, lastLocation: CLLocation) {
+    private func handleAutoEndRide(
+        result: DwellEvaluationResult,
+        lastLocation: CLLocation,
+        wasGpsThrottled: Bool = false
+    ) {
         guard let id = currentRideId else { return }
 
         let prePrunePointCount = points.count
         let autoEndTs = result.autoEndTimestamp
+        var croppedPoints = 0
 
-        // 1. Trailing point pruning and metric cropping if enabled
+        // 1. Trailing point pruning and metric cropping if enabled (never wipe all points)
         if result.shouldPruneTrailingPoints, let autoEndTs {
-            points.removeAll { $0.timestamp > autoEndTs }
-            applyCroppedMetricsAfterDwellPrune(prePrunePointCount: prePrunePointCount)
-            DataRepository.shared.deletePointsAfter(rideId: id, timestamp: autoEndTs)
+            if points.contains(where: { $0.timestamp <= autoEndTs }) {
+                points.removeAll { $0.timestamp > autoEndTs }
+                croppedPoints = max(0, prePrunePointCount - points.count)
+                applyCroppedMetricsAfterDwellPrune(prePrunePointCount: prePrunePointCount)
+                DataRepository.shared.deletePointsAfter(rideId: id, timestamp: autoEndTs)
+            }
         }
+
+        // Emit §3.2 telemetry before teardown resets dwell/throttle state
+        TelemetryManager.shared.trackHandsFreeRideAutoEnded(
+            dwellMinutes: dwellDetector.autoEndDwellMinutes,
+            croppedPoints: croppedPoints,
+            wasGpsThrottled: wasGpsThrottled
+        )
 
         // 2. Post local notification
         postAutoEndNotification()
@@ -1420,6 +1668,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         setStationaryThrottled(false)
         stillnessStartedAt = nil
         forgottenRideAsked = false
+        isCurrentRideAutoStarted = false
         state = .idle
         timer?.invalidate()
         timer = nil
@@ -1468,24 +1717,23 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         // Transition dwell detector to standby waiting for next trip breakout (capped at 2h)
         let anchorCoord = result.dwellAnchorCoordinate ?? lastLocation.coordinate
-        dwellDetector.transitionToStandby(lastAnchorCoordinate: anchorCoord, now: Date())
-        isStandbyActive = true
-        scheduleStandbyTimeout()
-
-        // Step down location manager to low-power standby (100m accuracy, 25m distance filter)
-        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        locationManager.distanceFilter = 25.0
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.showsBackgroundLocationIndicator = true
-        locationManager.pausesLocationUpdatesAutomatically = false
-        locationManager.startUpdatingLocation()
+        enterStandby(anchorCoordinate: anchorCoord, trigger: "auto_end_dwell")
     }
 
     private func startNewAutoChainedRide(at location: CLLocation) {
+        let standbyWaitSeconds = standbyStartedAt.map { max(0, Int(Date().timeIntervalSince($0))) } ?? 0
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
+        standbyStartedAt = nil
         isStandbyActive = false
         startTracking(persona: .auto)
+
+        guard state != .idle, currentRideId != nil else { return }
+        isCurrentRideAutoStarted = true
+        TelemetryManager.shared.trackHandsFreeRideAutoStarted(
+            standbyWaitSeconds: standbyWaitSeconds,
+            activityType: RidePersona.auto.rawValue
+        )
 
         let content = UNMutableNotificationContent()
         content.title = LocalizationHelper.localized("New Ride Automatically Started")
