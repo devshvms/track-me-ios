@@ -639,6 +639,7 @@ struct HomeView: View {
             trackDashboardEntryIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
+            trackingManager.enforceStandbyExpiryIfNeeded()
             if phase == .active {
                 dashboard.refreshOnForeground()
                 trackDashboardEntryIfNeeded()
