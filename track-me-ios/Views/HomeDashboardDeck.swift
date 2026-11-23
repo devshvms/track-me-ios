@@ -218,76 +218,89 @@ struct HomeDashboardDeck: View {
     /// rather than making the promise only where the rider has already committed.
     @ViewBuilder
     private var actionCards: some View {
-        let layout = dynamicTypeSize >= .accessibility1
-            ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
-        layout {
-            groupRideCard
-            DashboardCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Image(systemName: "location.circle")
-                            .font(.system(size: 36)).foregroundStyle(BrandColor.primary)
-                            .accessibilityHidden(true)
+        VStack(spacing: 10) {
+            if dynamicTypeSize >= .accessibility1 {
+                VStack(spacing: 12) {
+                    groupRideCard
+                    liveSharingCard
+                }
+            } else {
+                HStack(alignment: .top, spacing: 12) {
+                    groupRideCard
+                    liveSharingCard
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
 
-                        if !liveSharingActive {
-                            Spacer()
-                            Button {
-                                showLiveSharingInfo.toggle()
-                            } label: {
-                                Image(systemName: "info.circle")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .accessibilityLabel(LocalizationHelper.localized("How live sharing works"))
-                            // Same treatment as the group card's explainer, for the same reason:
-                            // these two cards share an HStack and size to the taller one, so an
-                            // inline paragraph here would stretch Ride together beside it.
-                            .popover(isPresented: $showLiveSharingInfo) {
-                                Text(LocalizationHelper.localized(
-                                    "Anyone with the link sees your location while you are recording. The link expires when the session does, and only you can start or stop it."
-                                ))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(width: 250, alignment: .leading)
-                                .padding(16)
-                                .presentationCompactAdaptation(.popover)
-                            }
-                        }
-                    }
-                    Text(LocalizationHelper.localized("Live sharing")).font(.headline)
+            if let onManageWatchers {
+                TrustedWatchersShortcutRow(
+                    trustedWatcherCount: trustedWatcherCount,
+                    onManageWatchers: onManageWatchers
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var liveSharingCard: some View {
+        DashboardCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center) {
+                    Image(systemName: "location.circle")
+                        .font(.system(size: 36)).foregroundStyle(BrandColor.primary)
+                        .accessibilityHidden(true)
+
                     Spacer(minLength: 0)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Button(
-                            LocalizationHelper.localized(liveSharingActive ? "Manage" : "Share Live Location"),
-                            action: onOpenLiveSharing
-                        )
-                        .buttonStyle(.borderedProminent)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .accessibilityLabel(LocalizationHelper.localized(
-                            liveSharingActive ? "Manage live sharing" : "Share Live Location"
-                        ))
 
-                        if let onManageWatchers {
-                            Button(action: onManageWatchers) {
-                                Text(
-                                    trustedWatcherCount > 0
-                                        ? LocalizationHelper.formatted("Watchers (%@)", String(trustedWatcherCount))
-                                        : LocalizationHelper.localized("Trusted Watchers")
-                                )
-                                .font(.caption.weight(.semibold))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                            }
-                            .buttonStyle(.borderless)
+                    if !liveSharingActive {
+                        Button {
+                            showLiveSharingInfo.toggle()
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel(LocalizationHelper.localized("How live sharing works"))
+                        // Same treatment as the group card's explainer, for the same reason:
+                        // these two cards share an HStack and size to the taller one, so an
+                        // inline paragraph here would stretch Ride together beside it.
+                        .popover(isPresented: $showLiveSharingInfo) {
+                            Text(LocalizationHelper.localized(
+                                "Anyone with the link sees your location while you are recording. The link expires when the session does, and only you can start or stop it."
+                            ))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(width: 250, alignment: .leading)
+                            .padding(16)
+                            .presentationCompactAdaptation(.popover)
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
+                .frame(minHeight: 44)
+
+                Text(LocalizationHelper.localized("Live sharing"))
+                    .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 0)
+
+                Button(action: onOpenLiveSharing) {
+                    Text(LocalizationHelper.localized(liveSharingActive ? "Manage" : "Share Live Location"))
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity, minHeight: 32)
+                }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .accessibilityLabel(LocalizationHelper.localized(
+                    liveSharingActive ? "Manage live sharing" : "Share Live Location"
+                ))
             }
+            .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 
@@ -295,13 +308,14 @@ struct HomeDashboardDeck: View {
     private var groupRideCard: some View {
         DashboardCard {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
+                HStack(alignment: .center) {
                     Image(systemName: "person.2.circle")
                         .font(.system(size: 36)).foregroundStyle(BrandColor.primary)
                         .accessibilityHidden(true)
 
+                    Spacer(minLength: 0)
+
                     if !groupActive {
-                        Spacer()
                         Button {
                             showHowItWorks.toggle()
                         } label: {
@@ -337,34 +351,76 @@ struct HomeDashboardDeck: View {
                         }
                     }
                 }
+                .frame(minHeight: 44)
+
                 Text(groupActive
                     ? "\(LocalizationHelper.localized("Group session active")) • "
                         + LocalizationHelper.formatted("%@ members", String(groupMemberCount))
                     : LocalizationHelper.localized("Ride together"))
                     .font(.headline)
                     .fixedSize(horizontal: false, vertical: true)
+
                 Spacer(minLength: 0)
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) { groupActions }
-                    VStack(alignment: .leading, spacing: 8) { groupActions }
+                Button(action: groupActive ? onOpenGroupMap : onOpenCommunity) {
+                    Text(LocalizationHelper.localized(groupActive ? "View live map" : "Open groups"))
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity, minHeight: 32)
                 }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
         }
     }
+}
 
-    @ViewBuilder
-    private var groupActions: some View {
-        if groupActive {
-            Button(LocalizationHelper.localized("View live map"), action: onOpenGroupMap)
-                .buttonStyle(.borderedProminent)
-                .frame(minHeight: 44)
-        } else {
-            Button(LocalizationHelper.localized("Open groups"), action: onOpenCommunity)
-                .buttonStyle(.borderedProminent)
-                .frame(minHeight: 44)
+private struct TrustedWatchersShortcutRow: View {
+    let trustedWatcherCount: Int
+    let onManageWatchers: () -> Void
+
+    private var labelText: String {
+        trustedWatcherCount > 0
+            ? LocalizationHelper.formatted("Watchers (%@)", String(trustedWatcherCount))
+            : LocalizationHelper.localized("Trusted Watchers")
+    }
+
+    var body: some View {
+        Button(action: onManageWatchers) {
+            HStack(spacing: 10) {
+                Image(systemName: "person.2.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(BrandColor.primary)
+                    .accessibilityHidden(true)
+
+                Text(labelText)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(minHeight: 44)
+            .background(
+                Color(uiColor: .secondarySystemGroupedBackground),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(labelText)
     }
 }
 

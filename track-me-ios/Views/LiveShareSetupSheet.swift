@@ -13,17 +13,23 @@ struct LiveShareSetupSheet: View {
     let onInviteWatcher: () -> Void
     let onToggleWatcherAutoNotify: (String, Bool) -> Void
     let onRemoveWatcher: (String) -> Void
+    var stopsWithRide: Bool = true
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedDurationMinutes: Int = 30
+    @State private var isEditingDuration: Bool = false
     @State private var watcherToRemove: TrustedWatcher? = nil
     @State private var showRemoveConfirmation: Bool = false
 
-    private let durationOptions: [(minutes: Int, key: String)] = [
-        (30, "30 min"),
-        (60, "1 hr"),
-        (120, "2 hr"),
-        (1440, "24 hr")
-    ]
+    static let durationOptions: [Int] = [30, 60, 120, 1440]
+
+    static func formatDuration(_ minutes: Int) -> String {
+        if minutes >= 60 && minutes % 60 == 0 {
+            return LocalizationHelper.formatted("%@ hr", String(minutes / 60))
+        }
+        return LocalizationHelper.formatted("%@ min", String(minutes))
+    }
 
     var body: some View {
         NavigationStack {
@@ -36,7 +42,7 @@ struct LiveShareSetupSheet: View {
                             foreground: BrandColor.destructiveText
                         )
                     } else {
-                        Text(LocalizationHelper.localized("Prepare a link valid for 30 minutes. Your location appears while recording. Anyone with the link can view it. Opening this page shares nothing."))
+                        Text(LocalizationHelper.localized("Anyone with the link can view your live location. Opening this page shares nothing."))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -51,29 +57,80 @@ struct LiveShareSetupSheet: View {
 
                     if !liveSharingManager.isActive {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(LocalizationHelper.localized("Share duration"))
-                                .font(.subheadline.weight(.semibold))
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(alignment: .center, spacing: 12) {
+                                    Text(
+                                        LocalizationHelper.formatted(
+                                            "Sharing time limit · %@",
+                                            Self.formatDuration(selectedDurationMinutes)
+                                        )
+                                    )
+                                    .font(.subheadline.weight(.semibold))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                            HStack(spacing: 8) {
-                                ForEach(durationOptions, id: \.minutes) { option in
-                                    let isSelected = selectedDurationMinutes == option.minutes
                                     Button {
-                                        selectedDurationMinutes = option.minutes
-                                        Haptics.selection()
+                                        if reduceMotion {
+                                            isEditingDuration.toggle()
+                                        } else {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                isEditingDuration.toggle()
+                                            }
+                                        }
                                     } label: {
-                                        Text(LocalizationHelper.localized(option.key))
+                                        Text(LocalizationHelper.localized(isEditingDuration ? "Done" : "Change"))
                                             .font(.subheadline.weight(.semibold))
-                                            .frame(maxWidth: .infinity)
-                                            .frame(minHeight: 38)
-                                            .background(
-                                                isSelected ? BrandColor.primaryFill : Color(uiColor: .secondarySystemGroupedBackground),
-                                                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            )
-                                            .foregroundStyle(isSelected ? BrandColor.onPrimary : .primary)
+                                            .frame(minHeight: 44)
                                     }
                                     .buttonStyle(.plain)
+                                    .foregroundStyle(BrandColor.primary)
+                                }
+
+                                if isEditingDuration {
+                                    let columns = Array(
+                                        repeating: GridItem(.flexible(), spacing: 8),
+                                        count: dynamicTypeSize >= .accessibility1 ? 2 : 4
+                                    )
+                                    LazyVGrid(columns: columns, spacing: 8) {
+                                        ForEach(Self.durationOptions, id: \.self) { minutes in
+                                            let isSelected = selectedDurationMinutes == minutes
+                                            Button {
+                                                selectedDurationMinutes = minutes
+                                                Haptics.selection()
+                                            } label: {
+                                                Text(Self.formatDuration(minutes))
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.8)
+                                                    .frame(maxWidth: .infinity)
+                                                    .frame(minHeight: 44)
+                                                    .background(
+                                                        isSelected ? BrandColor.primaryFill : Color(uiColor: .tertiarySystemGroupedBackground),
+                                                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                    )
+                                                    .foregroundStyle(isSelected ? BrandColor.onPrimary : .primary)
+                                            }
+                                            .buttonStyle(.plain)
+                                            .accessibilityAddTraits(isSelected ? .isSelected : [])
+                                        }
+                                    }
                                 }
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Color(uiColor: .secondarySystemGroupedBackground),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+
+                            let expiryBase = LocalizationHelper.localized("Sharing stops automatically at this limit. You can stop it sooner.")
+                            let expiryCopy = stopsWithRide
+                                ? "\(expiryBase) \(LocalizationHelper.localized("Ending your ride also stops sharing."))"
+                                : expiryBase
+                            Text(expiryCopy)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
 
