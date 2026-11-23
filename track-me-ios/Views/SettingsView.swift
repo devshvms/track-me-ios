@@ -23,8 +23,20 @@ struct SettingsView: View {
     @State private var isSyncing = false
     @State private var lastSyncString = FirestoreSyncManager.formattedLastSyncTime()
 
-    @AppStorage("liveShareFrequency") var liveShareFrequency: Int = 15
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(LiveShareFrequencySliderPolicy.prefKey) var liveShareFrequency: Int = LiveShareFrequencySliderPolicy.defaultSeconds
+    @State private var liveShareSliderIndex: Double
+    @State private var isDraggingLiveShareSlider = false
     @State private var showLiveShareInfo = false
+
+    init(popToRootRequest: Int = 0) {
+        self.popToRootRequest = popToRootRequest
+        let stored = UserDefaults.standard.object(forKey: LiveShareFrequencySliderPolicy.prefKey) as? Int
+            ?? LiveShareFrequencySliderPolicy.defaultSeconds
+        _liveShareSliderIndex = State(
+            initialValue: Double(LiveShareFrequencySliderPolicy.index(forSeconds: stored))
+        )
+    }
 
     @AppStorage("enableTelemetry") var isTelemetryEnabled: Bool = false
     @AppStorage("autoTripChainingEnabled") private var autoTripChainingEnabled = false
@@ -285,20 +297,80 @@ struct SettingsView: View {
                             }
                         }
 
-                        HStack {
-                            Text("Update Frequency")
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Picker("Frequency", selection: $liveShareFrequency) {
-                                Text("5s").tag(5)
-                                Text("10s").tag(10)
-                                Text("15s").tag(15)
-                                Text("30s").tag(30)
-                                Text("1m").tag(60)
-                                Text("5m").tag(300)
+                        let selectedSeconds = LiveShareFrequencySliderPolicy.seconds(forSliderValue: liveShareSliderIndex)
+                        let selectedLabel = Self.formatLiveShareInterval(selectedSeconds)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(LocalizationHelper.localized("Live location updates"))
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundColor(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 8)
+                                Group {
+                                    if reduceMotion {
+                                        Text(selectedLabel)
+                                    } else {
+                                        Text(selectedLabel)
+                                            .contentTransition(.numericText())
+                                            .animation(.easeOut(duration: 0.14), value: selectedLabel)
+                                    }
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .monospacedDigit()
+                                .foregroundColor(BrandColor.primary)
+                                .accessibilityIdentifier("live_share_frequency_value")
                             }
+
+                            Slider(
+                                value: $liveShareSliderIndex,
+                                in: 0...Double(LiveShareFrequencySliderPolicy.maxIndex),
+                                step: 1,
+                                onEditingChanged: { editing in
+                                    isDraggingLiveShareSlider = editing
+                                    if !editing {
+                                        commitLiveShareFrequencySlider()
+                                    }
+                                }
+                            )
                             .tint(BrandColor.primary)
+                            .accessibilityLabel(LocalizationHelper.localized("Live location updates"))
+                            .accessibilityValue(selectedLabel)
+                            .accessibilityIdentifier("live_share_frequency_slider")
+                            .onChange(of: liveShareSliderIndex) { oldValue, newValue in
+                                let oldStep = Int(oldValue.rounded())
+                                let newStep = Int(newValue.rounded())
+                                let targetSeconds = LiveShareFrequencySliderPolicy.seconds(forSliderValue: newValue)
+                                let isUserDriven = isDraggingLiveShareSlider || targetSeconds != liveShareFrequency
+                                if oldStep != newStep && isUserDriven {
+                                    Haptics.selection()
+                                }
+                                // VoiceOver adjustable swipe up/down changes the value without
+                                // bracketing via onEditingChanged(true/false); persist immediately
+                                // when not inside a touch drag.
+                                if !isDraggingLiveShareSlider && targetSeconds != liveShareFrequency {
+                                    commitLiveShareFrequencySlider()
+                                }
+                            }
+
+                            HStack(alignment: .top, spacing: 12) {
+                                Text(LocalizationHelper.localized("Less battery use"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 8)
+                                Text(LocalizationHelper.localized("More frequent updates"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.trailing)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Text(LocalizationHelper.localized("Shorter intervals can use more battery."))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .padding()
@@ -529,13 +601,24 @@ struct SettingsView: View {
             .alert("Live Location Sharing", isPresented: $showLiveShareInfo) {
                 Button("Got it", role: .cancel) { }
             } message: {
-                let freqText = liveShareFrequency >= 60 ? "\(liveShareFrequency / 60) min" : "\(liveShareFrequency) sec"
+                let freqText = Self.formatLiveShareInterval(liveShareFrequency)
                 Text(LocalizationHelper.formatted("When active, your location, speed, and battery level are shared securely.\n\n• Coordinates are pushed every %@.\n• Max concurrent viewers is determined by server capability (default: 100+ viewers).\n• Sharing automatically stops when the timer expires or you end your ride.", freqText))
             }
             .onAppear {
+                let syncedIndex = Double(LiveShareFrequencySliderPolicy.index(forSeconds: liveShareFrequency))
+                if liveShareSliderIndex != syncedIndex {
+                    liveShareSliderIndex = syncedIndex
+                }
                 guard authStateListenerHandle == nil else { return }
                 authStateListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
                     isLoggedOut = (user == nil || user?.isAnonymous == true)
+                }
+            }
+            .onChange(of: liveShareFrequency) { _, newValue in
+                guard !isDraggingLiveShareSlider else { return }
+                let syncedIndex = Double(LiveShareFrequencySliderPolicy.index(forSeconds: newValue))
+                if liveShareSliderIndex != syncedIndex {
+                    liveShareSliderIndex = syncedIndex
                 }
             }
             .onDisappear {
@@ -547,6 +630,24 @@ struct SettingsView: View {
         // TASK-226: double-tapping the tab returns to the settings list.
         .onChange(of: popToRootRequest) { _, _ in navigationPath.removeAll() }
         .trackScreen("settings")
+    }
+
+    static func formatLiveShareInterval(_ seconds: Int) -> String {
+        if seconds >= 60 && seconds % 60 == 0 {
+            return LocalizationHelper.formatted("%@ min", String(seconds / 60))
+        }
+        return LocalizationHelper.formatted("%@ sec", String(seconds))
+    }
+
+    private func commitLiveShareFrequencySlider() {
+        let committedSeconds = LiveShareFrequencySliderPolicy.seconds(forSliderValue: liveShareSliderIndex)
+        let snappedIndex = Double(LiveShareFrequencySliderPolicy.index(forSeconds: committedSeconds))
+        if liveShareSliderIndex != snappedIndex {
+            liveShareSliderIndex = snappedIndex
+        }
+        if liveShareFrequency != committedSeconds {
+            liveShareFrequency = committedSeconds
+        }
     }
 
     @ViewBuilder
