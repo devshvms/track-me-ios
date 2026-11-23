@@ -10,10 +10,41 @@ import Foundation
  *  3. False `.gpsLost` / `location_updates_paused` suppression while stationary and throttled.
  *  4. Immediate hardware un-throttling on motion sensor wake.
  *  5. Active Live Share suppressing dwell auto-end.
- *  6. Strict 2-hour standby cap enforcement.
+ *  6. 2-hour standby window backed by a persisted expiry timestamp enforced on timer ticks,
+ *     Core Location wakes, and app lifecycle/time-change wakes (iOS may suspend run-loop timers
+ *     while the app is backgrounded).
  */
 enum HandsFreeReliabilityPolicy {
     static let standbyTimeoutMinutes: Int = 120
+    static let standbyExpiresAtKey: String = "handsFreeStandbyExpiresAt"
+
+    /// Computes the wall-clock expiry deadline for a standby session.
+    static func standbyExpiryDate(startedAt: Date, maxWindow: TimeInterval) -> Date {
+        startedAt.addingTimeInterval(max(1, maxWindow))
+    }
+
+    /// Returns true once the persisted or in-memory standby deadline has been reached or passed.
+    static func isStandbyExpired(expiresAt: Date?, now: Date) -> Bool {
+        guard let expiresAt else { return false }
+        return now >= expiresAt
+    }
+
+    /// Reads the persisted standby expiry timestamp across background suspension or relaunch.
+    static func persistedStandbyExpiry(defaults: UserDefaults = .standard) -> Date? {
+        guard defaults.object(forKey: standbyExpiresAtKey) != nil else { return nil }
+        let epoch = defaults.double(forKey: standbyExpiresAtKey)
+        guard epoch > 0 else { return nil }
+        return Date(timeIntervalSince1970: epoch)
+    }
+
+    /// Persists or clears the standby expiry deadline so every lifecycle/location wake can enforce it.
+    static func persistStandbyExpiry(_ expiresAt: Date?, defaults: UserDefaults = .standard) {
+        if let expiresAt {
+            defaults.set(expiresAt.timeIntervalSince1970, forKey: standbyExpiresAtKey)
+        } else {
+            defaults.removeObject(forKey: standbyExpiresAtKey)
+        }
+    }
 
     /// Invariants 2 & 5: Evaluate DwellDetector on the 1Hz tracking timer whenever Hands-Free is
     /// enabled, Live Share is not active/starting, and the device is stationary, throttled, or

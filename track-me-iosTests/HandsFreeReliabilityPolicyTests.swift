@@ -169,9 +169,9 @@ final class HandsFreeReliabilityPolicyTests: XCTestCase {
         )
     }
 
-    // MARK: - Invariant 6: Strict 2-hour standby cap
+    // MARK: - Invariant 6: 2-hour standby window with persisted expiry enforcement
 
-    func testInvariant6_StandbyExpiresStrictlyAtTwoHoursWithoutMovement() {
+    func testInvariant6_StandbyExpiresAtTwoHoursAndPersistsExpiryAcrossWakes() {
         let detector = DwellDetector(isAutoTripChainingEnabled: true)
         let anchor = CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946)
         let t0 = Date(timeIntervalSince1970: 1_700_000_000)
@@ -195,6 +195,51 @@ final class HandsFreeReliabilityPolicyTests: XCTestCase {
         XCTAssertEqual(atCap.state, .activeTracking)
         XCTAssertTrue(atCap.shouldStopStandby)
         XCTAssertFalse(atCap.shouldAutoStartNextRide)
+
+        // Verify persisted expiry timestamp survives background suspension/relaunch
+        let suiteName = "HandsFreeReliabilityPolicyTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Could not create isolated UserDefaults suite")
+            return
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let expiresAt = HandsFreeReliabilityPolicy.standbyExpiryDate(
+            startedAt: t0,
+            maxWindow: detector.maxStandbyWindow
+        )
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(expiresAt, defaults: defaults)
+
+        let reloaded = HandsFreeReliabilityPolicy.persistedStandbyExpiry(defaults: defaults)
+        XCTAssertNotNil(reloaded)
+        XCTAssertEqual(reloaded?.timeIntervalSince1970 ?? 0, expiresAt.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertFalse(
+            HandsFreeReliabilityPolicy.isStandbyExpired(
+                expiresAt: reloaded,
+                now: t0.addingTimeInterval(7_199)
+            )
+        )
+        XCTAssertTrue(
+            HandsFreeReliabilityPolicy.isStandbyExpired(
+                expiresAt: reloaded,
+                now: t0.addingTimeInterval(7_200)
+            )
+        )
+        XCTAssertTrue(
+            HandsFreeReliabilityPolicy.isStandbyExpired(
+                expiresAt: reloaded,
+                now: t0.addingTimeInterval(10_800)
+            )
+        )
+
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(nil, defaults: defaults)
+        XCTAssertNil(HandsFreeReliabilityPolicy.persistedStandbyExpiry(defaults: defaults))
+        XCTAssertFalse(
+            HandsFreeReliabilityPolicy.isStandbyExpired(
+                expiresAt: nil,
+                now: t0.addingTimeInterval(10_800)
+            )
+        )
     }
 
     // MARK: - ForgottenRideNotice coordination & Home anti-duplication

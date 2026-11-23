@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import SwiftUI
 import SwiftData
+import UIKit
 import UserNotifications
 
 enum TrackingState: Int {
@@ -94,8 +95,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     var isStandbyActive: Bool = false
     var isCurrentRideAutoStarted: Bool = false
     private var standbyStartedAt: Date?
+    private var standbyExpiresAt: Date?
     private var standbyTimeoutTimer: Timer?
     private var defaultsObserver: NSObjectProtocol?
+    private var lifecycleObservers: [NSObjectProtocol] = []
 
     private var isLiveShareBlockingDwell: Bool {
         LiveSharingManager.shared.isActive || LiveSharingManager.shared.isStarting
@@ -200,6 +203,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
         standbyStartedAt = nil
+        standbyExpiresAt = nil
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(nil)
         let wasStandby = isStandbyActive || dwellDetector.state == .standbyWaitingForNextTrip
         isStandbyActive = false
         dwellDetector.reset()
@@ -214,12 +219,44 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// Enforces the persisted 2-hour standby expiry timestamp on every wake (run-loop timer,
+    /// Core Location callback, app lifecycle transition, significant time change, or cold launch).
+    /// iOS can suspend main-run-loop timers while backgrounded, so persisting the deadline ensures
+    /// standby location tracking is torn down as soon as the app is next scheduled.
+    @MainActor
+    @discardableResult
+    func enforceStandbyExpiryIfNeeded(now: Date = Date()) -> Bool {
+        let expiresAt = standbyExpiresAt ?? HandsFreeReliabilityPolicy.persistedStandbyExpiry()
+        guard HandsFreeReliabilityPolicy.isStandbyExpired(expiresAt: expiresAt, now: now) else {
+            return false
+        }
+        standbyExpiresAt = nil
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(nil)
+        if isStandbyActive || dwellDetector.state == .standbyWaitingForNextTrip {
+            stopStandby()
+        } else if state == .idle {
+            standbyTimeoutTimer?.invalidate()
+            standbyTimeoutTimer = nil
+            standbyStartedAt = nil
+            locationManager.stopUpdatingLocation()
+            motionSensor.stopListening()
+            let keepBackgroundForGroup = GroupRideManager.shared.state.isActive
+            locationManager.allowsBackgroundLocationUpdates = keepBackgroundForGroup
+            locationManager.showsBackgroundLocationIndicator = keepBackgroundForGroup
+            GroupRideManager.shared.refreshLocationSource()
+        }
+        return true
+    }
+
     @MainActor
     private func scheduleStandbyTimeout() {
         standbyTimeoutTimer?.invalidate()
         let maxWindow = max(1, dwellDetector.maxStandbyWindow)
         let checkInterval = min(60.0, maxWindow)
-        standbyTimeoutTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
+        // Main-run-loop timer enforces expiry promptly while the app is foregrounded or awake;
+        // because iOS may suspend timers in the background, the persisted `standbyExpiresAt`
+        // timestamp is also checked on every Core Location and UIApplication lifecycle wake.
+        let timer = Timer(timeInterval: checkInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
                 guard self.isStandbyActive || self.dwellDetector.state == .standbyWaitingForNextTrip else {
@@ -227,19 +264,24 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                     self.standbyTimeoutTimer = nil
                     return
                 }
-                let startedAt = self.standbyStartedAt ?? Date()
-                if Date().timeIntervalSince(startedAt) >= maxWindow {
-                    self.stopStandby()
-                }
+                self.enforceStandbyExpiryIfNeeded()
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        standbyTimeoutTimer = timer
     }
 
     @MainActor
     private func enterStandby(anchorCoordinate: CLLocationCoordinate2D?, trigger: String) {
         guard !isLiveShareBlockingDwell else { return }
         let now = Date()
+        let expiresAt = HandsFreeReliabilityPolicy.standbyExpiryDate(
+            startedAt: now,
+            maxWindow: dwellDetector.maxStandbyWindow
+        )
         standbyStartedAt = now
+        standbyExpiresAt = expiresAt
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(expiresAt)
         dwellDetector.transitionToStandby(lastAnchorCoordinate: anchorCoordinate, now: now)
         isStandbyActive = true
         scheduleStandbyTimeout()
@@ -301,6 +343,20 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         // engine for human-powered movement (parity with Android's continuous FGS).
         locationManager.activityType = config.activityType
         locationManager.pausesLocationUpdatesAutomatically = config.pausesLocationUpdatesAutomatically
+
+        // Rehydrate any persisted standby deadline across process termination/relaunch and
+        // immediately tear down stale standby streams if already expired.
+        if let persistedExpiry = HandsFreeReliabilityPolicy.persistedStandbyExpiry() {
+            standbyExpiresAt = persistedExpiry
+            if HandsFreeReliabilityPolicy.isStandbyExpired(expiresAt: persistedExpiry, now: Date()) {
+                standbyExpiresAt = nil
+                HandsFreeReliabilityPolicy.persistStandbyExpiry(nil)
+                locationManager.stopUpdatingLocation()
+                locationManager.allowsBackgroundLocationUpdates = false
+                locationManager.showsBackgroundLocationIndicator = false
+            }
+        }
+
         defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: UserDefaults.standard,
@@ -308,6 +364,24 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.handleDefaultsChanged()
+            }
+        }
+
+        let lifecycleNames: [Notification.Name] = [
+            UIApplication.didBecomeActiveNotification,
+            UIApplication.willEnterForegroundNotification,
+            UIApplication.didEnterBackgroundNotification,
+            UIApplication.significantTimeChangeNotification
+        ]
+        lifecycleObservers = lifecycleNames.map { name in
+            NotificationCenter.default.addObserver(
+                forName: name,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    self?.enforceStandbyExpiryIfNeeded()
+                }
             }
         }
     }
@@ -374,6 +448,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        enforceStandbyExpiryIfNeeded()
         if GroupRideManager.shared.state.isActive,
            mappedAuth == .denied || mappedAuth == .restricted {
             GroupRideManager.shared.updateLatestLocation(nil, moving: false, riding: currentRideId != nil)
@@ -401,6 +476,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     /// so the ride doesn't silently flat-line. Do NOT change TrackingState here — this
     /// is an involuntary system pause, not a user pause; the ride is still "tracking".
     func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
+        if enforceStandbyExpiryIfNeeded() { return }
         guard Self.shouldRearmOnInvoluntaryPause(state: state) else { return }
         let isStationary = isAutoPaused || motionSensor.isDeviceStationary()
         if !HandsFreeReliabilityPolicy.shouldSuppressGpsLost(
@@ -417,6 +493,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
+        if enforceStandbyExpiryIfNeeded() { return }
         // DidUpdateLocations resumes naturally. Telemetry is debounced to avoid rapid flapping.
         let now = Date()
         if now.timeIntervalSince(lastGpsResumeTelemetryDate) >= Self.gpsPauseTelemetryDebounce {
@@ -440,6 +517,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
         standbyStartedAt = nil
+        standbyExpiresAt = nil
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(nil)
         isStandbyActive = false
         isCurrentRideAutoStarted = false
         syncDwellDetectorPreferences()
@@ -802,6 +881,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
         standbyStartedAt = nil
+        standbyExpiresAt = nil
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(nil)
         isStandbyActive = false
         isCurrentRideAutoStarted = false
         dwellDetector.reset()
@@ -1207,6 +1288,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        // TASK-372/373: Enforce persisted 2-hour standby deadline on every Core Location wake,
+        // including after background timer suspension or OS background relaunch.
+        let wakeNow = max(Date(), locations.last?.timestamp ?? Date())
+        if enforceStandbyExpiryIfNeeded(now: wakeNow) {
+            return
+        }
+
         // TASK-369: Standby Trip Chaining evaluation
         if dwellDetector.state == .standbyWaitingForNextTrip || isStandbyActive {
             syncDwellDetectorPreferences()
@@ -1725,6 +1813,8 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
         standbyStartedAt = nil
+        standbyExpiresAt = nil
+        HandsFreeReliabilityPolicy.persistStandbyExpiry(nil)
         isStandbyActive = false
         startTracking(persona: .auto)
 
