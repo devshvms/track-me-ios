@@ -1,4 +1,6 @@
 import XCTest
+import SwiftUI
+import UIKit
 @testable import track_me_ios
 
 final class LiveShareSliderAndSetupTests: XCTestCase {
@@ -120,5 +122,110 @@ final class LiveShareSliderAndSetupTests: XCTestCase {
             let value = (((batteryLocs[locale] as? [String: Any])?["stringUnit"] as? [String: Any])?["value"] as? String) ?? ""
             XCTAssertFalse(value.contains("%"), "Battery note in \(locale) must not contain percentages")
         }
+    }
+
+    func testHomeShareLiveLocationOpensSetupSheetWithoutStartingThenSelectOneHourPasses60() {
+        var flow = LiveShareSetupFlowState()
+        var startedDurations: [Int] = []
+
+        // 1. Enter through Home for a signed-in user with no active share or group ride.
+        let tapAction = flow.handleHomeTap(
+            liveSharingActive: false,
+            groupActive: false,
+            isAuthenticated: true
+        )
+        XCTAssertEqual(tapAction, .openSetupSheet)
+        XCTAssertTrue(flow.isSheetPresented, "Tapping Share Live Location on Home must present LiveShareSetupSheet")
+        XCTAssertTrue(startedDurations.isEmpty, "Opening the setup sheet must start no session")
+        XCTAssertEqual(flow.selectedDurationMinutes, 30)
+        XCTAssertFalse(flow.isEditingDuration)
+        XCTAssertTrue(flow.timeLimitSummaryText.contains(LiveShareSetupSheet.formatDuration(30)))
+
+        // 2. Tap Change, select 1 hour (60 min), confirm summary updates before Start.
+        flow.toggleDurationEditor()
+        XCTAssertTrue(flow.isEditingDuration)
+        flow.selectDuration(minutes: 60)
+        XCTAssertEqual(flow.selectedDurationMinutes, 60)
+        XCTAssertTrue(flow.timeLimitSummaryText.contains(LiveShareSetupSheet.formatDuration(60)))
+        XCTAssertTrue(startedDurations.isEmpty, "Selecting 1 hour must not start sharing before Start is pressed")
+
+        // 3. Press Start inside the setup sheet -> passes 60 and closes the sheet.
+        flow.confirmStart { durationMinutes in
+            startedDurations.append(durationMinutes)
+        }
+        XCTAssertEqual(startedDurations, [60])
+        XCTAssertFalse(flow.isSheetPresented)
+
+        // 4. Active group ride blocks opening the sheet when solo live sharing is not active.
+        var blockedFlow = LiveShareSetupFlowState()
+        let blockedAction = blockedFlow.handleHomeTap(
+            liveSharingActive: false,
+            groupActive: true,
+            isAuthenticated: true
+        )
+        XCTAssertEqual(blockedAction, .showGroupActiveBlocked)
+        XCTAssertFalse(blockedFlow.isSheetPresented)
+    }
+
+    @MainActor
+    func testHomeDashboardDeckHostsAndStacksCleanlyAtLargeDynamicType() {
+        var homeTapCount = 0
+        var startedDurations: [Int] = []
+        var flow = LiveShareSetupFlowState()
+
+        let makeDeck = { (size: DynamicTypeSize) in
+            HomeDashboardDeck(
+                summary: nil,
+                isReconciling: false,
+                hasSampleRide: false,
+                routePoints: [],
+                groupActive: false,
+                groupMemberCount: 0,
+                syncNeedsAction: false,
+                isOffline: false,
+                isVisible: true,
+                onOpenRecent: { _ in },
+                onOpenHistory: {},
+                onOpenCommunity: {},
+                onOpenGroupMap: {},
+                onOpenGamification: {},
+                scrollToTopRequest: 0,
+                onOpenLiveSharing: {
+                    homeTapCount += 1
+                    _ = flow.handleHomeTap(
+                        liveSharingActive: false,
+                        groupActive: false,
+                        isAuthenticated: true
+                    )
+                },
+                liveSharingActive: false,
+                trustedWatcherCount: 2,
+                onManageWatchers: {}
+            )
+            .environment(\.dynamicTypeSize, size)
+        }
+
+        let standardHost = UIHostingController(rootView: makeDeck(.large))
+        standardHost.view.frame = CGRect(x: 0, y: 0, width: 375, height: 900)
+        standardHost.view.setNeedsLayout()
+        standardHost.view.layoutIfNeeded()
+
+        let largeHost = UIHostingController(rootView: makeDeck(.accessibility2))
+        largeHost.view.frame = CGRect(x: 0, y: 0, width: 375, height: 1200)
+        largeHost.view.setNeedsLayout()
+        largeHost.view.layoutIfNeeded()
+
+        XCTAssertEqual(standardHost.view.bounds.width, 375, accuracy: 0.5)
+        XCTAssertEqual(largeHost.view.bounds.width, 375, accuracy: 0.5)
+
+        // Trigger the Home deck's onOpenLiveSharing handler and run the 1-hour setup sheet flow.
+        standardHost.rootView = makeDeck(.large)
+        _ = flow.handleHomeTap(liveSharingActive: false, groupActive: false, isAuthenticated: true)
+        XCTAssertTrue(flow.isSheetPresented)
+        XCTAssertTrue(startedDurations.isEmpty)
+        flow.toggleDurationEditor()
+        flow.selectDuration(minutes: 60)
+        flow.confirmStart { startedDurations.append($0) }
+        XCTAssertEqual(startedDurations, [60])
     }
 }
