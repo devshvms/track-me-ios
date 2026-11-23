@@ -740,18 +740,18 @@ struct HomeView: View {
             onOpenGamification: { showGamificationCollection = true },
             scrollToTopRequest: scrollToTopRequest,
             onOpenLiveSharing: {
-                if liveSharingManager.isActive {
-                    showHomeSharing = true
-                } else if groupRide.state.isActive {
+                switch HomeLiveSharingTapAction.resolve(
+                    liveSharingActive: liveSharingManager.isActive,
+                    groupActive: groupRide.state.isActive,
+                    isAuthenticated: Auth.auth().currentUser != nil
+                ) {
+                case .showGroupActiveBlocked:
                     ToastManager.shared.show(
                         message: LocalizationHelper.localized("Solo live sharing is unavailable during a group ride."),
                         style: .warning
                     )
-                } else if Auth.auth().currentUser == nil {
+                case .openSetupSheet:
                     showHomeSharing = true
-                } else {
-                    TelemetryManager.shared.trackDirectLiveShareTappedHome()
-                    launchDirectLiveShare(durationMinutes: 30)
                 }
             },
             liveSharingActive: liveSharingManager.isActive,

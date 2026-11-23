@@ -1,5 +1,69 @@
 import SwiftUI
 
+enum HomeLiveSharingTapAction: Equatable {
+    case openSetupSheet
+    case showGroupActiveBlocked
+
+    static func resolve(
+        liveSharingActive: Bool,
+        groupActive: Bool,
+        isAuthenticated: Bool
+    ) -> HomeLiveSharingTapAction {
+        if !liveSharingActive && groupActive {
+            return .showGroupActiveBlocked
+        }
+        return .openSetupSheet
+    }
+}
+
+struct LiveShareSetupFlowState: Equatable {
+    var isSheetPresented: Bool = false
+    var selectedDurationMinutes: Int = 30
+    var isEditingDuration: Bool = false
+
+    var timeLimitSummaryText: String {
+        LocalizationHelper.formatted(
+            "Sharing time limit · %@",
+            LiveShareSetupSheet.formatDuration(selectedDurationMinutes)
+        )
+    }
+
+    @discardableResult
+    mutating func handleHomeTap(
+        liveSharingActive: Bool,
+        groupActive: Bool,
+        isAuthenticated: Bool
+    ) -> HomeLiveSharingTapAction {
+        let action = HomeLiveSharingTapAction.resolve(
+            liveSharingActive: liveSharingActive,
+            groupActive: groupActive,
+            isAuthenticated: isAuthenticated
+        )
+        if action == .openSetupSheet {
+            isSheetPresented = true
+            selectedDurationMinutes = 30
+            isEditingDuration = false
+        }
+        return action
+    }
+
+    mutating func toggleDurationEditor() {
+        isEditingDuration.toggle()
+    }
+
+    mutating func selectDuration(minutes: Int) {
+        guard LiveShareSetupSheet.durationOptions.contains(minutes) else { return }
+        selectedDurationMinutes = minutes
+    }
+
+    mutating func confirmStart(onStartDirectShare: (Int) -> Void) {
+        let duration = selectedDurationMinutes
+        isSheetPresented = false
+        isEditingDuration = false
+        onStartDirectShare(duration)
+    }
+}
+
 struct LiveShareSetupSheet: View {
     var liveSharingManager: LiveSharingManager
     let trustedWatchers: [TrustedWatcher]
@@ -17,8 +81,7 @@ struct LiveShareSetupSheet: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var selectedDurationMinutes: Int = 30
-    @State private var isEditingDuration: Bool = false
+    @State private var flowState = LiveShareSetupFlowState(isSheetPresented: true)
     @State private var watcherToRemove: TrustedWatcher? = nil
     @State private var showRemoveConfirmation: Bool = false
 
@@ -59,26 +122,21 @@ struct LiveShareSetupSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack(alignment: .center, spacing: 12) {
-                                    Text(
-                                        LocalizationHelper.formatted(
-                                            "Sharing time limit · %@",
-                                            Self.formatDuration(selectedDurationMinutes)
-                                        )
-                                    )
+                                    Text(flowState.timeLimitSummaryText)
                                     .font(.subheadline.weight(.semibold))
                                     .fixedSize(horizontal: false, vertical: true)
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
                                     Button {
                                         if reduceMotion {
-                                            isEditingDuration.toggle()
+                                            flowState.toggleDurationEditor()
                                         } else {
                                             withAnimation(.easeInOut(duration: 0.2)) {
-                                                isEditingDuration.toggle()
+                                                flowState.toggleDurationEditor()
                                             }
                                         }
                                     } label: {
-                                        Text(LocalizationHelper.localized(isEditingDuration ? "Done" : "Change"))
+                                        Text(LocalizationHelper.localized(flowState.isEditingDuration ? "Done" : "Change"))
                                             .font(.subheadline.weight(.semibold))
                                             .frame(minHeight: 44)
                                     }
@@ -86,16 +144,16 @@ struct LiveShareSetupSheet: View {
                                     .foregroundStyle(BrandColor.primary)
                                 }
 
-                                if isEditingDuration {
+                                if flowState.isEditingDuration {
                                     let columns = Array(
                                         repeating: GridItem(.flexible(), spacing: 8),
                                         count: dynamicTypeSize >= .accessibility1 ? 2 : 4
                                     )
                                     LazyVGrid(columns: columns, spacing: 8) {
                                         ForEach(Self.durationOptions, id: \.self) { minutes in
-                                            let isSelected = selectedDurationMinutes == minutes
+                                            let isSelected = flowState.selectedDurationMinutes == minutes
                                             Button {
-                                                selectedDurationMinutes = minutes
+                                                flowState.selectDuration(minutes: minutes)
                                                 Haptics.selection()
                                             } label: {
                                                 Text(Self.formatDuration(minutes))
@@ -264,7 +322,7 @@ struct LiveShareSetupSheet: View {
                         .tint(BrandColor.destructive)
                     } else {
                         Button {
-                            onStartDirectShare(selectedDurationMinutes)
+                            flowState.confirmStart(onStartDirectShare: onStartDirectShare)
                             onDismiss()
                         } label: {
                             Label(
