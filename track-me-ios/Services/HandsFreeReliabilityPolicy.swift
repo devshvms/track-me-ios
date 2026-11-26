@@ -198,3 +198,24 @@ enum HandsFreeTelemetryContract {
         ]
     }
 }
+
+/// TASK-383 (v1.9.5): Session-scoped surface deduplicator for `hands_free_offer_shown` (100% Android parity).
+/// Value type (`struct`) owned by `@MainActor TelemetryManager` — zero heap/deinit overhead, prevents
+/// view recreation or scroll transitions from emitting duplicate impressions for the same surface
+/// within one app session while preserving distinct surfaces and pre-consent slots.
+struct HandsFreeOfferSessionGate {
+    private var emittedSurfaces = Set<String>()
+
+    mutating func shouldEmit(surface: String, isTelemetryEnabled: Bool) -> Bool {
+        precondition(
+            HandsFreeTelemetryContract.offerSurfaces.contains(surface),
+            "Unsupported hands_free_offer_shown surface: \(surface)"
+        )
+        guard isTelemetryEnabled else { return false }
+        return emittedSurfaces.insert(surface).inserted
+    }
+
+    mutating func reset() {
+        emittedSurfaces.removeAll()
+    }
+}

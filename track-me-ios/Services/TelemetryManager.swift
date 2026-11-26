@@ -896,7 +896,9 @@ class TelemetryManager {
         PostHogSDK.shared.capture("watcher_push_opened")
     }
 
-    // MARK: - TASK-371..373 Hands-Free Auto-Start/Auto-Stop Funnel & Harm Indicators
+    // MARK: - TASK-371..373 / TASK-383 Hands-Free Auto-Start/Auto-Stop Funnel & Session-Deduped Offer Impressions
+
+    var handsFreeOfferSessionGate = HandsFreeOfferSessionGate()
 
     private func capture(_ event: HandsFreeTelemetryEvent) {
         guard shouldTrack() else { return }
@@ -904,6 +906,7 @@ class TelemetryManager {
     }
 
     func trackHandsFreeOfferShown(surface: String) {
+        guard handsFreeOfferSessionGate.shouldEmit(surface: surface, isTelemetryEnabled: shouldTrack()) else { return }
         capture(HandsFreeTelemetryContract.offerShown(surface: surface))
     }
 

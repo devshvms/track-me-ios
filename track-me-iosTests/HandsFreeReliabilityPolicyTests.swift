@@ -2,6 +2,7 @@ import XCTest
 import CoreLocation
 @testable import track_me_ios
 
+@MainActor
 final class HandsFreeReliabilityPolicyTests: XCTestCase {
 
     // MARK: - Invariant 1: Wall-clock elapsed time for undo & short indoor tests
@@ -31,7 +32,7 @@ final class HandsFreeReliabilityPolicyTests: XCTestCase {
 
     // MARK: - Invariant 2: 1Hz timer-driven DwellDetector under 3-minute GPS throttling
 
-    func testInvariant2_TimerDrivenDwellFiresAutoEndAcrossAllDwellWindowsWithZeroGpsCallbacksAfter180s() {
+    func testInvariant2_TimerDrivenDwellFiresAutoEndAcrossAllDwellWindowsWithZeroGpsCallbacksAfter180s() async {
         let anchor = CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946)
         let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
@@ -171,7 +172,7 @@ final class HandsFreeReliabilityPolicyTests: XCTestCase {
 
     // MARK: - Invariant 6: 2-hour standby window with persisted expiry enforcement
 
-    func testInvariant6_StandbyExpiresAtTwoHoursAndPersistsExpiryAcrossWakes() {
+    func testInvariant6_StandbyExpiresAtTwoHoursAndPersistsExpiryAcrossWakes() async {
         let detector = DwellDetector(isAutoTripChainingEnabled: true)
         let anchor = CLLocationCoordinate2D(latitude: 12.9716, longitude: 77.5946)
         let t0 = Date(timeIntervalSince1970: 1_700_000_000)
@@ -333,5 +334,26 @@ final class HandsFreeReliabilityPolicyTests: XCTestCase {
                 }
             }
         }
+    }
+
+    func testHandsFreeOfferSessionGateDeduplicatesPerSurfacePerSession() {
+        var gate = HandsFreeOfferSessionGate()
+
+        // Pre-consent calls do not burn the session slot
+        XCTAssertFalse(gate.shouldEmit(surface: "home_top_slot", isTelemetryEnabled: false))
+
+        // First enabled impression emits; subsequent scroll/recreation calls are suppressed
+        XCTAssertTrue(gate.shouldEmit(surface: "home_top_slot", isTelemetryEnabled: true))
+        XCTAssertFalse(gate.shouldEmit(surface: "home_top_slot", isTelemetryEnabled: true))
+        XCTAssertFalse(gate.shouldEmit(surface: "home_top_slot", isTelemetryEnabled: true))
+
+        // Distinct surfaces still emit once each
+        XCTAssertTrue(gate.shouldEmit(surface: "discard_dialog", isTelemetryEnabled: true))
+        XCTAssertFalse(gate.shouldEmit(surface: "discard_dialog", isTelemetryEnabled: true))
+        XCTAssertTrue(gate.shouldEmit(surface: "post_ride_reveal", isTelemetryEnabled: true))
+        XCTAssertFalse(gate.shouldEmit(surface: "post_ride_reveal", isTelemetryEnabled: true))
+
+        gate.reset()
+        XCTAssertTrue(gate.shouldEmit(surface: "home_top_slot", isTelemetryEnabled: true))
     }
 }

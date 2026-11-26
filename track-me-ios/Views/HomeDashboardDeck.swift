@@ -33,7 +33,6 @@ struct HomeDashboardDeck: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showHowItWorks = false
     @State private var showLiveSharingInfo = false
-    @State private var didTrackHandsFreeTipOffer = false
 
     var body: some View {
         ScrollView {
@@ -42,6 +41,7 @@ struct HomeDashboardDeck: View {
                     StandbyBannerCard(
                         onStop: { onStopStandby?() }
                     )
+                    .id("standby_mode_banner")
                     .dashboardCardMotion(
                         orderFromTop: 0,
                         total: 5,
@@ -53,6 +53,7 @@ struct HomeDashboardDeck: View {
                         onEnable: { onEnableHandsFree?() },
                         onDismiss: { onDismissHandsFreeTip?() }
                     )
+                    .id("hands_free_opt_in")
                     .dashboardCardMotion(
                         orderFromTop: 0,
                         total: 5,
@@ -60,8 +61,7 @@ struct HomeDashboardDeck: View {
                         reduceMotion: reduceMotion
                     )
                     .task(id: isVisible && showHandsFreeTip) {
-                        guard isVisible && showHandsFreeTip && !didTrackHandsFreeTipOffer else { return }
-                        didTrackHandsFreeTipOffer = true
+                        guard isVisible && showHandsFreeTip else { return }
                         TelemetryManager.shared.trackHandsFreeOfferShown(surface: "home_top_slot")
                     }
                 }
