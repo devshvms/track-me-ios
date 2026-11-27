@@ -793,7 +793,12 @@ struct HomeView: View {
                 activeViewerSession = LiveViewerSessionItem(id: resolvedId)
             },
             trustedWatcherCount: trustedWatchers.watchers.count,
-            onManageWatchers: { showHomeSharing = true }
+            onManageWatchers: { showHomeSharing = true },
+            onShareEarlyRoute: { rideId in
+                if let found = ride(with: rideId) {
+                    exportRide = found
+                }
+            }
         )
     }
 

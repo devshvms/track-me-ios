@@ -27,6 +27,7 @@ struct HomeDashboardDeck: View {
     var onWatchLiveInvite: (WatcherInboxInvite) -> Void = { _ in }
     var trustedWatcherCount: Int = 0
     var onManageWatchers: (() -> Void)? = nil
+    var onShareEarlyRoute: (UUID) -> Void = { _ in }
 
     @ObservedObject private var unitSettings = UnitSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -121,7 +122,11 @@ struct HomeDashboardDeck: View {
                     }
 
                     if let insight = summary.insight {
-                        InsightCard(insight: insight, unit: unitSettings.unit)
+                        InsightCard(
+                            insight: insight,
+                            unit: unitSettings.unit,
+                            onShareEarlyRoute: onShareEarlyRoute
+                        )
                             .dashboardCardMotion(
                                 orderFromTop: 2,
                                 total: 5,
@@ -611,6 +616,7 @@ private struct WeeklyDurationChart: View {
 private struct InsightCard: View {
     let insight: HomeInsight
     let unit: UnitSystem
+    var onShareEarlyRoute: (UUID) -> Void = { _ in }
 
     var body: some View {
         DashboardCard {
@@ -620,6 +626,21 @@ private struct InsightCard: View {
                     .foregroundStyle(BrandColor.primary)
                 Text(message).font(.body)
                 Text(basis).font(.footnote).foregroundStyle(.secondary)
+                if case let .earlyJourney(rideCount, _, _, latestLocalId, hasRoute) = insight,
+                   rideCount <= 1, hasRoute {
+                    Button {
+                        onShareEarlyRoute(latestLocalId)
+                    } label: {
+                        Label(
+                            LocalizationHelper.localized("Share Route Card"),
+                            systemImage: "square.and.arrow.up"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(minHeight: 44)
+                    .padding(.top, 4)
+                }
             }
         }
     }
@@ -653,6 +674,20 @@ private struct InsightCard: View {
                 "%@ led your recent activities.",
                 LocalizationHelper.localized(persona.displayName)
             )
+        case let .earlyJourney(rideCount, totalDistanceMeters, latestPersona, _, _):
+            let distStr = UnitFormatter.distance(meters: totalDistanceMeters, unit: unit)
+            if rideCount <= 1 {
+                return LocalizationHelper.formatted(
+                    "First %1$@ saved (%2$@). 2 more trips unlock your weekly distance and pace trends.",
+                    LocalizationHelper.localized(latestPersona.displayName),
+                    distStr
+                )
+            } else {
+                return LocalizationHelper.formatted(
+                    "2 trips saved (%1$@ total). 1 more trip unlocks your personal trends and insights.",
+                    distStr
+                )
+            }
         }
     }
 
@@ -661,6 +696,11 @@ private struct InsightCard: View {
         case let .periodComparison(_, _, current, comparison, _, _, _):
             return LocalizationHelper.localized("Based on comparable active weeks")
                 + ": \(period(current)) · \(period(comparison))"
+        case let .earlyJourney(rideCount, _, _, _, _):
+            return LocalizationHelper.formatted(
+                "%1$@ of 3 trips toward weekly insights",
+                String(min(max(rideCount, 1), 2))
+            )
         case .returning, .dominantPersona:
             return LocalizationHelper.localized("Based on your qualifying activity history")
         }

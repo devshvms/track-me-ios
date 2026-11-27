@@ -243,6 +243,34 @@ final class HomeDashboardPolicyTests: XCTestCase {
         XCTAssertEqual(total, 3)
     }
 
+    func testOneAndTwoRidesSurfaceEarlyJourneyBridgeForExportAndTrends() throws {
+        let now = date("2026-08-26T12:00:00Z")
+        let tz = TimeZone(identifier: "UTC")!
+        let first = metadata("2026-08-25T10:00:00Z", persona: .cycling, distance: 4_200)
+        let oneSummary = HomeDashboardSelector.select(rides: [first], now: now, fallbackTimeZone: tz)
+        XCTAssertEqual(oneSummary.historyBucket, "early")
+        guard case let .earlyJourney(count1, dist1, persona1, id1, hasRoute1) = oneSummary.insight else {
+            return XCTFail("Expected earlyJourney for 1 ride")
+        }
+        XCTAssertEqual(count1, 1)
+        XCTAssertEqual(dist1, 4_200)
+        XCTAssertEqual(persona1, .cycling)
+        XCTAssertEqual(id1, first.localId)
+        XCTAssertTrue(hasRoute1)
+        XCTAssertEqual(oneSummary.insight?.analyticsValue, "early_journey_1")
+        let event1 = try XCTUnwrap(HomeTelemetryContract.insightShown(try XCTUnwrap(oneSummary.insight)))
+        XCTAssertEqual(event1.properties, ["insight_type": "early_journey_1"])
+
+        let second = metadata("2026-08-24T10:00:00Z", persona: .walk, distance: 1_800)
+        let twoSummary = HomeDashboardSelector.select(rides: [first, second], now: now, fallbackTimeZone: tz)
+        guard case let .earlyJourney(count2, dist2, _, _, _) = twoSummary.insight else {
+            return XCTFail("Expected earlyJourney for 2 rides")
+        }
+        XCTAssertEqual(count2, 2)
+        XCTAssertEqual(dist2, 6_000)
+        XCTAssertEqual(twoSummary.insight?.analyticsValue, "early_journey_2")
+    }
+
     func testSelectorHandlesLargeMetadataOnlyHistory() {
         let now = date("2026-08-26T12:00:00Z")
         let rides = (0..<600).map { index in

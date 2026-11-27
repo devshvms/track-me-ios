@@ -62,12 +62,22 @@ nonisolated enum HomeInsight: Codable, Equatable, Sendable {
         windowStartEpochDay: Int,
         windowEndEpochDay: Int
     )
+    /// TASK-380 (v1.9.5): Bridges the 1-to-3 ride cliff by surfacing factual progress + 1-tap export.
+    case earlyJourney(
+        rideCount: Int,
+        totalDistanceMeters: Double,
+        latestPersona: RidePersona,
+        latestLocalId: UUID,
+        latestHasRoute: Bool
+    )
 
     var analyticsValue: String {
         switch self {
         case .returning: "return"
         case .periodComparison: "period_comparison"
         case .dominantPersona: "dominant_persona"
+        case let .earlyJourney(rideCount, _, _, _, _):
+            rideCount <= 1 ? "early_journey_1" : "early_journey_2"
         }
     }
 }
@@ -250,7 +260,16 @@ nonisolated enum HomeDashboardSelector {
         today: Int,
         fallbackTimeZone: TimeZone
     ) -> HomeInsight? {
-        guard rides.count >= 3 else { return nil }
+        guard !rides.isEmpty else { return nil }
+        if rides.count < 3, let latest = rides.first {
+            return .earlyJourney(
+                rideCount: rides.count,
+                totalDistanceMeters: rides.reduce(0) { $0 + $1.distanceMeters },
+                latestPersona: latest.persona,
+                latestLocalId: latest.localId,
+                latestHasRoute: latest.pointCount > 0
+            )
+        }
         if let returning = returnAfterInactivity(rides, fallbackTimeZone: fallbackTimeZone) {
             return returning
         }
@@ -521,7 +540,7 @@ nonisolated struct HomeTelemetryEvent: Equatable, Sendable {
 
 nonisolated enum HomeTelemetryContract {
     static let allowedInsightTypes: Set<String> = [
-        "return", "period_comparison", "dominant_persona"
+        "return", "period_comparison", "dominant_persona", "early_journey_1", "early_journey_2"
     ]
 
     static func dashboardViewed(historyBucket: String) -> HomeTelemetryEvent {
