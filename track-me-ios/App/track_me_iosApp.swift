@@ -158,6 +158,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 } else if response.notification.request.identifier == WeeklyRecapScheduler.identifier {
                     WeeklyRecapCoordinator.shared.markOpenedFromNotification()
                     await WeeklyRecapCoordinator.shared.check()
+                } else if response.notification.request.identifier == WeeklyRecapScheduler.firstTripIdentifier {
+                    TelemetryManager.shared.trackFirstTripNudgeOpened()
+                    await WeeklyRecapScheduler.refresh()
                 }
             default:
                 break

@@ -158,4 +158,10 @@ private struct Copy: BulletinCopy.Strings {
     var groupStillLiveBodyNoName: String {
         LocalizationHelper.localized("Your ride ended, but you are still visible in a live group.")
     }
+    var firstTripNudgeTitle: String {
+        LocalizationHelper.localized("Ready for your first trip?")
+    }
+    var firstTripNudgeBody: String {
+        LocalizationHelper.localized("Next time you head out for a walk, ride, or drive, tap Start — routes stay private on your phone and work offline.")
+    }
 }

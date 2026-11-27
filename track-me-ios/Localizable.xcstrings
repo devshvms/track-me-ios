@@ -36126,6 +36126,98 @@
           }
         }
       }
+    },
+    "Ready for your first trip?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereit für deine erste Fahrt?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Listo para tu primer trayecto?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prêt pour votre premier trajet ?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपनी पहली यात्रा के लिए तैयार हैं?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の移動を記録してみませんか？"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pronto para sua primeira viagem?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "准备好记录第一次行程了吗？"
+          }
+        }
+      }
+    },
+    "Next time you head out for a walk, ride, or drive, tap Start — routes stay private on your phone and work offline.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du das nächste Mal zu Fuß, mit dem Rad oder im Auto losfährst, tippe auf Start – deine Routen bleiben privat auf deinem Telefon und funktionieren offline."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La próxima vez que salgas a caminar, rodar o conducir, toca Iniciar: tus rutas quedan privadas en tu teléfono y funcionan sin conexión."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lors de votre prochaine marche, sortie à vélo ou trajet en voiture, appuyez sur Démarrer : vos itinéraires restent privés sur votre téléphone et hors ligne."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अगली बार जब आप पैदल, बाइक या कार से निकलें, तो स्टार्ट दबाएँ — आपके रूट फ़ोन पर निजी रहते हैं और ऑफ़लाइन काम करते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次に散歩や自転車、ドライブに出かけるときは「開始」をタップしてください。ルートは端末内に非公開で保存され、オフラインでも動作します。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da próxima vez que sair para caminhar, pedalar ou dirigir, toque em Iniciar — suas rotas ficam privadas no seu telefone e funcionam offline."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下次出门步行、骑行或驾车时，轻点“开始”即可——路线私密保存在手机本地，离线也能记录。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

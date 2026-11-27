@@ -172,6 +172,8 @@ final class BulletinTests: XCTestCase {
         var groupStillLiveTitle: String { "Still sharing" }
         func groupStillLiveBody(groupName: String) -> String { "Still visible in \(groupName)." }
         var groupStillLiveBodyNoName: String { "Still visible in a live group." }
+        var firstTripNudgeTitle: String { "Ready for your first trip?" }
+        var firstTripNudgeBody: String { "Next time you head out, tap Start." }
     }
 
     func testASyncProblemWithNoDateStillRenders() {
@@ -243,7 +245,17 @@ final class BulletinTests: XCTestCase {
         // every stored row of that kind on the other after a restore.
         XCTAssertEqual(
             BulletinKind.allCases.map(\.rawValue),
-            ["BROADCAST", "RIDE_SAVED", "SYNC_PROBLEM", "WEEKLY_RECAP", "LEVEL_REACHED", "MILESTONE", "VERSION_NOTE", "RETURN_NOTICE", "FORGOTTEN_RIDE", "GROUP_STILL_LIVE"]
+            ["BROADCAST", "RIDE_SAVED", "SYNC_PROBLEM", "WEEKLY_RECAP", "LEVEL_REACHED", "MILESTONE", "VERSION_NOTE", "RETURN_NOTICE", "FORGOTTEN_RIDE", "GROUP_STILL_LIVE", "FIRST_TRIP_NUDGE"]
+        )
+    }
+
+    func testAFirstTripNudgeRendersItsTitleAndBody() {
+        XCTAssertEqual(
+            BulletinCopy.render(
+                BulletinEntry(id: "first-trip-nudge", kind: .firstTripNudge, createdAtMillis: 1),
+                strings: FakeStrings()
+            ),
+            BulletinCopy.Row(title: "Ready for your first trip?", body: "Next time you head out, tap Start.")
         )
     }
 }

@@ -107,4 +107,7 @@ enum BulletinKind: String, CaseIterable {
     /// because "when was I visible, and to which group" is a question someone may want to answer
     /// later, and a swiped notification answers nothing.
     case groupStillLive = "GROUP_STILL_LIVE"
+
+    /// TASK-379 (v1.9.5) — single Day-1 first-trip nudge for installs with 0 completed rides.
+    case firstTripNudge = "FIRST_TRIP_NUDGE"
 }

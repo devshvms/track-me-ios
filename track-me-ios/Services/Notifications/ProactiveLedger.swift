@@ -22,6 +22,9 @@ struct ProactiveLedger {
     private let lastRecapWeekKey = "trackme_proactive_last_recap_week"
     private let pendingReturnFireKey = "trackme_proactive_pending_return_fire_at"
     private let pendingReturnActivityKey = "trackme_proactive_pending_return_activity_at"
+    private let firstTripSentKey = "trackme_proactive_first_trip_nudge_sent_at"
+    private let pendingFirstTripFireKey = "trackme_proactive_pending_first_trip_fire_at"
+    private let firstTripBulletinAddedKey = "trackme_proactive_first_trip_bulletin_added"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -47,6 +50,21 @@ struct ProactiveLedger {
         defaults.object(forKey: lastRecapWeekKey) as? Int
     }
 
+    /// TASK-379: Lifetime once-only timestamp for the Day-1 first-trip nudge, or nil if never sent.
+    var firstTripNudgeSentAtMillis: Int64? {
+        (defaults.object(forKey: firstTripSentKey) as? NSNumber)?.int64Value
+    }
+
+    /// TASK-379: Scheduled fire timestamp for a pending Day-1 first-trip nudge, or nil.
+    var pendingFirstTripFireAtMillis: Int64? {
+        (defaults.object(forKey: pendingFirstTripFireKey) as? NSNumber)?.int64Value
+    }
+
+    /// TASK-379: Ensures the Bulletin fallback row is added at most once per install.
+    var firstTripBulletinAdded: Bool {
+        defaults.bool(forKey: firstTripBulletinAddedKey)
+    }
+
     /// Records a delivered Class C notification.
     ///
     /// Routed through `NotificationBudget.recordSent` so the "never moves backwards" rule lives in
@@ -68,6 +86,22 @@ struct ProactiveLedger {
 
     func recordRecapNotified(weekStartEpochDay: Int) {
         defaults.set(weekStartEpochDay, forKey: lastRecapWeekKey)
+    }
+
+    func recordFirstTripNudgeSent(at sentAtMillis: Int64) {
+        defaults.set(NSNumber(value: sentAtMillis), forKey: firstTripSentKey)
+    }
+
+    func recordFirstTripScheduled(fireAtMillis: Int64) {
+        defaults.set(NSNumber(value: fireAtMillis), forKey: pendingFirstTripFireKey)
+    }
+
+    func clearPendingFirstTrip() {
+        defaults.removeObject(forKey: pendingFirstTripFireKey)
+    }
+
+    func recordFirstTripBulletinAdded() {
+        defaults.set(true, forKey: firstTripBulletinAddedKey)
     }
 
     /// When a scheduled return notice is due to fire, or nil when none is pending.

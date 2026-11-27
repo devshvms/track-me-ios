@@ -168,4 +168,13 @@ enum BulletinAdapters {
             )
         }
     }
+
+    static func firstTripNudge(createdAtMillis: Int64) -> BulletinEntry {
+        BulletinEntry(
+            id: "first-trip-nudge",
+            kind: .firstTripNudge,
+            createdAtMillis: createdAtMillis,
+            facts: [:]
+        )
+    }
 }

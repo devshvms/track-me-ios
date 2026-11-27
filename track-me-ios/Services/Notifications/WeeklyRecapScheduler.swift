@@ -289,8 +289,135 @@ enum WeeklyRecapScheduler {
     }
 
     static let returnIdentifier = "trackme.recap.return"
+    static let firstTripIdentifier = "trackme.recap.first_trip"
     static let returnCategoryIdentifier = "trackme.return.notice"
     static let stopReturnActionIdentifier = "trackme.return.stop"
+
+    /// TASK-379 (v1.9.5): Settles a previously scheduled Day-1 first-trip nudge on the first
+    /// foreground after its fire date, or cancels it immediately if the rider already completed a
+    /// trip. Matches Android `ProactiveNotificationWorker.deliverFirstTripNudge`.
+    static func settleFiredFirstTripNudge(
+        now: Date = Date(),
+        completedRidesCount: Int,
+        ledger: ProactiveLedger = ProactiveLedger(),
+        bulletin: BulletinStore = .shared
+    ) {
+        guard let due = ledger.pendingFirstTripFireAtMillis else { return }
+        if completedRidesCount > 0 || ledger.firstTripNudgeSentAtMillis != nil {
+            ledger.clearPendingFirstTrip()
+            UNUserNotificationCenter.current()
+                .removePendingNotificationRequests(withIdentifiers: [firstTripIdentifier])
+            return
+        }
+        let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
+        guard nowMillis >= due else { return }
+
+        ledger.clearPendingFirstTrip()
+        ledger.recordProactiveSent(at: due)
+        ledger.recordFirstTripNudgeSent(at: due)
+        if !ledger.firstTripBulletinAdded {
+            bulletin.add(BulletinAdapters.firstTripNudge(createdAtMillis: due))
+            ledger.recordFirstTripBulletinAdded()
+        }
+        TelemetryManager.shared.trackFirstTripNudgeSent()
+    }
+
+    /// TASK-379 (v1.9.5): Schedules the single Day-1 first-trip local nudge once 20h–7d after
+    /// onboarding completion when `completedRidesCount == 0`.
+    @discardableResult
+    static func armFirstTripNudge(
+        completedRidesCount: Int,
+        onboardingCompletedAtMillis: Int64?,
+        isTrackingOrStandbyActive: Bool = false,
+        now: Date = Date(),
+        ledger: ProactiveLedger = ProactiveLedger(),
+        bulletin: BulletinStore = .shared,
+        calendar: Calendar = .current
+    ) async -> Bool {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [firstTripIdentifier])
+
+        guard completedRidesCount == 0,
+              ledger.firstTripNudgeSentAtMillis == nil,
+              let onboardingAt = onboardingCompletedAtMillis else {
+            ledger.clearPendingFirstTrip()
+            return false
+        }
+
+        let nowMillis = Int64(now.timeIntervalSince1970 * 1000)
+        if NotificationBudget.allowsFirstTripNudge(
+            nowMillis: nowMillis,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: ledger.firstTripNudgeSentAtMillis,
+            completedRidesCount: completedRidesCount,
+            isTrackingOrStandbyActive: isTrackingOrStandbyActive
+        ), !ledger.firstTripBulletinAdded {
+            bulletin.add(BulletinAdapters.firstTripNudge(createdAtMillis: nowMillis))
+            ledger.recordFirstTripBulletinAdded()
+        }
+
+        let earliestMillis = onboardingAt + NotificationBudget.firstTripNudgeMinDelayMillis
+        let latestMillis = onboardingAt + NotificationBudget.firstTripNudgeMaxWindowMillis
+        guard nowMillis <= latestMillis else {
+            ledger.clearPendingFirstTrip()
+            return false
+        }
+
+        let targetThresholdDate = Date(timeIntervalSince1970: TimeInterval(max(nowMillis, earliestMillis)) / 1000.0)
+        let fireDate = returnDeliveryDate(onOrAfter: targetThresholdDate, calendar: calendar)
+        let fireMillis = Int64(fireDate.timeIntervalSince1970 * 1000)
+
+        guard NotificationBudget.allowsFirstTripNudge(
+            nowMillis: fireMillis,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: ledger.firstTripNudgeSentAtMillis,
+            completedRidesCount: completedRidesCount,
+            isTrackingOrStandbyActive: isTrackingOrStandbyActive
+        ), NotificationBudget.allows(
+            .proactive,
+            nowMillis: fireMillis,
+            lastProactiveSentAtMillis: ledger.lastProactiveSentAtMillis
+        ) else {
+            ledger.clearPendingFirstTrip()
+            return false
+        }
+
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional
+                || settings.authorizationStatus == .ephemeral else {
+            ledger.clearPendingFirstTrip()
+            return false
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = LocalizationHelper.localized("Ready for your first trip?")
+        content.body = LocalizationHelper.localized(
+            "Next time you head out for a walk, ride, or drive, tap Start — routes stay private on your phone and work offline."
+        )
+        content.interruptionLevel = .passive
+
+        var components = calendar.dateComponents([.year, .month, .day], from: fireDate)
+        components.hour = deliveryHour
+        components.minute = 0
+
+        do {
+            try await UNUserNotificationCenter.current().add(
+                UNNotificationRequest(
+                    identifier: firstTripIdentifier,
+                    content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                )
+            )
+        } catch {
+            CrashlyticsErrorLogger.shared.recordError(error)
+            ledger.clearPendingFirstTrip()
+            return false
+        }
+
+        ledger.recordFirstTripScheduled(fireAtMillis: fireMillis)
+        return true
+    }
 
     static var returnNotificationCategory: UNNotificationCategory {
         let stop = UNNotificationAction(
@@ -309,11 +436,26 @@ enum WeeklyRecapScheduler {
     /// Runs on launch, every foreground, and immediately after a good ride is persisted.
     static func refresh(now: Date = Date(), calendar: Calendar = .current) async {
         let ledger = ProactiveLedger()
-        let lastActivity = await RideStatsStore.shared.lastActivityFinishedAtMillis()
+        let stats = await RideStatsStore.shared.current()
+        let completedRidesCount = stats.totalRides
+        let lastActivity: Int64? = stats.lastRideFinishedAtMillis > 0 ? stats.lastRideFinishedAtMillis : nil
+        settleFiredFirstTripNudge(
+            now: now,
+            completedRidesCount: completedRidesCount,
+            ledger: ledger
+        )
         settleFiredReturnNotice(
             now: now,
             currentLastActivityAtMillis: lastActivity,
             ledger: ledger
+        )
+        _ = await armFirstTripNudge(
+            completedRidesCount: completedRidesCount,
+            onboardingCompletedAtMillis: OnboardingGate.completedAtMillis(),
+            isTrackingOrStandbyActive: TrackingManager.shared.state != .idle || TrackingManager.shared.isStandbyActive,
+            now: now,
+            ledger: ledger,
+            calendar: calendar
         )
         _ = await armReturnNotice(
             lastActivityAtMillis: lastActivity,

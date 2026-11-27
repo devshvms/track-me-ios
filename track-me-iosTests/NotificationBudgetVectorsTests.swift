@@ -216,4 +216,63 @@ final class NotificationBudgetVectorsTests: XCTestCase {
         XCTAssertNil(ledger)
         XCTAssertTrue(NotificationBudget.allows(.proactive, nowMillis: 5_000, lastProactiveSentAtMillis: ledger))
     }
+
+    func testFirstTripNudgeFiresOnceWithinWindowWhenZeroRidesCompleted() {
+        let onboardingAt: Int64 = 10_000_000
+        let minDelay = NotificationBudget.firstTripNudgeMinDelayMillis
+        let maxWindow = NotificationBudget.firstTripNudgeMaxWindowMillis
+
+        XCTAssertFalse(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + minDelay - 1,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: nil,
+            completedRidesCount: 0,
+            isTrackingOrStandbyActive: false
+        ))
+        XCTAssertTrue(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + minDelay,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: nil,
+            completedRidesCount: 0,
+            isTrackingOrStandbyActive: false
+        ))
+        XCTAssertTrue(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + maxWindow,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: nil,
+            completedRidesCount: 0,
+            isTrackingOrStandbyActive: false
+        ))
+        XCTAssertFalse(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + maxWindow + 1,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: nil,
+            completedRidesCount: 0
+        ))
+        XCTAssertFalse(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + minDelay,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: nil,
+            completedRidesCount: 1
+        ))
+        XCTAssertFalse(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + minDelay,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: onboardingAt + minDelay,
+            completedRidesCount: 0
+        ))
+        XCTAssertFalse(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + minDelay,
+            onboardingCompletedAtMillis: nil,
+            firstTripNudgeSentAtMillis: nil,
+            completedRidesCount: 0
+        ))
+        XCTAssertFalse(NotificationBudget.allowsFirstTripNudge(
+            nowMillis: onboardingAt + minDelay,
+            onboardingCompletedAtMillis: onboardingAt,
+            firstTripNudgeSentAtMillis: nil,
+            completedRidesCount: 0,
+            isTrackingOrStandbyActive: true
+        ))
+    }
 }

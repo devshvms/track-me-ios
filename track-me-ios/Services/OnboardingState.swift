@@ -112,6 +112,7 @@ enum OnboardingGate {
     static let attemptsKey = "onboarding.attempts"
     static let lastVersionKey = "onboarding.lastLaunchedVersion"
     static let startHintSeenKey = "onboarding.legacyStartHintSeen"
+    static let completedAtMillisKey = "onboarding.completedAtMillis"
 
     static func resolve(
         stored: String?,
@@ -133,7 +134,7 @@ enum OnboardingGate {
         let previousVersion = defaults.string(forKey: lastVersionKey)
         let persisted = bundle.bundleIdentifier
             .flatMap { defaults.persistentDomain(forName: $0) } ?? [:]
-        let gateKeys = Set([stateKey, attemptsKey, lastVersionKey, startHintSeenKey])
+        let gateKeys = Set([stateKey, attemptsKey, lastVersionKey, startHintSeenKey, completedAtMillisKey])
         let hasExistingPreferences = persisted.keys.contains { !gateKeys.contains($0) }
         let wasUpdated = previousVersion.map { $0 != currentVersion } ?? false
         let state = resolve(
@@ -158,6 +159,14 @@ enum OnboardingGate {
         return attempts
     }
 
+    static func completedAtMillis(defaults: UserDefaults = .standard) -> Int64? {
+        guard let value = (defaults.object(forKey: completedAtMillisKey) as? NSNumber)?.int64Value,
+              value > 0 else {
+            return nil
+        }
+        return value
+    }
+
     @MainActor
     static func complete(
         _ outcome: OnboardingOutcome,
@@ -170,7 +179,8 @@ enum OnboardingGate {
     static func complete(
         _ outcome: OnboardingOutcome,
         defaults: UserDefaults,
-        telemetry: OnboardingTelemetryClient
+        telemetry: OnboardingTelemetryClient,
+        nowMillis: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
     ) {
         // Request first. A process death here leaves onboarding pending, and the seeder refuses to
         // run until a later completion marks the gate done.
@@ -178,7 +188,13 @@ enum OnboardingGate {
         defaults.set(outcome.analyticsOptIn, forKey: "enableTelemetry")
         telemetry.updateLocalConsent(outcome.analyticsOptIn)
         telemetry.trackOnboardingCompleted(outcome)
+        if defaults.object(forKey: completedAtMillisKey) == nil {
+            defaults.set(NSNumber(value: nowMillis), forKey: completedAtMillisKey)
+        }
         defaults.set(OnboardingState.done.rawValue, forKey: stateKey)
+        if defaults === UserDefaults.standard {
+            Task { await WeeklyRecapScheduler.refresh() }
+        }
     }
 
     static func shouldShowStartRideHint(state: OnboardingState, hintAlreadySeen: Bool) -> Bool {

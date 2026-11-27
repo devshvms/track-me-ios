@@ -45,12 +45,14 @@
   ],
   "proactive_priority": [
     { "id": "RETURN_AFTER_ABSENCE", "rank": 0, "note": "Scenario 13. Ranked above the recap because it is far rarer (once per 90 days at most) and because the recap it would lose to is, for a returning user, a report of a week in which they did nothing." },
-    { "id": "WEEKLY_RECAP", "rank": 1, "note": "Scenario 8, the flagship C. Carries scenario 10a's level-proximity line, so the level fact ships without its own interruption." }
+    { "id": "WEEKLY_RECAP", "rank": 1, "note": "Scenario 8, the flagship C. Carries scenario 10a's level-proximity line, so the level fact ships without its own interruption." },
+    { "id": "FIRST_TRIP_NUDGE", "rank": 2, "note": "TASK-379 (v1.9.5). One-time Day-1 first-trip nudge for fresh installs 20h-7d after onboarding with 0 completed rides." }
   ],
   "choose": [
     { "eligible": [], "expected": null, "note": "Nothing eligible. Not an error — most weeks are this." },
     { "eligible": ["WEEKLY_RECAP"], "expected": "WEEKLY_RECAP" },
     { "eligible": ["RETURN_AFTER_ABSENCE"], "expected": "RETURN_AFTER_ABSENCE" },
+    { "eligible": ["FIRST_TRIP_NUDGE"], "expected": "FIRST_TRIP_NUDGE", "note": "Fresh install 20h-7d after onboarding with 0 completed rides." },
     { "eligible": ["WEEKLY_RECAP", "RETURN_AFTER_ABSENCE"], "expected": "RETURN_AFTER_ABSENCE",
       "note": "Both eligible: one is chosen and the other is NOT consumed. It stays eligible for its next window, exactly as WeeklyRecapSelector already behaves. Skipping is free; that is what makes a one-per-week cap survivable instead of lossy." },
     { "eligible": ["RETURN_AFTER_ABSENCE", "WEEKLY_RECAP"], "expected": "RETURN_AFTER_ABSENCE",

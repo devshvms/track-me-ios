@@ -575,6 +575,18 @@ class TelemetryManager {
         ])
     }
 
+    /// TASK-379 (v1.9.5): One-time Day-1 first-trip local nudge delivered (zero PII).
+    func trackFirstTripNudgeSent() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("first_trip_nudge_sent", properties: ["platform": "ios"])
+    }
+
+    /// TASK-379 (v1.9.5): One-time Day-1 first-trip local nudge tapped to open Home (zero PII).
+    func trackFirstTripNudgeOpened() {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("first_trip_nudge_opened", properties: ["platform": "ios"])
+    }
+
     /// TASK-358: Weekly recap opened by the rider (source: "notification" or "in_app").
     func trackRecapOpened(source: String, weekKey: String, rideCount: Int, distanceKm: Double) {
         guard shouldTrack() else { return }

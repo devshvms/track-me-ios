@@ -50,6 +50,8 @@ enum BulletinCopy {
         var groupStillLiveTitle: String { get }
         func groupStillLiveBody(groupName: String) -> String
         var groupStillLiveBodyNoName: String { get }
+        var firstTripNudgeTitle: String { get }
+        var firstTripNudgeBody: String { get }
     }
 
     /// The rendered row, or nil when the entry cannot be described.
@@ -136,6 +138,9 @@ enum BulletinCopy {
             }
             return Row(title: strings.groupStillLiveTitle,
                        body: strings.groupStillLiveBody(groupName: name))
+
+        case .firstTripNudge:
+            return Row(title: strings.firstTripNudgeTitle, body: strings.firstTripNudgeBody)
         }
     }
 }

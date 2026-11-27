@@ -48,6 +48,12 @@ enum NotificationBudget {
     /// is a bigger claim than showing them something once they have already opened the app.
     static let returnNoticeMinAbsenceDays: Int = 21
 
+    /// TASK-379 (v1.9.5): Minimum delay after onboarding completion before the single Day-1
+    /// first-trip nudge may fire (20 hours), and maximum window (7 days) so dormant installs are
+    /// never surprised weeks later.
+    static let firstTripNudgeMinDelayMillis: Int64 = 20 * 60 * 60 * 1000
+    static let firstTripNudgeMaxWindowMillis: Int64 = 7 * 24 * 60 * 60 * 1000
+
     enum Klass: String, CaseIterable {
         case consequential = "CONSEQUENTIAL"
         case requested = "REQUESTED"
@@ -69,6 +75,10 @@ enum NotificationBudget {
         /// Scenario 8, the flagship C. Carries scenario 10a's level-proximity line, so the level
         /// fact reaches the user without an interruption of its own.
         case weeklyRecap = "WEEKLY_RECAP"
+
+        /// TASK-379 (v1.9.5): One-time Day-1 first-trip nudge for fresh installs who finished
+        /// onboarding 20h–7d ago with 0 completed rides.
+        case firstTripNudge = "FIRST_TRIP_NUDGE"
     }
 
     /// May a notification of `klass` be sent right now?
@@ -141,5 +151,22 @@ enum NotificationBudget {
         guard let sent = lastReturnNoticeAtMillis else { return true }
         let describedActivity = lastReturnNoticeActivityAtMillis ?? sent
         return activity > describedActivity
+    }
+
+    /// TASK-379 (v1.9.5): Pure gate for the one-time Day-1 first-trip local nudge (100% Android parity).
+    static func allowsFirstTripNudge(
+        nowMillis: Int64,
+        onboardingCompletedAtMillis: Int64?,
+        firstTripNudgeSentAtMillis: Int64?,
+        completedRidesCount: Int,
+        isTrackingOrStandbyActive: Bool = false
+    ) -> Bool {
+        if completedRidesCount > 0 { return false }
+        if isTrackingOrStandbyActive { return false }
+        if firstTripNudgeSentAtMillis != nil { return false }
+        guard let completedAt = onboardingCompletedAtMillis else { return false }
+        if nowMillis < completedAt { return false }
+        let elapsed = nowMillis - completedAt
+        return elapsed >= firstTripNudgeMinDelayMillis && elapsed <= firstTripNudgeMaxWindowMillis
     }
 }
