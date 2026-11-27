@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import SwiftData
 
@@ -9,8 +10,30 @@ import SwiftData
 /// could have been written without reading the user's data. *"12.3 km, recording stopped at
 /// 14:32"* could not.
 struct RecoveredRide {
+    let rideId: UUID
     let endTime: Date
     let distanceMeters: Double
+    let activeDurationMillis: Int64
+    let qualifiesForStats: Bool
+
+    init(
+        rideId: UUID = UUID(),
+        endTime: Date,
+        distanceMeters: Double,
+        activeDurationMillis: Int64 = 0,
+        qualifiesForStats: Bool = false
+    ) {
+        self.rideId = rideId
+        self.endTime = endTime
+        self.distanceMeters = distanceMeters
+        self.activeDurationMillis = activeDurationMillis
+        self.qualifiesForStats = qualifiesForStats
+    }
+}
+
+struct TrailingDwellCutoff: Equatable {
+    let keepEndIndexInclusive: Int
+    let cutoffTimestamp: Date
 }
 
 struct RecoverySummary {
@@ -87,6 +110,47 @@ enum RideTitleGenerator {
 /// points or, if it has none, discarded.
 enum RideRecoveryManager {
     private static var didRunLaunchRecovery = false
+    private static let dwellAnchorRadiusMeters = 75.0
+    private static let stationarySpeedThresholdMps = 1.0 // 3.6 km/h
+    private static let trailDwellPruneMinSeconds: TimeInterval = 10 * 60
+    private static let minPreDwellMovementMeters = 100.0
+
+    /// TASK-385: Identifies a trailing stationary cluster (>= 10 min within 75m and <= 3.6 km/h)
+    /// following real movement (>= 100m), so recovered rides dropped indoors don't preserve hours
+    /// of stationary tail. Parity with Android `OrphanedRideRecoveryManager.findTrailingDwellCutoff`.
+    static func trailingDwellCutoff(for sortedPoints: [GPSPoint]) -> TrailingDwellCutoff? {
+        guard sortedPoints.count >= 2 else { return nil }
+        let tailAnchor = sortedPoints[sortedPoints.count - 1]
+        let anchorLoc = CLLocation(latitude: tailAnchor.latitude, longitude: tailAnchor.longitude)
+        var tailStartIdx = sortedPoints.count - 1
+        while tailStartIdx > 0 {
+            let prev = sortedPoints[tailStartIdx - 1]
+            let prevLoc = CLLocation(latitude: prev.latitude, longitude: prev.longitude)
+            if anchorLoc.distance(from: prevLoc) <= dwellAnchorRadiusMeters
+                && prev.speed <= stationarySpeedThresholdMps {
+                tailStartIdx -= 1
+            } else {
+                break
+            }
+        }
+        guard tailStartIdx > 0 && tailStartIdx < sortedPoints.count - 1 else { return nil }
+        guard tailAnchor.timestamp.timeIntervalSince(sortedPoints[tailStartIdx].timestamp) >= trailDwellPruneMinSeconds else {
+            return nil
+        }
+
+        var preDwellDistance = 0.0
+        for idx in 1...tailStartIdx {
+            let prev = sortedPoints[idx - 1]
+            let curr = sortedPoints[idx]
+            preDwellDistance += CLLocation(latitude: prev.latitude, longitude: prev.longitude)
+                .distance(from: CLLocation(latitude: curr.latitude, longitude: curr.longitude))
+        }
+        guard preDwellDistance >= minPreDwellMovementMeters else { return nil }
+        return TrailingDwellCutoff(
+            keepEndIndexInclusive: tailStartIdx,
+            cutoffTimestamp: sortedPoints[tailStartIdx].timestamp
+        )
+    }
 
     /// Runs once per process launch: first give `TrackingManager` a chance to
     /// resume a still-fresh session, then finalize/discard everything else.
@@ -126,6 +190,55 @@ enum RideRecoveryManager {
         await MainActor.run {
             BulletinAdapters.from(summary).forEach { BulletinStore.shared.add($0) }
         }
+        // TASK-385: Credit qualifying rescued rides idempotently in RideStatsStore + RevealCoordinator.
+        await creditRecoveredRides(summary: summary, container: container)
+    }
+
+    /// TASK-385: Folds qualifying recovered rides idempotently into `RideStatsStore` and stages
+    /// the earned reveal / streak transition once per ride ID.
+    static func creditRecoveredRides(
+        summary: RecoverySummary,
+        container: ModelContainer? = nil,
+        statsStore: RideStatsStore = .shared,
+        onNewCredit: Bool = true
+    ) async {
+        var didCreditNewRide = false
+        for ride in summary.recovered where ride.qualifiesForStats {
+            let summaryFact = GoodRideSummary(
+                rideId: ride.rideId.uuidString,
+                finishedAtMillis: Int64(ride.endTime.timeIntervalSince1970 * 1000),
+                durationMillis: ride.activeDurationMillis,
+                distanceMeters: ride.distanceMeters
+            )
+            let transition = await statsStore.recordGoodRide(summaryFact)
+            guard !transition.alreadyProcessed else { continue }
+            didCreditNewRide = true
+            let reveal = RevealSelector.select(transition)
+            if onNewCredit {
+                await MainActor.run {
+                    if let reveal {
+                        RevealCoordinator.shared.put(reveal)
+                        if container != nil {
+                            DataRepository.shared.recordEarnedReveal(
+                                rideId: ride.rideId,
+                                kind: reveal.kind,
+                                previousBest: RevealSelector.previousBest(for: reveal.kind, in: transition),
+                                milestoneCount: reveal.milestoneRideCount
+                            )
+                        }
+                    }
+                    if transition.isFirstRideOfWeek {
+                        TelemetryManager.shared.trackWeeklyStreakUpdated(
+                            streakWeeks: transition.streakWeeks,
+                            froze: transition.streakFroze
+                        )
+                    }
+                }
+            }
+        }
+        if didCreditNewRide && onNewCredit {
+            await WeeklyRecapScheduler.refresh()
+        }
     }
 
     /// Part A — the orphan sweep.
@@ -140,17 +253,30 @@ enum RideRecoveryManager {
         for ride in all where ride.endTime == nil {
             if ride.id == activeRideId { continue }
 
-            let points = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
-            guard let lastPoint = points.last else {
+            let sortedPoints = (ride.points ?? []).sorted { $0.timestamp < $1.timestamp }
+            guard !sortedPoints.isEmpty else {
                 // No usable data — a ride that died in its first seconds.
                 context.delete(ride)
                 summary.discardedCount += 1
                 continue
             }
 
-            // The ride ended when the phone died, not now.
+            var points = sortedPoints
+            var wasDwellPruned = false
+            if let cutoff = trailingDwellCutoff(for: sortedPoints),
+               cutoff.cutoffTimestamp > ride.startTime {
+                for tailPoint in sortedPoints[(cutoff.keepEndIndexInclusive + 1)...] {
+                    context.delete(tailPoint)
+                }
+                points = Array(sortedPoints[...cutoff.keepEndIndexInclusive])
+                ride.points = points
+                wasDwellPruned = true
+            }
+            guard let lastPoint = points.last else { continue }
+
+            // The ride ended when movement stopped / the phone died, not now.
             ride.endTime = lastPoint.timestamp
-            if ride.trackingAlgorithmVersion != 2 || !ride.hasCompleteAggregate {
+            if wasDwellPruned || ride.trackingAlgorithmVersion != 2 || !ride.hasCompleteAggregate {
                 ride.applyAggregate(RideMetrics.reconstructed(from: points))
             }
             let recoveredIntervals = LiveShareIntervalTracker().finalizeIntervals(
@@ -179,8 +305,11 @@ enum RideRecoveryManager {
             summary.recoveredCount += 1
             summary.recovered.append(
                 RecoveredRide(
+                    rideId: ride.id,
                     endTime: lastPoint.timestamp,
-                    distanceMeters: ride.distanceMeters ?? 0
+                    distanceMeters: ride.distanceMeters ?? 0,
+                    activeDurationMillis: ride.movingDurationMillis ?? 0,
+                    qualifiesForStats: ride.qualifiesForStats
                 )
             )
 
