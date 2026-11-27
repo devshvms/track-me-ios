@@ -35,7 +35,7 @@ enum LiveShareLink {
             }
         }
 
-        if extraType == "live_share_started" {
+        if extraType == "live_share_started" || extraType == "live_share_ended" {
             if let fromExtra = extraSessionId?.trimmingCharacters(in: .whitespacesAndNewlines),
                isValidSessionId(fromExtra) {
                 return .session(fromExtra)

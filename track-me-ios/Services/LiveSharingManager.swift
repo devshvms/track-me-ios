@@ -4,6 +4,12 @@ import CoreLocation
 import Combine
 import FirebaseAuth
 
+enum LiveShareStopKind: String, Equatable {
+    case riderConfirmed = "rider_confirmed"
+    case autoDwellEnded = "auto_dwell_ended"
+    case expired = "expired"
+}
+
 @Observable
 class LiveSharingManager {
     static let shared = LiveSharingManager()
@@ -16,6 +22,7 @@ class LiveSharingManager {
     var isStarting: Bool = false
     var isRideLinked: Bool = false
     var isLiveSharePrimary: Bool = false
+    var notifyWatchersOnEnd: Bool = true
     var activeViewers: Int = 0
     var notifiedWatchersCount: Int = 0
     var sharedWatcherNames: [String] = []
@@ -86,7 +93,8 @@ class LiveSharingManager {
     static func buildStartRequestBody(
         durationMinutes: Int?,
         username: String?,
-        watcherUids: [String] = []
+        watcherUids: [String] = [],
+        notifyWatchersOnEnd: Bool = true
     ) -> [String: Any] {
         var body: [String: Any] = [:]
         if let dur = durationMinutes {
@@ -106,6 +114,27 @@ class LiveSharingManager {
         }
         if !cleanedWatchers.isEmpty {
             body["watcherUids"] = cleanedWatchers
+            body["notifyWatchersOnEnd"] = notifyWatchersOnEnd
+        }
+        return body
+    }
+
+    static func buildStopRequestBody(
+        reason: String?,
+        stopKind: LiveShareStopKind = .riderConfirmed,
+        notifyWatchersOnEnd: Bool = true,
+        distanceKm: Double? = nil
+    ) -> [String: Any] {
+        let gatedNotify = notifyWatchersOnEnd && stopKind == .riderConfirmed
+        var body: [String: Any] = [
+            "stopKind": stopKind.rawValue,
+            "notifyWatchersOnEnd": gatedNotify,
+        ]
+        if let reason {
+            body["stopReason"] = reason
+        }
+        if let distanceKm, distanceKm.isFinite, distanceKm >= 0.0 {
+            body["distanceKm"] = distanceKm
         }
         return body
     }
@@ -228,7 +257,8 @@ class LiveSharingManager {
         stopOnRideEnd: Bool = false,
         watcherUids: [String] = [],
         isLiveSharePrimary: Bool = false,
-        sharedWatcherNames: [String] = []
+        sharedWatcherNames: [String] = [],
+        notifyWatchersOnEnd: Bool = true
     ) {
         guard !isActive, !isStarting else { return }
         guard Auth.auth().currentUser != nil else {
@@ -244,12 +274,14 @@ class LiveSharingManager {
         TrackingManager.shared.noteLiveShareWillStart()
         self.isRideLinked = (durationMinutes == nil) || stopOnRideEnd
         self.isLiveSharePrimary = isLiveSharePrimary
+        self.notifyWatchersOnEnd = notifyWatchersOnEnd
 
         var request = Self.makeLiveShareRequest(url: url)
         let body = Self.buildStartRequestBody(
             durationMinutes: durationMinutes,
             username: Auth.auth().currentUser?.displayName,
-            watcherUids: watcherUids
+            watcherUids: watcherUids,
+            notifyWatchersOnEnd: notifyWatchersOnEnd
         )
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
@@ -329,6 +361,9 @@ class LiveSharingManager {
                             shareId: parsed.sessionId,
                             recipientCount: parsed.notifiedWatchersCount
                         )
+                        if self.notifyWatchersOnEnd && parsed.notifiedWatchersCount > 0 {
+                            TelemetryManager.shared.trackTripAssuranceEnabled(watcherCount: parsed.notifiedWatchersCount)
+                        }
 
                         ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing started"), style: .success)
 
@@ -352,10 +387,22 @@ class LiveSharingManager {
         }
     }
 
-    func stopSession(reason: String = "Share session ended manually.") {
+    func stopSession(
+        reason: String = "Share session ended manually.",
+        stopKind: LiveShareStopKind = .riderConfirmed,
+        notifyWatchersOnEndOverride: Bool? = nil,
+        distanceKm: Double? = nil
+    ) {
+        let effectiveNotifyOnEnd = (notifyWatchersOnEndOverride ?? notifyWatchersOnEnd) && stopKind == .riderConfirmed
+        let watcherCountSnapshot = notifiedWatchersCount
         if let sessionId = sessionId, let url = URL(string: APIConfig.LiveShare.stopSession(sessionId: sessionId)) {
             var request = Self.makeLiveShareRequest(url: url)
-            let body: [String: Any] = ["stopReason": reason]
+            let body = Self.buildStopRequestBody(
+                reason: reason,
+                stopKind: stopKind,
+                notifyWatchersOnEnd: effectiveNotifyOnEnd,
+                distanceKm: distanceKm
+            )
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
             withAuthToken { [request] token in
                 var authenticatedRequest = request
@@ -371,10 +418,17 @@ class LiveSharingManager {
             if let id = self.sessionId, let startTime = self.sessionStartTime {
                 let duration = Int(Date().timeIntervalSince(startTime))
                 TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
+                if effectiveNotifyOnEnd && watcherCountSnapshot > 0 {
+                    TelemetryManager.shared.trackTripAssuranceEndSent(
+                        stopKind: stopKind.rawValue,
+                        watcherCount: watcherCountSnapshot
+                    )
+                }
             }
             self.isActive = false
             self.isStarting = false
             self.isLiveSharePrimary = false
+            self.notifyWatchersOnEnd = true
             self.activeViewers = 0
             self.notifiedWatchersCount = 0
             self.sharedWatcherNames = []
@@ -396,23 +450,43 @@ class LiveSharingManager {
         }
     }
 
-    func endSessionAwaitingAuth(reason: String) async {
+    func endSessionAwaitingAuth(
+        reason: String,
+        stopKind: LiveShareStopKind = .riderConfirmed,
+        notifyWatchersOnEndOverride: Bool? = nil,
+        distanceKm: Double? = nil
+    ) async {
         guard isActive, let id = sessionId, let url = URL(string: APIConfig.LiveShare.stopSession(sessionId: id)) else { return }
+        let effectiveNotifyOnEnd = (notifyWatchersOnEndOverride ?? notifyWatchersOnEnd) && stopKind == .riderConfirmed
+        let watcherCountSnapshot = notifiedWatchersCount
         let token = await withCheckedContinuation { continuation in
             withAuthToken { token in continuation.resume(returning: token) }
         }
         var request = Self.makeLiveShareRequest(url: url)
         request.timeoutInterval = 5
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["stopReason": reason])
+        let body = Self.buildStopRequestBody(
+            reason: reason,
+            stopKind: stopKind,
+            notifyWatchersOnEnd: effectiveNotifyOnEnd,
+            distanceKm: distanceKm
+        )
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         applyAuth(&request, token: token)
         _ = try? await URLSession.shared.data(for: request)
         await MainActor.run {
             TrackingManager.shared.noteLiveShareEnded(at: Date())
             let duration = self.sessionStartTime.map { Int(Date().timeIntervalSince($0)) } ?? 0
             TelemetryManager.shared.trackLiveShareEnded(shareId: id, durationSeconds: duration)
+            if effectiveNotifyOnEnd && watcherCountSnapshot > 0 {
+                TelemetryManager.shared.trackTripAssuranceEndSent(
+                    stopKind: stopKind.rawValue,
+                    watcherCount: watcherCountSnapshot
+                )
+            }
             self.isActive = false
             self.isStarting = false
             self.isLiveSharePrimary = false
+            self.notifyWatchersOnEnd = true
             self.activeViewers = 0
             self.notifiedWatchersCount = 0
             self.sharedWatcherNames = []
@@ -484,7 +558,7 @@ class LiveSharingManager {
             DispatchQueue.main.async {
                 if remaining <= 0 {
                     let durStr = "the configured duration"
-                    self.stopSession(reason: "Max share duration reached (\(durStr)).")
+                    self.stopSession(reason: "Max share duration reached (\(durStr)).", stopKind: .expired)
                 } else {
                     self.remainingSeconds = remaining
                 }
@@ -691,7 +765,7 @@ class LiveSharingManager {
         guard let sessionId = sessionId, let url = URL(string: APIConfig.LiveShare.locationPush(sessionId: sessionId)) else { return }
 
         if let expiresAt = expiresAt, Date() > expiresAt {
-            stopSession(reason: "Share window elapsed.")
+            stopSession(reason: "Share window elapsed.", stopKind: .expired)
             return
         }
 
@@ -761,13 +835,13 @@ class LiveSharingManager {
                         self.isPushInProgress = false
                         self.isRetryingAuth = false
                         ToastManager.shared.show(message: LocalizationHelper.localized("Live sharing expired"), style: .error)
-                        self.stopSession(reason: "Session expired on server.")
+                        self.stopSession(reason: "Session expired on server.", stopKind: .expired)
                     case .some(401):
                         if isRetry {
                             self.isPushInProgress = false
                             self.isRetryingAuth = false
                             ToastManager.shared.show(message: LiveShareError.message(statusCode: 401, error: nil), style: .error)
-                            self.stopSession(reason: "Authentication expired.")
+                            self.stopSession(reason: "Authentication expired.", stopKind: .expired)
                         } else if !self.isRetryingAuth {
                             self.isRetryingAuth = true
                             self.pushLocation(loc, isPaused: isPaused, pauseReason: pauseReason, isRetry: true)

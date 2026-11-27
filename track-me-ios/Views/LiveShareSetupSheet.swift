@@ -20,6 +20,7 @@ struct LiveShareSetupFlowState: Equatable {
     var isSheetPresented: Bool = false
     var selectedDurationMinutes: Int = 30
     var isEditingDuration: Bool = false
+    var notifyWatchersOnEnd: Bool = true
 
     var timeLimitSummaryText: String {
         LocalizationHelper.formatted(
@@ -43,6 +44,7 @@ struct LiveShareSetupFlowState: Equatable {
             isSheetPresented = true
             selectedDurationMinutes = 30
             isEditingDuration = false
+            notifyWatchersOnEnd = true
         }
         return action
     }
@@ -62,6 +64,14 @@ struct LiveShareSetupFlowState: Equatable {
         isEditingDuration = false
         onStartDirectShare(duration)
     }
+
+    mutating func confirmStart(onStartDirectShareWithAssurance: (Int, Bool) -> Void) {
+        let duration = selectedDurationMinutes
+        let notifyOnEnd = notifyWatchersOnEnd
+        isSheetPresented = false
+        isEditingDuration = false
+        onStartDirectShareWithAssurance(duration, notifyOnEnd)
+    }
 }
 
 struct LiveShareSetupSheet: View {
@@ -78,6 +88,7 @@ struct LiveShareSetupSheet: View {
     let onToggleWatcherAutoNotify: (String, Bool) -> Void
     let onRemoveWatcher: (String) -> Void
     var stopsWithRide: Bool = true
+    var onStartDirectShareWithAssurance: ((Int, Bool) -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -277,6 +288,30 @@ struct LiveShareSetupSheet: View {
                             .buttonStyle(.bordered)
                             .disabled(!isAuthenticated || trustedWatchers.count >= TrustedWatchersManager.maxWatchers)
                         }
+
+                        if !liveSharingManager.isActive && trustedWatchers.contains(where: { $0.autoNotify }) {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(LocalizationHelper.localized("Notify selected watchers when I end this trip"))
+                                        .font(.subheadline.weight(.medium))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Text(LocalizationHelper.localized("Sends a trip-ended update only when you manually stop sharing."))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Spacer()
+                                Toggle("", isOn: $flowState.notifyWatchersOnEnd)
+                                    .labelsHidden()
+                                    .accessibilityLabel(LocalizationHelper.localized("Notify selected watchers when I end this trip"))
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(
+                                Color(uiColor: .secondarySystemGroupedBackground),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+                        }
                     }
 
                     Divider()
@@ -322,7 +357,11 @@ struct LiveShareSetupSheet: View {
                         .tint(BrandColor.destructive)
                     } else {
                         Button {
-                            flowState.confirmStart(onStartDirectShare: onStartDirectShare)
+                            if let onStartDirectShareWithAssurance {
+                                flowState.confirmStart(onStartDirectShareWithAssurance: onStartDirectShareWithAssurance)
+                            } else {
+                                flowState.confirmStart(onStartDirectShare: onStartDirectShare)
+                            }
                             onDismiss()
                         } label: {
                             Label(

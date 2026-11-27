@@ -379,6 +379,37 @@ class TelemetryManager {
             "duration_seconds": durationSeconds
         ])
     }
+
+    /// TASK-382: Bucketed trusted watcher count so exact social graph sizes never enter analytics.
+    static func bucketWatcherCount(_ count: Int) -> String {
+        switch count {
+        case ...0:
+            return "0"
+        case 1:
+            return "1"
+        case 2...3:
+            return "2_3"
+        default:
+            return "4_5"
+        }
+    }
+
+    /// TASK-382: Fired when a rider starts sharing with trip-ended watcher assurance enabled.
+    func trackTripAssuranceEnabled(watcherCount: Int) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("trip_assurance_enabled", properties: [
+            "watcher_count_bucket": Self.bucketWatcherCount(watcherCount)
+        ])
+    }
+
+    /// TASK-382: Fired when rider-confirmed stop dispatches trip-ended watcher assurance.
+    func trackTripAssuranceEndSent(stopKind: String, watcherCount: Int) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture("trip_assurance_end_sent", properties: [
+            "stop_kind": stopKind,
+            "watcher_count_bucket": Self.bucketWatcherCount(watcherCount)
+        ])
+    }
     
     // MARK: - Export / share funnel (TASK-305)
     //

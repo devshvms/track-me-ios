@@ -105,7 +105,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
         Task { @MainActor in
-            if let type = userInfo["type"] as? String, type == "live_share_started" {
+            if let type = userInfo["type"] as? String,
+               (type == "live_share_started" || type == "live_share_ended") {
                 _ = await TrustedWatchersManager.shared.refreshInbox()
                 completionHandler(.newData)
                 return
@@ -125,7 +126,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         Task { @MainActor in
             let userInfo = response.notification.request.content.userInfo
             if let type = userInfo["type"] as? String,
-               type == "live_share_started",
+               (type == "live_share_started" || type == "live_share_ended"),
                let sessionId = userInfo["sessionId"] as? String {
                 TrustedWatchersManager.shared.openLiveSessionFromNotification(
                     sessionId: sessionId,

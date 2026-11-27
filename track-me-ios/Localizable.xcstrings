@@ -5078,6 +5078,194 @@
         }
       }
     },
+    "Notify selected watchers when I end this trip": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgewählte Beobachter beim Beenden benachrichtigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notify selected watchers when I end this trip"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisar a los observadores elegidos al finalizar este viaje"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prévenir les contacts choisis quand je termine ce trajet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रिप समाप्त करने पर चुने गए वॉचर्स को सूचित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライド終了時に選択したウォッチャーへ通知"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在我结束本次行程时通知所选查看者"
+          }
+        }
+      }
+    },
+    "Sends a trip-ended update only when you manually stop sharing.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sendet ein Fahrt-beendet-Update nur, wenn du das Teilen manuell stoppst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sends a trip-ended update only when you manually stop sharing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envía un aviso de viaje finalizado solo cuando detienes el uso compartido manualmente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoie une notification de fin uniquement lorsque vous arrêtez le partage manuellement."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल तब ट्रिप समाप्ति अपडेट भेजता है जब आप शेयरिंग स्वयं रोकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手動で共有を停止したときのみ終了通知を送信します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在你手动停止共享时发送行程结束通知。"
+          }
+        }
+      }
+    },
+    "%@ ended their shared trip": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat die geteilte Fahrt beendet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ended their shared trip"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ finalizó su viaje compartido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ a terminé son trajet partagé"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने अपनी साझा ट्रिप समाप्त कर दी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ さんが共有ライドを終了しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 已结束其共享行程"
+          }
+        }
+      }
+    },
+    "Tap to view the concluded route on TrackMe.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen, um die beendete Route in TrackMe anzusehen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to view the concluded route on TrackMe."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca para ver la ruta finalizada en TrackMe."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez pour voir le trajet terminé sur TrackMe."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrackMe पर समाप्त रूट देखने के लिए टैप करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タップして TrackMe で終了したルートを確認します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻触即可在 TrackMe 上查看已结束的路线。"
+          }
+        }
+      }
+    },
     "Auto-notify %@": {
       "extractionState": "manual",
       "localizations": {

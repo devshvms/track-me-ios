@@ -72,6 +72,7 @@ struct HomeView: View {
     @State private var showDiscardRideDialog = false
     @State private var showFullRideHudForPrimaryShare = false
     @State private var pendingDirectShareDuration: Int?
+    @State private var pendingDirectShareNotifyOnEnd: Bool = true
     @State private var activeWatcherInvitePrompt: ParsedWatcherInviteLink?
     @State private var activeViewerSession: LiveViewerSessionItem?
     @AppStorage(OnboardingGate.stateKey) private var onboardingStateRaw = OnboardingState.legacy.rawValue
@@ -322,6 +323,13 @@ struct HomeView: View {
                             )
                         }
                     }
+                },
+                onStartDirectShareWithAssurance: { durationMinutes, notifyWatchersOnEnd in
+                    TelemetryManager.shared.trackDirectLiveShareTappedHome()
+                    launchDirectLiveShare(
+                        durationMinutes: durationMinutes,
+                        notifyWatchersOnEnd: notifyWatchersOnEnd
+                    )
                 }
             )
         }
@@ -565,7 +573,8 @@ struct HomeView: View {
                 updateFollowCamera()
                 if let durationMinutes = pendingDirectShareDuration {
                     pendingDirectShareDuration = nil
-                    startDirectLiveShareSession(durationMinutes: durationMinutes)
+                    let notifyOnEnd = pendingDirectShareNotifyOnEnd
+                    startDirectLiveShareSession(durationMinutes: durationMinutes, notifyWatchersOnEnd: notifyOnEnd)
                 }
             } else if oldState != .idle && newState == .idle {
                 explicitGroupMap = false
@@ -843,7 +852,10 @@ struct HomeView: View {
         }
     }
 
-    private func launchDirectLiveShare(durationMinutes: Int) {
+    private func launchDirectLiveShare(
+        durationMinutes: Int,
+        notifyWatchersOnEnd: Bool = true
+    ) {
         guard Auth.auth().currentUser != nil else {
             ToastManager.shared.show(
                 message: LocalizationHelper.localized("Sign in to share your live location."),
@@ -862,17 +874,21 @@ struct HomeView: View {
         pendingAutoShareOnLinkReady = autoNotifyWatchersSelection().uids.isEmpty
         if trackingManager.state == .idle {
             pendingDirectShareDuration = durationMinutes
+            pendingDirectShareNotifyOnEnd = notifyWatchersOnEnd
             trackingManager.startTracking(persona: selectedDashboardPersona)
             if trackingManager.state != .idle {
                 pendingDirectShareDuration = nil
-                startDirectLiveShareSession(durationMinutes: durationMinutes)
+                startDirectLiveShareSession(durationMinutes: durationMinutes, notifyWatchersOnEnd: notifyWatchersOnEnd)
             }
         } else {
-            startDirectLiveShareSession(durationMinutes: durationMinutes)
+            startDirectLiveShareSession(durationMinutes: durationMinutes, notifyWatchersOnEnd: notifyWatchersOnEnd)
         }
     }
 
-    private func startDirectLiveShareSession(durationMinutes: Int) {
+    private func startDirectLiveShareSession(
+        durationMinutes: Int,
+        notifyWatchersOnEnd: Bool = true
+    ) {
         let selection = autoNotifyWatchersSelection()
         pendingAutoShareOnLinkReady = selection.uids.isEmpty
         liveSharingManager.startSession(
@@ -880,7 +896,8 @@ struct HomeView: View {
             stopOnRideEnd: true,
             watcherUids: selection.uids,
             isLiveSharePrimary: true,
-            sharedWatcherNames: selection.names
+            sharedWatcherNames: selection.names,
+            notifyWatchersOnEnd: notifyWatchersOnEnd
         )
     }
 

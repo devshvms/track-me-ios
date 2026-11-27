@@ -877,7 +877,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         ToastManager.shared.show(message: LocalizationHelper.localized("Resumed your interrupted ride"), style: .info)
     }
 
-    func stopTracking(discard: Bool = false, endedAtOverride: Date? = nil) {
+    func stopTracking(
+        discard: Bool = false,
+        endedAtOverride: Date? = nil,
+        stopKindOverride: LiveShareStopKind? = nil
+    ) {
         standbyTimeoutTimer?.invalidate()
         standbyTimeoutTimer = nil
         standbyStartedAt = nil
@@ -923,6 +927,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
                 finalizeSegment(id: id, endedAt: endedAt)
             }
         }
+        let finalDistanceMeters = totalDistance
         currentRideId = nil
         elapsedDurationInMillis = 0
         if discard {
@@ -946,7 +951,13 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
 
         // Stop live sharing when the ride ends
         if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
-            LiveSharingManager.shared.stopSession(reason: "Ride ended successfully.")
+            let resolvedStopKind = stopKindOverride ?? .riderConfirmed
+            LiveSharingManager.shared.stopSession(
+                reason: resolvedStopKind == .autoDwellEnded ? "Ride auto-ended." : "Ride ended successfully.",
+                stopKind: resolvedStopKind,
+                notifyWatchersOnEndOverride: discard ? false : nil,
+                distanceKm: (!discard && finalDistanceMeters > 0) ? finalDistanceMeters / 1000.0 : nil
+            )
         }
 
         // §6.1.4 #22. Evaluated after the ride state is settled, so "is a ride active" is a fact
@@ -1722,7 +1733,10 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         if dwellDetector.isAutoTripChainingEnabled && !isLiveShareBlockingDwell {
             stopTrackingForAutoChaining(lastLocation: lastLocation, result: result)
         } else {
-            stopTracking(endedAtOverride: result.shouldPruneTrailingPoints ? autoEndTs : nil)
+            stopTracking(
+                endedAtOverride: result.shouldPruneTrailingPoints ? autoEndTs : nil,
+                stopKindOverride: .autoDwellEnded
+            )
         }
     }
 
@@ -1777,6 +1791,7 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         }
         finalizeSegment(id: id, endedAt: endedAt)
 
+        let finalDistanceMeters = totalDistance
         currentRideId = nil
         elapsedDurationInMillis = 0
         points.removeAll(keepingCapacity: false)
@@ -1792,7 +1807,11 @@ class TrackingManager: NSObject, CLLocationManagerDelegate {
         GroupRideManager.shared.refreshLocationSource()
 
         if LiveSharingManager.shared.isActive && LiveSharingManager.shared.isRideLinked {
-            LiveSharingManager.shared.stopSession(reason: "Ride ended successfully.")
+            LiveSharingManager.shared.stopSession(
+                reason: "Ride auto-ended.",
+                stopKind: .autoDwellEnded,
+                distanceKm: finalDistanceMeters > 0 ? finalDistanceMeters / 1000.0 : nil
+            )
         }
 
         let groupNow = GroupRideManager.shared.state

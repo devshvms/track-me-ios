@@ -236,4 +236,44 @@ final class LiveShareSliderAndSetupTests: XCTestCase {
         flow.confirmStart { startedDurations.append($0) }
         XCTAssertEqual(startedDurations, [60])
     }
+
+    func testTask382_AssuranceToggleDefaultTrueAndSevenLocaleCatalogEntries() throws {
+        var flow = LiveShareSetupFlowState()
+        XCTAssertTrue(flow.notifyWatchersOnEnd)
+        _ = flow.handleHomeTap(liveSharingActive: false, groupActive: false, isAuthenticated: true)
+        XCTAssertTrue(flow.notifyWatchersOnEnd)
+
+        flow.notifyWatchersOnEnd = false
+        var started: [(Int, Bool)] = []
+        flow.confirmStart { duration, notifyOnEnd in
+            started.append((duration, notifyOnEnd))
+        }
+        XCTAssertEqual(started.count, 1)
+        XCTAssertEqual(started[0].0, 30)
+        XCTAssertFalse(started[0].1)
+
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let repoRoot = testFileURL.deletingLastPathComponent().deletingLastPathComponent()
+        let catalogURL = repoRoot.appendingPathComponent("track-me-ios/Localizable.xcstrings")
+        let data = try Data(contentsOf: catalogURL)
+        let root = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try XCTUnwrap(root["strings"] as? [String: Any])
+        let requiredKeys = [
+            "Notify selected watchers when I end this trip",
+            "Sends a trip-ended update only when you manually stop sharing.",
+            "%@ ended their shared trip",
+            "Tap to view the concluded route on TrackMe.",
+        ]
+        let locales = ["en", "de", "es", "fr", "hi", "ja", "zh-Hans"]
+        for key in requiredKeys {
+            let entry = try XCTUnwrap(strings[key] as? [String: Any], "Missing xcstrings key: \(key)")
+            let locs = try XCTUnwrap(entry["localizations"] as? [String: Any], "Missing localizations for: \(key)")
+            for locale in locales {
+                let loc = try XCTUnwrap(locs[locale] as? [String: Any], "Missing \(locale) for: \(key)")
+                let unit = try XCTUnwrap(loc["stringUnit"] as? [String: Any])
+                let val = try XCTUnwrap(unit["value"] as? String)
+                XCTAssertFalse(val.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+    }
 }
