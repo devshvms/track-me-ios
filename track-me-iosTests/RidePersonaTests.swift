@@ -12,4 +12,20 @@ final class RidePersonaTests: XCTestCase {
         XCTAssertEqual(RidePersona.fromStoredName("GARBAGE"), .auto)
         XCTAssertEqual(RidePersona.fromStoredName("cycling"), .auto)
     }
+
+    func testQuickActivityModePolicyOrderSelectionAndTelemetryParity() {
+        XCTAssertEqual(
+            QuickActivityModePolicy.orderedPersonas,
+            [.auto, .carDrive, .bikeDrive, .walk, .cycling, .run]
+        )
+        XCTAssertEqual(Set(QuickActivityModePolicy.orderedPersonas), Set(RidePersona.allCases))
+        XCTAssertEqual(QuickActivityModePolicy.resolveTap(current: .auto, tapped: .cycling), .cycling)
+        XCTAssertNil(QuickActivityModePolicy.resolveTap(current: .cycling, tapped: .cycling))
+
+        let props = TelemetryManager.buildActivityModeChipSelectedProperties(
+            persona: .bikeDrive,
+            previousPersona: .auto
+        )
+        XCTAssertEqual(props, ["persona": "BIKE_DRIVE", "previous_persona": "AUTO"])
+    }
 }

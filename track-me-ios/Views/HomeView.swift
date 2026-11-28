@@ -1160,6 +1160,13 @@ struct HomeView: View {
             .font(.caption.weight(.medium))
             .foregroundColor(.secondary)
         }
+        QuickActivityModeStrip(selectedPersona: selectedDashboardPersona) { persona in
+            if let next = QuickActivityModePolicy.resolveTap(current: selectedDashboardPersona, tapped: persona) {
+                let previous = selectedDashboardPersona
+                selectDashboardPersona(next)
+                TelemetryManager.shared.trackActivityModeChipSelected(persona: next, previousPersona: previous)
+            }
+        }
         RadialStartTrackingControl(
             launchState: $rideStartLaunch,
             preselectedPersona: selectedDashboardPersona,
@@ -2410,6 +2417,60 @@ struct LiveShareActionDrawer: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(LocalizationHelper.localized(label))
+    }
+}
+
+nonisolated enum QuickActivityModePolicy {
+    static let orderedPersonas: [RidePersona] = [.auto, .carDrive, .bikeDrive, .walk, .cycling, .run]
+
+    static func resolveTap(current: RidePersona, tapped: RidePersona) -> RidePersona? {
+        tapped != current ? tapped : nil
+    }
+}
+
+private struct QuickActivityModeStrip: View {
+    let selectedPersona: RidePersona
+    let onSelectPersona: (RidePersona) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(QuickActivityModePolicy.orderedPersonas, id: \.self) { persona in
+                    let isSelected = persona == selectedPersona
+                    Button {
+                        onSelectPersona(persona)
+                    } label: {
+                        Label(
+                            LocalizationHelper.localized(persona.displayName),
+                            systemImage: persona.systemImage
+                        )
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 44)
+                        .background(
+                            isSelected
+                                ? BrandColor.primaryFill
+                                : Color(uiColor: .secondarySystemGroupedBackground),
+                            in: Capsule()
+                        )
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(
+                                    isSelected ? Color.clear : Color.primary.opacity(0.12),
+                                    lineWidth: 1
+                                )
+                        )
+                        .foregroundStyle(isSelected ? BrandColor.onPrimary : .primary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

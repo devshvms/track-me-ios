@@ -338,6 +338,27 @@ class TelemetryManager {
         capture(HomeTelemetryContract.startTapped(persona: persona, method: method))
     }
 
+    static func buildActivityModeChipSelectedProperties(
+        persona: RidePersona,
+        previousPersona: RidePersona
+    ) -> [String: String] {
+        [
+            "persona": persona.rawValue,
+            "previous_persona": previousPersona.rawValue
+        ]
+    }
+
+    func trackActivityModeChipSelected(persona: RidePersona, previousPersona: RidePersona) {
+        guard shouldTrack() else { return }
+        PostHogSDK.shared.capture(
+            "activity_mode_chip_selected",
+            properties: Self.buildActivityModeChipSelectedProperties(
+                persona: persona,
+                previousPersona: previousPersona
+            )
+        )
+    }
+
     func trackHomeInsightShown(_ insight: HomeInsight) {
         guard let event = HomeTelemetryContract.insightShown(insight) else { return }
         capture(event)
